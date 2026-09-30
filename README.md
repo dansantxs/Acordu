@@ -1,5 +1,7 @@
 # Acordu
 
+> Um produto **Utile Systems**.
+
 Gestão de **atendimento, tarefas e contratos** para prestadores de serviço, com **portal transparente para o cliente**. Todo pedido do cliente vira trabalho rastreado — e o cliente vê o status, o prazo e quanto do contrato foi consumido.
 
 Construído desde o início como **multi-tenant**, com a mesma engenharia do **Saldu**.
@@ -198,4 +200,8 @@ Imagens **ARM64** no GitHub Actions → **GHCR** → `docker compose pull && up 
 
 ## Licença
 
-Todos os direitos reservados enquanto privado. Uma licença poderá ser definida caso o projeto seja aberto no futuro.
+Todos os direitos reservados — projeto proprietário da **Utile Systems** enquanto privado. Uma licença poderá ser definida caso o projeto seja aberto no futuro.
+
+---
+
+*Acordu é um produto da Utile Systems.*
