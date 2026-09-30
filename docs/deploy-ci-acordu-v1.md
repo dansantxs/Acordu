@@ -4,7 +4,7 @@
 |---|---|
 | **Versão** | 0.1 |
 | **Data** | 30/09/2026 |
-| **Alvo** | A mesma VM Oracle Cloud Always Free do Saldu (Ampere A1, ARM, Ubuntu 24.04). |
+| **Alvo** | VM compartilhada `vps-arm-01` (Oracle Cloud Always Free, Ampere A1, ARM, Ubuntu 24.04), no compartimento `infra`. |
 | **Base** | Estratégia de deploy do Saldu (princípios, CI, GHCR, migrations, backup, TLS). Aqui só o que é **próprio** do Acordu ou muda por **compartilhar** a VM. |
 
 ---
@@ -21,7 +21,7 @@ Com dois produtos na mesma VM, o **Caddy de borda** e o **PostgreSQL** deixam de
 
 ```
 Internet ── 80/443
-┌─────────────────────────── VM Ampere (ARM) ───────────────────────────┐
+┌──────────────────────── vps-arm-01 (Ampere ARM) ──────────────────────┐
 │ /opt/infra   (stack de infraestrutura)                                 │
 │   caddy     ── TLS + roteamento por domínio  (rede: borda)             │
 │   postgres  ── bancos: saldu, acordu         (rede: dados)             │
@@ -136,7 +136,8 @@ Herdado (healthchecks, uptime externo, Sentry, Discord). **(Acordu)** Healthchec
 
 ## 10. Checklist de riscos
 
-- [ ] Stack de infra criada e Saldu migrado para ela (com backup antes).
+- [ ] Nomes neutros da infra aplicados (ver `setup-infra-oracle-acordu.md` §0).
+- [ ] Stack `/opt/infra` criada e Saldu migrado para ela (com backup antes).
 - [ ] Banco `acordu` isolado do `saldu` (usuários e `REVOKE` conferidos).
 - [ ] Limites de memória/CPU aplicados e medidos.
 - [ ] Bloco do Caddy do Acordu recarrega sem afetar o Saldu.

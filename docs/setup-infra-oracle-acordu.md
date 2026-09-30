@@ -13,15 +13,37 @@
 
 ---
 
-## 0. O que já existe (do Saldu) e o Acordu reaproveita
+## 0. Nomenclatura da infraestrutura
+
+Infra **compartilhada** recebe nome de **função**; recurso **exclusivo** de um produto recebe o nome do produto. Assim um rebatismo de produto nunca obriga a renomear (ou recriar) infraestrutura.
+
+| Recurso | Nome | Compartimento |
+|---|---|---|
+| Compartimento da infra compartilhada | `infra` | raiz da tenancy |
+| VCN | `infra-vcn` (CIDR `10.0.0.0/16`) | `infra` |
+| Subnet pública | `infra-subnet-publica` (`10.0.0.0/24`) | `infra` |
+| VM Ampere | `vps-arm-01` | `infra` |
+| IP público reservado | `vps-arm-01-ip` | `infra` |
+| Recursos só do Saldu (buckets, IAM) | prefixo `saldu-` | `saldu` |
+| Recursos só do Acordu (buckets, IAM) | prefixo `acordu-` | `acordu` |
+| Stack compartilhada na VM | `/opt/infra` (Caddy + Postgres) | — |
+| Stacks dos produtos na VM | `/opt/saldu`, `/opt/acordu` | — |
+
+O sufixo `-01` reserva espaço para uma segunda VM (§9).
+
+**Migração dos nomes antigos** (`pondus`, `pondus-vcn`, `pondus-vps`, `pondus-ip`):
+- Compartimento, VM e IP reservado: renomear pelo console (sem impacto).
+- VCN: **não** é renomeável; trocar o nome exige recriar a VCN **e a VM**. Fazer agora (nada em produção) num horário com tempo para insistir se faltar capacidade Ampere em PHX, **ou** manter `pondus-vcn` como exceção documentada até a próxima recriação da VM — nunca recriar só por causa do nome com produção no ar.
+
+## 0.1 O que já existe e o Acordu reaproveita
 
 | Recurso | Situação |
 |---|---|
 | Tenancy, MFA, alerta de billing | Reaproveitado. |
 | Região home (`us-phoenix-1`) | Reaproveitada (imutável). |
-| VCN, subnet pública, IGW, security list 80/443/22 | Reaproveitadas — o Acordu não abre porta nova. |
-| VM Ampere 2 OCPU / 12 GB, Ubuntu 24.04, iptables 80/443, Docker | Reaproveitada. |
-| IP público | Reaproveitado. **Associar o IP reservado antes do DNS do Acordu** (pendência do Saldu que passa a ser bloqueante). |
+| `infra-vcn`, subnet pública, IGW, security list 80/443/22 | Reaproveitadas — o Acordu não abre porta nova. |
+| `vps-arm-01` (Ampere 2 OCPU / 12 GB, Ubuntu 24.04, iptables 80/443, Docker) | Reaproveitada. |
+| `vps-arm-01-ip` | **Associar à VM antes do DNS do Acordu** (pendência que passa a ser bloqueante). |
 
 ---
 
@@ -38,7 +60,7 @@
 
 ### 1. Compartimento
 - Criar o compartimento **`acordu`** para os recursos **exclusivos** do Acordu (buckets e políticas).
-- A VM e a rede continuam no compartimento em que já estão (infraestrutura compartilhada). Não mover.
+- A VM, a rede e o IP ficam no compartimento `infra` (compartilhado). O Saldu segue o mesmo padrão, com o compartimento `saldu` para os recursos dele.
 
 ### 2. Object Storage
 Criar dois buckets no compartimento `acordu`, ambos **privados** (sem acesso público) e com criptografia gerenciada pela Oracle:
@@ -96,7 +118,7 @@ Extensões (`pg_trgm`, `unaccent`) são criadas pela primeira migration; se a im
 ### 6. DNS
 - Registrar **`acordu.app.br`** e **`acordu.com.br`** no registro.br.
 - Delegar para o **Cloudflare** (ADR 0005 herdado) e criar:
-  - `A acordu.app.br` → IP reservado da VM (proxy Cloudflare **desligado** até o Caddy emitir o primeiro certificado; depois ligar, com SSL "Full (strict)");
+  - `A acordu.app.br` → `vps-arm-01-ip` (proxy Cloudflare **desligado** até o Caddy emitir o primeiro certificado; depois ligar, com SSL "Full (strict)");
   - `CNAME www` → `acordu.app.br`;
   - `acordu.com.br`: redirecionamento para `acordu.app.br` (regra do Cloudflare).
 - Aguardar propagação antes do primeiro deploy (o Caddy precisa do DNS para o Let's Encrypt).
@@ -118,13 +140,13 @@ Na VM, o `docker login ghcr.io` já feito para o Saldu serve se o token tiver `r
 
 ```
 A.  Repo acordu (estrutura + docs + push)
-B0. Pré-requisito: stack de infra (Caddy + Postgres) criada e Saldu migrado para ela
+B0. Pré-requisito: nomes neutros aplicados (§0), stack /opt/infra (Caddy + Postgres) criada e Saldu migrado para ela
 B1. Compartimento acordu
 B2. Buckets acordu-anexos (versionado) e acordu-backups (lifecycle 14d) + alerta de cota
 B3. Usuário acordu-app + grupo + política + Customer Secret Key
 B4. Banco acordu + roles acordu_migrator/acordu_app
 B5. /opt/acordu + chave SSH de deploy própria
-B6. IP reservado associado → domínios → Cloudflare → DNS
+B6. vps-arm-01-ip associado → domínios → Cloudflare → DNS
 B7. Resend: domínio verificado (SPF/DKIM/DMARC)
 B8. GHCR com acesso às imagens do Acordu
 → pronto para o primeiro deploy
@@ -134,8 +156,9 @@ B8. GHCR com acesso às imagens do Acordu
 
 ## Checklist de "pronto"
 
-- [ ] Stack de infra no ar; Saldu funcionando depois da migração.
-- [ ] IP público **reservado** associado à VM.
+- [ ] Nomes neutros aplicados (compartimento `infra`, `vps-arm-01`, `vps-arm-01-ip`; VCN `infra-vcn` ou exceção documentada).
+- [ ] Stack `/opt/infra` no ar; Saldu funcionando depois da migração.
+- [ ] `vps-arm-01-ip` associado à VM.
 - [ ] Compartimento `acordu` criado.
 - [ ] Buckets privados criados, versionamento e lifecycle configurados.
 - [ ] Alerta de uso do Object Storage (~15 GB).
@@ -170,7 +193,10 @@ _(preencher conforme executar)_
 
 | Recurso | Valor |
 |---|---|
-| Compartimento | `acordu` — _pendente_ |
+| Compartimento compartilhado | `infra` (ex-`pondus`) — _renomear_ |
+| VCN | `infra-vcn` — _recriar ou manter `pondus-vcn` como exceção_ |
+| VM / IP | `vps-arm-01` / `vps-arm-01-ip` — _renomear_ |
+| Compartimento do Acordu | `acordu` — _pendente_ |
 | Buckets | `acordu-anexos`, `acordu-backups` — _pendente_ |
 | Namespace Object Storage | _preencher_ |
 | Usuário IAM | `acordu-app` — _pendente_ |
