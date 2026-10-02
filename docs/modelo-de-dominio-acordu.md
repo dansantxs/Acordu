@@ -182,12 +182,13 @@ class RecorrenciaTarefa <<aggregate root>> {
   +ContratoId?
   +Modelo: ModeloTarefa
   +Regra: RegraRecorrencia
-  +ProximaData: DateOnly
+  +ProximaData: DateOnly?
   +Status: StatusRecorrencia
   --
   +Criar(...)
+  +AlterarModelo(modelo) / AlterarRegra(regra, hoje)
   +Pausar() / Retomar(hoje) / Encerrar()
-  +GerarDevidas(hoje): OcorrenciaDevida[]
+  +GerarDevidas(hoje): DateOnly[]
 }
 
 class AcessoPortal <<aggregate root>> {
@@ -369,15 +370,19 @@ Regras:
   - `Data` não pode estar num **período fechado** do contrato (RF-APT-05). A Application passa os meses fechados (`MesReferencia`) do contrato congelado; sem contrato não há fechamento. Editar verifica a data atual **e** a nova; excluir verifica a data atual (`PeriodoFechadoException`).
   - Descrição obrigatória (≤ 2.000). `DescricaoExterna` só com `VisivelCliente` (senão `ArgumentException`); `VisivelCliente` exige `ClienteId`.
   - `Excluir` só valida e registra `ApontamentoExcluido`; a remoção é da Application. `ApontamentoAlterado` carrega a data anterior e a nova (o consumo dos dois meses é recalculado).
-  - `ContratoId` é resolvido na Application a partir da solicitação/projeto da tarefa e **congelado** no registro: mudar o contrato da solicitação depois não reescreve horas já apontadas.
+  - `ContratoId` é resolvido na Application a partir da solicitação/projeto/recorrência da tarefa e **congelado** no registro: mudar o contrato da solicitação depois não reescreve horas já apontadas.
   - Padrão (RF-APT-04): `VisivelCliente = Faturavel`, ajustável.
 - Autorização (autor ou permissão `apontamento.editar_todos`) é da Application.
 - **Emite:** `ApontamentoRegistrado`, `ApontamentoAlterado`, `ApontamentoExcluido` → recalcular consumo e checar limiares (RF-CTR-07).
 
 ### 4.9 RecorrenciaTarefa
-- `ModeloTarefa` (VO): título, descrição, responsável, checklist, estimativa, visível ao cliente.
-- `RegraRecorrencia` (VO): periodicidade (SEMANAL/MENSAL/TRIMESTRAL/ANUAL), dia de referência (dia da semana ou do mês), antecedência em dias (≥ 0), fim opcional.
-- `GerarDevidas(hoje)`: devolve as ocorrências cuja `dataReferencia − antecedência ≤ hoje`, a partir de `ProximaData`, e avança `ProximaData`. Pura: quem cria as tarefas é a Application.
+- `ModeloTarefa` (VO): título, descrição, responsável, checklist (≤ 50 itens), estimativa, visível ao cliente.
+- `RegraRecorrencia` (VO): periodicidade (SEMANAL/MENSAL/TRIMESTRAL/ANUAL), dia de referência (1–7 no SEMANAL, ISO com segunda = 1; 1–31 nos demais), antecedência em dias (0–365), **início** e fim opcional (≥ início).
+- **Âncora (`Inicio`):** nenhuma ocorrência antes dele; o mês dele define o ciclo TRIMESTRAL (mês do início, +3, +6…) e ANUAL (sempre o mês do início). Se o dia de referência já passou no mês do início, a primeira ocorrência é no ciclo seguinte.
+- `GerarDevidas(hoje)`: devolve as datas de referência cuja `dataReferencia − antecedência ≤ hoje`, a partir de `ProximaData`, e avança `ProximaData`. Pura: quem cria as tarefas (`Tarefa.CriarDeRecorrencia`) é a Application. Fora de ATIVA não gera nada. Gera no máximo 100 ocorrências por chamada (agendador parado por muito tempo); o restante sai na chamada seguinte.
+- **Fim da regra:** quando não há mais ocorrência (`ProximaData` nula), a recorrência passa sozinha a ENCERRADA.
+- `AlterarRegra(regra, hoje)`: a próxima data vira a primeira ocorrência da nova regra a partir de hoje. Edições não são permitidas em ENCERRADA.
+- `Tarefa.CriarDeRecorrencia(id, recorrencia, dataReferencia)`: copia o modelo (com checklist nova, itens não feitos), herda tenant e cliente, prazo = data de referência.
 - **Idempotência** (RF-REC-03): garantida em duas camadas — `ProximaData` avança no mesmo commit que cria as tarefas, e índice único `(RecorrenciaId, DataReferencia)` em `Tarefa` barra duplicata numa corrida.
 - **Retomar(hoje):** recalcula `ProximaData` para a primeira ocorrência ≥ hoje (sem retroativas — RF-REC-05).
 - Fim de mês: clamp ao último dia (RF-REC-04), via `GeradorDeDatas`.
@@ -412,7 +417,7 @@ Mesmo desenho do Saldu (`Tenant`, `Usuario` global, `Vinculo` N-N, `Papel`, `Per
 | `PoliticaSla` | 4 × `PrazoSla` (`Prioridade`, `PrimeiraResposta: Duracao`, `Resolucao: Duracao`) | exatamente um por prioridade; prazos > 0; resolução ≥ primeira resposta (`SlaIncompletoException`); igualdade independe da ordem. |
 | `RelogioSla` | ver §4.4 | só muda via métodos de `Solicitacao`. |
 | `Solucao` | `Problema?`, `Causa?`, `Texto` | texto obrigatório (≤ 10.000); problema e causa ≤ 2.000; textos aparados, vazio vira nulo. |
-| `ModeloTarefa`, `RegraRecorrencia` | ver §4.9 | — |
+| `ModeloTarefa`, `RegraRecorrencia` | ver §4.9 | igualdade por valor (inclusive a checklist do modelo). |
 | `JanelaDiaria` | `DiaSemana`, `Inicio: TimeOnly`, `Fim: TimeOnly` | início < fim. |
 | `PoliticaAnexos` | `TamanhoMaximoBytes`, `TiposPermitidos`, `MaximoPorInteracao` | limites > 0; ao menos um tipo; tipos sem diferenciar maiúsculas. |
 | `NovoAnexo` | `NomeArquivo`, `TipoConteudo`, `TamanhoBytes`, `ChaveArmazenamento` | validado em `Interacao.Registrar`. |
@@ -430,8 +435,8 @@ Puros e determinísticos — principal alvo dos testes unitários.
 - Regras de borda: início fora do expediente começa a contar na próxima abertura; horário de verão resolvido pela conversão de fuso (o cálculo anda em hora local e converte de volta para UTC).
 
 ### 6.2 GeradorDeDatas
-- `Proxima(regra, aPartirDe: DateOnly): DateOnly` e `Ocorrencias(regra, de, ate)`.
-- Mesma regra de clamp de fim de mês do Saldu. Candidato a ser extraído num pacote comum aos dois produtos **se** a duplicação incomodar — não agora.
+- `Proxima(regra, aPartirDe: DateOnly): DateOnly?` (nula depois do fim) e `Ocorrencias(regra, de, ate)`.
+- Clamp de fim de mês sem "contaminar" os meses seguintes: dia 31 gera 31/01, 28/02, 31/03 (mesma regra do Saldu, implementação própria). Candidato a ser extraído num pacote comum aos dois produtos **se** a duplicação incomodar — não agora.
 
 ---
 
