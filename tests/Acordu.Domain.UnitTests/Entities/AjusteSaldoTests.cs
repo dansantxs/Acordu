@@ -53,9 +53,9 @@ public sealed class AjusteSaldoTests
     [Theory]
     [InlineData("")]
     [InlineData("   ")]
-    public void Registrar_SemMotivo_LancaExcecao(string motivo)
+    public void Registrar_SemMotivo_LancaExcecao(string motivoInformado)
     {
-        var acao = () => Registrar(Contratos.Criar(), motivo: motivo);
+        var acao = () => Registrar(Contratos.Criar(), motivo: motivoInformado);
 
         acao.Should().Throw<ArgumentException>().WithParameterName("motivo");
     }

@@ -35,9 +35,9 @@ public sealed class SolucaoTests
     [InlineData("")]
     [InlineData("   ")]
     [InlineData(null)]
-    public void Criar_SemTexto_LancaExcecao(string? texto)
+    public void Criar_SemTexto_LancaExcecao(string? textoInformado)
     {
-        var acao = () => new Solucao(texto!);
+        var acao = () => new Solucao(textoInformado!);
 
         acao.Should().Throw<ArgumentException>().WithParameterName("texto");
     }
