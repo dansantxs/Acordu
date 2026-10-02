@@ -141,6 +141,7 @@ Herdado (healthchecks, uptime externo, Sentry, Discord). **(Acordu)** Healthchec
 - [ ] Banco `acordu` isolado do `saldu` (usuários e `REVOKE` conferidos).
 - [ ] Limites de memória/CPU aplicados e medidos.
 - [ ] Bloco do Caddy do Acordu recarrega sem afetar o Saldu.
+- [ ] Imagem da API com `tzdata` e ICU (o cálculo de SLA resolve fusos IANA como `America/Sao_Paulo`; imagens Alpine não trazem por padrão).
 - [ ] Chave JWT e chave SSH de deploy próprias do Acordu.
 - [ ] Buckets privados; Customer Secret Key restrita aos buckets do Acordu.
 - [ ] Backup do banco + versionamento dos anexos + restore testado.
