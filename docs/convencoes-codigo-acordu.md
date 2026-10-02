@@ -26,6 +26,7 @@
 - **(Acordu) `IgnoreQueryFilters()` só na Infrastructure**, e só em pontos listados (agendador que varre todos os tenants, jobs de manutenção). Teste de arquitetura falha se aparecer em outra camada.
 - **(Acordu) SQL cru** (consumo, dashboard, semelhantes) só via o helper de consultas da Infrastructure, que exige `TenantId` — e `ClienteId` nas consultas do portal — como parâmetros obrigatórios.
 - Extensões Postgres habilitadas por migration: `pg_trgm`, `unaccent`.
+- **(Acordu) Migrations** ficam em `src/Acordu.Infrastructure/Persistence/Migrations` e são geradas pelo `dotnet-ef` fixado em `.config/dotnet-tools.json`: pelo workflow manual **Migrations** (gera e faz commit na branch de feature; nunca na `main`) ou localmente com o comando do cabeçalho do workflow. Migration gerada não é editada à mão, exceto para acrescentar SQL que o EF não expressa (índices sobre colunas de tipos owned, extensões), sempre no fim do `Up`/`Down`.
 - **(Acordu) Segredos de uso único** (token de link do portal): gerados no domínio com `RandomNumberGenerator`; persiste-se só o SHA-256 em hex minúsculo, com índice único; comparação em tempo constante (`CryptographicOperations.FixedTimeEquals`).
 - **(Acordu) Documento (CPF/CNPJ) e e-mail** normalizados no domínio (só dígitos; e-mail em minúsculas) antes de comparar ou persistir.
 

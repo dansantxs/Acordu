@@ -1,0 +1,72 @@
+name: Migrations
+
+# Gera uma migration do EF Core e faz commit dela na branch escolhida (ver convencoes-codigo-acordu.md §1).
+# Disparo: Actions → Migrations → Run workflow (branch + nome), ou pela API:
+#   gh api repos/dansantxs/acordu/actions/workflows/migrations.yml/dispatches -f ref=<branch> -f 'inputs[nome]=<Nome>'
+# Commits feitos com o GITHUB_TOKEN não disparam o CI: depois da migration, um push qualquer na branch roda os testes.
+# Localmente: dotnet tool restore && dotnet ef migrations add <Nome> --project src/Acordu.Infrastructure
+#             --startup-project src/Acordu.Api --output-dir Persistence/Migrations
+
+on:
+  workflow_dispatch:
+    inputs:
+      nome:
+        description: "Nome da migration em PascalCase (ex.: Inicial)"
+        required: true
+        type: string
+
+permissions:
+  contents: write
+
+concurrency:
+  group: migrations-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  gerar:
+    name: Gerar migration
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - name: Recusar a main
+        if: github.ref == 'refs/heads/main'
+        run: |
+          echo "Gere migrations numa branch de feature, nunca direto na main."
+          exit 1
+
+      - name: Validar nome
+        env:
+          NOME: ${{ inputs.nome }}
+        run: |
+          if [[ ! "$NOME" =~ ^[A-Z][A-Za-z0-9]{1,79}$ ]]; then
+            echo "Nome inválido: use PascalCase, só letras e números."
+            exit 1
+          fi
+
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: global.json
+
+      - name: Restaurar ferramentas
+        run: dotnet tool restore
+
+      - name: Gerar migration
+        env:
+          NOME: ${{ inputs.nome }}
+        run: >
+          dotnet ef migrations add "$NOME"
+          --project src/Acordu.Infrastructure
+          --startup-project src/Acordu.Api
+          --output-dir Persistence/Migrations
+
+      - name: Commit na branch
+        env:
+          NOME: ${{ inputs.nome }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src/Acordu.Infrastructure/Persistence/Migrations
+          git commit -m "build(infrastructure): gera migration $NOME"
+          git push
