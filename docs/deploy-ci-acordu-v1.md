@@ -79,7 +79,7 @@ Revisar com a medição real (o `docker stats` do primeiro mês).
 ## 3. CI (`ci.yml`) — a cada push/PR
 
 Igual ao Saldu:
-- **Backend:** restore → build → todos os testes (incluindo `ArchitectureTests`); integração com Testcontainers (Postgres). **(Acordu)** O teste do object storage usa um container MinIO no runner.
+- **Backend:** restore → build → todos os testes (incluindo `ArchitectureTests`); integração com Testcontainers (Postgres). **(Acordu)** O teste do object storage usa um emulador S3 em container no runner (escolha no marco de anexos).
 - **Frontend:** install → lint → Vitest → build.
 - Merge em `main` só com tudo verde e PR revisado.
 

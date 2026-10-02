@@ -148,7 +148,7 @@ Regra de higiene: **decisão de arquitetura vira ADR**; **convenção de código
 **Pré-requisitos:** .NET 10 SDK, Node LTS, Docker.
 
 ```
-# Postgres + MinIO (object storage local)
+# Postgres local
 docker compose -f docker-compose.dev.yml up -d
 
 # backend
