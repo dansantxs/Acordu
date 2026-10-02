@@ -323,9 +323,12 @@ O quadro (kanban) é o mesmo `GET /tarefas` agrupado no front por `status`.
               "estimativaMinutos": 240, "visivelCliente": true,
               "checklist": ["Conciliar extratos", "Emitir guias", "Enviar ao cliente"] },
   "regra": { "periodicidade": "MENSAL", "diaReferencia": 31,
-             "antecedenciaDias": 3, "fim": null }
+             "antecedenciaDias": 3, "inicio": "2026-10-01", "fim": null }
 }
 ```
+- `inicio` (opcional; padrão: hoje no fuso do tenant) é a âncora: nenhuma ocorrência antes dele, e o mês dele define o ciclo de TRIMESTRAL e ANUAL.
+- `diaReferencia`: 1–7 em SEMANAL (1 = segunda, 7 = domingo); 1–31 nos demais (dia inexistente no mês vira o último dia).
+- `antecedenciaDias`: 0–365.
 `GET .../previa` → `["2026-10-31", "2026-11-30", "2026-12-31", "2027-01-31", "2027-02-28", "2027-03-31"]` (clamp de fim de mês visível para o usuário conferir).
 
 ---
