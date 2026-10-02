@@ -35,20 +35,21 @@ skinparam classAttributeIconSize 0
 class Cliente <<aggregate root>> {
   +Id, TenantId
   +Nome: string
-  +Documento: string?
+  +Documento: string? (CPF/CNPJ, só dígitos)
+  +Observacoes: string?
   +Ativo: bool
   +Contatos: Contato[]
   --
-  +Criar(tenantId, nome, documento?): Cliente
-  +Renomear(nome)
-  +AdicionarContato(nome, email, telefone?): Contato
+  +Criar(id, tenantId, nome, documento?, observacoes?): Cliente
+  +Editar(nome, documento?, observacoes?)
+  +AdicionarContato(nome, email, telefone?, cargo?): Contato
   +AtualizarContato(contatoId, ...)
   +InativarContato(contatoId)
   +VincularUsuarioAoContato(contatoId, usuarioId)
-  +Inativar()
+  +Inativar() / Reativar()
 }
 class Contato <<entity>> {
-  +Id, Nome, Email, Telefone?
+  +Id, Nome, Email, Telefone?, Cargo?
   +UsuarioId: Guid?
   +Ativo: bool
 }
@@ -116,11 +117,12 @@ class Interacao <<aggregate root>> {
   +Id, TenantId, ClienteId, SolicitacaoId
   +AutorId: Guid
   +AutorEhCliente: bool
-  +Texto: string
+  +Texto: string?
   +Visibilidade: Visibilidade
+  +RegistradaEm
   +Anexos: Anexo[]
   --
-  +Registrar(...): Interacao
+  +Registrar(..., anexos: NovoAnexo[], politica: PoliticaAnexos, agora): Interacao
 }
 
 class Tarefa <<aggregate root>> {
@@ -185,11 +187,12 @@ class RecorrenciaTarefa <<aggregate root>> {
 class AcessoPortal <<aggregate root>> {
   +Id, TenantId, ClienteId
   +SolicitacaoId, ContatoId
-  +TokenHash, ExpiraEm, Revogado
+  +TokenHash, EmitidoEm, ExpiraEm, RevogadoEm?
   --
-  +Emitir(..., agora): (AcessoPortal, tokenEmClaro)
+  +Emitir(..., agora, validade): AcessoPortalEmitido(acesso, token)
+  +HashDoToken(token): string
   +Validar(token, agora): bool
-  +Revogar()
+  +Revogar(agora)
 }
 
 class CalendarioUtil <<aggregate root>> {
@@ -249,7 +252,8 @@ Sequencial por tenant, gerado na Infrastructure (tabela de contadores com `UPDAT
 ## 4. Agregados em detalhe
 
 ### 4.1 Cliente
-- **Invariantes:** nome obrigatório; e-mail de contato válido e único entre contatos ativos do cliente; contato inativo não pode ser vinculado a usuário.
+- **Invariantes:** nome obrigatório; documento opcional, CPF ou CNPJ com dígitos verificadores válidos, guardado só com dígitos; e-mail de contato válido, normalizado em minúsculas e único entre contatos ativos do cliente (`EmailDuplicadoException`; o e-mail de um contato inativo pode ser reutilizado); contato inativo não pode ser vinculado a usuário, nem um contato já vinculado a outro usuário (`TransicaoInvalidaException`).
+- Campos do ERS: `Observacoes` no cliente (RF-CLI-01) e `Cargo` no contato (RF-CLI-02). O Id do contato é gerado pelo cliente.
 - `VincularUsuarioAoContato` é chamado quando o contato aceita o convite do portal (RF-CLI-03).
 - Inativar cliente não apaga histórico; a Application bloqueia novas solicitações para cliente inativo.
 
@@ -336,7 +340,8 @@ Regras:
 `Solicitacao.SituacaoSla(agora, calendario)` compõe a situação exibida: sem contrato ou CANCELADA → `SEM_SLA`; resolvida ou fechada → `CUMPRIDO`/`VIOLADO` comparando `ResolvidaEm` com o prazo; em aberto → a pior entre primeira resposta e resolução.
 
 ### 4.5 Interacao
-- **Invariantes:** texto ou ao menos um anexo; autor cliente ⇒ visibilidade EXTERNA obrigatória; anexo com tamanho ≤ limite e tipo permitido (limites vêm da configuração, passados como parâmetro).
+- **Invariantes:** texto (≤ 10.000) ou ao menos um anexo; autor cliente ⇒ visibilidade EXTERNA obrigatória; anexos validados contra a `PoliticaAnexos` (tamanho máximo, content types permitidos, máximo por interação), montada pela Application a partir da configuração (padrão do contrato da API: 5 anexos de até 20 MB) → `AnexoInvalidoException`; nome de arquivo sem caminho (`/`, `\`, `..`).
+- O arquivo é enviado ao object storage antes; o domínio recebe `NovoAnexo` (nome, tipo, tamanho, chave). Imutável depois de registrada no v1.
 - Anexo guarda metadados + `ChaveArmazenamento`; o binário vive no object storage (ADR 0005 do Saldu — complementares).
 - **Emite:** `InteracaoRegistrada` (com `Visibilidade` e `AutorEhCliente`) — gatilho das regras do §3.1 e das notificações.
 
@@ -370,14 +375,20 @@ Regras:
 
 ### 4.10 AcessoPortal
 - `Emitir` gera token aleatório de 32 bytes, guarda **só o hash** (SHA-256) e devolve o token em claro uma única vez (vai no e-mail).
-- `Validar`: hash confere, não revogado, `agora < ExpiraEm`. Escopo: uma solicitação (RNF-SEG-06).
+- `Validar`: hash confere (comparação em tempo constante), não revogado, `agora < ExpiraEm`. Escopo: uma solicitação (RNF-SEG-06).
+- Token: 32 bytes do `RandomNumberGenerator`, base64url (43 caracteres); `TokenHash` = SHA-256 do token em hex minúsculo, usado também para localizar o acesso na troca do link por sessão (índice único).
+- A validade vem da Application (padrão de 30 dias, segurança §5.3). "Reemitir revoga o anterior" e revogar os links ao remover o contato são orquestrados pela Application. `Revogar` é idempotente e mantém o primeiro instante.
 
 ### 4.11 CalendarioUtil
 - Um por tenant, semeado no cadastro (seg–sex 08:00–18:00, fuso `America/Sao_Paulo`, sem feriados).
 - **Invariantes:** fuso IANA válido; janelas diárias com início < fim; ao menos um dia útil na semana; feriados sem duplicata.
 - Intervalo de almoço fica fora do v1 (uma janela por dia).
 
-### 4.12 Identidade e acesso
+### 4.12 Categoria
+- Nome obrigatório (≤ 100); `Renomear`, `Inativar`, `Reativar`. Inativa some da escolha em novas solicitações, mas continua nas antigas.
+- Nome único por tenant é regra entre agregados: Application + índice único no banco.
+
+### 4.13 Identidade e acesso
 Mesmo desenho do Saldu (`Tenant`, `Usuario` global, `Vinculo` N-N, `Papel`, `Permissao`), com a extensão do ADR 0002: `Vinculo.ClienteId` e `Vinculo.EscopoPortal`, obrigatórios quando o papel é **Cliente** e proibidos nos demais.
 
 ---
@@ -393,6 +404,8 @@ Mesmo desenho do Saldu (`Tenant`, `Usuario` global, `Vinculo` N-N, `Papel`, `Per
 | `Solucao` | `Problema?`, `Causa?`, `Texto` | texto obrigatório (≤ 10.000); problema e causa ≤ 2.000; textos aparados, vazio vira nulo. |
 | `ModeloTarefa`, `RegraRecorrencia` | ver §4.9 | — |
 | `JanelaDiaria` | `DiaSemana`, `Inicio: TimeOnly`, `Fim: TimeOnly` | início < fim. |
+| `PoliticaAnexos` | `TamanhoMaximoBytes`, `TiposPermitidos`, `MaximoPorInteracao` | limites > 0; ao menos um tipo; tipos sem diferenciar maiúsculas. |
+| `NovoAnexo` | `NomeArquivo`, `TipoConteudo`, `TamanhoBytes`, `ChaveArmazenamento` | validado em `Interacao.Registrar`. |
 
 ---
 

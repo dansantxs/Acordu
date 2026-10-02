@@ -26,6 +26,8 @@
 - **(Acordu) `IgnoreQueryFilters()` só na Infrastructure**, e só em pontos listados (agendador que varre todos os tenants, jobs de manutenção). Teste de arquitetura falha se aparecer em outra camada.
 - **(Acordu) SQL cru** (consumo, dashboard, semelhantes) só via o helper de consultas da Infrastructure, que exige `TenantId` — e `ClienteId` nas consultas do portal — como parâmetros obrigatórios.
 - Extensões Postgres habilitadas por migration: `pg_trgm`, `unaccent`.
+- **(Acordu) Segredos de uso único** (token de link do portal): gerados no domínio com `RandomNumberGenerator`; persiste-se só o SHA-256 em hex minúsculo, com índice único; comparação em tempo constante (`CryptographicOperations.FixedTimeEquals`).
+- **(Acordu) Documento (CPF/CNPJ) e e-mail** normalizados no domínio (só dígitos; e-mail em minúsculas) antes de comparar ou persistir.
 
 ---
 
