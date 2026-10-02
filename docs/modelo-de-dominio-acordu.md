@@ -2,8 +2,8 @@
 
 | | |
 |---|---|
-| **Versão** | 0.1 |
-| **Data** | 30/09/2026 |
+| **Versão** | 0.2 |
+| **Data** | 02/10/2026 |
 | **Bounded context** | Atendimento e Execução de Serviços (único no v1) |
 | **Base** | `ERS-acordu-v1.md` |
 | **Natureza** | Especificação de modelo. Operações são contratos (assinaturas), **sem implementação** — guia para a codificação. |
@@ -64,6 +64,7 @@ class Contrato <<aggregate root>> {
   +Criar(...): Contrato
   +AlterarFranquia(franquia)
   +DefinirSla(politica)
+  +AlterarFimVigencia(fim?)
   +Suspender() / Reativar() / Encerrar(data)
   +EstaVigenteEm(data): bool
 }
@@ -73,8 +74,9 @@ class AjusteSaldo <<aggregate root>> {
   +Quantidade: Duracao (+/-)
   +Motivo: string
   +Data: DateOnly
+  +AutorId: Guid
   --
-  +Registrar(...): AjusteSaldo
+  +Registrar(id, contrato, quantidade, motivo, data, autorId): AjusteSaldo
 }
 
 class Solicitacao <<aggregate root>> {
@@ -260,8 +262,16 @@ Sequencial por tenant, gerado na Infrastructure (tabela de contadores com `UPDAT
 |---|---|
 | `Criar` | tipo × franquia coerentes; vigência válida; SLA completo |
 | `AlterarFranquia` | coerência com o tipo; contrato não ENCERRADO |
-| `DefinirSla` | política completa |
-| `Suspender`/`Reativar`/`Encerrar` | transições válidas |
+| `DefinirSla` | política completa; contrato não ENCERRADO |
+| `AlterarFimVigencia` | fim ≥ início; contrato não ENCERRADO (alimenta o `PATCH` de vigência) |
+| `Suspender`/`Reativar`/`Encerrar` | transições válidas; `Encerrar(data)` fecha a vigência em `data` sem nunca estendê-la |
+
+- Operação em contrato ENCERRADO lança `TransicaoInvalidaException`; franquia incoerente com o tipo lança `ContratoIncoerenteException`.
+- `EstaVigenteEm(data)` = ATIVO **e** `Vigencia.Contem(data)` (SUSPENSO não está vigente).
+
+### 4.2.1 AjusteSaldo
+- `Registrar` recebe o `Contrato` (só leitura): herda `TenantId`/`ClienteId` dele e valida localmente que é **BANCO_HORAS**, não ENCERRADO e que `data ≥ Vigencia.Inicio` (`ContratoIncoerenteException`).
+- Quantidade ≠ 0 (`DuracaoAssinada`), motivo obrigatório (≤ 1.000) e `AutorId` obrigatório (RF-CTR-06: "com motivo e autor").
 
 ### 4.3 Solicitacao
 - **Invariantes:** título obrigatório; cliente obrigatório; se houver contrato, deve ser do mesmo cliente (checado na Application, que carrega o contrato); `Solucao.Texto` obrigatório para resolver; motivo obrigatório para cancelar e para reabrir quando vindo do cliente (reprovação).
@@ -357,9 +367,9 @@ Mesmo desenho do Saldu (`Tenant`, `Usuario` global, `Vinculo` N-N, `Papel`, `Per
 |---|---|---|
 | `Duracao` | `Minutos: int` | ≥ 0 (negativo só em `AjusteSaldo`, via `DuracaoAssinada`); soma/subtração retornam nova instância; `FromHoras(h, m)`; formatação "3h20" só na apresentação. |
 | `Periodo` | `Inicio: DateOnly`, `Fim: DateOnly?` | fim ≥ início; `Contem(data)`. |
-| `PoliticaSla` | 4 × (`Prioridade`, `PrimeiraResposta: Duracao`, `Resolucao: Duracao`) | completa; resolução ≥ primeira resposta. |
+| `PoliticaSla` | 4 × `PrazoSla` (`Prioridade`, `PrimeiraResposta: Duracao`, `Resolucao: Duracao`) | exatamente um por prioridade; prazos > 0; resolução ≥ primeira resposta (`SlaIncompletoException`); igualdade independe da ordem. |
 | `RelogioSla` | ver §4.4 | só muda via métodos de `Solicitacao`. |
-| `Solucao` | `Problema?`, `Causa?`, `Texto` | texto obrigatório, limites de tamanho. |
+| `Solucao` | `Problema?`, `Causa?`, `Texto` | texto obrigatório (≤ 10.000); problema e causa ≤ 2.000; textos aparados, vazio vira nulo. |
 | `ModeloTarefa`, `RegraRecorrencia` | ver §4.9 | — |
 | `JanelaDiaria` | `DiaSemana`, `Inicio: TimeOnly`, `Fim: TimeOnly` | início < fim. |
 

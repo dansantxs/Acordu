@@ -3,7 +3,7 @@
 | | |
 |---|---|
 | **Versão** | 0.1 |
-| **Última atualização** | 30/09/2026 |
+| **Última atualização** | 02/10/2026 |
 | **Natureza** | Convenções técnicas do projeto. Toda convenção de código nova entra aqui (decisões de arquitetura entram num ADR). |
 | **Base** | Convenções do Saldu, com as adaptações do Acordu marcadas como **(Acordu)**. |
 
@@ -38,6 +38,10 @@
 - **Value objects como `record`:** `readonly record struct` para os pequenos e numéricos (`Duracao`), `sealed record` para os compostos (`Periodo`, `JanelaDiaria`). A igualdade por valor vem do record; não há classe base `ValueObject`. A validação fica no construtor.
 - **Eventos de domínio:** a raiz guarda a lista de eventos pendentes (`EntidadeBase.Registrar`); a Infrastructure despacha e chama `LimparEventos`. Sem biblioteca de mediator no domínio.
 - Construtores privados + *factory methods*; sem setters públicos; máquinas de estado com a tabela de transições do `modelo-de-dominio-acordu.md` como fonte da verdade (e testes cobrindo cada célula).
+- **(Acordu) Enums em PascalCase no C#** (`StatusSolicitacao.EmAndamento`), com valores numéricos explícitos a partir de 1. O formato `SCREAMING_SNAKE` do contrato (`EM_ANDAMENTO`) é responsabilidade da borda: na Api, `JsonStringEnumConverter` com `JsonNamingPolicy.SnakeCaseUpper`; no banco, conversor equivalente definido no marco da Infrastructure.
+- **(Acordu) Operação não permitida no status atual** (inclusive editar agregado em estado final) lança `TransicaoInvalidaException`, mesmo quando não é uma transição propriamente dita.
+- **(Acordu) Textos:** tamanhos máximos em `Acordu.Domain.Common.LimitesTexto` (fonte única para validação e para `HasMaxLength`); entrada é aparada, obrigatório vazio → `ArgumentException`, opcional vazio → `null`.
+- **(Acordu) Agregado que precisa validar outro** recebe a raiz como parâmetro somente leitura e copia só o Id (ex.: `AjusteSaldo.Registrar(..., contrato, ...)`); nunca guarda referência de objeto.
 
 ---
 
