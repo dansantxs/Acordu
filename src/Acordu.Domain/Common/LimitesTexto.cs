@@ -11,4 +11,6 @@ public static class LimitesTexto
     public const int SolucaoTexto = 10_000;
     public const int SolucaoProblemaCausa = 2_000;
     public const int Motivo = 1_000;
+    public const int ItemChecklist = 500;
+    public const int DescricaoApontamento = 2_000;
 }
