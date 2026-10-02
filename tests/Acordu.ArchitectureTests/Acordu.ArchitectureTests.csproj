@@ -1,0 +1,12 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup>
+    <PackageReference Include="NetArchTest.Rules" />
+    <PackageReference Include="Mono.Cecil" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\Acordu.Domain\Acordu.Domain.csproj" />
+    <ProjectReference Include="..\..\src\Acordu.Application\Acordu.Application.csproj" />
+    <ProjectReference Include="..\..\src\Acordu.Infrastructure\Acordu.Infrastructure.csproj" />
+    <ProjectReference Include="..\..\src\Acordu.Api\Acordu.Api.csproj" />
+  </ItemGroup>
+</Project>
