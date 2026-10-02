@@ -36,6 +36,7 @@ acordu/
 │  │  ├─ 0002-portal-escopo-por-cliente.md
 │  │  ├─ 0003-sla-horas-uteis.md
 │  │  └─ 0004-tempo-em-minutos-e-consumo-read-model.md
+│  ├─ estrategia-produto-acordu.md
 │  ├─ modelo-de-dominio-acordu.md
 │  ├─ contrato-api-acordu-v1.md
 │  ├─ read-side-acordu-v1.md
@@ -188,7 +189,7 @@ Testes obrigatórios nos níveis de integração **e** API: cross-tenant (RNF-SE
 ## 8. Documentação
 
 - `docs/ers/`, `docs/adr/` e os demais em `docs/`, como no Saldu.
-- **Fora do repositório** (ficam no Projeto do Claude): estratégia de produto e cronograma — contêm estratégia de negócio e contexto que não deve ser público.
+- **Estratégia de produto e cronograma** também ficam em `docs/`. Contêm estratégia de negócio: revisar (ou remover do histórico) antes de qualquer abertura pública do repositório.
 
 > **Regra de manutenção:** decisão de arquitetura → ADR; convenção de código → `convencoes-codigo-acordu.md`, no mesmo turno em que é decidida.
 

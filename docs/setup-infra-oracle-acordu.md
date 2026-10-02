@@ -51,7 +51,7 @@ O sufixo `-01` reserva espaço para uma segunda VM (§9).
 
 1. Repositório `acordu` no GitHub (privado).
 2. Estrutura conforme `estrutura-repositorio-acordu.md`; documentos em `docs/`.
-3. Estratégia de produto e cronograma **fora** do repositório (Projeto do Claude).
+3. Estratégia de produto e cronograma em `docs/` (repositório privado; revisar antes de abrir o código).
 4. Primeiro commit + push.
 
 ---

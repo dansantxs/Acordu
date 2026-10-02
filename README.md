@@ -126,6 +126,7 @@ acordu/
 | `docs/adr/0002-portal-escopo-por-cliente.md` | Portal: contato como usuário com escopo por cliente. |
 | `docs/adr/0003-sla-horas-uteis.md` | SLA em horas úteis, calendário por tenant, pausa. |
 | `docs/adr/0004-tempo-em-minutos-e-consumo-read-model.md` | `Duracao` em minutos; consumo como read model. |
+| `docs/estrategia-produto-acordu.md` | Visão, mercado, posicionamento, fases e monetização. |
 | `docs/modelo-de-dominio-acordu.md` | Agregados, máquinas de estado, VOs, serviços, eventos. |
 | `docs/contrato-api-acordu-v1.md` | Endpoints internos e do portal, formatos, erros. |
 | `docs/read-side-acordu-v1.md` | Consumo, extrato, SLA, dashboard, semelhantes, índices. |
