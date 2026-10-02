@@ -135,8 +135,11 @@ class Tarefa <<aggregate root>> {
   +Checklist: ItemChecklist[]
   --
   +Criar(...) / CriarDeRecorrencia(...)
+  +Editar(titulo, descricao?) / Atribuir(responsavelId?)
+  +DefinirPrazo(prazo?) / DefinirEstimativa(estimativa?)
   +Iniciar() / Concluir() / Reabrir() / Cancelar()
-  +AdicionarItem(texto) / MarcarItem(id, feito)
+  +AdicionarItem(texto) / EditarItem(id, texto)
+  +MarcarItem(id, feito) / RemoverItem(id)
   +TornarVisivelAoCliente(bool)
 }
 
@@ -147,7 +150,9 @@ class Projeto <<aggregate root>> {
   +Estimativa: Duracao?
   +Status: StatusProjeto
   --
-  +Criar(...) / Concluir() / Cancelar()
+  +Criar(...) / Editar(nome, prazo?, estimativa?)
+  +AlterarContrato(contratoId?)
+  +Concluir() / Cancelar()
 }
 
 class Apontamento <<aggregate root>> {
@@ -158,12 +163,13 @@ class Apontamento <<aggregate root>> {
   +Descricao, DescricaoExterna?
   +Faturavel, VisivelCliente: bool
   --
-  +Registrar(..., periodosFechados)
+  +Registrar(..., periodosFechados: MesReferencia[])
   +Editar(..., periodosFechados)
+  +Excluir(periodosFechados)
 }
 
 class Cronometro <<aggregate root>> {
-  +UsuarioId (chave), TenantId
+  +Id, TenantId, UsuarioId (único por tenant)
   +TarefaId, IniciadoEm
   --
   +Iniciar(...) / Parar(agora): Duracao
@@ -239,7 +245,7 @@ Crescem sem limite. **Consumo do contrato não é estado**: é read model (soma 
 Coleção pequena e com invariante local (e-mail único entre os contatos ativos do cliente). Referenciado de fora por `ContatoId`.
 
 ### 3.4 `Cronometro` como agregado por usuário
-A invariante "no máximo um cronômetro ativo por usuário" (RF-APT-02) vira chave: um registro por `(TenantId, UsuarioId)`. Parar o cronômetro devolve a `Duracao` e a Application cria o `Apontamento`.
+A invariante "no máximo um cronômetro ativo por usuário" (RF-APT-02) vira índice único `(TenantId, UsuarioId)`; o agregado tem Id próprio, como os demais. Existir = estar ativo: a Application remove o registro ao parar ou descartar. `Parar(agora)` devolve a `Duracao` arredondada ao minuto mais próximo (mínimo 1 min), sem cortar em 24h; a Application cria o `Apontamento`, que rejeita acima de 24h (o usuário aponta à mão ou descarta).
 
 ### 3.5 Número de protocolo
 Sequencial por tenant, gerado na Infrastructure (tabela de contadores com `UPDATE ... RETURNING` na mesma transação). O domínio recebe o número pronto em `Abrir`; invariante: `Numero > 0` e imutável.
@@ -342,19 +348,22 @@ Regras:
 
 ### 4.6 Tarefa
 - **Transições:** A_FAZER → FAZENDO → CONCLUIDA; A_FAZER/FAZENDO → CANCELADA; CONCLUIDA → FAZENDO (`Reabrir`).
-- **Invariantes:** título obrigatório; `VisivelCliente` só pode ser verdadeiro se houver `SolicitacaoId` ou `ProjetoId` com cliente; `(RecorrenciaId, DataReferencia)` preenchidos juntos ou nenhum.
-- `ClienteId` é herdado da solicitação/projeto/recorrência na criação (desnormalizado para o filtro do portal).
-- Checklist: itens com texto não vazio, limite razoável (ex.: 50).
+- **Invariantes:** título obrigatório; tarefa de solicitação ou projeto exige `ClienteId`; `VisivelCliente` só pode ser verdadeiro se houver `ClienteId` (vale também para tarefa de recorrência, que aparece no extrato — read side §4); estimativa > 0 se informada; `(RecorrenciaId, DataReferencia)` preenchidos juntos ou nenhum.
+- `ClienteId` é herdado da solicitação/projeto/recorrência na criação pela Application (desnormalizado para o filtro do portal).
+- Checklist: no máximo 50 itens, texto não vazio (≤ 500). O Id do item é gerado pela tarefa (`Guid.CreateVersion7`).
+- Edições e checklist são permitidas em qualquer estado exceto CANCELADA (final); `Concluir` só a partir de FAZENDO.
 - **Emite:** `TarefaConcluida`.
 
 ### 4.7 Projeto
-- Transições: EM_ANDAMENTO → CONCLUIDO / CANCELADO. Progresso (tarefas concluídas, horas × estimativa) é read model.
+- Transições: EM_ANDAMENTO → CONCLUIDO / CANCELADO (finais). Progresso (tarefas concluídas, horas × estimativa) é read model.
+- `Editar` e `AlterarContrato` só em EM_ANDAMENTO. Trocar o contrato não reescreve apontamentos já feitos (contrato congelado no apontamento).
 
 ### 4.8 Apontamento
 - **Invariantes:**
   - `Duracao > 0` e ≤ 24h.
-  - `Data` não pode estar num **período fechado** do contrato (RF-APT-05). A lista de períodos fechados é passada pela Application.
-  - `DescricaoExterna` só faz sentido se `VisivelCliente`.
+  - `Data` não pode estar num **período fechado** do contrato (RF-APT-05). A Application passa os meses fechados (`MesReferencia`) do contrato congelado; sem contrato não há fechamento. Editar verifica a data atual **e** a nova; excluir verifica a data atual (`PeriodoFechadoException`).
+  - Descrição obrigatória (≤ 2.000). `DescricaoExterna` só com `VisivelCliente` (senão `ArgumentException`); `VisivelCliente` exige `ClienteId`.
+  - `Excluir` só valida e registra `ApontamentoExcluido`; a remoção é da Application. `ApontamentoAlterado` carrega a data anterior e a nova (o consumo dos dois meses é recalculado).
   - `ContratoId` é resolvido na Application a partir da solicitação/projeto da tarefa e **congelado** no registro: mudar o contrato da solicitação depois não reescreve horas já apontadas.
   - Padrão (RF-APT-04): `VisivelCliente = Faturavel`, ajustável.
 - Autorização (autor ou permissão `apontamento.editar_todos`) é da Application.
@@ -388,6 +397,7 @@ Mesmo desenho do Saldu (`Tenant`, `Usuario` global, `Vinculo` N-N, `Papel`, `Per
 |---|---|---|
 | `Duracao` | `Minutos: int` | ≥ 0 (negativo só em `AjusteSaldo`, via `DuracaoAssinada`); soma/subtração retornam nova instância; `FromHoras(h, m)`; formatação "3h20" só na apresentação. |
 | `Periodo` | `Inicio: DateOnly`, `Fim: DateOnly?` | fim ≥ início; `Contem(data)`. |
+| `MesReferencia` | `Ano`, `Mes` | mês civil de apuração e de fechamento; `De(data)`, `Contem(data)`; formato `yyyy-MM`. |
 | `PoliticaSla` | 4 × `PrazoSla` (`Prioridade`, `PrimeiraResposta: Duracao`, `Resolucao: Duracao`) | exatamente um por prioridade; prazos > 0; resolução ≥ primeira resposta (`SlaIncompletoException`); igualdade independe da ordem. |
 | `RelogioSla` | ver §4.4 | só muda via métodos de `Solicitacao`. |
 | `Solucao` | `Problema?`, `Causa?`, `Texto` | texto obrigatório (≤ 10.000); problema e causa ≤ 2.000; textos aparados, vazio vira nulo. |

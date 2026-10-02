@@ -124,9 +124,9 @@ public sealed class Solicitacao : RaizComCliente
             origem,
             agora.ToUniversalTime())
         {
-            ContatoId = IdOpcional(contatoId, nameof(contatoId)),
-            CategoriaId = IdOpcional(categoriaId, nameof(categoriaId)),
-            ResponsavelId = IdOpcional(responsavelId, nameof(responsavelId)),
+            ContatoId = Ids.Opcional(contatoId, nameof(contatoId)),
+            CategoriaId = Ids.Opcional(categoriaId, nameof(categoriaId)),
+            ResponsavelId = Ids.Opcional(responsavelId, nameof(responsavelId)),
             ContratoId = contratoId,
         };
         if (politicaSla is not null)
@@ -146,14 +146,14 @@ public sealed class Solicitacao : RaizComCliente
     public void DefinirCategoria(Guid? categoriaId)
     {
         GarantirNaoFinalizada(nameof(DefinirCategoria));
-        CategoriaId = IdOpcional(categoriaId, nameof(categoriaId));
+        CategoriaId = Ids.Opcional(categoriaId, nameof(categoriaId));
     }
 
     /// <summary>Define ou remove o responsável. Emite <see cref="SolicitacaoAtribuida"/> só quando muda.</summary>
     public void Atribuir(Guid? responsavelId)
     {
         GarantirNaoFinalizada(nameof(Atribuir));
-        var novo = IdOpcional(responsavelId, nameof(responsavelId));
+        var novo = Ids.Opcional(responsavelId, nameof(responsavelId));
         if (novo == ResponsavelId)
             return;
 
@@ -354,7 +354,4 @@ public sealed class Solicitacao : RaizComCliente
         if (contratoId is null != politicaSla is null)
             throw new ArgumentException("Contrato e política de SLA devem ser informados juntos.", nameof(politicaSla));
     }
-
-    private static Guid? IdOpcional(Guid? id, string parametro) =>
-        id == Guid.Empty ? throw new ArgumentException("O Id não pode ser vazio.", parametro) : id;
 }

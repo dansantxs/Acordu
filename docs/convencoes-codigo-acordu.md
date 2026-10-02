@@ -41,6 +41,7 @@
 - **(Acordu) Enums em PascalCase no C#** (`StatusSolicitacao.EmAndamento`), com valores numéricos explícitos a partir de 1. O formato `SCREAMING_SNAKE` do contrato (`EM_ANDAMENTO`) é responsabilidade da borda: na Api, `JsonStringEnumConverter` com `JsonNamingPolicy.SnakeCaseUpper`; no banco, conversor equivalente definido no marco da Infrastructure.
 - **(Acordu) Operação não permitida no status atual** (inclusive editar agregado em estado final) lança `TransicaoInvalidaException`, mesmo quando não é uma transição propriamente dita.
 - **(Acordu) Textos:** tamanhos máximos em `Acordu.Domain.Common.LimitesTexto` (fonte única para validação e para `HasMaxLength`); entrada é aparada, obrigatório vazio → `ArgumentException`, opcional vazio → `null`.
+- **(Acordu) Ids:** a raiz recebe o Id na factory (gerado pela Application); entidade filha dentro do agregado (ex.: `ItemChecklist`) tem o Id gerado pela raiz com `Guid.CreateVersion7()`. Referências entre agregados validadas por `Common.Ids` (`Guid.Empty` → `ArgumentException`).
 - **(Acordu) Agregado que precisa validar outro** recebe a raiz como parâmetro somente leitura e copia só o Id (ex.: `AjusteSaldo.Registrar(..., contrato, ...)`); nunca guarda referência de objeto.
 
 ---
