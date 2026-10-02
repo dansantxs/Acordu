@@ -88,8 +88,8 @@ consumido = Σ linha.duracaoMinutos        // bate com §3 por construção
 Calculada pela `CalculadoraSla` (domínio) a partir do `RelogioSla` persistido e do `CalendarioUtil` do tenant, para um instante `agora`:
 
 ```
-se sem contrato                       → SEM_SLA
-se RESOLVIDA/FECHADA/CANCELADA        → CUMPRIDO | VIOLADO   (compara resolvidaEm com prazoResolucao)
+se sem contrato ou CANCELADA          → SEM_SLA
+se RESOLVIDA/FECHADA                  → CUMPRIDO | VIOLADO   (compara resolvidaEm com prazoResolucao)
 se pausado                            → situação congelada no instante da pausa
 senão:
   total      = MinutosUteisEntre(inicioCiclo, prazoResolucao) + minutosPausadosNoCiclo(0 fora de pausa)

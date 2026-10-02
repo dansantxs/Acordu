@@ -88,23 +88,28 @@ class Solicitacao <<aggregate root>> {
   +Status: StatusSolicitacao
   +Origem: OrigemSolicitacao
   +ResponsavelId: Guid?
-  +Sla: RelogioSla
+  +Sla: RelogioSla?
   +Solucao: Solucao?
-  +ResolvidaEm?, FechadaEm?
+  +AbertaEm, PrimeiraRespostaEm?
+  +ResolvidaEm?, FechadaEm?, CanceladaEm?
+  +MotivoCancelamento?
   --
-  +Abrir(..., agora, calendario): Solicitacao
-  +Atribuir(responsavelId)
-  +Repriorizar(prioridade, agora, calendario)
-  +Iniciar(agora, calendario)
-  +AguardarCliente(agora, calendario)
+  +Abrir(..., contratoId?, politicaSla?, agora, calendario): Solicitacao
+  +Editar(titulo, descricao?)
+  +DefinirCategoria(categoriaId?)
+  +Atribuir(responsavelId?)
+  +Repriorizar(prioridade, politicaSla?, calendario)
+  +Iniciar(agora)
+  +AguardarCliente(agora)
   +AguardarTerceiro(agora)
   +Retomar(agora, calendario)
   +RegistrarPrimeiraResposta(agora)
-  +Resolver(solucao, agora)
+  +Resolver(solucao, agora, calendario)
   +Reabrir(motivo, agora, calendario)
   +Fechar(agora)
   +Cancelar(motivo, agora)
-  +StatusExterno(): StatusExterno
+  +StatusExterno: StatusExterno
+  +SituacaoSla(agora, calendario): SituacaoSla
 }
 
 class Interacao <<aggregate root>> {
@@ -274,7 +279,11 @@ Sequencial por tenant, gerado na Infrastructure (tabela de contadores com `UPDAT
 - Quantidade ≠ 0 (`DuracaoAssinada`), motivo obrigatório (≤ 1.000) e `AutorId` obrigatório (RF-CTR-06: "com motivo e autor").
 
 ### 4.3 Solicitacao
-- **Invariantes:** título obrigatório; cliente obrigatório; se houver contrato, deve ser do mesmo cliente (checado na Application, que carrega o contrato); `Solucao.Texto` obrigatório para resolver; motivo obrigatório para cancelar e para reabrir quando vindo do cliente (reprovação).
+- **Invariantes:** título obrigatório (≤ 200); descrição opcional (≤ 10.000); cliente obrigatório; `Numero > 0`; contrato e `PoliticaSla` informados juntos ou nenhum (sem contrato não há SLA); se houver contrato, deve ser do mesmo cliente e vigente (checado na Application, que carrega o contrato); `Solucao` obrigatória para resolver; motivo obrigatório para cancelar e **sempre** para reabrir (equipe ou reprovação do cliente).
+- **Reabrir** descarta `Solucao` e `ResolvidaEm` (a solução reprovada não deve aparecer em "semelhantes"). A janela de N dias (RF-SOL-10) é garantida pela Application e pelo fechamento automático.
+- **Edições** (`Editar`, `DefinirCategoria`, `Atribuir`) são permitidas em qualquer estado não final; `Repriorizar` também não é permitido em RESOLVIDA. Fora disso → `TransicaoInvalidaException`.
+- **`PrimeiraRespostaEm`** fica na própria solicitação (não no relógio): é registrada mesmo sem contrato. `RegistrarPrimeiraResposta` é idempotente.
+- Trocar o contrato de uma solicitação (com recálculo de SLA) fica para um marco posterior.
 
 **Máquina de estados (RF-SOL-03):**
 
@@ -301,18 +310,30 @@ Qualquer transição fora da tabela lança `TransicaoInvalidaException`.
 
 `AGUARDANDO_TERCEIRO` aparece ao cliente como "Em andamento" de propósito: o problema do fornecedor é do prestador, não do cliente — e o relógio do SLA **não** pausa nesse estado.
 
-- **Emite:** `SolicitacaoAberta`, `SolicitacaoStatusAlterado`, `SolicitacaoResolvida`, `SolicitacaoReaberta`, `PrimeiraRespostaRegistrada`.
+- **Emite:** `SolicitacaoAberta`, `SolicitacaoStatusAlterado` (em **toda** mudança de status, com status externo anterior e novo), `SolicitacaoResolvida`, `SolicitacaoReaberta`, `SolicitacaoAtribuida`, `PrimeiraRespostaRegistrada`.
 
 ### 4.4 RelogioSla (value object dentro de Solicitacao) — ver ADR 0003
-Campos: `PrazoPrimeiraResposta`, `PrazoResolucao`, `LimiteRisco` (instante em que 75% do tempo útil é atingido — permite filtrar "em risco" no SQL, ver read side §5), `PrimeiraRespostaEm?`, `PausadoDesde?`, `MinutosUteisRestantesResolucao?`. Todos os instantes são recalculados juntos em abrir, pausar, retomar, repriorizar e reabrir.
+Imutável: cada operação devolve um novo relógio. Campos: `AbertoEm`, `InicioCiclo` (abertura ou última reabertura), `TempoPrimeiraResposta` e `TempoResolucao` (minutos úteis da prioridade vigente), `PausadoNoCiclo` (minutos úteis já pausados no ciclo, sem a pausa em curso), `PausadoDesde?` e os instantes derivados `PrazoPrimeiraResposta`, `PrazoResolucao` e `LimiteRisco`.
+
+Todos os instantes saem de uma fórmula única, recalculada em abrir, retomar, repriorizar e reabrir:
+
+```
+PrazoPrimeiraResposta = Somar(AbertoEm, TempoPrimeiraResposta)
+PrazoResolucao        = Somar(InicioCiclo, TempoResolucao + PausadoNoCiclo)
+LimiteRisco           = Somar(InicioCiclo, ⌈75% × TempoResolucao⌉ + PausadoNoCiclo)
+```
+
+No caso comum equivale a "guardar os minutos restantes na pausa e somar a partir da retomada" (ADR 0003, decisão 4). A diferença é que **um prazo já vencido continua no passado** depois de pausar, retomar ou repriorizar, em vez de ser empurrado para "agora".
 
 Regras:
-1. **Abrir:** prazos = `CalculadoraSla.Somar(calendario, agora, minutosDaPolitica)`. Sem contrato → sem prazos (SLA não se aplica).
-2. **Pausar** (entrar em AGUARDANDO_CLIENTE): guarda `MinutosUteisRestantesResolucao = CalculadoraSla.MinutosUteisEntre(calendario, agora, PrazoResolucao)` e `PausadoDesde = agora`. O prazo de primeira resposta **não** pausa (se ainda não houve resposta, pedir informação ao cliente já é a primeira resposta).
-3. **Retomar:** `PrazoResolucao = Somar(calendario, agora, MinutosUteisRestantesResolucao)`; limpa a pausa.
-4. **Repriorizar:** recalcula os prazos a partir do **instante de abertura** com a nova política, descontando o tempo pausado acumulado.
-5. **Situação** em um instante: `NO_PRAZO`, `EM_RISCO` (≥ 75% do tempo útil consumido) ou `VIOLADO`; pausado → situação congelada.
-6. **Reabrir:** novo ciclo de resolução com o prazo cheio da prioridade, a partir do instante da reabertura (decisão simples e explicável; revisar com uso real).
+1. **Abrir:** sem contrato → sem relógio (SLA não se aplica).
+2. **Pausar** (entrar em AGUARDANDO_CLIENTE): guarda `PausadoDesde`. O prazo de primeira resposta **não** pausa.
+3. **Retomar** (sair de AGUARDANDO_CLIENTE, ou resolver estando nele): soma `MinutosUteisEntre(PausadoDesde, agora)` a `PausadoNoCiclo`. Uma pausa iniciada **depois** do prazo vencido não desloca o prazo.
+4. **Repriorizar:** aplica os tempos da nova prioridade a partir de `InicioCiclo`, descontando `PausadoNoCiclo`. O prazo de primeira resposta só muda se ela ainda não aconteceu. Ir para uma prioridade mais alta pode deixar o prazo no passado (violado). Ir para uma mais baixa pode tirar a violação (a prioridade estava errada).
+5. **Situação** em um instante (`SituacaoResolucao`, `SituacaoPrimeiraResposta`, `PercentualResolucao`): `VIOLADO` se o instante passou do prazo; senão `EM_RISCO` se ≥ 75% do tempo útil foi consumido; senão `NO_PRAZO`. Pausado → calculada no instante da pausa (congelada). O percentual pode passar de 100 quando violado.
+6. **Reabrir:** novo ciclo (`InicioCiclo = agora`, `PausadoNoCiclo = 0`) com o prazo cheio da prioridade; o prazo de primeira resposta não muda.
+
+`Solicitacao.SituacaoSla(agora, calendario)` compõe a situação exibida: sem contrato ou CANCELADA → `SEM_SLA`; resolvida ou fechada → `CUMPRIDO`/`VIOLADO` comparando `ResolvidaEm` com o prazo; em aberto → a pior entre primeira resposta e resolução.
 
 ### 4.5 Interacao
 - **Invariantes:** texto ou ao menos um anexo; autor cliente ⇒ visibilidade EXTERNA obrigatória; anexo com tamanho ≤ limite e tipo permitido (limites vêm da configuração, passados como parâmetro).
@@ -382,7 +403,7 @@ Puros e determinísticos — principal alvo dos testes unitários.
 ### 6.1 CalculadoraSla
 - `Somar(calendario, inicio: DateTimeOffset, minutosUteis: int): DateTimeOffset` — anda pelo expediente no fuso do tenant, pulando fora do horário, fins de semana e feriados.
 - `MinutosUteisEntre(calendario, de, ate): int`.
-- `Situacao(relogio, calendario, agora): SituacaoSla`.
+- A situação do SLA é calculada pelo próprio `RelogioSla` (§4.4), que usa estas duas operações.
 - Regras de borda: início fora do expediente começa a contar na próxima abertura; horário de verão resolvido pela conversão de fuso (o cálculo anda em hora local e converte de volta para UTC).
 
 ### 6.2 GeradorDeDatas
@@ -396,7 +417,9 @@ Puros e determinísticos — principal alvo dos testes unitários.
 | Evento | Disparado por | Reação (handler na Application) |
 |---|---|---|
 | `SolicitacaoAberta` | `Solicitacao.Abrir` | E-mail "recebida #N" ao contato; e-mail/notificação interna. |
-| `SolicitacaoStatusAlterado` | transições | Notificar contato quando o status **externo** muda. |
+| `SolicitacaoStatusAlterado` | toda transição (inclusive resolver, reabrir, fechar, cancelar) | Notificar contato quando o status **externo** muda (`ExternoMudou`), exceto onde um evento específico já notifica (resolvida). |
+| `SolicitacaoAtribuida` | `Atribuir` (só quando muda) | E-mail interno de atribuição (RF-NOT-02). |
+| `SolicitacaoReaberta` | `Reabrir` | Notificar responsável (motivo no evento). |
 | `SolicitacaoResolvida` | `Resolver` | E-mail ao contato com link de aprovação; agenda fechamento automático (RF-SOL-09). |
 | `InteracaoRegistrada` | `Interacao.Registrar` | Primeira resposta (§3.1); retomar se cliente respondeu; notificar a outra parte. |
 | `ApontamentoRegistrado/Alterado/Excluido` | `Apontamento` | Checar limiares de consumo (RF-CTR-07). |
