@@ -48,7 +48,7 @@ acordu/
 │  └─ convencoes-commit-acordu.md
 ├─ src/
 │  ├─ Acordu.Domain/                   # NÚCLEO — zero dependências externas
-│  │  ├─ Common/                       # EntidadeBase (Id, TenantId), RaizComCliente (ClienteId), ValueObject, EventoDominio
+│  │  ├─ Common/                       # EntidadeBase (Id, TenantId, eventos), RaizComCliente (ClienteId), IEventoDominio
 │  │  ├─ Entities/                     # Cliente, Contato, Contrato, AjusteSaldo, Solicitacao, Interacao,
 │  │  │                                # Tarefa, Projeto, Apontamento, Cronometro, RecorrenciaTarefa,
 │  │  │                                # AcessoPortal, CalendarioUtil, Categoria

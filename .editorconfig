@@ -35,3 +35,5 @@ dotnet_naming_style.underscore_camel.required_prefix = _
 [tests/**/*.cs]
 dotnet_diagnostic.CA1707.severity = none
 dotnet_diagnostic.CA1515.severity = none
+# Classes aninhadas agrupam cenários do mesmo método testado
+dotnet_diagnostic.CA1034.severity = none
