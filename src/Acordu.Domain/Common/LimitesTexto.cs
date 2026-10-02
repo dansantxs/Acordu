@@ -6,6 +6,15 @@ namespace Acordu.Domain.Common;
 /// </summary>
 public static class LimitesTexto
 {
+    public const int Nome = 200;
+    public const int NomeCategoria = 100;
+    public const int Email = 254;
+    public const int Telefone = 30;
+    public const int Cargo = 100;
+    public const int Observacoes = 2_000;
+    public const int TextoInteracao = 10_000;
+    public const int NomeArquivo = 255;
+
     public const int Titulo = 200;
     public const int Descricao = 10_000;
     public const int SolucaoTexto = 10_000;
