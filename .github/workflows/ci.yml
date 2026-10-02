@@ -36,6 +36,25 @@ jobs:
           dotnet test Acordu.sln --configuration Release --no-build
           --logger "trx" --results-directory TestResults
 
+      - name: Anotar testes que falharam
+        if: failure()
+        shell: python
+        run: |
+          # Cada teste que falhou vira uma annotation do check run (legível pela API, sem baixar artefatos).
+          import glob, xml.etree.ElementTree as ET
+          ns = {"t": "http://microsoft.com/schemas/VisualStudio/TeamTest/2010"}
+          falhas = 0
+          for arquivo in glob.glob("TestResults/**/*.trx", recursive=True):
+              for r in ET.parse(arquivo).getroot().iterfind(".//t:UnitTestResult", ns):
+                  if r.get("outcome") != "Failed" or falhas >= 40:
+                      continue
+                  falhas += 1
+                  msg = r.findtext(".//t:ErrorInfo/t:Message", default="", namespaces=ns)
+                  pilha = r.findtext(".//t:ErrorInfo/t:StackTrace", default="", namespaces=ns)
+                  texto = (msg.strip() + " | " + " ".join(pilha.split())[:600]).replace("%", "%25").replace("\r", "").replace("\n", "%0A")
+                  print(f"::error title={r.get('testName')}::{texto[:1800]}")
+          print(f"{falhas} teste(s) com falha anotado(s).")
+
       - name: Publicar resultados dos testes
         if: always()
         uses: actions/upload-artifact@v4
