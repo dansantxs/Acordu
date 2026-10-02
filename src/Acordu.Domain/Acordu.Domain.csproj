@@ -1,0 +1,3 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- Núcleo: nenhuma dependência externa (ver convencoes-codigo-acordu.md §5). -->
+</Project>
