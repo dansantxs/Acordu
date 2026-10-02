@@ -15,8 +15,8 @@ public sealed class CalendarioUtilTests
         var calendario = Calendarios.Padrao();
 
         calendario.FusoHorario.Should().Be("America/Sao_Paulo");
-        calendario.Expediente.Select(j => j.Dia).Should().BeEquivalentTo(
-            DayOfWeek.Monday, DayOfWeek.Tuesday, DayOfWeek.Wednesday, DayOfWeek.Thursday, DayOfWeek.Friday);
+        calendario.Expediente.Select(j => j.Dia).Should().BeEquivalentTo<DayOfWeek>(
+            [DayOfWeek.Monday, DayOfWeek.Tuesday, DayOfWeek.Wednesday, DayOfWeek.Thursday, DayOfWeek.Friday]);
         calendario.Expediente.Should().OnlyContain(j => j.Inicio == Oito && j.Fim == Dezoito);
         calendario.Feriados.Should().BeEmpty();
     }
