@@ -20,7 +20,7 @@ public sealed class ContratoTests
             contrato.Status.Should().Be(StatusContrato.Ativo);
             contrato.Tipo.Should().Be(TipoContrato.BancoHoras);
             contrato.Franquia.Should().Be(Duracao.FromHoras(20));
-            contrato.ClienteId.Should().Be(Cliente);
+            contrato.ClienteId.Should().Be(Contratos.Cliente);
             contrato.Vigencia.Should().Be(new Periodo(InicioOutubro));
             contrato.Sla.Should().Be(PoliticaPadrao());
         }
@@ -49,7 +49,7 @@ public sealed class ContratoTests
         public void BancoDeHorasSemFranquia_LancaExcecao()
         {
             var acao = () => Contrato.Criar(
-                Guid.NewGuid(), Calendarios.Tenant, Cliente, TipoContrato.BancoHoras,
+                Guid.NewGuid(), Calendarios.Tenant, Contratos.Cliente, TipoContrato.BancoHoras,
                 new Periodo(InicioOutubro), null, PoliticaPadrao());
 
             acao.Should().Throw<ContratoIncoerenteException>();
