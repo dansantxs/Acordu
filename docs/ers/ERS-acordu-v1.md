@@ -537,7 +537,7 @@ API -> DB : status FECHADA
 
 ## 6. Estratégia de testes
 
-Mesma pirâmide do Saldu (xUnit + FluentAssertions, Testcontainers, WebApplicationFactory; Vitest no front; Playwright nos fluxos principais).
+Mesma pirâmide do Saldu (xUnit + AwesomeAssertions, Testcontainers, WebApplicationFactory; Vitest no front; Playwright nos fluxos principais).
 
 ### 6.1 Núcleo de maior risco (unitários de domínio)
 - **Máquina de estados** de `Solicitacao`, `Tarefa`, `Contrato`, `RecorrenciaTarefa` (transições válidas e inválidas).

@@ -36,6 +36,7 @@ acordu/
 │  │  ├─ 0002-portal-escopo-por-cliente.md
 │  │  ├─ 0003-sla-horas-uteis.md
 │  │  └─ 0004-tempo-em-minutos-e-consumo-read-model.md
+│  ├─ estrategia-produto-acordu.md
 │  ├─ modelo-de-dominio-acordu.md
 │  ├─ contrato-api-acordu-v1.md
 │  ├─ read-side-acordu-v1.md
@@ -113,7 +114,7 @@ acordu/
 │  ├─ web.Dockerfile                   # build do SPA + servidor estático interno
 │  └─ Caddyfile.acordu                 # bloco de site do Acordu, incluído no Caddy compartilhado
 ├─ docker-compose.yml                  # prod: api + web (rede externa do Caddy e do Postgres compartilhados)
-├─ docker-compose.dev.yml              # dev local: Postgres (+ MinIO para simular o object storage)
+├─ docker-compose.dev.yml              # dev local: Postgres (object storage local entra no marco de anexos)
 ├─ Acordu.sln
 ├─ Directory.Build.props
 ├─ Directory.Packages.props
@@ -161,8 +162,8 @@ Testes obrigatórios nos níveis de integração **e** API: cross-tenant (RNF-SE
 
 | Projeto | Foco | Ferramentas |
 |---|---|---|
-| `Domain.UnitTests` | `Duracao`, máquinas de estado, `CalculadoraSla`, `GeradorDeDatas`, invariantes. | xUnit + FluentAssertions |
-| `Application.UnitTests` | Casos de uso com fakes; regras entre agregados (primeira resposta, retomada, limiares). | xUnit + FluentAssertions + `FakeTimeProvider` |
+| `Domain.UnitTests` | `Duracao`, máquinas de estado, `CalculadoraSla`, `GeradorDeDatas`, invariantes. | xUnit + AwesomeAssertions |
+| `Application.UnitTests` | Casos de uso com fakes; regras entre agregados (primeira resposta, retomada, limiares). | xUnit + AwesomeAssertions + `FakeTimeProvider` |
 | `Infrastructure.IntegrationTests` | Migrations, filtros globais, SQL de consumo/semelhantes, protocolo sequencial, idempotência do agendador. | Testcontainers (Postgres) |
 | `Api.FunctionalTests` | Endpoints, autorização, isolamento ponta a ponta, portal sem campos internos. | WebApplicationFactory |
 | `ArchitectureTests` | Regras de camadas e proibições (ver convenções §5). | NetArchTest |
@@ -188,7 +189,7 @@ Testes obrigatórios nos níveis de integração **e** API: cross-tenant (RNF-SE
 ## 8. Documentação
 
 - `docs/ers/`, `docs/adr/` e os demais em `docs/`, como no Saldu.
-- **Fora do repositório** (ficam no Projeto do Claude): estratégia de produto e cronograma — contêm estratégia de negócio e contexto que não deve ser público.
+- **Estratégia de produto e cronograma** também ficam em `docs/`. Contêm estratégia de negócio: revisar (ou remover do histórico) antes de qualquer abertura pública do repositório.
 
 > **Regra de manutenção:** decisão de arquitetura → ADR; convenção de código → `convencoes-codigo-acordu.md`, no mesmo turno em que é decidida.
 

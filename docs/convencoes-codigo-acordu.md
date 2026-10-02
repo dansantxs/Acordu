@@ -77,6 +77,7 @@
 - **Namespace espelha a pasta** (`Acordu.Domain.Entities`, `Acordu.Application.Portal.Solicitacoes`...).
 - **Domínio organizado por tipo:** `Entities/`, `Enums/`, `ValueObjects/`, `Services/`, `Events/`, `Exceptions/`.
 - Projetos: `Acordu.Domain`, `Acordu.Application`, `Acordu.Infrastructure`, `Acordu.Api` (+ `Acordu.Worker` adiado).
+- **Assertions:** AwesomeAssertions (fork Apache 2.0 do FluentAssertions). Não usar FluentAssertions 8+, que exige licença comercial para produto pago.
 - **Nomes de teste:** `Metodo_Cenario_ResultadoEsperado` (ex.: `Resolver_SemSolucao_LancaExcecao`). Um arquivo de teste por classe testada.
 - **Casos de borda documentados viram teste:** checklists dos documentos (read side §11, ADR 0003) são a lista mínima.
 - Commits: `convencoes-commit-acordu.md`. Layout: `estrutura-repositorio-acordu.md`.

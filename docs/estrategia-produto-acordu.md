@@ -2,8 +2,9 @@
 
 | | |
 |---|---|
-| **Versão** | 0.1 (documento vivo — revisar conforme validar) |
-| **Data** | 30/09/2026 |
+| **Versão** | 0.2 (documento vivo — revisar conforme validar) |
+| **Data** | 02/10/2026 |
+| **Empresa** | Utile Systems (produtos: Saldu, Acordu) |
 | **Natureza** | Visão e estratégia. Hipóteses a validar com usuários, não decisões cravadas. |
 
 > **Nome:** **Acordu** — de *acordo* (PT), *acuerdo* (ES) e *accord* (EN): o acordo com o cliente (contrato, SLA, entregas) que o produto torna visível. O "u" final torna o nome inventado (defensável como marca). Domínios `acordu.app.br` e `acordu.com.br` livres em 30/09/2026. Busca exata no INPI (30/09/2026): nenhum resultado para "Acordu" nem "Acordo". **Pendente:** busca por radical e registrar os domínios.
@@ -98,7 +99,7 @@ Regras de visibilidade:
 - Cada comentário/anexo/tarefa tem visibilidade **interna** ou **externa**. Padrão: interno (seguro por omissão).
 - Apontamentos aparecem ao cliente só quando marcados como faturáveis/visíveis.
 
-Implicação arquitetural (vai para ADR):
+Implicação arquitetural (ADR 0002):
 - O contato do cliente é um `Usuario` com `Vinculo` no tenant do prestador, com um papel **Cliente** e **escopo por `ClienteId`**.
 - Isolamento em duas camadas: *global query filter* por `TenantId` (como no Saldu) **+** filtro por `ClienteId` para usuários do portal. Teste obrigatório: contato do cliente A nunca vê dados do cliente B do mesmo tenant.
 - Acesso sem senha opcional: link mágico por solicitação (para contatos que não querem conta).
@@ -204,8 +205,10 @@ Diferente do Saldu (construído à mão para aprender .NET), **o Acordu é imple
 | 30/09/2026 | Público: pequenos prestadores de serviço de qualquer área, **não** software houses | Hipótese |
 | 30/09/2026 | Posicionamento: "PSA leve" — atendimento → execução → horas → contrato, com transparência ao cliente | Hipótese |
 | 30/09/2026 | **Portal do cliente com status do serviço** é diferencial central (status externos, SLA, extrato de horas) | Decidido |
-| 30/09/2026 | Contato do cliente = `Usuario` + `Vinculo` com papel Cliente e escopo por `ClienteId` (vai para ADR) | Proposto |
+| 30/09/2026 | Contato do cliente = `Usuario` + `Vinculo` com papel Cliente e escopo por `ClienteId` (ADR 0002) | Decidido |
 | 30/09/2026 | Mesma stack, estrutura e convenções do Saldu; ADRs 0001–0005/0007/0008 reaproveitados por referência | Decidido |
 | 30/09/2026 | Implementação feita pelo Claude; Daniel revisa e decide | Decidido |
 | 30/09/2026 | Saldu segue prioridade até o esqueleto andante | Diretriz |
 | 30/09/2026 | **Base de conhecimento gerada a partir das solicitações resolvidas**: v1 solução estruturada + semelhantes (sem IA); v2 artigos e portal; v3 rascunho por IA com aprovação humana; sempre isolada por tenant | Hipótese |
+| 30/09/2026 | Empresa: **Utile Systems** (`utilesystems.com.br` livre; INPI a verificar) | Decidido |
+| 02/10/2026 | Estratégia e cronograma ficam **no repositório** (`docs/`), privado; revisar antes de qualquer abertura pública | Decidido |

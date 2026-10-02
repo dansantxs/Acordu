@@ -1,0 +1,6 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup>
+    <ProjectReference Include="..\Acordu.Application\Acordu.Application.csproj" />
+    <ProjectReference Include="..\Acordu.Domain\Acordu.Domain.csproj" />
+  </ItemGroup>
+</Project>
