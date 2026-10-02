@@ -91,6 +91,30 @@ public sealed class Tarefa : EntidadeBase
         return tarefa;
     }
 
+    /// <summary>
+    /// Gera a tarefa de uma ocorrência devida (RF-REC-03), copiando o modelo. Prazo = data de referência. O contrato dos
+    /// apontamentos é resolvido pela Application a partir da recorrência.
+    /// </summary>
+    public static Tarefa CriarDeRecorrencia(Guid id, RecorrenciaTarefa recorrencia, DateOnly dataReferencia)
+    {
+        ArgumentNullException.ThrowIfNull(recorrencia);
+        var modelo = recorrencia.Modelo;
+        var tarefa = new Tarefa(id, recorrencia.TenantId, modelo.Titulo)
+        {
+            Descricao = modelo.Descricao,
+            ClienteId = recorrencia.ClienteId,
+            ResponsavelId = modelo.ResponsavelId,
+            Prazo = dataReferencia,
+            Estimativa = modelo.Estimativa,
+            RecorrenciaId = recorrencia.Id,
+            DataReferencia = dataReferencia,
+            VisivelCliente = modelo.VisivelCliente,
+        };
+        foreach (var item in modelo.Checklist)
+            tarefa._checklist.Add(new ItemChecklist(Guid.CreateVersion7(), item));
+        return tarefa;
+    }
+
     public void Editar(string titulo, string? descricao)
     {
         GarantirNaoCancelada(nameof(Editar));
