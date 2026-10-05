@@ -80,6 +80,10 @@ public sealed class AcorduDbContext : DbContext
     {
         ArgumentNullException.ThrowIfNull(modelBuilder);
 
+        // Busca de solicitações semelhantes (read side §8): trigramas e remoção de acentos.
+        modelBuilder.HasPostgresExtension("pg_trgm");
+        modelBuilder.HasPostgresExtension("unaccent");
+
         modelBuilder.ApplyConfiguration(new CalendarioUtilConfiguration());
         modelBuilder.ApplyConfiguration(new ClienteConfiguration());
         modelBuilder.ApplyConfiguration(new CategoriaConfiguration());

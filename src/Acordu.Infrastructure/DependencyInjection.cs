@@ -2,6 +2,7 @@ using Acordu.Application.Abstractions;
 using Acordu.Application.Contratos;
 using Acordu.Application.Portal.Extrato;
 using Acordu.Application.Projetos;
+using Acordu.Application.Solicitacoes;
 using Acordu.Infrastructure.MultiTenancy;
 using Acordu.Infrastructure.Persistence;
 using Acordu.Infrastructure.Persistence.Consultas;
@@ -40,6 +41,7 @@ public static class DependencyInjection
         services.AddScoped<IConsultasContrato, ConsultasContrato>();
         services.AddScoped<IConsultasProjeto, ConsultasProjeto>();
         services.AddScoped<IConsultaExtratoPortal, ConsultaExtratoPortal>();
+        services.AddScoped<IConsultaSemelhantes, ConsultaSemelhantes>();
         return services;
     }
 }
