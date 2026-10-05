@@ -775,6 +775,94 @@ namespace Acordu.Infrastructure.Persistence.Migrations
                     b.ToTable("tarefas", (string)null);
                 });
 
+            modelBuilder.Entity("Acordu.Infrastructure.Persistence.Outbox.MensagemOutbox", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<string>("Conteudo")
+                        .IsRequired()
+                        .HasColumnType("jsonb")
+                        .HasColumnName("conteudo");
+
+                    b.Property<string>("Erro")
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)")
+                        .HasColumnName("erro");
+
+                    b.Property<DateTimeOffset?>("FalhouEm")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("falhou_em");
+
+                    b.Property<DateTimeOffset>("OcorridaEm")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("ocorrida_em");
+
+                    b.Property<DateTimeOffset?>("ProcessadaEm")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("processada_em");
+
+                    b.Property<DateTimeOffset>("ProximaTentativaEm")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("proxima_tentativa_em");
+
+                    b.Property<long>("Sequencia")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint")
+                        .HasColumnName("sequencia");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityAlwaysColumn(b.Property<long>("Sequencia"));
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
+                    b.Property<int>("Tentativas")
+                        .HasColumnType("integer")
+                        .HasColumnName("tentativas");
+
+                    b.Property<string>("Tipo")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("tipo");
+
+                    b.HasKey("Id")
+                        .HasName("pk_outbox_mensagens");
+
+                    b.HasIndex("ProximaTentativaEm")
+                        .HasDatabaseName("ix_outbox_mensagens_proxima_tentativa_em")
+                        .HasFilter("processada_em IS NULL AND falhou_em IS NULL");
+
+                    b.HasIndex("Sequencia")
+                        .IsUnique()
+                        .HasDatabaseName("ix_outbox_mensagens_sequencia");
+
+                    b.ToTable("outbox_mensagens", (string)null);
+                });
+
+            modelBuilder.Entity("Acordu.Infrastructure.Persistence.Protocolo.Contador", b =>
+                {
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
+                    b.Property<string>("Nome")
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)")
+                        .HasColumnName("nome");
+
+                    b.Property<int>("Valor")
+                        .HasColumnType("integer")
+                        .HasColumnName("valor");
+
+                    b.HasKey("TenantId", "Nome")
+                        .HasName("pk_contadores");
+
+                    b.ToTable("contadores", (string)null);
+                });
+
             modelBuilder.Entity("Acordu.Domain.Entities.CalendarioUtil", b =>
                 {
                     b.OwnsMany("Acordu.Domain.ValueObjects.JanelaDiaria", "Expediente", b1 =>
