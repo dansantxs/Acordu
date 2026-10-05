@@ -1,6 +1,10 @@
 using Acordu.Application.Abstractions;
+using Acordu.Application.Contratos;
+using Acordu.Application.Portal.Extrato;
+using Acordu.Application.Projetos;
 using Acordu.Infrastructure.MultiTenancy;
 using Acordu.Infrastructure.Persistence;
+using Acordu.Infrastructure.Persistence.Consultas;
 using Acordu.Infrastructure.Persistence.Eventos;
 using Acordu.Infrastructure.Persistence.Outbox;
 using Acordu.Infrastructure.Persistence.Protocolo;
@@ -31,6 +35,11 @@ public static class DependencyInjection
         services.AddScoped(typeof(IRepositorio<>), typeof(Repositorio<>));
         services.AddScoped<IGeradorProtocolo, GeradorProtocolo>();
         services.AddSingleton<ProcessadorOutbox>();
+
+        services.AddScoped<ConsultaSql>();
+        services.AddScoped<IConsultasContrato, ConsultasContrato>();
+        services.AddScoped<IConsultasProjeto, ConsultasProjeto>();
+        services.AddScoped<IConsultaExtratoPortal, ConsultaExtratoPortal>();
         return services;
     }
 }
