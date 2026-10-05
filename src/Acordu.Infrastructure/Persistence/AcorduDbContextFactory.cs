@@ -10,7 +10,7 @@ namespace Acordu.Infrastructure.Persistence;
 /// </summary>
 public sealed class AcorduDbContextFactory : IDesignTimeDbContextFactory<AcorduDbContext>
 {
-    private const string ConexaoDev = "Host=localhost;Port=5432;Database=acordu;Username=acordu;Password=acordu_dev";
+    private const string ConexaoDev = "Host=localhost;Port=5434;Database=acordu;Username=acordu;Password=acordu_dev";
 
     public AcorduDbContext CreateDbContext(string[] args)
     {
