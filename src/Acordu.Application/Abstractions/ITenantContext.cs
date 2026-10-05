@@ -1,0 +1,17 @@
+namespace Acordu.Application.Abstractions;
+
+/// <summary>
+/// Quem está agindo, resolvido do token pela Api (ADR 0002). É a fonte dos dois isolamentos: por tenant, sempre, e por
+/// cliente, quando o papel é Cliente. Sem tenant (nulo), as consultas não devolvem nada e nada pode ser gravado.
+/// Escopo do portal (próprias/todas) e sessão de link entram no marco do portal.
+/// </summary>
+public interface ITenantContext
+{
+    Guid? TenantId { get; }
+
+    /// <summary>Papel Cliente (contato do portal): ativa o filtro por <see cref="ClienteId"/>.</summary>
+    bool EhCliente { get; }
+
+    /// <summary>Cliente do contato; obrigatório quando <see cref="EhCliente"/>.</summary>
+    Guid? ClienteId { get; }
+}

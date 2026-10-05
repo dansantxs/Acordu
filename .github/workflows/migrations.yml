@@ -1,11 +1,14 @@
 name: Migrations
 
-# Gera uma migration do EF Core e faz commit dela na branch escolhida (ver convencoes-codigo-acordu.md §1).
-# Disparo: Actions → Migrations → Run workflow (branch + nome), ou pela API:
-#   gh api repos/dansantxs/acordu/actions/workflows/migrations.yml/dispatches -f ref=<branch> -f 'inputs[nome]=<Nome>'
+# Gera uma migration do EF Core e faz commit dela na branch de feature (ver convencoes-codigo-acordu.md §1).
+# Dois disparos:
+#   1. Pedido por arquivo: commitar `.github/migration-request` com o nome da migration (PascalCase) numa branch de
+#      feature. O workflow gera a migration, apaga o pedido e faz o commit. Para recriar uma migration ainda não
+#      mesclada, apague os arquivos dela (e o snapshot, se for a única) no mesmo commit do pedido.
+#   2. Manual: Actions → Migrations → Run workflow (branch + nome).
 # Commits feitos com o GITHUB_TOKEN não disparam o CI: depois da migration, um push qualquer na branch roda os testes.
-# Localmente: dotnet tool restore && dotnet ef migrations add <Nome> --project src/Acordu.Infrastructure
-#             --startup-project src/Acordu.Api --output-dir Persistence/Migrations
+# Localmente: dotnet tool restore && dotnet restore Acordu.sln && dotnet ef migrations add <Nome>
+#             --project src/Acordu.Infrastructure --startup-project src/Acordu.Api --output-dir Persistence/Migrations
 
 on:
   workflow_dispatch:
@@ -14,6 +17,9 @@ on:
         description: "Nome da migration em PascalCase (ex.: Inicial)"
         required: true
         type: string
+  push:
+    branches-ignore: [main]
+    paths: [".github/migration-request"]
 
 permissions:
   contents: write
@@ -34,27 +40,45 @@ jobs:
           echo "Gere migrations numa branch de feature, nunca direto na main."
           exit 1
 
-      - name: Validar nome
+      - uses: actions/checkout@v4
+
+      - name: Resolver e validar o nome
+        id: pedido
         env:
-          NOME: ${{ inputs.nome }}
+          EVENTO: ${{ github.event_name }}
+          NOME_MANUAL: ${{ inputs.nome }}
         run: |
+          if [[ "$EVENTO" == "push" ]]; then
+            if [[ ! -f .github/migration-request ]]; then
+              echo "Pedido removido neste push; nada a gerar."
+              echo "pular=true" >> "$GITHUB_OUTPUT"
+              exit 0
+            fi
+            NOME=$(head -n 1 .github/migration-request | tr -d '[:space:]')
+          else
+            NOME="$NOME_MANUAL"
+          fi
           if [[ ! "$NOME" =~ ^[A-Z][A-Za-z0-9]{1,79}$ ]]; then
             echo "Nome inválido: use PascalCase, só letras e números."
             exit 1
           fi
-
-      - uses: actions/checkout@v4
+          echo "nome=$NOME" >> "$GITHUB_OUTPUT"
 
       - uses: actions/setup-dotnet@v4
+        if: steps.pedido.outputs.pular != 'true'
         with:
           global-json-file: global.json
 
-      - name: Restaurar ferramentas
-        run: dotnet tool restore
+      - name: Restaurar ferramentas e pacotes
+        if: steps.pedido.outputs.pular != 'true'
+        run: |
+          dotnet tool restore
+          dotnet restore Acordu.sln
 
       - name: Gerar migration
+        if: steps.pedido.outputs.pular != 'true'
         env:
-          NOME: ${{ inputs.nome }}
+          NOME: ${{ steps.pedido.outputs.nome }}
         run: >
           dotnet ef migrations add "$NOME"
           --project src/Acordu.Infrastructure
@@ -62,11 +86,13 @@ jobs:
           --output-dir Persistence/Migrations
 
       - name: Commit na branch
+        if: steps.pedido.outputs.pular != 'true'
         env:
-          NOME: ${{ inputs.nome }}
+          NOME: ${{ steps.pedido.outputs.nome }}
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git rm -q --ignore-unmatch .github/migration-request
           git add src/Acordu.Infrastructure/Persistence/Migrations
           git commit -m "build(infrastructure): gera migration $NOME"
           git push

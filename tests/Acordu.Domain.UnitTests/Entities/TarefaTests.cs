@@ -332,6 +332,21 @@ public sealed class TarefaTests
         }
 
         [Fact]
+        public void Ordem_SobreviveARemocaoEContinuaCrescendo()
+        {
+            var tarefa = DeSolicitacao();
+            tarefa.AdicionarItem("Um");
+            var dois = tarefa.AdicionarItem("Dois");
+            tarefa.AdicionarItem("Três");
+
+            tarefa.RemoverItem(dois.Id);
+            var quatro = tarefa.AdicionarItem("Quatro");
+
+            tarefa.Checklist.Select(i => i.Texto).Should().Equal("Um", "Três", "Quatro");
+            quatro.Ordem.Should().Be(4);
+        }
+
+        [Fact]
         public void ItemInexistente_LancaExcecao()
         {
             var tarefa = DeSolicitacao();

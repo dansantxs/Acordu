@@ -3,4 +3,11 @@
     <ProjectReference Include="..\Acordu.Application\Acordu.Application.csproj" />
     <ProjectReference Include="..\Acordu.Infrastructure\Acordu.Infrastructure.csproj" />
   </ItemGroup>
+  <ItemGroup>
+    <!-- Só para o dotnet-ef usar a Api como startup project ao gerar migrations. -->
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Design">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+  </ItemGroup>
 </Project>
