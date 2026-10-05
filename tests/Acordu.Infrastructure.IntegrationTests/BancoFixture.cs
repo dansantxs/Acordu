@@ -11,7 +11,7 @@ namespace Acordu.Infrastructure.IntegrationTests;
 /// </summary>
 public sealed class BancoFixture : IAsyncLifetime, IAsyncDisposable
 {
-    private readonly PostgreSqlContainer _postgres = new PostgreSqlBuilder("postgres:17-alpine").Build();
+    private readonly PostgreSqlContainer _postgres = new PostgreSqlBuilder("postgres:17").Build();
 
     public string ConnectionString => _postgres.GetConnectionString();
 
