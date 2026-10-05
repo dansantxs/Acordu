@@ -5,6 +5,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
+using NpgsqlTypes;
 
 #nullable disable
 
@@ -20,6 +21,8 @@ namespace Acordu.Infrastructure.Persistence.Migrations
                 .HasAnnotation("ProductVersion", "10.0.12")
                 .HasAnnotation("Relational:MaxIdentifierLength", 63);
 
+            NpgsqlModelBuilderExtensions.HasPostgresExtension(modelBuilder, "pg_trgm");
+            NpgsqlModelBuilderExtensions.HasPostgresExtension(modelBuilder, "unaccent");
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
 
             modelBuilder.Entity("Acordu.Domain.Entities.AcessoPortal", b =>
@@ -596,6 +599,12 @@ namespace Acordu.Infrastructure.Persistence.Migrations
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("aberta_em");
 
+                    b.Property<NpgsqlTsVector>("BuscaTsv")
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("tsvector")
+                        .HasColumnName("busca_tsv")
+                        .HasComputedColumnSql("setweight(to_tsvector('portuguese_unaccent', coalesce(titulo, '')), 'A') || setweight(to_tsvector('portuguese_unaccent', coalesce(solucao_problema, '') || ' ' || coalesce(descricao, '')), 'B') || setweight(to_tsvector('portuguese_unaccent', coalesce(solucao_texto, '')), 'C')", true);
+
                     b.Property<DateTimeOffset?>("CanceladaEm")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("cancelada_em");
@@ -681,6 +690,17 @@ namespace Acordu.Infrastructure.Persistence.Migrations
 
                     b.HasKey("Id")
                         .HasName("pk_solicitacoes");
+
+                    b.HasIndex("BuscaTsv")
+                        .HasDatabaseName("ix_solicitacoes_busca_tsv");
+
+                    NpgsqlIndexBuilderExtensions.HasMethod(b.HasIndex("BuscaTsv"), "gin");
+
+                    b.HasIndex("Titulo")
+                        .HasDatabaseName("ix_solicitacoes_titulo");
+
+                    NpgsqlIndexBuilderExtensions.HasMethod(b.HasIndex("Titulo"), "gin");
+                    NpgsqlIndexBuilderExtensions.HasOperators(b.HasIndex("Titulo"), new[] { "gin_trgm_ops" });
 
                     b.HasIndex("TenantId", "Numero")
                         .IsUnique()
