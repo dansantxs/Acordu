@@ -5,9 +5,10 @@ namespace Acordu.Domain.Entities;
 /// <summary>Subitem da checklist de uma <see cref="Tarefa"/>. Só muda pelos métodos da tarefa.</summary>
 public sealed class ItemChecklist
 {
-    internal ItemChecklist(Guid id, string texto)
+    internal ItemChecklist(Guid id, int ordem, string texto)
     {
         Id = id;
+        Ordem = ordem;
         Texto = texto;
     }
 
@@ -18,6 +19,9 @@ public sealed class ItemChecklist
     }
 
     public Guid Id { get; private set; }
+
+    /// <summary>Posição na checklist (persistida: o banco não garante a ordem de carga).</summary>
+    public int Ordem { get; private set; }
 
     public string Texto { get; private set; }
 

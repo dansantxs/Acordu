@@ -12,8 +12,9 @@ public sealed class CalendarioUtil : EntidadeBase
 {
     public const string FusoPadrao = "America/Sao_Paulo";
 
-    private readonly Dictionary<DayOfWeek, JanelaDiaria> _expediente = [];
-    private readonly SortedSet<DateOnly> _feriados = [];
+    // Listas (e não dicionário/conjunto) para o EF mapear: expediente como coleção própria, feriados como date[].
+    private readonly List<JanelaDiaria> _expediente = [];
+    private List<DateOnly> _feriados = [];
     private TimeZoneInfo? _fuso;
 
     private CalendarioUtil(Guid id, Guid tenantId, string fusoHorario)
@@ -31,7 +32,7 @@ public sealed class CalendarioUtil : EntidadeBase
     /// <summary>Identificador IANA do fuso (ex.: America/Sao_Paulo).</summary>
     public string FusoHorario { get; private set; }
 
-    public IReadOnlyCollection<JanelaDiaria> Expediente => _expediente.Values;
+    public IReadOnlyCollection<JanelaDiaria> Expediente => _expediente;
 
     public IReadOnlyCollection<DateOnly> Feriados => _feriados;
 
@@ -85,22 +86,19 @@ public sealed class CalendarioUtil : EntidadeBase
             throw new CalendarioInvalidoException("O calendário precisa de ao menos um dia útil na semana.");
 
         _expediente.Clear();
-        foreach (var janela in janelas)
-            _expediente[janela.Dia] = janela;
+        _expediente.AddRange(janelas.OrderBy(j => j.Dia));
     }
 
-    /// <summary>Substitui a lista de feriados (duplicatas são ignoradas).</summary>
+    /// <summary>Substitui a lista de feriados (duplicatas são ignoradas; guardada em ordem).</summary>
     public void DefinirFeriados(IEnumerable<DateOnly> feriados)
     {
         ArgumentNullException.ThrowIfNull(feriados);
-        _feriados.Clear();
-        foreach (var feriado in feriados)
-            _feriados.Add(feriado);
+        _feriados = [.. feriados.Distinct().Order()];
     }
 
     /// <summary>Janela de expediente da data, ou nula se a data não é dia útil (fim de semana sem expediente ou feriado).</summary>
     public JanelaDiaria? JanelaDe(DateOnly data) =>
-        !_feriados.Contains(data) && _expediente.TryGetValue(data.DayOfWeek, out var janela) ? janela : null;
+        _feriados.BinarySearch(data) < 0 ? _expediente.Find(j => j.Dia == data.DayOfWeek) : null;
 
     private static TimeZoneInfo ResolverFuso(string id)
     {

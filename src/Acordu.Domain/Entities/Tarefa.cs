@@ -56,7 +56,8 @@ public sealed class Tarefa : EntidadeBase
     /// <summary>Aparece no portal (RF-TAR-04). Exige <see cref="ClienteId"/>.</summary>
     public bool VisivelCliente { get; private set; }
 
-    public IReadOnlyList<ItemChecklist> Checklist => _checklist;
+    /// <summary>Itens na ordem da checklist.</summary>
+    public IReadOnlyList<ItemChecklist> Checklist => [.. _checklist.OrderBy(i => i.Ordem)];
 
     public static Tarefa Criar(
         Guid id,
@@ -111,7 +112,7 @@ public sealed class Tarefa : EntidadeBase
             VisivelCliente = modelo.VisivelCliente,
         };
         foreach (var item in modelo.Checklist)
-            tarefa._checklist.Add(new ItemChecklist(Guid.CreateVersion7(), item));
+            tarefa._checklist.Add(new ItemChecklist(Guid.CreateVersion7(), tarefa.ProximaOrdem(), item));
         return tarefa;
     }
 
@@ -182,7 +183,7 @@ public sealed class Tarefa : EntidadeBase
         if (_checklist.Count >= MaximoItensChecklist)
             throw new ArgumentException($"A checklist aceita no máximo {MaximoItensChecklist} itens.", nameof(texto));
 
-        var item = new ItemChecklist(Guid.CreateVersion7(), valido);
+        var item = new ItemChecklist(Guid.CreateVersion7(), ProximaOrdem(), valido);
         _checklist.Add(item);
         return item;
     }
@@ -204,6 +205,8 @@ public sealed class Tarefa : EntidadeBase
         GarantirNaoCancelada(nameof(RemoverItem));
         _checklist.Remove(Item(itemId));
     }
+
+    private int ProximaOrdem() => _checklist.Count == 0 ? 1 : _checklist.Max(i => i.Ordem) + 1;
 
     private ItemChecklist Item(Guid itemId) =>
         _checklist.Find(i => i.Id == itemId)
