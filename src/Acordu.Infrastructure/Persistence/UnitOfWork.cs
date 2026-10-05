@@ -14,15 +14,18 @@ public sealed class UnitOfWork : IUnitOfWork
     private readonly AcorduDbContext _db;
     private readonly DespachanteEventos _despachante;
     private readonly TimeProvider _relogio;
+    private readonly MensagensDaRequisicao _mensagens;
 
-    public UnitOfWork(AcorduDbContext db, DespachanteEventos despachante, TimeProvider relogio)
+    public UnitOfWork(AcorduDbContext db, DespachanteEventos despachante, TimeProvider relogio, MensagensDaRequisicao mensagens)
     {
         ArgumentNullException.ThrowIfNull(db);
         ArgumentNullException.ThrowIfNull(despachante);
         ArgumentNullException.ThrowIfNull(relogio);
+        ArgumentNullException.ThrowIfNull(mensagens);
         _db = db;
         _despachante = despachante;
         _relogio = relogio;
+        _mensagens = mensagens;
     }
 
     public async Task SalvarAsync(CancellationToken cancellationToken = default)
@@ -32,14 +35,18 @@ public sealed class UnitOfWork : IUnitOfWork
         {
             var eventos = await _despachante.DespacharAsync(_db, cancellationToken);
             var agora = _relogio.GetUtcNow();
+            var gravadas = new List<Guid>();
             foreach (var (evento, tenantId) in eventos)
             {
-                _db.Add(new MensagemOutbox(
-                    Guid.CreateVersion7(), tenantId, SerializadorEventos.Tipo(evento), SerializadorEventos.Serializar(evento), agora));
+                var mensagem = new MensagemOutbox(
+                    Guid.CreateVersion7(), tenantId, SerializadorEventos.Tipo(evento), SerializadorEventos.Serializar(evento), agora);
+                _db.Add(mensagem);
+                gravadas.Add(mensagem.Id);
             }
 
             await _db.SaveChangesAsync(cancellationToken);
             await transacao.CommitAsync(cancellationToken);
+            _mensagens.Adicionar(gravadas);
         }
         catch
         {

@@ -32,6 +32,7 @@ public static class DependencyInjection
         services.AddDbContext<AcorduDbContext>(options => AcorduDbContextOptions.Configurar(options, connectionString));
 
         services.AddScoped<DespachanteEventos>();
+        services.AddScoped<MensagensDaRequisicao>();
         services.AddScoped<IUnitOfWork, UnitOfWork>();
         services.AddScoped(typeof(IRepositorio<>), typeof(Repositorio<>));
         services.AddScoped<IGeradorProtocolo, GeradorProtocolo>();
