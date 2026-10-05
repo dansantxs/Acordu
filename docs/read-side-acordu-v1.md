@@ -165,6 +165,7 @@ setweight(to_tsvector('portuguese', unaccent(titulo)), 'A')
 - Query handlers em `Acordu.Application` (namespaces `…Consultas` internos e `Acordu.Application.Portal` separados).
 - Projeções simples: EF Core `Select` para DTO. Somas de consumo, dashboard e semelhantes: SQL em `Acordu.Infrastructure.Persistence.Consultas`, via helper que exige `TenantId` (e `ClienteId` quando portal).
 - Índices criados nas migrations (lista consolidada abaixo).
+- **Implementado (marco 1):** `IConsultasContrato` (§3), `IConsultaExtratoPortal` (§4, em `Acordu.Application.Portal.Extrato`) e `IConsultasProjeto` (§7). No banco de horas, o saldo acumula até o fim do período ou até hoje, o que vier antes. No extrato, apontamento visível de tarefa sem solicitação usa o título da tarefa se ela for visível, senão "Atendimento"; a ordem é (data, número da solicitação, id do apontamento). Os índices sobre colunas do relógio (`prazo_resolucao`, `limite_risco`) são SQL acrescentado à migration `ConsultasHoras`; um teste confere que existem.
 
 | Tabela | Índice |
 |---|---|

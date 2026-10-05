@@ -27,7 +27,11 @@
   - Nunca `DateTime` com `Kind` ambíguo em entidade.
 - **(Acordu) Concorrência otimista:** propriedade escondida (shadow) `Versao` (`uint`) mapeada como row version na coluna de sistema `xmin` do Postgres; o domínio não a conhece. A Application lê o valor via EF para expor `versao` e conferir o `If-Match`.
 - **(Acordu) `IgnoreQueryFilters()` só na Infrastructure**, e só em pontos listados (agendador que varre todos os tenants, jobs de manutenção). Teste de arquitetura falha se aparecer em outra camada.
-- **(Acordu) SQL cru** (consumo, dashboard, semelhantes) só via o helper de consultas da Infrastructure, que exige `TenantId` — e `ClienteId` nas consultas do portal — como parâmetros obrigatórios.
+- **(Acordu) SQL cru** (consumo, dashboard, semelhantes) só via o helper `ConsultaSql` da Infrastructure, que entrega o escopo do contexto e **recusa executar** se o `TenantId` — e, no contexto de contato, o `ClienteId` — não estiver entre os parâmetros. Regras do texto:
+  - o texto é sempre literal; trechos interpolados viram parâmetros, nunca SQL (não montar SQL por concatenação);
+  - para servir equipe e contato com o mesmo texto: `AND (CAST({e.ClienteId} AS uuid) IS NULL OR x.cliente_id = {e.ClienteId})`;
+  - colunas do resultado em snake_case mapeiam as propriedades do tipo lido (a convenção vale também para `SqlQuery`); escalar usa o alias `"Value"`;
+  - a entidade principal é lida antes pelo EF (filtros globais): invisível no contexto → consulta devolve nulo.
 - Extensões Postgres habilitadas por migration: `pg_trgm`, `unaccent`.
 - **(Acordu) Migrations** ficam em `src/Acordu.Infrastructure/Persistence/Migrations` e são geradas pelo `dotnet-ef` fixado em `.config/dotnet-tools.json`: pelo workflow **Migrations** (gera e faz commit na branch de feature; nunca na `main`), disparado por um arquivo `.github/migration-request` com o nome da migration ou manualmente no Actions, ou localmente com o comando do cabeçalho do workflow. Migration gerada não é editada à mão, exceto para acrescentar SQL que o EF não expressa (índices sobre colunas de tipos owned, extensões), sempre no fim do `Up`/`Down`.
 - **(Acordu) Segredos de uso único** (token de link do portal): gerados no domínio com `RandomNumberGenerator`; persiste-se só o SHA-256 em hex minúsculo, com índice único; comparação em tempo constante (`CryptographicOperations.FixedTimeEquals`).
