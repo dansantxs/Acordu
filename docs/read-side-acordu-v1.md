@@ -158,6 +158,12 @@ setweight(to_tsvector('portuguese', unaccent(titulo)), 'A')
 
 **Isolamento:** a query roda sob os filtros globais normais; nunca atravessa tenants (RNF-PRIV-02).
 
+**Implementado (marco 1, `IConsultaSemelhantes`):**
+- `unaccent()` não é IMMUTABLE e não pode ir em coluna gerada: o documento usa a configuração de busca `portuguese_unaccent` (cópia de `portuguese` com o dicionário `unaccent` antes do stemmer), criada na migration `ExtensoesBusca`. A consulta usa a mesma configuração.
+- "OR entre termos": `plainto_tsquery` com `&` trocado por `|`. Trigrama pelo operador `%` (limiar padrão 0,3), que usa o índice GIN.
+- Rank normalizado: `ts_rank_cd(..., 32)` (rank/(rank+1)). Bônus: +0,05 por mesma categoria **e** +0,05 por mesmo cliente (até +0,10). Relevância devolvida com 2 casas.
+- No contexto de contato, só solicitações do próprio cliente entram (solução de outro cliente nunca vaza pelo portal).
+
 ---
 
 ## 9. Onde vive no código
