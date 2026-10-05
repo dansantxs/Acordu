@@ -37,3 +37,7 @@ dotnet_diagnostic.CA1707.severity = none
 dotnet_diagnostic.CA1515.severity = none
 # Classes aninhadas agrupam cenários do mesmo método testado
 dotnet_diagnostic.CA1034.severity = none
+
+# Migrations do EF Core: código gerado, fora dos analisadores
+[src/Acordu.Infrastructure/Persistence/Migrations/**.cs]
+generated_code = true
