@@ -4,6 +4,8 @@ using Acordu.Domain.Entities;
 using Acordu.Infrastructure.MultiTenancy;
 using Acordu.Infrastructure.Persistence.Configurations;
 using Acordu.Infrastructure.Persistence.Conversores;
+using Acordu.Infrastructure.Persistence.Outbox;
+using Acordu.Infrastructure.Persistence.Protocolo;
 using Microsoft.EntityFrameworkCore;
 
 namespace Acordu.Infrastructure.Persistence;
@@ -91,6 +93,8 @@ public sealed class AcorduDbContext : DbContext
         modelBuilder.ApplyConfiguration(new ApontamentoConfiguration());
         modelBuilder.ApplyConfiguration(new CronometroConfiguration());
         modelBuilder.ApplyConfiguration(new RecorrenciaTarefaConfiguration());
+        modelBuilder.ApplyConfiguration(new MensagemOutboxConfiguration());
+        modelBuilder.ApplyConfiguration(new ContadorConfiguration());
 
         AplicarFiltros(modelBuilder);
     }
