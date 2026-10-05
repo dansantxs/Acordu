@@ -57,11 +57,10 @@ Construído desde o início como **multi-tenant**, com a mesma engenharia do **S
 | ORM | EF Core + Npgsql |
 | Banco | PostgreSQL (`pg_trgm`, `unaccent`) |
 | Frontend | React + Vite (TypeScript, SPA com app interno e portal) |
-| Arquivos | Object storage S3-compatível (OCI) |
+| Arquivos | Object storage S3-compatível (Google Cloud Storage no v1) |
 | E-mail | Resend |
-| Infra | Docker Compose + Caddy |
-| Hospedagem | Oracle Cloud Always Free (Ampere ARM), VM compartilhada com o Saldu |
-| CI/CD | GitHub Actions → GHCR → VM |
+| Hospedagem | Google Cloud Run (API) + Neon (Postgres 17) + Cloudflare Pages (SPA), no free tier — ADR 0005 |
+| CI/CD | GitHub Actions → Artifact Registry → Cloud Run |
 
 ---
 
@@ -101,8 +100,8 @@ acordu/
 │  └─ Acordu.Worker/          # (adiado) — jobs começam dentro da Api
 ├─ apps/web/              # SPA: features/ (interno) e portal/
 ├─ tests/                 # unit, integração, funcional e arquitetura
-├─ docker/                # Dockerfiles + bloco de site do Caddy
-├─ docker-compose.yml
+├─ docker/                # Dockerfile da API
+├─ docker-compose.dev.yml # Postgres local
 ├─ Acordu.sln
 └─ README.md
 ```
@@ -126,13 +125,14 @@ acordu/
 | `docs/adr/0002-portal-escopo-por-cliente.md` | Portal: contato como usuário com escopo por cliente. |
 | `docs/adr/0003-sla-horas-uteis.md` | SLA em horas úteis, calendário por tenant, pausa. |
 | `docs/adr/0004-tempo-em-minutos-e-consumo-read-model.md` | `Duracao` em minutos; consumo como read model. |
+| `docs/adr/0005-hospedagem-serverless-gratuita.md` | Cloud Run + Neon + Cloudflare Pages; plano de escala. |
 | `docs/estrategia-produto-acordu.md` | Visão, mercado, posicionamento, fases e monetização. |
 | `docs/modelo-de-dominio-acordu.md` | Agregados, máquinas de estado, VOs, serviços, eventos. |
 | `docs/contrato-api-acordu-v1.md` | Endpoints internos e do portal, formatos, erros. |
 | `docs/read-side-acordu-v1.md` | Consumo, extrato, SLA, dashboard, semelhantes, índices. |
 | `docs/seguranca-modelo-acesso-acordu-v1.md` | Identidade, RBAC, escopo do portal, links, anexos, auditoria. |
-| `docs/deploy-ci-acordu-v1.md` | CI/CD e deploy na VM compartilhada. |
-| `docs/setup-infra-oracle-acordu.md` | Runbook na Oracle Cloud (o que é próprio do Acordu). |
+| `docs/deploy-ci-acordu-v1.md` | CI/CD, deploy no Cloud Run, jobs, migrations e backup. |
+| `docs/setup-infra-acordu.md` | Runbook de provisionamento (Google Cloud, Neon, Cloudflare, Resend). |
 | `docs/estrutura-repositorio-acordu.md` | Estrutura do repositório e ordem de criação. |
 | `docs/convencoes-codigo-acordu.md` | Convenções técnicas de código. |
 | `docs/convencoes-commit-acordu.md` | Conventional Commits e escopos. |
@@ -148,7 +148,7 @@ Regra de higiene: **decisão de arquitetura vira ADR**; **convenção de código
 **Pré-requisitos:** .NET 10 SDK, Node LTS, Docker.
 
 ```
-# Postgres local
+# Postgres local (porta 5434; o Saldu usa 5433)
 docker compose -f docker-compose.dev.yml up -d
 
 # backend
@@ -176,7 +176,7 @@ Obrigatórios: isolamento **entre tenants** e **entre clientes** do mesmo tenant
 
 ## Deploy
 
-Imagens **ARM64** no GitHub Actions → **GHCR** → `docker compose pull && up -d` na VM, com migrations como etapa explícita. Caddy e PostgreSQL ficam numa stack de infraestrutura compartilhada com o Saldu. Ver `docs/deploy-ci-acordu-v1.md` e `docs/setup-infra-oracle-acordu.md`.
+Imagem da API no GitHub Actions → **Artifact Registry** → **Cloud Run** (`us-east4`), autenticado por Workload Identity Federation; migrations pelo Actions no endpoint direto do Neon antes da revisão nova; SPA no Cloudflare Pages. Jobs agendados são endpoints internos disparados por cron. Ver `docs/adr/0005-hospedagem-serverless-gratuita.md`, `docs/deploy-ci-acordu-v1.md` e `docs/setup-infra-acordu.md`.
 
 ---
 

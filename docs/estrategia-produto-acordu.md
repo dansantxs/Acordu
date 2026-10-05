@@ -3,7 +3,7 @@
 | | |
 |---|---|
 | **Versão** | 0.2 (documento vivo — revisar conforme validar) |
-| **Data** | 02/10/2026 |
+| **Data** | 05/10/2026 |
 | **Empresa** | Utile Systems (produtos: Saldu, Acordu) |
 | **Natureza** | Visão e estratégia. Hipóteses a validar com usuários, não decisões cravadas. |
 
@@ -158,10 +158,10 @@ Implicação arquitetural (ADR 0002):
 
 ## 10. Relação com o Saldu
 
-- **Mesma engenharia:** .NET 10, EF Core + Npgsql, PostgreSQL, React + Vite (TS), Docker Compose + Caddy, GitHub Actions → GHCR, OCI Always Free (ARM).
+- **Mesma engenharia:** .NET 10, EF Core + Npgsql, PostgreSQL, React + Vite (TS), GitHub Actions, hospedagem serverless gratuita (Cloud Run + Neon + Cloudflare Pages, ADR 0005).
 - **Mesmas convenções:** estrutura de repositório, DDD pragmático em 4 camadas, `convencoes-codigo`, Conventional Commits, ADRs, ERS.
-- **ADRs reaproveitados por referência:** Postgres (0001), EF Core (0002), multi-tenant shared schema (0003), OpenAPI + Scalar (0004), self-hosted + gerenciados (0005), Identity + JWT + RBAC (0007), vínculo N-N (0008). ADRs novos só para o que é do Acordu (portal/escopo por cliente, contratos, recorrência de tarefas).
-- **Infra compartilhada:** mesma VM, mesmo Postgres com um banco por produto, Caddy roteando por domínio. Repositórios **separados**.
+- **ADRs reaproveitados por referência:** Postgres (0001), EF Core (0002), multi-tenant shared schema (0003), OpenAPI + Scalar (0004), complementares gerenciados (0005; o núcleo self-hosted foi substituído pelo ADR 0005 do Acordu), Identity + JWT + RBAC (0007), vínculo N-N (0008). ADRs novos só para o que é do Acordu (portal/escopo por cliente, contratos, recorrência de tarefas).
+- **Infra:** cada produto com projeto Google e banco Neon próprios, sob a mesma conta de faturamento (`utile-billing`), dividindo a cota gratuita. Infra compartilhada (VM com Caddy + Postgres) só no nível 3 do plano de escala. Repositórios **separados**.
 - **Sinergia:** o motor de projeção determinística é a assinatura técnica comum aos dois produtos.
 
 ---

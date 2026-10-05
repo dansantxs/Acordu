@@ -2,148 +2,156 @@
 
 | | |
 |---|---|
-| **Versão** | 0.1 |
-| **Data** | 30/09/2026 |
-| **Alvo** | VM compartilhada `vps-arm-01` (Oracle Cloud Always Free, Ampere A1, ARM, Ubuntu 24.04), no compartimento `infra`. |
-| **Base** | Estratégia de deploy do Saldu (princípios, CI, GHCR, migrations, backup, TLS). Aqui só o que é **próprio** do Acordu ou muda por **compartilhar** a VM. |
+| **Versão** | 0.2 |
+| **Data** | 05/10/2026 |
+| **Alvo** | Nível 0 do ADR 0005: API no **Google Cloud Run** (`us-east4`, projeto `acordu-prod`), banco **Neon** (Postgres 17, `aws-us-east-1`), SPA no **Cloudflare Pages**. |
+| **Base** | ADR 0005. Provisionamento em `setup-infra-acordu.md`. |
+
+> A versão 0.1 descrevia a VM Oracle compartilhada com o Saldu, que deixou de existir. O modelo de VM com Caddy + Postgres compartilhados volta só no nível 3 (ADR 0005 §8).
 
 ---
 
-## 1. Princípios (herdados)
+## 1. Princípios
 
-ARM64 com cross-build; vendor-neutro (Compose + Postgres + Caddy); Compose, não Kubernetes; orçamento de 2 OCPU / 12 GB — agora dividido entre dois produtos.
+- **Custo zero até ter usuário pagante**, com proteções (alerta de orçamento, `max-instances` baixo, limpeza de imagens e lifecycle de buckets).
+- **Sem SDK de provedor; tudo por variável de ambiente.** Mudar de nível ou de provedor troca variáveis e DNS, não código.
+- **Nada de chave de longa duração no GitHub:** deploy por Workload Identity Federation.
+- **Migrations são etapa explícita do pipeline**, nunca no startup da API.
 
 ---
 
-## 2. Topologia compartilhada
-
-Com dois produtos na mesma VM, o **Caddy de borda** e o **PostgreSQL** deixam de pertencer a um produto e passam para uma **stack de infraestrutura** própria. Cada produto tem seu compose e se conecta às redes dela.
+## 2. Topologia
 
 ```
-Internet ── 80/443
-┌──────────────────────── vps-arm-01 (Ampere ARM) ──────────────────────┐
-│ /opt/infra   (stack de infraestrutura)                                 │
-│   caddy     ── TLS + roteamento por domínio  (rede: borda)             │
-│   postgres  ── bancos: saldu, acordu         (rede: dados)             │
-│                                                                        │
-│ /opt/saldu   saldu-web, saldu-api            (redes: borda, dados)     │
-│ /opt/acordu  acordu-web, acordu-api          (redes: borda, dados)     │
-└────────────────────────────────────────────────────────────────────────┘
+                 HTTPS                                   HTTPS
+ navegador ───────────────► Cloudflare Pages  (acordu.app.br)  SPA estático
+     │
+     └──────── /api ──────► Cloud Run  acordu-api  (api.acordu.app.br, us-east4)
+                               │  endpoint pooled (acordu_app)
+                               ├──────────────► Neon · Postgres 17 · aws-us-east-1
+                               ├──────────────► Cloud Storage  acordu-anexos  (API S3, HMAC)
+                               └──────────────► Resend
+
+ GitHub Actions ── WIF ──► Artifact Registry / Cloud Run deploy
+                └─ endpoint direto (acordu_migrator) ─► Neon   (migrations, pg_dump)
+ Cron (Actions / Cloud Scheduler) ── X-Job-Token ──► /internal/jobs/*
+ UptimeRobot ── a cada 5 min ──► /api/health   (não toca o banco)
 ```
 
-| Serviço | Imagem | Exposição | Papel |
-|---|---|---|---|
-| `caddy` (infra) | `caddy:alpine` | 80/443 | TLS automático; importa um bloco de site por produto. |
-| `postgres` (infra) | `postgres:alpine` | interna | Um banco e um usuário por produto. |
-| `acordu-web` | `acordu-web` | interna | Servidor estático do SPA (Caddy `file_server`). |
-| `acordu-api` | `acordu-api` (.NET 10) | interna | API + HostedServices (agendador, outbox de e-mail, alertas de SLA). |
+- **Domínios:** `acordu.app.br` no Pages; `api.acordu.app.br` no Cloud Run (mapeamento de domínio do Cloud Run; se indisponível em `us-east4`, proxy de `/api/*` por uma Pages Function para a URL `*.run.app`). Com SPA e API em subdomínios do mesmo site, o CORS da API aceita só a origem do SPA, com credenciais.
+- **Headers de segurança:** HSTS, CSP e afins vêm do arquivo `_headers` do Pages (SPA) e de middleware na API.
 
-**Impacto no Saldu (a propagar no repositório dele):** hoje o `web` do Saldu é o Caddy de borda. Com a stack de infra, ele vira um `saldu-web` estático interno, igual ao do Acordu, e o Postgres sai do compose do Saldu. Fazer essa migração **uma vez**, antes do primeiro deploy do Acordu, com backup do banco do Saldu antes.
+### 2.1 Configuração do serviço Cloud Run
 
-### 2.1 Roteamento (bloco `docker/Caddyfile.acordu`, importado pelo Caddy de infra)
-```
-acordu.app.br {
-    encode zstd gzip
-    handle /api/* {
-        reverse_proxy acordu-api:8080
-    }
-    handle {
-        reverse_proxy acordu-web:80
-    }
-    header {
-        Strict-Transport-Security "max-age=31536000; includeSubDomains"
-        X-Content-Type-Options nosniff
-        Referrer-Policy same-origin
-    }
-}
-www.acordu.app.br {
-    redir https://acordu.app.br{uri} permanent
-}
-```
-O Caddy de infra tem `import /etc/caddy/sites/*.caddy`; o deploy do Acordu copia o bloco para `sites/acordu.caddy` e faz `caddy reload` (sem derrubar o Saldu).
-
-### 2.2 Limites de recursos
-Cada serviço de produto tem `mem_limit` e `cpus` no compose, para um produto não derrubar o outro. Ponto de partida:
-
-| Serviço | Memória | CPU |
+| Parâmetro | Valor (nível 0) | Por quê |
 |---|---|---|
-| postgres (infra) | 3 GB | 1.0 |
-| caddy (infra) | 256 MB | 0.25 |
-| saldu-api / acordu-api | 1,5 GB cada | 0.75 cada |
-| saldu-web / acordu-web | 64 MB cada | 0.1 cada |
+| Região | `us-east4` | Tier 1 (free tier); mais perto do Neon `aws-us-east-1`. |
+| CPU / memória | 1 vCPU / 512 MiB | Suficiente para .NET com ReadyToRun; medir e ajustar. |
+| Cobrança de CPU | Por requisição (padrão) | Fora de requisição a CPU é estrangulada: por isso jobs são endpoints. |
+| `min-instances` / `max-instances` | 0 / 2 | Escala a zero; teto contra pico ou abuso. Nível 1: `min-instances=1`. |
+| Concorrência | 80 (padrão) | |
+| Startup CPU boost | Ligado | Reduz cold start. |
+| Acesso | Público (`allUsers` invoker) | A API é pública; autenticação na aplicação. Jobs protegidos por token. |
+| Service account | `acordu-api@acordu-prod` | Só acesso de objeto ao bucket de anexos (via HMAC dessa conta). |
 
-Revisar com a medição real (o `docker stats` do primeiro mês).
+### 2.2 Imagem
+
+- `docker/api.Dockerfile`: build com SDK, `PublishReadyToRun=true`, runtime `linux-x64`; base final `aspnet:10.0` **chiseled extra** (traz **ICU e tzdata**, exigidos pelo SLA com fusos IANA como `America/Sao_Paulo`), usuário não-root, porta `8080`.
+- Imagem pequena = pull e cold start menores. Medir tamanho no PR do Dockerfile.
 
 ---
 
 ## 3. CI (`ci.yml`) — a cada push/PR
 
-Igual ao Saldu:
-- **Backend:** restore → build → todos os testes (incluindo `ArchitectureTests`); integração com Testcontainers (Postgres). **(Acordu)** O teste do object storage usa um emulador S3 em container no runner (escolha no marco de anexos).
+- **Backend:** restore → build → todos os testes (incluindo `ArchitectureTests`); integração com Testcontainers (`postgres:17`, mesma versão do Neon). O teste do object storage usa um emulador S3 em container no runner (escolha no marco de anexos).
 - **Frontend:** install → lint → Vitest → build.
 - Merge em `main` só com tudo verde e PR revisado.
 
 ---
 
-## 4. Build e publicação
+## 4. Deploy (`deploy.yml`) — na `main`
 
-Igual ao Saldu: Buildx + QEMU `linux/arm64`, tag por SHA + `latest`, push no GHCR. Imagens: `ghcr.io/<usuario>/acordu-api` e `acordu-web`.
+1. **Autenticação** no Google por **Workload Identity Federation** (`google-github-actions/auth`), restrita ao repositório `dansantxs/acordu` e à branch `main`, impersonando `acordu-deployer@acordu-prod`.
+2. **Build e push** da imagem para `us-east4-docker.pkg.dev/acordu-prod/acordu/acordu-api`, tag = SHA do commit.
+3. **Migrations:** migration bundle do EF Core contra o **endpoint direto** do Neon, com o usuário `acordu_migrator`. Falhou → para aqui, a revisão em produção continua a anterior.
+4. **Deploy** da revisão nova no Cloud Run (`gcloud run deploy --image ...:<sha>`), com as variáveis de ambiente.
+5. **Healthcheck** `GET /api/health` na URL da revisão; falhou → tráfego volta para a revisão anterior (`gcloud run services update-traffic --to-revisions`).
+6. **SPA:** build de `apps/web` e publicação no Cloudflare Pages (integração Git do Pages ou `wrangler pages deploy` com token restrito ao projeto).
+7. Discord: falha sempre; sucesso com a tag.
 
----
-
-## 5. Deploy (`deploy.yml`)
-
-1. SSH na VM com a **chave de deploy do Acordu** (uma chave por repositório, revogável sozinha).
-2. `cd /opt/acordu && docker compose pull`.
-3. **Migrations:** migration bundle do EF Core rodando contra o banco `acordu` com o usuário `acordu_migrator` (dono do schema); só depois `docker compose up -d`.
-4. Atualizar `sites/acordu.caddy` se mudou e `docker exec infra-caddy-1 caddy reload`.
-5. Healthcheck `GET /api/health` via Caddy; falhou → redeploy da tag SHA anterior.
-6. Discord: falha sempre; sucesso com a tag.
+**Artifact Registry:** política de limpeza mantém as **5 imagens mais recentes** e apaga as sem tag com mais de 7 dias — a cota gratuita de armazenamento é pequena.
 
 ---
 
-## 6. Banco de dados
+## 5. Jobs agendados
 
-- Banco `acordu` na instância compartilhada.
-- Dois usuários: `acordu_migrator` (DDL, só no deploy) e `acordu_app` (DML, usado pela API). Nenhum dos dois tem `CONNECT` no banco `saldu`, e vice-versa.
-- `REVOKE ALL ON DATABASE acordu FROM PUBLIC`.
-- Pool: `Maximum Pool Size=20` na connection string (o Postgres compartilhado fica com `max_connections` 100).
-- Extensões `pg_trgm` e `unaccent` criadas pela migration (o `acordu_migrator` precisa de permissão para `CREATE EXTENSION` nesse banco — concedida uma vez no setup).
+A API escala a zero, então não há processo vivo para `HostedService`. Cada job é um **endpoint interno** (`POST /internal/jobs/<nome>`):
+- cabeçalho `X-Job-Token` comparado em tempo constante com `JOBS__TOKEN`; ausente/errado → 404 (não revela a rota);
+- fora do OpenAPI e dos documentos interno/portal;
+- **idempotente** e processa todos os tenants; responde com contagens (sem dados de cliente).
+
+| Job | Frequência | Disparador |
+|---|---|---|
+| `alertas-sla` + varredura do outbox de e-mail (`tick`) | a cada 5 min | **Cloud Scheduler** (1 dos 3 jobs gratuitos da conta `utile-billing`, divididos com o Saldu) |
+| `recorrencias` | diário, 03:00 BRT | GitHub Actions `schedule` (`jobs.yml`) |
+| `fechamento-automatico` | diário, 03:10 BRT | GitHub Actions `schedule` |
+| Backup `pg_dump` | diário, 04:00 BRT | GitHub Actions `schedule` (não chama a API) |
+
+Por que não tudo no Actions: o `schedule` atrasa minutos e cada execução consome minutos do repositório privado — inviável a cada 5 min. Por que não tudo no Scheduler: só 3 jobs gratuitos para os dois produtos.
+
+O outbox é despachado logo após o commit da requisição que gerou o e-mail; o `tick` só recolhe o que falhou ou sobrou.
 
 ---
 
-## 7. Segredos
+## 6. Banco de dados (Neon)
 
-- **GitHub Actions (repositório acordu):** token GHCR, chave SSH de deploy do Acordu, host/usuário, webhook do Discord.
-- **VM (`/opt/acordu/.env`, fora do git, `chmod 600`):** connection strings (`acordu_app` e `acordu_migrator`), chave de assinatura do JWT **própria** (não reutilizar a do Saldu), chave de API do Resend, credenciais do object storage (Customer Secret Key restrita aos buckets do Acordu), DSN do Sentry, webhook do Discord.
+- Projeto Neon **próprio do Acordu** (`acordu`), Postgres 17, `aws-us-east-1`; banco `acordu`.
+- Dois usuários: `acordu_migrator` (dono do schema, DDL, só no Actions) e `acordu_app` (DML, usado pela API).
+- **A API usa o endpoint pooled** (`...-pooler...`, PgBouncer em modo transação), com `SSL Mode=Require`. Pool do Npgsql pequeno (`Maximum Pool Size=10`): o limite real é o do pooler.
+- **Migrations e `pg_dump` usam o endpoint direto:** o lock de sessão das migrations e comandos de sessão não funcionam pelo pooler em modo transação.
+- Extensões `pg_trgm` e `unaccent` criadas pela migration (disponíveis no Neon).
+- **O `/api/health` não consulta o banco.** Ping no banco a cada 5 min manteria a computação acordada e consumiria as **100 CU-h/mês** do plano Free.
+
+---
+
+## 7. Segredos e configuração
+
+- **GitHub Actions (repositório acordu):** nenhuma chave do Google (WIF). Secrets: connection string direta do `acordu_migrator`, variáveis da API (abaixo), token do Cloudflare Pages, webhook do Discord.
+- **Variáveis da API no Cloud Run** (definidas no deploy): `ConnectionStrings__Acordu` (pooled, `acordu_app`), `Jwt__ChaveAssinatura` (**própria**, não a do Saldu), `Resend__ApiKey`, `Armazenamento__Endpoint` (`https://storage.googleapis.com`), `Armazenamento__AccessKey` / `__SecretKey` (HMAC da `acordu-api`), `Armazenamento__BucketAnexos`, `JOBS__TOKEN`, `Sentry__Dsn`, `Cors__Origem`.
+- Secret Manager fica como evolução (a cota gratuita também é por conta de faturamento).
 
 ---
 
 ## 8. Backup e restore
 
-- **Banco:** `pg_dump -Fc acordu` diário → bucket `acordu-backups`; retenção de 14 dias por *lifecycle policy* do bucket.
-- **Anexos:** o bucket `acordu-anexos` tem **versionamento** ligado e regra de lifecycle que apaga versões antigas após 30 dias — protege contra exclusão acidental sem duplicar tudo.
-- **Restore testado** ao menos uma vez antes de ter o primeiro cliente real: restaurar o dump num banco `acordu_restore` e subir a API contra ele.
-- Discord: falha sempre; heartbeat diário de sucesso (um por produto).
+- **Banco:** `pg_dump -Fc` (cliente **17**, imagem `postgres:17` no runner) no endpoint direto → bucket privado **`acordu-backups`**, autenticado por WIF com `acordu-backup@acordu-prod` (só criação de objeto). Retenção de 14 dias por lifecycle do bucket.
+- **Anexos:** `acordu-anexos` com versionamento e lifecycle que apaga versões não atuais após 30 dias.
+- **Restore testado** antes do primeiro cliente real: `pg_restore` num branch do Neon (ou Postgres local) e API apontada para ele.
+- Discord: falha sempre; heartbeat diário de sucesso.
 
 ---
 
 ## 9. Monitoramento
 
-Herdado (healthchecks, uptime externo, Sentry, Discord). **(Acordu)** Healthcheck extra: idade do último ciclo do agendador (se o HostedService parou, o `/api/health` responde degradado).
+- **UptimeRobot** em `https://api.acordu.app.br/api/health` a cada 5 min (mantém a instância quente e avisa queda).
+- **Pré-aquecimento pela UI:** o SPA chama `/api/health` ao abrir o login/portal, sem esperar.
+- Sentry (erros), Discord (deploy, jobs, backup), alerta de orçamento do Google (e-mail).
+- Acompanhar mensalmente: armazenamento e CU-h no painel do Neon; uso do Cloud Run na conta `utile-billing` (somado ao Saldu). São os gatilhos dos níveis 1–2 do ADR 0005.
 
 ---
 
 ## 10. Checklist de riscos
 
-- [ ] Nomes neutros da infra aplicados (ver `setup-infra-oracle-acordu.md` §0).
-- [ ] Stack `/opt/infra` criada e Saldu migrado para ela (com backup antes).
-- [ ] Banco `acordu` isolado do `saldu` (usuários e `REVOKE` conferidos).
-- [ ] Limites de memória/CPU aplicados e medidos.
-- [ ] Bloco do Caddy do Acordu recarrega sem afetar o Saldu.
-- [ ] Imagem da API com `tzdata` e ICU (o cálculo de SLA resolve fusos IANA como `America/Sao_Paulo`; imagens Alpine não trazem por padrão).
-- [ ] Chave JWT e chave SSH de deploy próprias do Acordu.
-- [ ] Buckets privados; Customer Secret Key restrita aos buckets do Acordu.
-- [ ] Backup do banco + versionamento dos anexos + restore testado.
+- [ ] Alerta de orçamento na `utile-billing` filtrado por `acordu-prod`.
+- [ ] `max-instances=2` aplicado.
+- [ ] Limpeza do Artifact Registry e lifecycle dos buckets configurados.
+- [ ] Imagem da API com ICU e tzdata (teste de fumaça resolvendo `America/Sao_Paulo` dentro do container).
+- [ ] `/api/health` sem acesso ao banco (coberto por teste funcional).
+- [ ] Endpoints `/internal/jobs/*` respondem 404 sem token e são idempotentes.
+- [ ] WIF restrito a `dansantxs/acordu` na `main`; nenhuma chave JSON de service account criada.
+- [ ] `acordu_app` sem permissão de DDL; app só no endpoint pooled.
+- [ ] Chave JWT própria do Acordu.
+- [ ] Buckets privados; HMAC restrito ao bucket de anexos.
+- [ ] Backup diário + restore testado.
 - [ ] Domínio de envio verificado no Resend (SPF/DKIM) antes do primeiro e-mail a cliente.
-- [ ] Cota de 20 GB de object storage do Always Free acompanhada (é da tenancy toda: backups dos dois produtos + anexos).
+- [ ] Política de privacidade informa dados hospedados nos EUA (LGPD, transferência internacional).
