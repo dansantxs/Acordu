@@ -15,6 +15,7 @@ internal sealed class TarefaConfiguration : IEntityTypeConfiguration<Tarefa>
         builder.Property(t => t.Descricao);
         builder.Property(t => t.Estimativa).HasConversion(new DuracaoConverter()).HasColumnName("estimativa_minutos");
         builder.HasIndex(t => new { t.TenantId, t.ClienteId, t.Status });
+        builder.HasIndex(t => new { t.TenantId, t.ResponsavelId, t.Status });
         builder.HasIndex(t => new { t.TenantId, t.SolicitacaoId });
         builder.HasIndex(t => new { t.TenantId, t.ProjetoId });
         // Idempotência da recorrência (RF-REC-03): no máximo uma tarefa por recorrência e data de referência.

@@ -210,6 +210,11 @@ namespace Acordu.Infrastructure.Persistence.Migrations
                     b.HasIndex("TenantId", "ContratoId", "Data")
                         .HasDatabaseName("ix_apontamentos_tenant_id_contrato_id_data");
 
+                    NpgsqlIndexBuilderExtensions.IncludeProperties(b.HasIndex("TenantId", "ContratoId", "Data"), new[] { "Duracao", "Faturavel" });
+
+                    b.HasIndex("TenantId", "UsuarioId", "Data")
+                        .HasDatabaseName("ix_apontamentos_tenant_id_usuario_id_data");
+
                     b.ToTable("apontamentos", (string)null);
                 });
 
@@ -771,6 +776,9 @@ namespace Acordu.Infrastructure.Persistence.Migrations
 
                     b.HasIndex("TenantId", "ClienteId", "Status")
                         .HasDatabaseName("ix_tarefas_tenant_id_cliente_id_status");
+
+                    b.HasIndex("TenantId", "ResponsavelId", "Status")
+                        .HasDatabaseName("ix_tarefas_tenant_id_responsavel_id_status");
 
                     b.ToTable("tarefas", (string)null);
                 });
