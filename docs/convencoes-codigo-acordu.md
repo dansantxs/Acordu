@@ -42,7 +42,7 @@
 - **(Acordu) Fuso:** conversão para hora local do tenant só dentro da `CalculadoraSla` e na apresentação, usando o fuso do `CalendarioUtil`.
 - **Exceções:** `ArgumentException` para input malformado; **exceções de domínio próprias** para regra de negócio (`TransicaoInvalidaException`, `PeriodoFechadoException`, `ContratoIncoerenteException`, `SlaIncompletoException`...), todas derivadas de `DominioException`.
 - **Value objects como `record`:** `readonly record struct` para os pequenos e numéricos (`Duracao`), `sealed record` para os compostos (`Periodo`, `JanelaDiaria`). A igualdade por valor vem do record; não há classe base `ValueObject`. A validação fica no construtor.
-- **Eventos de domínio:** a raiz guarda a lista de eventos pendentes (`EntidadeBase.Registrar`); a Infrastructure despacha e chama `LimparEventos`. Sem biblioteca de mediator no domínio.
+- **Eventos de domínio:** a raiz guarda a lista de eventos pendentes (`EntidadeBase.Registrar`); a `UnitOfWork` da Infrastructure despacha e chama `LimparEventos`. Sem biblioteca de mediator. **(Acordu)** Reação de estado = `IManipuladorEvento<T>` (na transação); efeito externo = `IManipuladorPosCommit<T>` (via outbox, idempotente). Ver modelo de domínio §7.
 - Construtores privados + *factory methods*; sem setters públicos; máquinas de estado com a tabela de transições do `modelo-de-dominio-acordu.md` como fonte da verdade (e testes cobrindo cada célula).
 - **(Acordu) Enums em PascalCase no C#** (`StatusSolicitacao.EmAndamento`), com valores numéricos explícitos a partir de 1. O formato `SCREAMING_SNAKE` do contrato (`EM_ANDAMENTO`) é responsabilidade da borda: na Api, `JsonStringEnumConverter` com `JsonNamingPolicy.SnakeCaseUpper`; no banco, `EnumTextoConverter` (§1).
 - **(Acordu) Operação não permitida no status atual** (inclusive editar agregado em estado final) lança `TransicaoInvalidaException`, mesmo quando não é uma transição propriamente dita.
@@ -81,6 +81,8 @@
 - **Regra de dependência:** Domain ← Application ← Infrastructure ← Api. O `Acordu.Domain` não referencia EF Core, Npgsql, ASP.NET nem HTTP.
 - Application define interfaces (`ITenantContext`, repositórios, `IArmazenamentoArquivos`, `IEnviadorEmail`, `IGeradorProtocolo`); Infrastructure implementa.
 - **Autorização na Application**, por caso de uso. **(Acordu)** `ITenantContext` expõe também `Papel`, `ClienteId?`, `EscopoPortal?` e, na sessão de link, `SolicitacaoIdPermitida?`.
+- **(Acordu) Contexto de tenant:** `ContextoTenant` (Infrastructure) é a única implementação de `ITenantContext`, por escopo, definida uma vez — pela Api a partir do token ou por um job para o tenant que processa. Escopo sem definição não enxerga nem grava nada.
+- **(Acordu) Repositórios:** `IRepositorio<T>` genérico (`ObterPorIdAsync` procura no change tracker antes do banco); consultas específicas entram com os casos de uso.
 - **(Acordu) Testes de arquitetura** (projeto `Acordu.ArchitectureTests`, NetArchTest) garantem: regra de dependência entre camadas; nada de `DateTime.Now`/`UtcNow` no Domain; nada de `IgnoreQueryFilters` fora da Infrastructure; nenhum tipo de `Acordu.Application.Portal` referenciando DTOs internos.
 
 ---

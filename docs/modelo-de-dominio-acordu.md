@@ -252,7 +252,7 @@ Coleção pequena e com invariante local (e-mail único entre os contatos ativos
 A invariante "no máximo um cronômetro ativo por usuário" (RF-APT-02) vira índice único `(TenantId, UsuarioId)`; o agregado tem Id próprio, como os demais. Existir = estar ativo: a Application remove o registro ao parar ou descartar. `Parar(agora)` devolve a `Duracao` arredondada ao minuto mais próximo (mínimo 1 min), sem cortar em 24h; a Application cria o `Apontamento`, que rejeita acima de 24h (o usuário aponta à mão ou descarta).
 
 ### 3.5 Número de protocolo
-Sequencial por tenant, gerado na Infrastructure (tabela de contadores com `UPDATE ... RETURNING` na mesma transação). O domínio recebe o número pronto em `Abrir`; invariante: `Numero > 0` e imutável.
+Sequencial por tenant, gerado na Infrastructure (`IGeradorProtocolo`: tabela `contadores` com `INSERT ... ON CONFLICT DO UPDATE ... RETURNING` na transação da unidade de trabalho — o lock da linha serializa criações concorrentes e o rollback devolve o número, sem buracos). O domínio recebe o número pronto em `Abrir`; invariante: `Numero > 0` e imutável.
 
 ---
 
@@ -454,6 +454,11 @@ Puros e determinísticos — principal alvo dos testes unitários.
 | `TarefaConcluida` | `Tarefa.Concluir` | (v1) nada obrigatório; (v2) sugerir resolver a solicitação se todas as tarefas concluíram. |
 
 Despacho **dentro da mesma transação** para efeitos de estado (primeira resposta, retomada) e **após o commit** para efeitos externos (e-mail), via outbox simples na Infrastructure — e-mail nunca sai de uma transação que falhou.
+
+**Como funciona (Infrastructure, `UnitOfWork`):**
+1. `SalvarAsync` recolhe os eventos das raízes rastreadas e chama os `IManipuladorEvento<T>` (Application). Eventos gerados por eles são despachados na rodada seguinte; mais de 5 rodadas é tratado como ciclo e aborta.
+2. Todos os eventos despachados vão para `outbox_mensagens` (JSON + tipo + tenant da raiz) na mesma transação; salva e faz commit. Qualquer falha desfaz tudo, inclusive a outbox.
+3. O `ProcessadorOutbox` entrega cada mensagem aos `IManipuladorPosCommit<T>` num escopo com o contexto fixado no tenant dela, na ordem de gravação. Entrega "pelo menos uma vez" (manipuladores idempotentes); falha reagenda com espera de 1, 2, 4, 8 min e, na 5ª, tira da fila com o erro guardado.
 
 ---
 
