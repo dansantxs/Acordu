@@ -87,6 +87,10 @@
 - **Autorização na Application**, por caso de uso. **(Acordu)** `ITenantContext` expõe também `Papel`, `ClienteId?`, `EscopoPortal?` e, na sessão de link, `SolicitacaoIdPermitida?`.
 - **(Acordu) Contexto de tenant:** `ContextoTenant` (Infrastructure) é a única implementação de `ITenantContext`, por escopo, definida uma vez — pela Api a partir do token ou por um job para o tenant que processa. Escopo sem definição não enxerga nem grava nada.
 - **(Acordu) Repositórios:** `IRepositorio<T>` genérico (`ObterPorIdAsync` procura no change tracker antes do banco); consultas específicas entram com os casos de uso.
+- **(Acordu) Casos de uso (CQRS-lite, sem mediator):** por feature, uma classe de comandos (`Clientes/ComandosCliente`) com um método por caso de uso, que devolve o Id; e uma interface de consultas (`IConsultasCliente`) implementada na Infrastructure com projeção do EF ou `ConsultaSql`. A Api escreve com o comando e responde com a consulta. Registro em `Api/Composicao/CasosDeUso.cs` (a Application segue sem pacotes).
+- **(Acordu) Erros da Application:** `contexto.Exigir(permissao)` → `AcessoNegadoException` (403 `sem-permissao`); raiz não encontrada pelos filtros → `NaoEncontradoException` (404 `nao-encontrado`); referência inválida no corpo → `ErroDeCampo.Criar("campoJson", msg)` (400 com o campo em `errors`).
+- **(Acordu) If-Match:** a Api lê o header e passa a versão ao comando, que chama `IControleVersao.Esperar(raiz, versao)` logo depois de carregar; a Infrastructure usa a versão como valor original do `xmin` e marca a raiz como alterada (o UPDATE acontece mesmo quando só uma filha mudou). Sem header, sem checagem.
+- **(Acordu) Datas civis da Application:** "hoje" e mês corrente no fuso do tenant via `RelogioDoTenant` (calendário + `TimeProvider`).
 - **(Acordu) Testes de arquitetura** (projeto `Acordu.ArchitectureTests`, NetArchTest) garantem: regra de dependência entre camadas; nada de `DateTime.Now`/`UtcNow` no Domain; nada de `IgnoreQueryFilters` fora da Infrastructure; nenhum tipo de `Acordu.Application.Portal` referenciando DTOs internos.
 
 ---

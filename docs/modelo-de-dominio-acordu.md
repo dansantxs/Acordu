@@ -284,6 +284,7 @@ Sequencial por tenant, gerado na Infrastructure (`IGeradorProtocolo`: tabela `co
 
 - Operação em contrato ENCERRADO lança `TransicaoInvalidaException`; franquia incoerente com o tipo lança `ContratoIncoerenteException`.
 - `EstaVigenteEm(data)` = ATIVO **e** `Vigencia.Contem(data)` (SUSPENSO não está vigente).
+- **Períodos fechados** (RF-APT-05) ficam no próprio contrato (`PeriodosFechados`, `date[]` com o primeiro dia de cada mês; cresce 12 por ano). `FecharPeriodo(mes, hoje)` aceita só mês anterior ao de `hoje` e dentro da vigência, em qualquer status (contrato encerrado ainda tem meses a apurar); repetir não muda nada. A Application passa `PeriodosFechados` ao `Apontamento`.
 
 ### 4.2.1 AjusteSaldo
 - `Registrar` recebe o `Contrato` (só leitura): herda `TenantId`/`ClienteId` dele e valida localmente que é **BANCO_HORAS**, não ENCERRADO e que `data ≥ Vigencia.Inicio` (`ContratoIncoerenteException`).

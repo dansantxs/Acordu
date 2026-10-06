@@ -4,7 +4,7 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddAcorduApi(builder.Configuration);
 
 var app = builder.Build();
-_ = app.UseAcorduApi(); // endpoints de negócio entram nos próximos PRs do marco
+_ = app.UseAcorduApi(); // endpoints de negócio são mapeados pela composição
 app.Run();
 
 /// <summary>Exposto para os testes funcionais (WebApplicationFactory).</summary>

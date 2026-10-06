@@ -28,6 +28,7 @@ Herdadas do Saldu, com as adaptações do Acordu:
 - **Ordenação:** `?ordem=campo` / `?ordem=-campo` nas listagens que a suportam.
 - **Concorrência otimista:** respostas de recursos mutáveis trazem `versao` (row version do Postgres). `PATCH` e ações de transição aceitam `If-Match: <versao>`; divergência → **409**.
 - **Transições de estado** são sub-recursos de ação (`POST /solicitacoes/{id}/resolucao`), não `PATCH` de campo — como no Saldu.
+- **(Acordu) `PATCH` recebe todos os campos editáveis do recurso** (o formulário inteiro); campo opcional ausente ou nulo é apagado. Com `If-Match`, não há perda de atualização. Recurso criado → `201` com o detalhe e `Location`; inativação/exclusão → `204`.
 - **Erros:** Problem Details (RFC 9457), §13.
 
 ---
@@ -135,6 +136,11 @@ E-mail já em uso por outro contato ativo do mesmo cliente → `422`.
 }
 ```
 `422`: franquia incoerente com o tipo; SLA incompleto; já existe contrato ATIVO do mesmo tipo para o cliente no período.
+
+- `GET /contratos/{id}` traz `sla` (quatro prioridades em minutos), `periodosFechados` (`["2026-09"]`), `versao` e `consumoAtual` (o consumo do mês corrente no fuso do tenant).
+- `POST .../encerramento` aceita corpo opcional `{ "data": "2026-10-31" }` (sem corpo: hoje); encerrar nunca estende a vigência. As transições respondem `200` com o contrato.
+- `POST .../ajustes` `{ "quantidadeMinutos": 600, "motivo": "...", "data": "2026-10-02" }` (data opcional) → `201`; só em BANCO_HORAS não encerrado (`422`).
+- `POST .../periodos/{periodo}/fechamento` → `204`; só mês já encerrado e dentro da vigência (`400` no campo `periodo`); fechar de novo não muda nada.
 
 **GET `/contratos/{id}/consumo?periodo=2026-09`**
 ```json
