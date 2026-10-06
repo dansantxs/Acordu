@@ -41,6 +41,7 @@ public static class DependencyInjection
         services.AddScoped<IGeradorProtocolo, GeradorProtocolo>();
         services.AddScoped<IControleVersao, ControleVersao>();
         services.AddScoped<ICalendarios, Calendarios>();
+        services.AddScoped<IMembrosDaEquipe, MembrosDaEquipe>();
         services.AddSingleton<ProcessadorOutbox>();
 
         services.AddScoped<ConsultaSql>();
@@ -49,6 +50,7 @@ public static class DependencyInjection
         services.AddScoped<IConsultasProjeto, ConsultasProjeto>();
         services.AddScoped<IConsultaExtratoPortal, ConsultaExtratoPortal>();
         services.AddScoped<IConsultaSemelhantes, ConsultaSemelhantes>();
+        services.AddScoped<IConsultasSolicitacao, ConsultasSolicitacao>();
         return services;
     }
 
