@@ -223,5 +223,20 @@ public sealed class ClienteTests
 
             acao.Should().Throw<TransicaoInvalidaException>();
         }
+
+        [Fact]
+        public void DesvincularUsuario_LimpaOUsuario_EPermiteVincularOutro()
+        {
+            var cliente = Criar();
+            var contato = cliente.AdicionarContato("Marina", "marina@bomgrao.com.br", null, null);
+            cliente.VincularUsuarioAoContato(contato.Id, Guid.NewGuid());
+            var outro = Guid.NewGuid();
+
+            cliente.DesvincularUsuarioDoContato(contato.Id);
+            contato.UsuarioId.Should().BeNull();
+            cliente.VincularUsuarioAoContato(contato.Id, outro);
+
+            contato.UsuarioId.Should().Be(outro);
+        }
     }
 }
