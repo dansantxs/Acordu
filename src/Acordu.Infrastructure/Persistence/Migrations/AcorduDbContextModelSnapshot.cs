@@ -870,11 +870,20 @@ namespace Acordu.Infrastructure.Persistence.Migrations
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("criado_em");
 
+                    b.Property<int>("DiasFechamentoAutomatico")
+                        .HasColumnType("integer")
+                        .HasColumnName("dias_fechamento_automatico");
+
                     b.Property<string>("Nome")
                         .IsRequired()
                         .HasMaxLength(200)
                         .HasColumnType("character varying(200)")
                         .HasColumnName("nome");
+
+                    b.Property<string>("NomePortal")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("nome_portal");
 
                     b.Property<uint>("Versao")
                         .IsConcurrencyToken()
