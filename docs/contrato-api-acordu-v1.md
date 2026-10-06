@@ -36,6 +36,15 @@ Herdadas do Saldu, com as adaptações do Acordu:
 
 Igual ao Saldu: `POST /auth/registro`, `/auth/login`, `/auth/refresh`, `/auth/logout`, `/auth/tenant-ativo`, confirmação de e-mail e recuperação de senha.
 
+Sessão (Acordu, decidido na implementação):
+- As rotas que abrem sessão (`registro`, `login`, `refresh`, `tenant-ativo`) respondem `{ "accessToken": "eyJ...", "expiraEm": "..." }` (JWT de 60 min) e entregam o **refresh token só em cookie** `acordu_refresh` — HttpOnly, Secure, SameSite=Strict, `Path=/api/v1/auth`, 30 dias. Nunca no corpo: fica fora do alcance de JavaScript. SPA e API estão no mesmo site, então o cookie é first-party.
+- `POST /auth/registro` → `201`: `{ nome, email, senha, nomeEmpresa }`; cria usuário, tenant (Dono) e já abre a sessão (confirmação de e-mail adiada). Campo inválido, e-mail em uso ou senha curta (< 10) → `400 validacao` com o campo em `errors`.
+- `POST /auth/login` → `200`; credencial errada, conta bloqueada (5 falhas, 15 min) ou usuário sem vínculo → `401`, sem distinguir. Abre no último tenant usado.
+- `POST /auth/refresh` (só o cookie) → `200` com novo access token e **novo** cookie (rotação). Reapresentar um refresh já trocado revoga todas as sessões do usuário naquele tenant → `401`.
+- `POST /auth/logout` → `204`; revoga o refresh e apaga o cookie.
+- `POST /auth/tenant-ativo` `{ tenantId }` (autenticado) → `200`; sem vínculo no tenant → `403`. Revoga o refresh anterior.
+- Mudança de papel/permissão vale no próximo refresh (o access token carrega as permissões).
+
 Específico do Acordu:
 
 | Método | Rota | Descrição |
@@ -418,7 +427,7 @@ Todas as rotas aplicam o filtro por `ClienteId` (e `ContatoId` se `escopoPortal 
 }
 ```
 
-Tipos (`type`) do v1: `validacao` (com `errors` por campo), `transicao-invalida`, `periodo-fechado`, `contrato-incoerente`, `conflito-versao`, `cronometro-ativo`, `nao-encontrado`, `sem-permissao`.
+Tipos (`type`) do v1: `validacao` (com `errors` por campo), `transicao-invalida`, `periodo-fechado`, `contrato-incoerente`, `conflito-versao`, `cronometro-ativo`, `nao-encontrado`, `sem-permissao`, `nao-autenticado` (401), `limite-requisicoes` (429), `erro-interno` (500).
 
 ---
 
