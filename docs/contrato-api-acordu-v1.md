@@ -304,6 +304,11 @@ O quadro (kanban) é o mesmo `GET /tarefas` agrupado no front por `status`.
 
 ---
 
+Decidido na implementação (6c3):
+- `POST /tarefas` aceita também `clienteId` para tarefa avulsa; com solicitação/projeto, o cliente é herdado (e precisa coincidir). Projeto concluído ou cancelado não recebe tarefas (`400` em `projetoId`). `visivelCliente` sem cliente → `400` no campo.
+- `PATCH /tarefas/{id}` e `/projetos/{id}` recebem o formulário inteiro; `PATCH .../itens/{itemId}` recebe `{ "texto": "...", "feito": true }` (`feito` nulo mantém).
+- Transições de tarefa e projeto respondem `200` com o recurso; itens respondem com o item.
+
 ## 9. Apontamentos e cronômetro
 
 | Método | Rota | Descrição | Permissão |
@@ -323,7 +328,7 @@ O quadro (kanban) é o mesmo `GET /tarefas` agrupado no front por `status`.
   "descricao": "Ajuste de layout e exportação", "descricaoExterna": "Arte refeita",
   "faturavel": true, "visivelCliente": true }
 ```
-`contratoId` não é enviado: é resolvido pela tarefa e congelado (ADR 0004). Data em período fechado → `422` (`tipo: .../periodo-fechado`). Iniciar cronômetro com outro ativo → `409`.
+`contratoId` não é enviado: é resolvido pela tarefa e congelado (ADR 0004). Origem do contrato: solicitação, senão projeto, senão recorrência da tarefa; tarefa avulsa → sem contrato (sem período fechado). Editar/excluir de outra pessoa sem `apontamento.editar_todos` → `403`. `POST /cronometro/parada` sem corpo usa o título da tarefa como descrição, `faturavel: true`, data de hoje no fuso do tenant; responde `201` com o apontamento. `GET /cronometro` traz `decorridoMinutos`. Data em período fechado → `422` (`tipo: .../periodo-fechado`). Iniciar cronômetro com outro ativo → `409`.
 
 ---
 
