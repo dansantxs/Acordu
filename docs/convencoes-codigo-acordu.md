@@ -63,7 +63,8 @@
 - **Recurso de outro tenant ou de outro cliente → 404.**
 - **Erros:** Problem Details (RFC 9457), `type` com URI estável por categoria (`.../erros/transicao-invalida`).
 - **`TenantId` sempre do token**; **(Acordu)** `ClienteId` do portal também do token (claim do vínculo), nunca da URL.
-- **(Acordu) Portal separado:** endpoints em `/api/v1/portal`, casos de uso em `Acordu.Application.Portal`, DTOs próprios que **não têm** campos internos. Proibido reaproveitar DTO interno no portal, mesmo "só com alguns campos nulos".
+- **(Acordu) Portal separado:** endpoints em `/api/v1/portal`, casos de uso em `Acordu.Application.Portal`, DTOs próprios que **não têm** campos internos. Proibido reaproveitar DTO interno no portal, mesmo "só com alguns campos nulos". O que a **equipe** faz sobre o portal (convidar contatos, escopo, revogar) fica fora desse namespace (`Acordu.Application.AcessosPortal`).
+- **(Acordu) Rotas públicas** (`/auth/registro`, `/login`, `/refresh`, `/logout`, convite do portal) levam `AllowAnonymous()`: o contexto de tenant não é definido a partir de um `Bearer` enviado junto, porque elas fixam o próprio tenant e a SPA pode mandar o token de outra sessão.
 - **(Acordu) Transições** como ações (`POST /recurso/{id}/acao`); `If-Match` com `versao` → 409 se divergir.
 - Endpoints em minimal API, agrupados por feature (`MapGroup`), com políticas de autorização nomeadas por permissão.
 
@@ -90,6 +91,7 @@
 - **(Acordu) Casos de uso (CQRS-lite, sem mediator):** por feature, uma classe de comandos (`Clientes/ComandosCliente`) com um método por caso de uso, que devolve o Id; e uma interface de consultas (`IConsultasCliente`) implementada na Infrastructure com projeção do EF ou `ConsultaSql`. A Api escreve com o comando e responde com a consulta. Registro em `Api/Composicao/CasosDeUso.cs` (a Application segue sem pacotes).
 - **(Acordu) Erros da Application:** `contexto.Exigir(permissao)` → `AcessoNegadoException` (403 `sem-permissao`); raiz não encontrada pelos filtros → `NaoEncontradoException` (404 `nao-encontrado`); referência inválida no corpo → `ErroDeCampo.Criar("campoJson", msg)` (400 com o campo em `errors`).
 - **(Acordu) If-Match:** a Api lê o header e passa a versão ao comando, que chama `IControleVersao.Esperar(raiz, versao)` logo depois de carregar; a Infrastructure usa a versão como valor original do `xmin` e marca a raiz como alterada (o UPDATE acontece mesmo quando só uma filha mudou). Sem header, sem checagem.
+- **(Acordu) E-mail** só em `IManipuladorPosCommit<T>` (outbox), nunca dentro da transação do caso de uso. Token que vai em e-mail é gerado no próprio manipulador, com só o hash gravado antes do envio: nada em claro no banco nem na outbox. Sem dado de cliente no log do envio (`Email__RegistrarConteudo` só em desenvolvimento).
 - **(Acordu) Datas civis da Application:** "hoje" e mês corrente no fuso do tenant via `RelogioDoTenant` (calendário + `TimeProvider`).
 - **(Acordu) Testes de arquitetura** (projeto `Acordu.ArchitectureTests`, NetArchTest) garantem: regra de dependência entre camadas; nada de `DateTime.Now`/`UtcNow` no Domain; nada de `IgnoreQueryFilters` fora da Infrastructure; nenhum tipo de `Acordu.Application.Portal` referenciando DTOs internos.
 

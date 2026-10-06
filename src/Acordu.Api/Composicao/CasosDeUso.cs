@@ -5,6 +5,7 @@ using Acordu.Application.Clientes;
 using Acordu.Application.Common;
 using Acordu.Application.Configuracoes;
 using Acordu.Application.Contratos;
+using Acordu.Application.AcessosPortal;
 using Acordu.Application.Projetos;
 using Acordu.Application.Solicitacoes;
 using Acordu.Application.Tarefas;
@@ -29,9 +30,14 @@ internal static class CasosDeUso
         services.AddScoped<ComandosApontamento>();
         services.AddScoped<ComandosConfiguracao>();
         services.AddScoped<ComandosCategoria>();
+        services.AddScoped<ComandosAcessoPortal>();
+        services.AddScoped<RevogacaoAcessoPortal>();
 
         // Reações de estado na mesma transação (modelo §7).
         services.AddScoped<IManipuladorEvento<InteracaoRegistrada>, PrimeiraRespostaERetomada>();
+
+        // Efeitos externos depois do commit, pela outbox.
+        services.AddScoped<IManipuladorPosCommit<ConvitePortalCriado>, EnvioConvitePortal>();
         return services;
     }
 }

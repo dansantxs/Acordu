@@ -1,0 +1,25 @@
+namespace Acordu.Application.Abstractions;
+
+/// <summary>
+/// Endereço público do front (SPA interna e portal), usado para montar os links dos e-mails. O token vai no caminho e a
+/// SPA o tira da URL na primeira carga (segurança §9, Referrer-Policy).
+/// </summary>
+public sealed class EnderecosPublicos
+{
+    private readonly Uri _base;
+
+    public EnderecosPublicos(Uri baseUrl)
+    {
+        ArgumentNullException.ThrowIfNull(baseUrl);
+        if (!baseUrl.IsAbsoluteUri)
+            throw new ArgumentException("O endereço público precisa ser absoluto.", nameof(baseUrl));
+        _base = baseUrl.AbsoluteUri.EndsWith('/') ? baseUrl : new Uri(baseUrl.AbsoluteUri + "/");
+    }
+
+    /// <summary>Página de aceite do convite do portal.</summary>
+    public Uri ConvitePortal(string token)
+    {
+        ArgumentException.ThrowIfNullOrEmpty(token);
+        return new Uri(_base, $"portal/convite/{token}");
+    }
+}

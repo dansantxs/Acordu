@@ -86,6 +86,9 @@ public sealed class Cliente : EntidadeBase
         contato.VincularUsuario(usuarioId);
     }
 
+    /// <summary>Acesso ao portal revogado: o contato volta a não ter usuário (o histórico de interações fica).</summary>
+    public void DesvincularUsuarioDoContato(Guid contatoId) => BuscarContato(contatoId).DesvincularUsuario();
+
     private (string Nome, string Email, string? Telefone, string? Cargo) ValidarContato(
         string nome, string email, string? telefone, string? cargo, Contato? ignorar)
     {

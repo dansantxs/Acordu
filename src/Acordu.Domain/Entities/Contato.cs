@@ -31,7 +31,7 @@ public sealed class Contato
 
     public string? Cargo { get; private set; }
 
-    /// <summary>Usuário do portal, preenchido quando o contato aceita o convite (RF-CLI-03).</summary>
+    /// <summary>Usuário do portal, preenchido quando o contato aceita o convite (RF-CLI-03) e limpo ao revogar o acesso.</summary>
     public Guid? UsuarioId { get; private set; }
 
     public bool Ativo { get; private set; }
@@ -47,4 +47,6 @@ public sealed class Contato
     internal void Inativar() => Ativo = false;
 
     internal void VincularUsuario(Guid usuarioId) => UsuarioId = usuarioId;
+
+    internal void DesvincularUsuario() => UsuarioId = null;
 }

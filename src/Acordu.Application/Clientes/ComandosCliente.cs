@@ -1,5 +1,6 @@
 using Acordu.Application.Abstractions;
 using Acordu.Application.Common;
+using Acordu.Application.AcessosPortal;
 using Acordu.Domain.Acesso;
 using Acordu.Domain.Entities;
 
@@ -12,17 +13,25 @@ public sealed class ComandosCliente
     private readonly IRepositorio<Cliente> _clientes;
     private readonly IUnitOfWork _unidade;
     private readonly IControleVersao _versoes;
+    private readonly RevogacaoAcessoPortal _revogacao;
 
-    public ComandosCliente(ITenantContext contexto, IRepositorio<Cliente> clientes, IUnitOfWork unidade, IControleVersao versoes)
+    public ComandosCliente(
+        ITenantContext contexto,
+        IRepositorio<Cliente> clientes,
+        IUnitOfWork unidade,
+        IControleVersao versoes,
+        RevogacaoAcessoPortal revogacao)
     {
         ArgumentNullException.ThrowIfNull(contexto);
         ArgumentNullException.ThrowIfNull(clientes);
         ArgumentNullException.ThrowIfNull(unidade);
         ArgumentNullException.ThrowIfNull(versoes);
+        ArgumentNullException.ThrowIfNull(revogacao);
         _contexto = contexto;
         _clientes = clientes;
         _unidade = unidade;
         _versoes = versoes;
+        _revogacao = revogacao;
     }
 
     public async Task<Guid> CriarAsync(ClienteRequest dados, CancellationToken cancellationToken = default)
@@ -43,11 +52,12 @@ public sealed class ComandosCliente
         await _unidade.SalvarAsync(cancellationToken);
     }
 
-    /// <summary>Inativação lógica: o histórico fica. Revogar acessos ao portal entra com o portal (6d).</summary>
+    /// <summary>Inativação lógica: o histórico fica e os acessos de todos os contatos ao portal são revogados.</summary>
     public async Task InativarAsync(Guid id, string? versao, CancellationToken cancellationToken = default)
     {
         var cliente = await CarregarAsync(id, versao, cancellationToken);
         cliente.Inativar();
+        await _revogacao.RevogarTodosAsync(cliente, cancellationToken);
         await _unidade.SalvarAsync(cancellationToken);
     }
 
@@ -69,10 +79,12 @@ public sealed class ComandosCliente
         await _unidade.SalvarAsync(cancellationToken);
     }
 
+    /// <summary>Inativa o contato e revoga o acesso dele ao portal (vínculo, sessões, convites e links).</summary>
     public async Task InativarContatoAsync(Guid id, Guid contatoId, string? versao, CancellationToken cancellationToken = default)
     {
         var cliente = await CarregarComContatoAsync(id, contatoId, versao, cancellationToken);
         cliente.InativarContato(contatoId);
+        await _revogacao.RevogarAsync(cliente, contatoId, cancellationToken);
         await _unidade.SalvarAsync(cancellationToken);
     }
 

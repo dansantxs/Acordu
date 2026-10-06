@@ -1,6 +1,3 @@
-using System.Buffers.Text;
-using System.Security.Cryptography;
-using System.Text;
 using Acordu.Domain.Common;
 
 namespace Acordu.Domain.Entities;
@@ -12,8 +9,6 @@ namespace Acordu.Domain.Entities;
 /// </summary>
 public sealed class AcessoPortal : RaizComCliente
 {
-    private const int BytesDoToken = 32;
-
     private AcessoPortal(Guid id, Guid tenantId, Guid clienteId)
         : base(id, tenantId, clienteId)
     {
@@ -52,7 +47,7 @@ public sealed class AcessoPortal : RaizComCliente
         TimeSpan validade)
     {
         ArgumentOutOfRangeException.ThrowIfLessThanOrEqual(validade, TimeSpan.Zero);
-        var token = Base64Url.EncodeToString(RandomNumberGenerator.GetBytes(BytesDoToken));
+        var token = TokenSeguro.Gerar();
         var emitidoEm = agora.ToUniversalTime();
         var acesso = new AcessoPortal(id, tenantId, clienteId)
         {
@@ -66,21 +61,11 @@ public sealed class AcessoPortal : RaizComCliente
     }
 
     /// <summary>Hash usado para persistir e para localizar o acesso a partir do token recebido.</summary>
-    public static string HashDoToken(string token)
-    {
-        ArgumentException.ThrowIfNullOrEmpty(token);
-        return Convert.ToHexStringLower(SHA256.HashData(Encoding.UTF8.GetBytes(token)));
-    }
+    public static string HashDoToken(string token) => TokenSeguro.Hash(token);
 
     /// <summary>Hash confere (comparação em tempo constante), não revogado e <paramref name="agora"/> antes da expiração.</summary>
-    public bool Validar(string token, DateTimeOffset agora)
-    {
-        if (string.IsNullOrEmpty(token) || Revogado || agora >= ExpiraEm)
-            return false;
-
-        return CryptographicOperations.FixedTimeEquals(
-            Encoding.ASCII.GetBytes(HashDoToken(token)), Encoding.ASCII.GetBytes(TokenHash));
-    }
+    public bool Validar(string token, DateTimeOffset agora) =>
+        !Revogado && agora < ExpiraEm && TokenSeguro.Confere(token, TokenHash);
 
     /// <summary>Revoga o acesso; revogar de novo mantém o instante original.</summary>
     public void Revogar(DateTimeOffset agora) => RevogadoEm ??= agora.ToUniversalTime();

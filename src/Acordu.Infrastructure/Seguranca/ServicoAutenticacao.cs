@@ -4,6 +4,8 @@ using System.Text;
 using Acordu.Application.Autenticacao;
 using Acordu.Domain.Common;
 using Acordu.Domain.Entities;
+using Acordu.Domain.Enums;
+using Acordu.Domain.Exceptions;
 using Acordu.Infrastructure.MultiTenancy;
 using Acordu.Infrastructure.Persistence;
 using Microsoft.AspNetCore.Identity;
@@ -167,6 +169,65 @@ public sealed class ServicoAutenticacao : IServicoAutenticacao
         await _db.SaveChangesAsync(cancellationToken);
     }
 
+    public async Task<ConvitePortalInfo?> ConsultarConviteAsync(string token, CancellationToken cancellationToken = default)
+    {
+        var convite = await ConviteValidoAsync(token, cancellationToken);
+        if (convite is null)
+            return null;
+
+        var temConta = await _usuarios.FindByEmailAsync(convite.Contato.Email) is not null;
+        return new ConvitePortalInfo(
+            convite.Tenant.NomePortal ?? convite.Tenant.Nome, convite.Contato.Nome, convite.Contato.Email, temConta);
+    }
+
+    public async Task<Sessao?> AceitarConviteAsync(
+        string token, string? nome, string senha, CancellationToken cancellationToken = default)
+    {
+        var dados = await ConviteValidoAsync(token, cancellationToken);
+        if (dados is null)
+            return null;
+        if (string.IsNullOrEmpty(senha))
+            throw new ArgumentException("A senha é obrigatória.", nameof(senha));
+
+        var (convite, cliente, contato, _) = dados;
+        var agora = _relogio.GetUtcNow();
+        _contexto.DefinirEquipe(convite.TenantId);
+
+        // Conta existente: a senha é conferida antes da transação, para a contagem de falhas (lockout) ficar gravada.
+        var usuario = await _usuarios.FindByEmailAsync(contato.Email);
+        if (usuario is not null)
+            await ConferirSenhaAsync(usuario, senha);
+
+        await using var transacao = await _db.Database.BeginTransactionAsync(cancellationToken);
+        if (usuario is null)
+        {
+            var nomeValido = Obrigatorio(string.IsNullOrWhiteSpace(nome) ? contato.Nome : nome, Usuario.TamanhoNome, nameof(nome));
+            // O token chegou por e-mail: o e-mail está confirmado.
+            usuario = new Usuario(contato.Email, nomeValido) { EmailConfirmed = true };
+            var criacao = await _usuarios.CreateAsync(usuario, senha);
+            if (!criacao.Succeeded)
+            {
+                throw ErroDeRegistro(criacao) == ErroRegistro.Senha
+                    ? new ArgumentException($"A senha precisa de ao menos {OpcoesIdentidade.TamanhoMinimoSenha} caracteres.", nameof(senha))
+                    : new InvalidOperationException("Não foi possível criar a conta do contato: " + string.Join(", ", criacao.Errors.Select(e => e.Code)));
+            }
+        }
+
+        if (await _db.Vinculos.AnyAsync(v => v.UsuarioId == usuario.Id, cancellationToken))
+            throw new AcessoPortalException("Este e-mail já tem acesso a este prestador, pela equipe ou por outro cliente.");
+
+        var papel = await _db.Papeis.SingleAsync(p => p.Tipo == TipoPapel.Cliente && p.Padrao, cancellationToken);
+        var vinculo = Vinculo.Criar(Guid.CreateVersion7(), usuario.Id, papel, cliente.Id, convite.Escopo);
+        _db.Add(vinculo);
+        cliente.VincularUsuarioAoContato(contato.Id, usuario.Id);
+        convite.Aceitar(token, usuario.Id, agora);
+
+        var sessao = Abrir(usuario, vinculo, papel, agora);
+        await _db.SaveChangesAsync(cancellationToken);
+        await transacao.CommitAsync(cancellationToken);
+        return sessao;
+    }
+
     public async Task<PerfilUsuario?> PerfilAsync(Guid usuarioId, Guid tenantId, CancellationToken cancellationToken = default)
     {
         var usuario = await _usuarios.FindByIdAsync(usuarioId.ToString());
@@ -228,6 +289,44 @@ public sealed class ServicoAutenticacao : IServicoAutenticacao
             usuario.Id, vinculo.TenantId, papel.Nome, [.. papel.Permissoes], vinculo.ClienteId, vinculo.EscopoPortal, token, expiraEm);
     }
 
+    /// <summary>
+    /// Convite pelo hash do token, válido, com cliente e contato ativos (revogar ou inativar já revoga o convite; aqui é
+    /// a segunda barreira). Rastreado, para o aceite gravar. Nulo em qualquer falha, sem distinguir o motivo.
+    /// </summary>
+    private async Task<ConviteCarregado?> ConviteValidoAsync(string? token, CancellationToken cancellationToken)
+    {
+        if (string.IsNullOrWhiteSpace(token))
+            return null;
+
+        var hash = TokenSeguro.Hash(token);
+        var convite = await _db.ConvitesPortal.IgnoreQueryFilters(Filtros)
+            .SingleOrDefaultAsync(c => c.TokenHash == hash, cancellationToken);
+        if (convite is null || !convite.Validar(token, _relogio.GetUtcNow()))
+            return null;
+
+        var cliente = await _db.Clientes.IgnoreQueryFilters(Filtros)
+            .SingleOrDefaultAsync(c => c.Id == convite.ClienteId && c.TenantId == convite.TenantId, cancellationToken);
+        var contato = cliente?.Contatos.FirstOrDefault(c => c.Id == convite.ContatoId);
+        if (cliente is null || contato is null || !cliente.Ativo || !contato.Ativo)
+            return null;
+
+        var tenant = await _db.Tenants.IgnoreQueryFilters(Filtros).SingleAsync(t => t.Id == convite.TenantId, cancellationToken);
+        return new ConviteCarregado(convite, cliente, contato, tenant);
+    }
+
+    private async Task ConferirSenhaAsync(Usuario usuario, string senha)
+    {
+        if (await _usuarios.IsLockedOutAsync(usuario))
+            throw new ArgumentException("Conta bloqueada por tentativas de senha. Tente de novo em alguns minutos.", nameof(senha));
+        if (!await _usuarios.CheckPasswordAsync(usuario, senha))
+        {
+            await _usuarios.AccessFailedAsync(usuario);
+            throw new ArgumentException("Senha incorreta. Este e-mail já tem conta no Acordu: use a senha dela.", nameof(senha));
+        }
+
+        await _usuarios.ResetAccessFailedCountAsync(usuario);
+    }
+
     private async Task<RefreshToken?> RefreshAsync(string? token, CancellationToken cancellationToken)
     {
         if (string.IsNullOrWhiteSpace(token))
@@ -271,6 +370,8 @@ public sealed class ServicoAutenticacao : IServicoAutenticacao
             return ErroRegistro.Senha;
         return codigos.Exists(c => c.StartsWith("Duplicate", StringComparison.Ordinal)) ? ErroRegistro.EmailEmUso : ErroRegistro.EmailInvalido;
     }
+
+    private sealed record ConviteCarregado(ConvitePortal Convite, Cliente Cliente, Contato Contato, Tenant Tenant);
 
     private enum ErroRegistro
     {

@@ -202,6 +202,19 @@ class AcessoPortal <<aggregate root>> {
   +Revogar(agora)
 }
 
+class ConvitePortal <<aggregate root>> {
+  +Id, TenantId, ClienteId
+  +ContatoId, Escopo: EscopoPortal, CriadoEm
+  +TokenHash?, ExpiraEm?, AceitoEm?, UsuarioId?, RevogadoEm?
+  --
+  +Criar(..., escopo, agora)
+  +GerarToken(agora): string
+  +Validar(token, agora): bool
+  +Aceitar(token, usuarioId, agora)
+  +AlterarEscopo(escopo)
+  +Revogar(agora)
+}
+
 class CalendarioUtil <<aggregate root>> {
   +TenantId (chave)
   +FusoHorario: string
@@ -261,7 +274,7 @@ Sequencial por tenant, gerado na Infrastructure (`IGeradorProtocolo`: tabela `co
 ### 4.1 Cliente
 - **Invariantes:** nome obrigatório; documento opcional, CPF ou CNPJ com dígitos verificadores válidos, guardado só com dígitos; e-mail de contato válido, normalizado em minúsculas e único entre contatos ativos do cliente (`EmailDuplicadoException`; o e-mail de um contato inativo pode ser reutilizado); contato inativo não pode ser vinculado a usuário, nem um contato já vinculado a outro usuário (`TransicaoInvalidaException`).
 - Campos do ERS: `Observacoes` no cliente (RF-CLI-01) e `Cargo` no contato (RF-CLI-02). O Id do contato é gerado pelo cliente.
-- `VincularUsuarioAoContato` é chamado quando o contato aceita o convite do portal (RF-CLI-03).
+- `VincularUsuarioAoContato` é chamado quando o contato aceita o convite do portal (RF-CLI-03); `DesvincularUsuarioDoContato`, quando o acesso é revogado (o contato pode ser convidado de novo, inclusive com outra conta).
 - Inativar cliente não apaga histórico; a Application bloqueia novas solicitações para cliente inativo.
 
 ### 4.2 Contrato
@@ -394,6 +407,14 @@ Regras:
 - Token: 32 bytes do `RandomNumberGenerator`, base64url (43 caracteres); `TokenHash` = SHA-256 do token em hex minúsculo, usado também para localizar o acesso na troca do link por sessão (índice único).
 - A validade vem da Application (padrão de 30 dias, segurança §5.3). "Reemitir revoga o anterior" e revogar os links ao remover o contato são orquestrados pela Application. `Revogar` é idempotente e mantém o primeiro instante.
 
+### 4.10.1 ConvitePortal
+- Convite do contato para o portal com conta (segurança §4). Raiz própria, ligada ao cliente (filtro por cliente como as demais).
+- **Nasce sem token.** `GerarToken` é chamado no envio do e-mail (manipulador pós-commit), guarda só o hash e reinicia a validade de 7 dias a partir dali; chamado de novo, invalida o token anterior. Assim o token nunca fica em claro no banco nem na outbox, e uma reentrega da outbox só troca o link.
+- `Validar`: pendente (nem aceito nem revogado), já enviado, `agora < ExpiraEm` e hash conferido em tempo constante. `Aceitar` exige token válido (senão `AcessoPortalException`) e guarda o usuário.
+- `AlterarEscopo` e `GerarToken` só com o convite pendente. `Revogar` só afeta pendente: aceito é histórico.
+- Um pendente por contato: reconvidar revoga o anterior (Application). O escopo do convite vira o do `Vinculo` no aceite.
+- Evento `ConvitePortalCriado` → `EnvioConvitePortal` (pós-commit) gera o token e manda o e-mail.
+
 ### 4.11 CalendarioUtil
 - Um por tenant, semeado no cadastro (seg–sex 08:00–18:00, fuso `America/Sao_Paulo`, sem feriados).
 - **Invariantes:** fuso IANA válido; janelas diárias com início < fim; ao menos um dia útil na semana; feriados sem duplicata.
@@ -456,6 +477,7 @@ Puros e determinísticos — principal alvo dos testes unitários.
 | `InteracaoRegistrada` | `Interacao.Registrar` | Primeira resposta (§3.1); retomar se cliente respondeu; notificar a outra parte. |
 | `ApontamentoRegistrado/Alterado/Excluido` | `Apontamento` | Checar limiares de consumo (RF-CTR-07). |
 | `TarefaConcluida` | `Tarefa.Concluir` | (v1) nada obrigatório; (v2) sugerir resolver a solicitação se todas as tarefas concluíram. |
+| `ConvitePortalCriado` | `ConvitePortal.Criar` | Gera o token e envia o e-mail de aceite (§4.10.1). |
 
 Despacho **dentro da mesma transação** para efeitos de estado (primeira resposta, retomada) e **após o commit** para efeitos externos (e-mail), via outbox simples na Infrastructure — e-mail nunca sai de uma transação que falhou.
 
