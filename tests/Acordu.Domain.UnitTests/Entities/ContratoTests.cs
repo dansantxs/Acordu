@@ -365,4 +365,66 @@ public sealed class ContratoTests
             contrato.EstaVigenteEm(new DateOnly(2026, 10, 10)).Should().BeFalse();
         }
     }
+
+    public sealed class FecharPeriodo
+    {
+        private static readonly MesReferencia Outubro = new(2026, 10);
+        private static readonly DateOnly DezembroDia5 = new(2026, 12, 5);
+
+        [Fact]
+        public void MesEncerradoNaVigencia_FechaUmaVez()
+        {
+            var contrato = Contratos.Criar();
+
+            contrato.FecharPeriodo(new MesReferencia(2026, 11), DezembroDia5);
+            contrato.FecharPeriodo(Outubro, DezembroDia5);
+            contrato.FecharPeriodo(Outubro, DezembroDia5);
+
+            contrato.PeriodosFechados.Should().Equal(Outubro, new MesReferencia(2026, 11));
+            contrato.PeriodoEstaFechado(Outubro).Should().BeTrue();
+            contrato.PeriodoEstaFechado(new MesReferencia(2026, 12)).Should().BeFalse();
+        }
+
+        [Fact]
+        public void MesCorrente_LancaExcecao()
+        {
+            var contrato = Contratos.Criar();
+
+            var acao = () => contrato.FecharPeriodo(new MesReferencia(2026, 12), DezembroDia5);
+
+            acao.Should().Throw<ArgumentException>().WithParameterName("periodo");
+            contrato.PeriodosFechados.Should().BeEmpty();
+        }
+
+        [Fact]
+        public void AntesDoInicio_LancaExcecao()
+        {
+            var contrato = Contratos.Criar();
+
+            var acao = () => contrato.FecharPeriodo(new MesReferencia(2026, 9), DezembroDia5);
+
+            acao.Should().Throw<ArgumentException>().WithParameterName("periodo");
+        }
+
+        [Fact]
+        public void DepoisDoFim_LancaExcecao()
+        {
+            var contrato = Contratos.Criar(fim: new DateOnly(2026, 10, 31));
+
+            var acao = () => contrato.FecharPeriodo(new MesReferencia(2026, 11), DezembroDia5);
+
+            acao.Should().Throw<ArgumentException>().WithParameterName("periodo");
+        }
+
+        [Fact]
+        public void ContratoEncerrado_AindaFecha()
+        {
+            var contrato = Contratos.Criar();
+            contrato.Encerrar(new DateOnly(2026, 11, 15));
+
+            contrato.FecharPeriodo(new MesReferencia(2026, 11), DezembroDia5);
+
+            contrato.PeriodoEstaFechado(new MesReferencia(2026, 11)).Should().BeTrue();
+        }
+    }
 }

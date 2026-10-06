@@ -12,6 +12,9 @@ namespace Acordu.Domain.Entities;
 /// </summary>
 public sealed class Contrato : RaizComCliente
 {
+    // Primeiro dia de cada mês fechado (date[] no banco). Cresce 12 por ano: cabe no agregado.
+    private List<DateOnly> _periodosFechados = [];
+
     private Contrato(
         Guid id,
         Guid tenantId,
@@ -46,6 +49,9 @@ public sealed class Contrato : RaizComCliente
     public PoliticaSla Sla { get; private set; }
 
     public StatusContrato Status { get; private set; }
+
+    /// <summary>Meses apurados e fechados pelo gestor: apontamentos nesses meses não são mais editados (RF-APT-05).</summary>
+    public IReadOnlyList<MesReferencia> PeriodosFechados => [.. _periodosFechados.Order().Select(MesReferencia.De)];
 
     public static Contrato Criar(
         Guid id,
@@ -111,6 +117,23 @@ public sealed class Contrato : RaizComCliente
         Vigencia = new Periodo(Vigencia.Inicio, fim);
         Status = StatusContrato.Encerrado;
     }
+
+    /// <summary>
+    /// Fecha o mês para edição de apontamentos (RF-APT-05). Só mês já encerrado (anterior ao de <paramref name="hoje"/>,
+    /// no fuso do tenant) e dentro da vigência; fechar de novo não muda nada. Vale em qualquer status: um contrato
+    /// encerrado ainda tem meses a apurar.
+    /// </summary>
+    public void FecharPeriodo(MesReferencia periodo, DateOnly hoje)
+    {
+        if (periodo >= MesReferencia.De(hoje))
+            throw new ArgumentException("Só é possível fechar um mês já encerrado.", nameof(periodo));
+        if (periodo < MesReferencia.De(Vigencia.Inicio) || (Vigencia.Fim is { } fim && periodo > MesReferencia.De(fim)))
+            throw new ArgumentException("O mês está fora da vigência do contrato.", nameof(periodo));
+        if (!_periodosFechados.Contains(periodo.PrimeiroDia))
+            _periodosFechados.Add(periodo.PrimeiroDia);
+    }
+
+    public bool PeriodoEstaFechado(MesReferencia periodo) => _periodosFechados.Contains(periodo.PrimeiroDia);
 
     /// <summary>ATIVO e com <paramref name="data"/> dentro da vigência. SUSPENSO não aceita novas solicitações nem SLA.</summary>
     public bool EstaVigenteEm(DateOnly data) => Status == StatusContrato.Ativo && Vigencia.Contem(data);
