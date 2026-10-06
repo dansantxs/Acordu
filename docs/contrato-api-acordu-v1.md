@@ -202,6 +202,12 @@ Dias ausentes em `expediente` são não úteis.
 
 **Filtros do GET `/solicitacoes`:** `?status=ABERTA,EM_ANDAMENTO&clienteId=&responsavelId=&prioridade=&categoriaId=&situacaoSla=EM_RISCO&busca=&abertaDe=&abertaAte=&ordem=-abertaEm`.
 
+Decidido na implementação (6c2):
+- `situacaoSla` no filtro aceita `EM_RISCO` e `VIOLADO`, resolvidos no banco pelos instantes persistidos (read side §5); solicitação pausada (AGUARDANDO_CLIENTE) não entra em nenhum dos dois. `ordem`: `abertaEm` (padrão `-abertaEm`), `numero`, `prioridade`, `prazoResolucao`. `busca`: trecho do título ou número (`#1042`).
+- `PATCH` recebe título, descrição, prioridade, categoria e responsável (formulário inteiro); trocar o contrato fica para depois (modelo §4.3). Responsável precisa ser da equipe (`400` no campo).
+- Transições respondem `200` com a solicitação. `POST /interacoes` aceita, por ora, JSON `{ "texto": "...", "visibilidade": "EXTERNA" }`; vira multipart com anexos no marco de anexos. Interação EXTERNA da equipe registra a primeira resposta.
+- O detalhe traz também `descricao`, `categoriaId`, `situacaoSla` (fora do bloco `sla`, para solicitações sem contrato), `resolvidaEm`, `fechadaEm`, `canceladaEm` e `motivoCancelamento`.
+
 **POST `/solicitacoes`** → `201`
 ```json
 { "clienteId": "c1a...", "contatoId": "ct7...", "contratoId": "k9...",
