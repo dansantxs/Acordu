@@ -54,7 +54,7 @@ AcessoPortal "*" -- "1" Contato
 @enduml
 ```
 
-- **Papel do tipo CLIENTE** só pode conter permissões `portal.*`; papel INTERNO nunca contém `portal.*`. Garantido no domínio de `Papel`.
+- **Papel do tipo CLIENTE** só pode conter as permissões **do portal** (§3.1); papel INTERNO, só as **internas**. A divisão é pelo catálogo, não pelo prefixo: `portal.gerenciar_acessos` é interna. Garantido no domínio de `Papel`.
 - `Vinculo.ClienteId` e `EscopoPortal`: obrigatórios quando o papel é CLIENTE, proibidos nos demais.
 - Um mesmo login pode ser Membro no próprio tenant e Cliente em outro (ex.: um freelancer que também contrata uma agência). A troca de tenant ativo (herdada) resolve.
 
