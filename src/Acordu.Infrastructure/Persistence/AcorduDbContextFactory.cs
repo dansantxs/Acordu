@@ -26,5 +26,13 @@ public sealed class AcorduDbContextFactory : IDesignTimeDbContextFactory<AcorduD
         public bool EhCliente => false;
 
         public Guid? ClienteId => null;
+
+        public Guid? UsuarioId => null;
+
+        public string? Papel => null;
+
+        public IReadOnlySet<string> Permissoes { get; } = new HashSet<string>();
+
+        public Domain.Enums.EscopoPortal? EscopoPortal => null;
     }
 }

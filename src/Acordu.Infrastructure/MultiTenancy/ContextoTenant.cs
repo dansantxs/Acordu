@@ -1,4 +1,6 @@
+using System.Collections.Frozen;
 using Acordu.Application.Abstractions;
+using Acordu.Domain.Enums;
 
 namespace Acordu.Infrastructure.MultiTenancy;
 
@@ -14,7 +16,15 @@ public sealed class ContextoTenant : ITenantContext
 
     public Guid? ClienteId { get; private set; }
 
-    /// <summary>Equipe do prestador (ou o sistema agindo dentro de um tenant).</summary>
+    public Guid? UsuarioId { get; private set; }
+
+    public string? Papel { get; private set; }
+
+    public IReadOnlySet<string> Permissoes { get; private set; } = FrozenSet<string>.Empty;
+
+    public EscopoPortal? EscopoPortal { get; private set; }
+
+    /// <summary>Equipe do prestador (ou o sistema agindo dentro de um tenant), sem usuário nem permissões.</summary>
     public void DefinirEquipe(Guid tenantId) => Definir(tenantId, null);
 
     /// <summary>Contato de um cliente (papel Cliente): ativa o isolamento por cliente.</summary>
@@ -23,6 +33,26 @@ public sealed class ContextoTenant : ITenantContext
         if (clienteId == Guid.Empty)
             throw new ArgumentException("O ClienteId não pode ser vazio.", nameof(clienteId));
         Definir(tenantId, clienteId);
+    }
+
+    /// <summary>Usuário autenticado, a partir das claims do token. Com cliente, é um contato (papel Cliente).</summary>
+    public void DefinirUsuario(
+        Guid tenantId, Guid usuarioId, string papel, IEnumerable<string> permissoes, Guid? clienteId, EscopoPortal? escopo)
+    {
+        if (usuarioId == Guid.Empty)
+            throw new ArgumentException("O UsuarioId não pode ser vazio.", nameof(usuarioId));
+        ArgumentException.ThrowIfNullOrWhiteSpace(papel);
+        ArgumentNullException.ThrowIfNull(permissoes);
+        if (clienteId == Guid.Empty)
+            throw new ArgumentException("O ClienteId não pode ser vazio.", nameof(clienteId));
+        if ((clienteId is null) != (escopo is null))
+            throw new ArgumentException("Cliente e escopo do portal vêm juntos.", nameof(escopo));
+
+        Definir(tenantId, clienteId);
+        UsuarioId = usuarioId;
+        Papel = papel;
+        Permissoes = permissoes.ToFrozenSet(StringComparer.Ordinal);
+        EscopoPortal = escopo;
     }
 
     private void Definir(Guid tenantId, Guid? clienteId)
