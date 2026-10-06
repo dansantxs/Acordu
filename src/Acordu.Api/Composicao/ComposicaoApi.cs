@@ -111,6 +111,7 @@ internal static class ComposicaoApi
             api.MapGroup("/portal").RequireAuthorization(Politicas.Portal));
         grupos.Interno.MapClientes();
         grupos.Interno.MapContratos();
+        grupos.Interno.MapSolicitacoes();
         return grupos;
     }
 

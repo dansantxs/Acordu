@@ -22,4 +22,7 @@ public interface IConsultasContrato
     /// </summary>
     Task<bool> ExisteAtivoSobrepostoAsync(
         Guid clienteId, TipoContrato tipo, Periodo vigencia, Guid? ignorar, CancellationToken cancellationToken = default);
+
+    /// <summary>Contratos ATIVOS do cliente vigentes em <paramref name="hoje"/> (para escolher o contrato da solicitação).</summary>
+    Task<IReadOnlyList<Guid>> VigentesDoClienteAsync(Guid clienteId, DateOnly hoje, CancellationToken cancellationToken = default);
 }

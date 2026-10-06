@@ -130,6 +130,13 @@ public sealed class ConsultasContrato : IConsultasContrato
             cancellationToken);
     }
 
+    public async Task<IReadOnlyList<Guid>> VigentesDoClienteAsync(Guid clienteId, DateOnly hoje, CancellationToken cancellationToken = default) =>
+        await _db.Contratos.AsNoTracking()
+            .Where(c => c.ClienteId == clienteId && c.Status == StatusContrato.Ativo
+                && c.Vigencia.Inicio <= hoje && (c.Vigencia.Fim == null || c.Vigencia.Fim >= hoje))
+            .Select(c => c.Id)
+            .ToListAsync(cancellationToken);
+
     private static ConsumoContratoDto Mensal(Guid id, MesReferencia periodo, int? franquia, SomasApontamentos horas, int ajustes)
     {
         int? saldo = franquia is { } f ? f + ajustes - horas.Consumido : null;
