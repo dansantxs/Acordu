@@ -5,10 +5,13 @@ using Acordu.Api.Endpoints;
 using Acordu.Api.Erros;
 using Acordu.Api.Jobs;
 using Acordu.Api.Seguranca;
+using Acordu.Application.Abstractions;
 using Acordu.Infrastructure;
+using Acordu.Infrastructure.Email;
 using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.OpenApi;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.OpenApi;
 using Scalar.AspNetCore;
 
@@ -17,7 +20,8 @@ namespace Acordu.Api.Composicao;
 /// <summary>
 /// Composição única da Api, usada pelo <c>Program</c> e pelos testes funcionais (que montam o mesmo pipeline e penduram
 /// endpoints de teste nos grupos). Configuração só por variáveis de ambiente (ADR 0006): <c>ConnectionStrings__Acordu</c>,
-/// <c>Jwt__ChaveAssinatura</c>, <c>Jobs__Token</c>, <c>Cors__Origem</c>.
+/// <c>Jwt__ChaveAssinatura</c>, <c>Jobs__Token</c>, <c>Cors__Origem</c>, <c>App__UrlPublica</c> (links dos e-mails) e
+/// <c>Email__RegistrarConteudo</c> (só em desenvolvimento).
 /// </summary>
 internal static class ComposicaoApi
 {
@@ -26,6 +30,7 @@ internal static class ComposicaoApi
     private const string PrefixoNegocio = "api/v1/";
     private const string PrefixoPortal = "api/v1/portal";
     private const string EsquemaBearer = "Bearer";
+    private const string UrlPublicaPadrao = "https://acordu.app.br/";
 
     /// <summary>Tipo do Problem Details para respostas sem corpo (401/403/404/429 do pipeline), contrato §13.</summary>
     private static readonly Dictionary<int, (string Tipo, string Titulo)> TiposPorStatus = new()
@@ -44,6 +49,10 @@ internal static class ComposicaoApi
         services.AddInfrastructure(conexao);
         services.AddSegurancaApi(configuracao);
         services.AddCasosDeUso();
+        services.AddSingleton(new EnderecosPublicos(new Uri(configuracao["App:UrlPublica"] ?? UrlPublicaPadrao)));
+        // TryAdd: os testes registram antes uma caixa de e-mails em memória.
+        services.TryAddSingleton<IEnviadorEmail>(sp => new EnviadorEmailLog(
+            sp.GetRequiredService<ILogger<EnviadorEmailLog>>(), configuracao.GetValue("Email:RegistrarConteudo", false)));
 
         services.AddProblemDetails(opcoes => opcoes.CustomizeProblemDetails = contexto =>
         {

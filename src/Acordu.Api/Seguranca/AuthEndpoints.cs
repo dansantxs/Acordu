@@ -13,8 +13,10 @@ internal static class AuthEndpoints
     public static void MapAuth(this RouteGroupBuilder api)
     {
         var auth = api.MapGroup("/auth").WithTags("Autenticação");
+        // Públicas: não usam um eventual Bearer da requisição (ContextoDaRequisicao).
+        var publicas = auth.MapGroup(string.Empty).AllowAnonymous();
 
-        auth.MapPost("/registro", async (
+        publicas.MapPost("/registro", async (
             RegistroRequest corpo, IServicoAutenticacao servico, ConfiguracaoJwt jwt, TimeProvider relogio, HttpResponse resposta,
             CancellationToken cancellationToken) =>
         {
@@ -24,7 +26,7 @@ internal static class AuthEndpoints
             .RequireRateLimiting(ComposicaoSeguranca.LimiteAuth)
             .Produces<TokenDeAcesso>(StatusCodes.Status201Created);
 
-        auth.MapPost("/login", async (
+        publicas.MapPost("/login", async (
             LoginRequest corpo, IServicoAutenticacao servico, ConfiguracaoJwt jwt, TimeProvider relogio, HttpResponse resposta,
             CancellationToken cancellationToken) =>
         {
@@ -36,7 +38,7 @@ internal static class AuthEndpoints
             .RequireRateLimiting(ComposicaoSeguranca.LimiteAuth)
             .Produces<TokenDeAcesso>();
 
-        auth.MapPost("/refresh", async (
+        publicas.MapPost("/refresh", async (
             IServicoAutenticacao servico, ConfiguracaoJwt jwt, TimeProvider relogio, HttpRequest requisicao, HttpResponse resposta,
             CancellationToken cancellationToken) =>
         {
@@ -53,13 +55,34 @@ internal static class AuthEndpoints
             .RequireRateLimiting(ComposicaoSeguranca.LimiteAuth)
             .Produces<TokenDeAcesso>();
 
-        auth.MapPost("/logout", async (
+        publicas.MapPost("/logout", async (
             IServicoAutenticacao servico, HttpRequest requisicao, HttpResponse resposta, CancellationToken cancellationToken) =>
         {
             await servico.SairAsync(CookieRefresh.Ler(requisicao), cancellationToken);
             CookieRefresh.Limpar(resposta);
             return Results.NoContent();
         });
+
+        publicas.MapPost("/portal/convite/consulta", async (
+            ConsultaConviteRequest corpo, IServicoAutenticacao servico, CancellationToken cancellationToken) =>
+        {
+            var convite = await servico.ConsultarConviteAsync(corpo.Token, cancellationToken);
+            return convite is null ? ConviteInvalido() : Results.Ok(convite);
+        })
+            .RequireRateLimiting(ComposicaoSeguranca.LimiteAuth)
+            .Produces<ConvitePortalInfo>();
+
+        publicas.MapPost("/portal/convite", async (
+            AceiteConviteRequest corpo, IServicoAutenticacao servico, ConfiguracaoJwt jwt, TimeProvider relogio,
+            HttpResponse resposta, CancellationToken cancellationToken) =>
+        {
+            var sessao = await servico.AceitarConviteAsync(corpo.Token, corpo.Nome, corpo.Senha, cancellationToken);
+            return sessao is null
+                ? ConviteInvalido()
+                : Results.Created("/api/v1/auth/eu", Responder(sessao, jwt, relogio, resposta));
+        })
+            .RequireRateLimiting(ComposicaoSeguranca.LimiteAuth)
+            .Produces<TokenDeAcesso>(StatusCodes.Status201Created);
 
         auth.MapPost("/tenant-ativo", async (
             TrocaTenantRequest corpo, ITenantContext contexto, IServicoAutenticacao servico, ConfiguracaoJwt jwt,
@@ -88,6 +111,9 @@ internal static class AuthEndpoints
         CookieRefresh.Definir(resposta, sessao.RefreshToken, sessao.RefreshExpiraEm);
         return EmissorJwt.Emitir(sessao, jwt, relogio.GetUtcNow());
     }
+
+    private static IResult ConviteInvalido() =>
+        NaoAutenticado("Convite inválido, expirado ou já utilizado. Peça um novo convite a quem atende você.");
 
     private static IResult NaoAutenticado(string detalhe) =>
         Results.Problem(detalhe, statusCode: StatusCodes.Status401Unauthorized, title: "Não autenticado",

@@ -1,11 +1,12 @@
 using Acordu.Api.Seguranca;
 using Acordu.Application.Clientes;
 using Acordu.Application.Common;
+using Acordu.Application.AcessosPortal;
 using Acordu.Domain.Acesso;
 
 namespace Acordu.Api.Endpoints;
 
-/// <summary>Clientes e contatos (contrato §4.1–4.2). O acesso de contatos ao portal entra no marco do portal.</summary>
+/// <summary>Clientes, contatos e o acesso dos contatos ao portal (contrato §4.1–4.2).</summary>
 internal static class ClientesEndpoints
 {
     public static void MapClientes(this RouteGroupBuilder interno)
@@ -78,7 +79,46 @@ internal static class ClientesEndpoints
             return Results.NoContent();
         })
             .RequirePermissao(Permissoes.ClienteGerenciar);
+
+        MapAcessoPortal(clientes);
     }
+
+    private static void MapAcessoPortal(RouteGroupBuilder clientes)
+    {
+        const string Rota = "/{id:guid}/contatos/{contatoId:guid}/acesso-portal";
+
+        // 202: o convite sai por e-mail depois da resposta (outbox).
+        clientes.MapPost(Rota, async (
+            Guid id, Guid contatoId, AcessoPortalRequest corpo, ComandosAcessoPortal comandos, IConsultasCliente consultas,
+            CancellationToken cancellationToken) =>
+        {
+            await comandos.ConvidarAsync(id, contatoId, corpo, cancellationToken);
+            return Results.Accepted($"/api/v1/clientes/{id}", await ContatoAsync(consultas, id, contatoId, cancellationToken));
+        })
+            .RequirePermissao(Permissoes.PortalGerenciarAcessos)
+            .Produces<ContatoDto>(StatusCodes.Status202Accepted);
+
+        clientes.MapPatch(Rota, async (
+            Guid id, Guid contatoId, AcessoPortalRequest corpo, ComandosAcessoPortal comandos, IConsultasCliente consultas,
+            CancellationToken cancellationToken) =>
+        {
+            await comandos.AlterarEscopoAsync(id, contatoId, corpo, cancellationToken);
+            return Results.Ok(await ContatoAsync(consultas, id, contatoId, cancellationToken));
+        })
+            .RequirePermissao(Permissoes.PortalGerenciarAcessos)
+            .Produces<ContatoDto>();
+
+        clientes.MapDelete(Rota, async (Guid id, Guid contatoId, ComandosAcessoPortal comandos, CancellationToken cancellationToken) =>
+        {
+            await comandos.RevogarAsync(id, contatoId, cancellationToken);
+            return Results.NoContent();
+        })
+            .RequirePermissao(Permissoes.PortalGerenciarAcessos);
+    }
+
+    private static async Task<ContatoDto> ContatoAsync(
+        IConsultasCliente consultas, Guid id, Guid contatoId, CancellationToken cancellationToken) =>
+        (await DetalheAsync(consultas, id, cancellationToken)).Contatos.Single(c => c.Id == contatoId);
 
     private static async Task<ClienteDto> DetalheAsync(IConsultasCliente consultas, Guid id, CancellationToken cancellationToken) =>
         await consultas.DetalharAsync(id, cancellationToken) ?? throw new NaoEncontradoException("Cliente não encontrado.");
