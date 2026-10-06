@@ -399,6 +399,9 @@ Regras:
 - **Invariantes:** fuso IANA válido; janelas diárias com início < fim; ao menos um dia útil na semana; feriados sem duplicata.
 - Intervalo de almoço fica fora do v1 (uma janela por dia).
 
+### 4.11.1 Configurações do portal no Tenant
+- `Tenant.NomePortal` (opcional, ≤ 200; nulo usa o nome do tenant) e `Tenant.DiasFechamentoAutomatico` (1 a 60, padrão 5; RF-SOL-09). Uma configuração por tenant: não justifica agregado próprio. `ConfigurarPortal(nome, dias)`.
+
 ### 4.12 Categoria
 - Nome obrigatório (≤ 100); `Renomear`, `Inativar`, `Reativar`. Inativa some da escolha em novas solicitações, mas continua nas antigas.
 - Nome único por tenant é regra entre agregados: Application + índice único no banco.

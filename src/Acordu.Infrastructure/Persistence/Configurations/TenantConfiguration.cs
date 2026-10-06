@@ -13,6 +13,8 @@ internal sealed class TenantConfiguration : IEntityTypeConfiguration<Tenant>
         builder.HasKey(t => t.Id);
         builder.Property(t => t.Id).ValueGeneratedNever();
         builder.Property(t => t.Nome).HasMaxLength(LimitesTexto.Nome).IsRequired();
+        builder.Property(t => t.NomePortal).HasMaxLength(LimitesTexto.Nome);
+        builder.Property(t => t.DiasFechamentoAutomatico);
         builder.Property<uint>(ConfiguracaoRaiz.Versao)
             .IsRowVersion()
             .HasColumnName("xmin")

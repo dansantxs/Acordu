@@ -180,6 +180,13 @@ Para `BANCO_HORAS`, `saldoMinutos` é o saldo **acumulado** desde o início do c
 ```
 Dias ausentes em `expediente` são não úteis.
 
+Decidido na implementação:
+- `GET /configuracoes/calendario` e `GET /categorias` liberados a qualquer pessoa da equipe; escrita e `/configuracoes/portal` exigem `configuracao.gerenciar`.
+- Erros de calendário vêm no campo (`fusoHorario`, `expediente`: horário fora de `HH:mm`, fim antes do início, dia repetido, semana sem dia útil).
+- **Mudar o calendário não recalcula prazos de solicitações já abertas**: eles foram fixados com o calendário da época; só o que vier depois usa o novo.
+- `PUT /configuracoes/portal` `{ "nomeExibido": "...", "diasFechamentoAutomatico": 5 }` (1 a 60; guardados no próprio tenant); a resposta traz também `nomeTenant`. Logotipo no marco de anexos.
+- Categorias: `POST`/`PATCH` `{ "nome": "...", "ativa": true }` (`ativa` nulo mantém; PATCH reativa), `DELETE` inativa; nome repetido no tenant (sem diferenciar maiúsculas) → `400` em `nome`; categoria inativa não entra em nova solicitação (`400` em `categoriaId`).
+
 ---
 
 ## 7. Solicitações

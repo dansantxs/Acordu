@@ -46,4 +46,38 @@ public sealed class TenantTests
         acao.Should().Throw<ArgumentException>().WithParameterName("nome");
         tenant.Nome.Should().Be("Estúdio");
     }
+
+    [Fact]
+    public void Criar_FechamentoAutomaticoPadraoSemNomeDePortal()
+    {
+        var tenant = Tenant.Criar(Guid.NewGuid(), "Estúdio", Agora);
+
+        tenant.NomePortal.Should().BeNull();
+        tenant.DiasFechamentoAutomatico.Should().Be(Tenant.DiasFechamentoPadrao);
+    }
+
+    [Fact]
+    public void ConfigurarPortal_AparaNomeEGuardaDias()
+    {
+        var tenant = Tenant.Criar(Guid.NewGuid(), "Estúdio", Agora);
+
+        tenant.ConfigurarPortal("  Estúdio Traço Design ", 10);
+        tenant.ConfigurarPortal("   ", 10);
+
+        tenant.NomePortal.Should().BeNull();
+        tenant.DiasFechamentoAutomatico.Should().Be(10);
+    }
+
+    [Theory]
+    [InlineData(0)]
+    [InlineData(61)]
+    public void ConfigurarPortal_DiasForaDaFaixa_LancaExcecao(int dias)
+    {
+        var tenant = Tenant.Criar(Guid.NewGuid(), "Estúdio", Agora);
+
+        var acao = () => tenant.ConfigurarPortal(null, dias);
+
+        acao.Should().Throw<ArgumentOutOfRangeException>().WithParameterName("diasFechamentoAutomatico");
+        tenant.DiasFechamentoAutomatico.Should().Be(Tenant.DiasFechamentoPadrao);
+    }
 }

@@ -26,4 +26,18 @@ public sealed class Calendarios : ICalendarios
         return _calendario ??= await _db.Calendarios.AsNoTracking().SingleOrDefaultAsync(cancellationToken)
             ?? CalendarioUtil.Padrao(tenant);
     }
+
+    /// <summary>Rastreado; passa a ser também o calendário que o resto da requisição enxerga.</summary>
+    public async Task<CalendarioUtil> ParaEdicaoAsync(CancellationToken cancellationToken = default)
+    {
+        var tenant = _contexto.TenantId ?? throw new IsolamentoVioladoException("Calendário sem tenant no contexto.");
+        var calendario = await _db.Calendarios.SingleOrDefaultAsync(cancellationToken);
+        if (calendario is null)
+        {
+            calendario = CalendarioUtil.Padrao(tenant);
+            _db.Calendarios.Add(calendario);
+        }
+
+        return _calendario = calendario;
+    }
 }
