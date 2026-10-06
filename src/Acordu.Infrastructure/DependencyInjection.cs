@@ -1,5 +1,6 @@
 using Acordu.Application.Abstractions;
 using Acordu.Application.Autenticacao;
+using Acordu.Application.Clientes;
 using Acordu.Application.Contratos;
 using Acordu.Application.Portal.Extrato;
 using Acordu.Application.Projetos;
@@ -38,9 +39,12 @@ public static class DependencyInjection
         services.AddScoped<IUnitOfWork, UnitOfWork>();
         services.AddScoped(typeof(IRepositorio<>), typeof(Repositorio<>));
         services.AddScoped<IGeradorProtocolo, GeradorProtocolo>();
+        services.AddScoped<IControleVersao, ControleVersao>();
+        services.AddScoped<ICalendarios, Calendarios>();
         services.AddSingleton<ProcessadorOutbox>();
 
         services.AddScoped<ConsultaSql>();
+        services.AddScoped<IConsultasCliente, ConsultasCliente>();
         services.AddScoped<IConsultasContrato, ConsultasContrato>();
         services.AddScoped<IConsultasProjeto, ConsultasProjeto>();
         services.AddScoped<IConsultaExtratoPortal, ConsultaExtratoPortal>();
