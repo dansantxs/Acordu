@@ -4,6 +4,7 @@ using Acordu.Application.Autenticacao;
 using Acordu.Application.Categorias;
 using Acordu.Application.Clientes;
 using Acordu.Application.Contratos;
+using Acordu.Application.AcessosPortal;
 using Acordu.Application.Portal.Extrato;
 using Acordu.Application.Projetos;
 using Acordu.Application.Solicitacoes;
@@ -46,6 +47,7 @@ public static class DependencyInjection
         services.AddScoped<ICalendarios, Calendarios>();
         services.AddScoped<IMembrosDaEquipe, MembrosDaEquipe>();
         services.AddScoped<ITenantAtual, TenantAtual>();
+        services.AddScoped<IAcessosDoPortal, AcessosDoPortal>();
         services.AddSingleton<ProcessadorOutbox>();
 
         services.AddScoped<ConsultaSql>();

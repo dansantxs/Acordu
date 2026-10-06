@@ -48,6 +48,7 @@ public sealed class ConsultasCliente : IConsultasCliente
             return null;
 
         var cliente = linha.Cliente;
+        var acessos = await AcessosAoPortalAsync(cliente, cancellationToken);
         return new ClienteDto(
             cliente.Id,
             cliente.Nome,
@@ -57,6 +58,33 @@ public sealed class ConsultasCliente : IConsultasCliente
             linha.Versao.ToString(CultureInfo.InvariantCulture),
             [.. cliente.Contatos
                 .OrderBy(c => c.Nome)
-                .Select(c => new ContatoDto(c.Id, c.Nome, c.Email, c.Telefone, c.Cargo, c.Ativo, c.UsuarioId is not null))]);
+                .Select(c => new ContatoDto(
+                    c.Id, c.Nome, c.Email, c.Telefone, c.Cargo, c.Ativo, c.UsuarioId is not null, acessos.GetValueOrDefault(c.Id)))]);
+    }
+
+    /// <summary>Por contato: vínculo de cliente (ATIVO) ou, sem ele, o convite pendente (CONVIDADO).</summary>
+    private async Task<Dictionary<Guid, AcessoPortalContatoDto>> AcessosAoPortalAsync(
+        Domain.Entities.Cliente cliente, CancellationToken cancellationToken)
+    {
+        var usuarios = cliente.Contatos.Where(c => c.UsuarioId is not null).Select(c => c.UsuarioId!.Value).ToList();
+        var vinculos = usuarios.Count == 0
+            ? []
+            : await _db.Vinculos.AsNoTracking()
+                .Where(v => v.ClienteId == cliente.Id && usuarios.Contains(v.UsuarioId))
+                .ToDictionaryAsync(v => v.UsuarioId, v => v.EscopoPortal!.Value, cancellationToken);
+        var convites = await _db.ConvitesPortal.AsNoTracking()
+            .Where(c => c.ClienteId == cliente.Id && c.AceitoEm == null && c.RevogadoEm == null)
+            .ToListAsync(cancellationToken);
+
+        var acessos = new Dictionary<Guid, AcessoPortalContatoDto>();
+        foreach (var contato in cliente.Contatos)
+        {
+            if (contato.UsuarioId is { } usuario && vinculos.TryGetValue(usuario, out var escopo))
+                acessos[contato.Id] = new AcessoPortalContatoDto(SituacaoAcessoPortal.Ativo, escopo, null);
+            else if (convites.Where(c => c.ContatoId == contato.Id).MaxBy(c => c.CriadoEm) is { } convite)
+                acessos[contato.Id] = new AcessoPortalContatoDto(SituacaoAcessoPortal.Convidado, convite.Escopo, convite.ExpiraEm);
+        }
+
+        return acessos;
     }
 }
