@@ -451,6 +451,17 @@ Todas as rotas aplicam o filtro por `ClienteId` (e `ContatoId` se `escopoPortal 
 ```
 `consumidoMinutos` do extrato soma **apenas** apontamentos faturáveis; a lista mostra os `visivelCliente`. Um apontamento faturável marcado como não visível entra no total com a descrição genérica "Atendimento" (o cliente nunca vê um total que não consegue conferir linha a linha).
 
+Decidido na implementação (6d2):
+- **Sessão:** a cada requisição do portal, o contato e o escopo são lidos do banco (contato ativo, de cliente ativo, com vínculo). Acesso revogado → `401 nao-autenticado` já na requisição seguinte; mudança de escopo vale na hora nas rotas do portal (o token só é atualizado no próximo refresh).
+- **Escopo PROPRIAS:** solicitações em que o contato é o contato da solicitação (abrir pelo portal grava o contato logado, então "as que abriu" é a mesma regra). Fora do escopo → `404`. `/portal/contratos` e o extrato → `403` (`veContratos` em `/portal/eu` diz se a tela mostra).
+- `GET /portal/eu` → `{ contato: { id, nome, email }, cliente: { id, nome }, prestador: { nome }, escopoPortal, veContratos }`.
+- `GET /portal/solicitacoes` → página de `{ id, numero, titulo, statusExterno, abertaEm, podeAprovar }`, mais recentes primeiro; `statusExterno` aceita lista separada por vírgula.
+- `POST /portal/solicitacoes` (JSON até o marco de anexos) `{ titulo, descricao?, prioridade? }` → `201` com o detalhe. Origem PORTAL, prioridade padrão MEDIA, contrato = o único ATIVO vigente do cliente (senão sem SLA).
+- Detalhe: inclui `descricao`; `sla` nulo sem contrato; `podeAprovar` só em RESOLVIDA e com a permissão.
+- `GET .../interacoes` → `[{ id, texto, autorNome, daEquipe, registradaEm }]` (só EXTERNAS). `POST` `{ texto }` → `201` com a interação; em AGUARDANDO_CLIENTE retoma a solicitação.
+- `aprovacao` e `reprovacao` `{ motivo }` → `200` com o detalhe; fora de RESOLVIDA → `422 transicao-invalida`; motivo vazio → `400`.
+- `GET /portal/contratos` → contratos ATIVOS vigentes hoje `[{ id, tipo, inicio, fim, franquiaMinutos }]`. Extrato sem `periodo` usa o mês corrente no fuso do tenant; `saldoMinutos` e `percentual` seguem o read side §3 (nulos sem franquia).
+
 ---
 
 ## 13. Formato de erro (RFC 9457)
