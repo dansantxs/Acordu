@@ -1,6 +1,7 @@
 using System.Diagnostics;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using Acordu.Api.Endpoints;
 using Acordu.Api.Erros;
 using Acordu.Api.Jobs;
 using Acordu.Api.Seguranca;
@@ -42,6 +43,7 @@ internal static class ComposicaoApi
             ?? throw new InvalidOperationException("Connection string 'Acordu' não configurada (ConnectionStrings__Acordu).");
         services.AddInfrastructure(conexao);
         services.AddSegurancaApi(configuracao);
+        services.AddCasosDeUso();
 
         services.AddProblemDetails(opcoes => opcoes.CustomizeProblemDetails = contexto =>
         {
@@ -103,10 +105,13 @@ internal static class ComposicaoApi
 
         var api = app.MapGroup("/api/v1").AddEndpointFilter(DespachoOutbox.FiltrarAsync);
         api.MapAuth();
-        return new GruposApi(
+        var grupos = new GruposApi(
             api,
             api.MapGroup(string.Empty).RequireAuthorization(Politicas.Equipe),
             api.MapGroup("/portal").RequireAuthorization(Politicas.Portal));
+        grupos.Interno.MapClientes();
+        grupos.Interno.MapContratos();
+        return grupos;
     }
 
     private static void Completar(ProblemDetails problema)
