@@ -78,6 +78,15 @@ public sealed class AutenticacaoTests(ApiFixture api)
         db.Add(clienteId is null
             ? Vinculo.Criar(Guid.NewGuid(), usuarioId, alvo)
             : Vinculo.Criar(Guid.NewGuid(), usuarioId, alvo, clienteId, EscopoPortal.Proprias));
+        if (clienteId is { } id)
+        {
+            // O portal confere a cada requisição que o usuário é um contato ativo do cliente.
+            var cliente = Cliente.Criar(id, tenantId, "Padaria Bom Grão", null, null);
+            var contato = cliente.AdicionarContato("Marina", $"contato-{Guid.NewGuid():N}@exemplo.com", null, null);
+            cliente.VincularUsuarioAoContato(contato.Id, usuarioId);
+            db.Add(cliente);
+        }
+
         await db.SaveChangesAsync();
     }
 
