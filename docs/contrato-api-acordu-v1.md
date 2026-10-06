@@ -51,6 +51,8 @@ Específico do Acordu:
 | Método | Rota | Descrição |
 |---|---|---|
 | POST | `/auth/portal/link` | Troca o token de um link de acesso por uma sessão restrita a uma solicitação (RF-POR-08). Público, com rate limit. |
+| POST | `/auth/portal/convite/consulta` | Dados do convite do portal para a tela de aceite. Público, com rate limit. |
+| POST | `/auth/portal/convite` | Aceita o convite: cria a conta (ou confere a senha da existente), vincula o contato e abre a sessão. Público, com rate limit. |
 | GET | `/auth/eu` | Usuário atual, tenant ativo, papel, permissões e, se Cliente, `clienteId` e `escopoPortal`. |
 
 **POST `/auth/portal/link`** → `200 OK`
@@ -62,6 +64,12 @@ Específico do Acordu:
   "solicitacaoId": "f1e...", "tipo": "LINK_SOLICITACAO" }
 ```
 Token inválido, expirado ou revogado → `401` (sem distinguir o motivo).
+
+**Convite do portal** (decidido na implementação, segurança §4):
+- O token chega no link do e-mail (`{App__UrlPublica}/portal/convite/{token}`); a SPA o tira da URL na primeira carga. Vale 7 dias a partir do envio.
+- `POST /auth/portal/convite/consulta` `{ token }` → `200` `{ nomePrestador, nomeContato, email, temConta }`. `temConta` diz se a tela pede nome e senha (conta nova) ou só a senha (conta existente).
+- `POST /auth/portal/convite` `{ token, nome?, senha }` → `201` com o mesmo corpo e cookie do login. Conta nova: `nome` (ou o nome do contato) e senha (≥ 10), e-mail já confirmado. Conta existente: a senha precisa ser a dela (o token sozinho não adota uma conta); errada → `400` em `senha`, contando para o bloqueio. E-mail que já tem vínculo no tenant → `422`.
+- Token inválido, expirado, revogado ou já usado → `401`, sem distinguir. Rotas públicas ignoram um `Bearer` enviado junto.
 
 ---
 
@@ -100,10 +108,16 @@ Mesma superfície do Saldu (`/usuarios`, `/convites`, `/papeis`). O papel **Clie
 | DELETE | `/clientes/{id}/contatos/{contatoId}/acesso-portal` | Revoga acesso (mantém histórico). | `portal.gerenciar_acessos` |
 
 ```json
-// POST .../acesso-portal → 202 (convite enviado por e-mail)
+// POST .../acesso-portal → 202 (convite enviado por e-mail); corpo: o contato
 { "escopoPortal": "TODAS_DO_CLIENTE" }
 ```
 E-mail já em uso por outro contato ativo do mesmo cliente → `422`.
+
+Decidido na implementação:
+- O contato no detalhe do cliente traz `acessoPortal`: `null`, `{ "situacao": "CONVIDADO", "escopoPortal": "...", "conviteExpiraEm": "..." }` (nulo até o e-mail sair) ou `{ "situacao": "ATIVO", "escopoPortal": "...", "conviteExpiraEm": null }`.
+- `POST`: `escopoPortal` obrigatório. Reconvidar revoga o convite pendente anterior (o link antigo para de valer). Contato que já tem acesso, contato ou cliente inativo, ou e-mail que já tem vínculo neste tenant (equipe ou contato de outro cliente) → `422`.
+- `PATCH` `{ escopoPortal }` → `200` com o contato: altera o acesso (vale no próximo refresh do contato) ou o convite pendente; sem nenhum dos dois → `422`.
+- `DELETE` → `204`, idempotente: revoga convites pendentes, links por solicitação, o vínculo e os refresh tokens do contato no tenant. A conta global dele continua existindo e ele pode ser convidado de novo. Inativar o contato faz o mesmo; inativar o cliente, para todos os contatos.
 
 ---
 

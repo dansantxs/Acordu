@@ -119,7 +119,11 @@ Herdada do Saldu (Identity, confirmação de e-mail, lockout, política de senha
 
 Fluxos específicos:
 - **Registro:** cria `Usuario` + `Tenant` (o prestador) + `Vinculo` Dono + `CalendarioUtil` padrão + papéis padrão.
-- **Convite de contato para o portal:** equipe convida → e-mail com link de aceite → contato define senha (ou, se já tem conta, só aceita) → `Vinculo` com papel Cliente, `ClienteId` e escopo; `Contato.UsuarioId` preenchido.
+- **Convite de contato para o portal:** equipe convida → e-mail com link de aceite → contato define senha (ou, se já tem conta, confirma com a senha dela) → `Vinculo` com papel Cliente, `ClienteId` e escopo; `Contato.UsuarioId` preenchido.
+  - Token do convite como o do link (32 bytes, base64url, só o SHA-256 no banco), **gerado no envio do e-mail**, nunca em claro na outbox. Validade de 7 dias a partir do envio; reconvidar ou revogar invalida.
+  - Conta existente exige a senha dela: o token prova acesso ao e-mail, mas não autoriza adotar uma conta que pode ser da equipe de outro prestador. A falha conta para o bloqueio.
+  - Conta criada no aceite já nasce com e-mail confirmado (o token chegou por ele).
+  - E-mail que já tem vínculo no tenant (equipe ou contato de outro cliente) é recusado no convite e de novo no aceite: um vínculo por usuário e tenant.
 - **Link de acesso por solicitação** (sem conta): ver §5.3.
 
 ---
