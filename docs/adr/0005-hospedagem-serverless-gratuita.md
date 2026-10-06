@@ -1,6 +1,6 @@
 # ADR 0005 — Hospedagem serverless gratuita (Cloud Run + Neon + Cloudflare Pages), com plano de escala
 
-- **Status:** Aceito
+- **Status:** Revogada em 06/10/2026 — conta Oracle recuperada; mantida como plano B. Substituída pelo [ADR 0006](0006-retorno-oracle-always-free.md).
 - **Data:** 05/10/2026
 - **Contexto do projeto:** Acordu (v1)
 - **Substitui (níveis 0–2):** a hospedagem herdada no ADR 0001 (ADR 0005 do Saldu, núcleo self-hosted em VM) e as adaptações de infraestrutura compartilhada (mesma VM, mesmo Postgres, Caddy de borda, OCI Object Storage), equivalentes ao ADR 0009 do Saldu. O modelo compartilhado volta no **nível 3**.
@@ -99,3 +99,17 @@ Com escala a zero (e CPU só durante requisições), `HostedService` em loop nã
 - **Limites rígidos do Neon Free** (armazenamento e CU-h): estourar suspende o banco até o próximo ciclo. Monitorar e migrar para o nível 2 antes.
 - **Cota gratuita dividida com o Saldu** (Cloud Run e Scheduler na mesma conta de faturamento).
 - Jobs dependem de um disparador externo; se o cron falhar, nada roda. Mitigação: falha de disparo ou resposta não-2xx do endpoint vai para o Discord (workflow do Actions e retry do Scheduler). O `/api/health` não pode olhar isso, porque não consulta o banco.
+
+## Revogação (06/10/2026)
+
+**Motivo:** a conta Oracle Cloud foi recuperada em 06/10/2026 (tenancy `dansantos`, região `us-phoenix-1`), com a VM Ampere existente. O motivo desta decisão — a perda da conta — deixou de existir, e a VM compartilhada volta a ser o nível 0 ([ADR 0006](0006-retorno-oracle-always-free.md)). Nada deste ADR chegou a ser provisionado.
+
+**O que deixa de valer:** Cloud Run, Neon, Cloudflare Pages, Artifact Registry, Cloud Storage e Cloud Scheduler como infraestrutura atual; o plano de escala do §8 (substituído pelo do ADR 0006); o projeto `acordu-prod` e a conta `utile-billing`.
+
+**O que continua valendo (incorporado ao ADR 0006):**
+- Código sem SDK de provedor e configuração só por variável de ambiente (§3).
+- Jobs como endpoints internos idempotentes em `/internal/jobs/*`, protegidos por `X-Job-Token` (§6) — já implementados; na VM, o disparo é local.
+- Outbox da requisição entregue antes da resposta, com o job recolhendo o que sobrar.
+- `/api/health` sem consulta ao banco.
+
+**Plano B:** este ADR é o roteiro se a VM for perdida e não houver capacidade Ampere disponível para recriá-la. O runbook (Google Cloud, Neon, Cloudflare) e a estratégia de deploy correspondentes estão no histórico do git, no commit `a635190` (`docs/setup-infra-acordu.md` e `docs/deploy-ci-acordu-v1.md`). Antes de executá-lo, conferir os limites vigentes dos free tiers.
