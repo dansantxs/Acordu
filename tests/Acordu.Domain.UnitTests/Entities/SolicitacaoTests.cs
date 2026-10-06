@@ -44,14 +44,14 @@ public sealed class SolicitacaoTests
 
             solicitacao.Eventos.Should().ContainSingle();
             solicitacao.Eventos[0].Should().Be(new SolicitacaoAberta(
-                solicitacao.Id, Tenant, Contratos.Cliente, 1042, OrigemSolicitacao.Interna, Abertura));
+                solicitacao.Id, Calendarios.Tenant, Contratos.Cliente, 1042, OrigemSolicitacao.Interna, Abertura));
         }
 
         [Fact]
         public void ContratoSemPolitica_LancaExcecao()
         {
             var acao = () => Solicitacao.Abrir(
-                Guid.NewGuid(), Tenant, Contratos.Cliente, 1, "Título", null, Prioridade.Baixa, OrigemSolicitacao.Portal,
+                Guid.NewGuid(), Calendarios.Tenant, Contratos.Cliente, 1, "Título", null, Prioridade.Baixa, OrigemSolicitacao.Portal,
                 null, null, null, ContratoId, null, Abertura, Padrao());
 
             acao.Should().Throw<ArgumentException>();
@@ -61,7 +61,7 @@ public sealed class SolicitacaoTests
         public void PoliticaSemContrato_LancaExcecao()
         {
             var acao = () => Solicitacao.Abrir(
-                Guid.NewGuid(), Tenant, Contratos.Cliente, 1, "Título", null, Prioridade.Baixa, OrigemSolicitacao.Portal,
+                Guid.NewGuid(), Calendarios.Tenant, Contratos.Cliente, 1, "Título", null, Prioridade.Baixa, OrigemSolicitacao.Portal,
                 null, null, null, null, Contratos.PoliticaPadrao(), Abertura, Padrao());
 
             acao.Should().Throw<ArgumentException>();
@@ -73,7 +73,7 @@ public sealed class SolicitacaoTests
         public void NumeroNaoPositivo_LancaExcecao(int numero)
         {
             var acao = () => Solicitacao.Abrir(
-                Guid.NewGuid(), Tenant, Contratos.Cliente, numero, "Título", null, Prioridade.Baixa, OrigemSolicitacao.Portal,
+                Guid.NewGuid(), Calendarios.Tenant, Contratos.Cliente, numero, "Título", null, Prioridade.Baixa, OrigemSolicitacao.Portal,
                 null, null, null, null, null, Abertura, Padrao());
 
             acao.Should().Throw<ArgumentOutOfRangeException>();
@@ -85,7 +85,7 @@ public sealed class SolicitacaoTests
         public void SemTitulo_LancaExcecao(string tituloInformado)
         {
             var acao = () => Solicitacao.Abrir(
-                Guid.NewGuid(), Tenant, Contratos.Cliente, 1, tituloInformado, null, Prioridade.Baixa, OrigemSolicitacao.Portal,
+                Guid.NewGuid(), Calendarios.Tenant, Contratos.Cliente, 1, tituloInformado, null, Prioridade.Baixa, OrigemSolicitacao.Portal,
                 null, null, null, null, null, Abertura, Padrao());
 
             acao.Should().Throw<ArgumentException>().WithParameterName("titulo");
@@ -95,7 +95,7 @@ public sealed class SolicitacaoTests
         public void DescricaoSoComEspacos_ViraNula()
         {
             var solicitacao = Solicitacao.Abrir(
-                Guid.NewGuid(), Tenant, Contratos.Cliente, 1, "Título", "   ", Prioridade.Baixa, OrigemSolicitacao.Portal,
+                Guid.NewGuid(), Calendarios.Tenant, Contratos.Cliente, 1, "Título", "   ", Prioridade.Baixa, OrigemSolicitacao.Portal,
                 null, null, null, null, null, Abertura, Padrao());
 
             solicitacao.Descricao.Should().BeNull();
@@ -105,7 +105,7 @@ public sealed class SolicitacaoTests
         public void ContatoVazio_LancaExcecao()
         {
             var acao = () => Solicitacao.Abrir(
-                Guid.NewGuid(), Tenant, Contratos.Cliente, 1, "Título", null, Prioridade.Baixa, OrigemSolicitacao.Portal,
+                Guid.NewGuid(), Calendarios.Tenant, Contratos.Cliente, 1, "Título", null, Prioridade.Baixa, OrigemSolicitacao.Portal,
                 Guid.Empty, null, null, null, null, Abertura, Padrao());
 
             acao.Should().Throw<ArgumentException>().WithParameterName("contatoId");
@@ -316,7 +316,7 @@ public sealed class SolicitacaoTests
 
             solicitacao.Solucao.Should().Be(Solucao());
             solicitacao.ResolvidaEm.Should().Be(Brasilia(6, 12));
-            solicitacao.Eventos.Should().Contain(new SolicitacaoResolvida(solicitacao.Id, Tenant, Contratos.Cliente, Brasilia(6, 12)));
+            solicitacao.Eventos.Should().Contain(new SolicitacaoResolvida(solicitacao.Id, Calendarios.Tenant, Contratos.Cliente, Brasilia(6, 12)));
         }
 
         [Fact]
@@ -332,7 +332,7 @@ public sealed class SolicitacaoTests
             solicitacao.Sla!.InicioCiclo.Should().Be(Brasilia(8, 10));
             solicitacao.Sla.PrazoResolucao.Should().Be(Brasilia(8, 14));
             solicitacao.Eventos.Should().Contain(
-                new SolicitacaoReaberta(solicitacao.Id, Tenant, Contratos.Cliente, "Data ainda errada", Brasilia(8, 10)));
+                new SolicitacaoReaberta(solicitacao.Id, Calendarios.Tenant, Contratos.Cliente, "Data ainda errada", Brasilia(8, 10)));
         }
 
         [Theory]
@@ -483,7 +483,7 @@ public sealed class SolicitacaoTests
             solicitacao.PrimeiraRespostaEm.Should().Be(Brasilia(6, 10, 40));
             solicitacao.Eventos.Should().ContainSingle();
             solicitacao.Eventos[0].Should().Be(
-                new PrimeiraRespostaRegistrada(solicitacao.Id, Tenant, Contratos.Cliente, Brasilia(6, 10, 40)));
+                new PrimeiraRespostaRegistrada(solicitacao.Id, Calendarios.Tenant, Contratos.Cliente, Brasilia(6, 10, 40)));
         }
 
         [Fact]
@@ -588,7 +588,7 @@ public sealed class SolicitacaoTests
 
             solicitacao.ResponsavelId.Should().Be(responsavel);
             solicitacao.Eventos.Should().ContainSingle();
-            solicitacao.Eventos[0].Should().Be(new SolicitacaoAtribuida(solicitacao.Id, Tenant, Contratos.Cliente, responsavel));
+            solicitacao.Eventos[0].Should().Be(new SolicitacaoAtribuida(solicitacao.Id, Calendarios.Tenant, Contratos.Cliente, responsavel));
         }
 
         [Fact]

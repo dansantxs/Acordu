@@ -7,7 +7,7 @@ namespace Acordu.Domain.UnitTests.Entities;
 public sealed class CronometroTests
 {
     private static Cronometro IniciadoAsDez() =>
-        Cronometro.Iniciar(Guid.NewGuid(), Tenant, Guid.NewGuid(), Guid.NewGuid(), Brasilia(6, 10));
+        Cronometro.Iniciar(Guid.NewGuid(), Calendarios.Tenant, Guid.NewGuid(), Guid.NewGuid(), Brasilia(6, 10));
 
     [Fact]
     public void Iniciar_GuardaInstanteEmUtc()
@@ -21,7 +21,7 @@ public sealed class CronometroTests
     [Fact]
     public void Iniciar_SemTarefa_LancaExcecao()
     {
-        var acao = () => Cronometro.Iniciar(Guid.NewGuid(), Tenant, Guid.NewGuid(), Guid.Empty, Brasilia(6, 10));
+        var acao = () => Cronometro.Iniciar(Guid.NewGuid(), Calendarios.Tenant, Guid.NewGuid(), Guid.Empty, Brasilia(6, 10));
 
         acao.Should().Throw<ArgumentException>().WithParameterName("tarefaId");
     }

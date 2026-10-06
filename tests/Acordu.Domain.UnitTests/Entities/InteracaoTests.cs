@@ -23,7 +23,7 @@ public sealed class InteracaoTests
         bool autorEhCliente = false,
         IReadOnlyList<NovoAnexo>? anexos = null) =>
         Interacao.Registrar(
-            Guid.NewGuid(), Tenant, Contratos.Cliente, Solicitacao, Autor, autorEhCliente, texto, visibilidade,
+            Guid.NewGuid(), Calendarios.Tenant, Contratos.Cliente, Solicitacao, Autor, autorEhCliente, texto, visibilidade,
             anexos ?? [], Politica, Brasilia(6, 11));
 
     [Fact]
@@ -37,7 +37,7 @@ public sealed class InteracaoTests
         interacao.ClienteId.Should().Be(Contratos.Cliente);
         interacao.Eventos.Should().ContainSingle();
         interacao.Eventos[0].Should().Be(new InteracaoRegistrada(
-            interacao.Id, Tenant, Contratos.Cliente, Solicitacao, Autor, false, Visibilidade.Externa, Brasilia(6, 11)));
+            interacao.Id, Calendarios.Tenant, Contratos.Cliente, Solicitacao, Autor, false, Visibilidade.Externa, Brasilia(6, 11)));
     }
 
     [Fact]

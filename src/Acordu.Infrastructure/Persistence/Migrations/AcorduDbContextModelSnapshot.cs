@@ -485,6 +485,53 @@ namespace Acordu.Infrastructure.Persistence.Migrations
                     b.ToTable("interacoes", (string)null);
                 });
 
+            modelBuilder.Entity("Acordu.Domain.Entities.Papel", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<string>("Nome")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)")
+                        .HasColumnName("nome");
+
+                    b.Property<bool>("Padrao")
+                        .HasColumnType("boolean")
+                        .HasColumnName("padrao");
+
+                    b.PrimitiveCollection<string[]>("Permissoes")
+                        .IsRequired()
+                        .HasColumnType("text[]")
+                        .HasColumnName("permissoes");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
+                    b.Property<string>("Tipo")
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .HasColumnType("character varying(40)")
+                        .HasColumnName("tipo");
+
+                    b.Property<uint>("Versao")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("xid")
+                        .HasColumnName("xmin");
+
+                    b.HasKey("Id")
+                        .HasName("pk_papeis");
+
+                    b.HasIndex("TenantId", "Nome")
+                        .IsUnique()
+                        .HasDatabaseName("ix_papeis_tenant_id_nome");
+
+                    b.ToTable("papeis", (string)null);
+                });
+
             modelBuilder.Entity("Acordu.Domain.Entities.Projeto", b =>
                 {
                     b.Property<Guid>("Id")
@@ -801,6 +848,84 @@ namespace Acordu.Infrastructure.Persistence.Migrations
                         .HasDatabaseName("ix_tarefas_tenant_id_responsavel_id_status");
 
                     b.ToTable("tarefas", (string)null);
+                });
+
+            modelBuilder.Entity("Acordu.Domain.Entities.Tenant", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<DateTimeOffset>("CriadoEm")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("criado_em");
+
+                    b.Property<string>("Nome")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("nome");
+
+                    b.Property<uint>("Versao")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("xid")
+                        .HasColumnName("xmin");
+
+                    b.HasKey("Id")
+                        .HasName("pk_tenants");
+
+                    b.ToTable("tenants", (string)null);
+                });
+
+            modelBuilder.Entity("Acordu.Domain.Entities.Vinculo", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<Guid?>("ClienteId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("cliente_id");
+
+                    b.Property<string>("EscopoPortal")
+                        .HasMaxLength(40)
+                        .HasColumnType("character varying(40)")
+                        .HasColumnName("escopo_portal");
+
+                    b.Property<Guid>("PapelId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("papel_id");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
+                    b.Property<Guid>("UsuarioId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("usuario_id");
+
+                    b.Property<uint>("Versao")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("xid")
+                        .HasColumnName("xmin");
+
+                    b.HasKey("Id")
+                        .HasName("pk_vinculos");
+
+                    b.HasIndex("UsuarioId")
+                        .HasDatabaseName("ix_vinculos_usuario_id");
+
+                    b.HasIndex("TenantId", "ClienteId")
+                        .HasDatabaseName("ix_vinculos_tenant_id_cliente_id")
+                        .HasFilter("cliente_id IS NOT NULL");
+
+                    b.HasIndex("TenantId", "UsuarioId")
+                        .IsUnique()
+                        .HasDatabaseName("ix_vinculos_tenant_id_usuario_id");
+
+                    b.ToTable("vinculos", (string)null);
                 });
 
             modelBuilder.Entity("Acordu.Infrastructure.Persistence.Outbox.MensagemOutbox", b =>
