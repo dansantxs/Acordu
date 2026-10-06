@@ -1,9 +1,11 @@
+using Acordu.Domain.Enums;
+
 namespace Acordu.Application.Abstractions;
 
 /// <summary>
 /// Quem está agindo, resolvido do token pela Api (ADR 0002). É a fonte dos dois isolamentos: por tenant, sempre, e por
 /// cliente, quando o papel é Cliente. Sem tenant (nulo), as consultas não devolvem nada e nada pode ser gravado.
-/// Escopo do portal (próprias/todas) e sessão de link entram no marco do portal.
+/// Jobs agem como o sistema dentro de um tenant: sem usuário e sem permissões. A sessão de link entra no marco do portal.
 /// </summary>
 public interface ITenantContext
 {
@@ -14,4 +16,16 @@ public interface ITenantContext
 
     /// <summary>Cliente do contato; obrigatório quando <see cref="EhCliente"/>.</summary>
     Guid? ClienteId { get; }
+
+    /// <summary>Usuário autenticado; nulo para jobs.</summary>
+    Guid? UsuarioId { get; }
+
+    /// <summary>Nome do papel no tenant ativo; nulo para jobs.</summary>
+    string? Papel { get; }
+
+    /// <summary>Permissões do papel no tenant ativo (catálogo em <c>Domain.Acesso.Permissoes</c>).</summary>
+    IReadOnlySet<string> Permissoes { get; }
+
+    /// <summary>Escopo do portal; só com papel Cliente.</summary>
+    EscopoPortal? EscopoPortal { get; }
 }

@@ -6,15 +6,18 @@ using Acordu.Infrastructure.Persistence.Configurations;
 using Acordu.Infrastructure.Persistence.Conversores;
 using Acordu.Infrastructure.Persistence.Outbox;
 using Acordu.Infrastructure.Persistence.Protocolo;
+using Acordu.Infrastructure.Seguranca;
+using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 
 namespace Acordu.Infrastructure.Persistence;
 
 /// <summary>
 /// Contexto único do Acordu. Aplica os dois isolamentos do ADR 0002 como filtros globais nomeados e recusa gravar fora do
-/// tenant/cliente do contexto (<see cref="IsolamentoVioladoException"/>).
+/// tenant/cliente do contexto (<see cref="IsolamentoVioladoException"/>). Também guarda as tabelas do Identity (globais,
+/// sem tenant), para o registro gravar usuário e tenant na mesma transação.
 /// </summary>
-public sealed class AcorduDbContext : DbContext
+public sealed class AcorduDbContext : IdentityUserContext<Usuario, Guid>
 {
     private readonly ITenantContext _contexto;
 
@@ -82,34 +85,37 @@ public sealed class AcorduDbContext : DbContext
         }
     }
 
-    protected override void OnModelCreating(ModelBuilder modelBuilder)
+    protected override void OnModelCreating(ModelBuilder builder)
     {
-        ArgumentNullException.ThrowIfNull(modelBuilder);
+        ArgumentNullException.ThrowIfNull(builder);
+        base.OnModelCreating(builder);
+        IdentidadeConfiguration.Aplicar(builder);
+        builder.ApplyConfiguration(new RefreshTokenConfiguration());
 
         // Busca de solicitações semelhantes (read side §8): trigramas e remoção de acentos.
-        modelBuilder.HasPostgresExtension("pg_trgm");
-        modelBuilder.HasPostgresExtension("unaccent");
+        builder.HasPostgresExtension("pg_trgm");
+        builder.HasPostgresExtension("unaccent");
 
-        modelBuilder.ApplyConfiguration(new TenantConfiguration());
-        modelBuilder.ApplyConfiguration(new PapelConfiguration());
-        modelBuilder.ApplyConfiguration(new VinculoConfiguration());
-        modelBuilder.ApplyConfiguration(new CalendarioUtilConfiguration());
-        modelBuilder.ApplyConfiguration(new ClienteConfiguration());
-        modelBuilder.ApplyConfiguration(new CategoriaConfiguration());
-        modelBuilder.ApplyConfiguration(new ContratoConfiguration());
-        modelBuilder.ApplyConfiguration(new AjusteSaldoConfiguration());
-        modelBuilder.ApplyConfiguration(new SolicitacaoConfiguration());
-        modelBuilder.ApplyConfiguration(new InteracaoConfiguration());
-        modelBuilder.ApplyConfiguration(new AcessoPortalConfiguration());
-        modelBuilder.ApplyConfiguration(new ProjetoConfiguration());
-        modelBuilder.ApplyConfiguration(new TarefaConfiguration());
-        modelBuilder.ApplyConfiguration(new ApontamentoConfiguration());
-        modelBuilder.ApplyConfiguration(new CronometroConfiguration());
-        modelBuilder.ApplyConfiguration(new RecorrenciaTarefaConfiguration());
-        modelBuilder.ApplyConfiguration(new MensagemOutboxConfiguration());
-        modelBuilder.ApplyConfiguration(new ContadorConfiguration());
+        builder.ApplyConfiguration(new TenantConfiguration());
+        builder.ApplyConfiguration(new PapelConfiguration());
+        builder.ApplyConfiguration(new VinculoConfiguration());
+        builder.ApplyConfiguration(new CalendarioUtilConfiguration());
+        builder.ApplyConfiguration(new ClienteConfiguration());
+        builder.ApplyConfiguration(new CategoriaConfiguration());
+        builder.ApplyConfiguration(new ContratoConfiguration());
+        builder.ApplyConfiguration(new AjusteSaldoConfiguration());
+        builder.ApplyConfiguration(new SolicitacaoConfiguration());
+        builder.ApplyConfiguration(new InteracaoConfiguration());
+        builder.ApplyConfiguration(new AcessoPortalConfiguration());
+        builder.ApplyConfiguration(new ProjetoConfiguration());
+        builder.ApplyConfiguration(new TarefaConfiguration());
+        builder.ApplyConfiguration(new ApontamentoConfiguration());
+        builder.ApplyConfiguration(new CronometroConfiguration());
+        builder.ApplyConfiguration(new RecorrenciaTarefaConfiguration());
+        builder.ApplyConfiguration(new MensagemOutboxConfiguration());
+        builder.ApplyConfiguration(new ContadorConfiguration());
 
-        AplicarFiltros(modelBuilder);
+        AplicarFiltros(builder);
     }
 
     /// <summary>

@@ -1,4 +1,5 @@
 using Acordu.Application.Abstractions;
+using Acordu.Application.Autenticacao;
 using Acordu.Application.Contratos;
 using Acordu.Application.Portal.Extrato;
 using Acordu.Application.Projetos;
@@ -9,6 +10,7 @@ using Acordu.Infrastructure.Persistence.Consultas;
 using Acordu.Infrastructure.Persistence.Eventos;
 using Acordu.Infrastructure.Persistence.Outbox;
 using Acordu.Infrastructure.Persistence.Protocolo;
+using Acordu.Infrastructure.Seguranca;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
@@ -43,6 +45,19 @@ public static class DependencyInjection
         services.AddScoped<IConsultasProjeto, ConsultasProjeto>();
         services.AddScoped<IConsultaExtratoPortal, ConsultaExtratoPortal>();
         services.AddScoped<IConsultaSemelhantes, ConsultaSemelhantes>();
+        return services;
+    }
+
+    /// <summary>
+    /// Identity (sem roles: o <c>Papel</c> do domínio cumpre esse papel) e o serviço de sessões. Separado de
+    /// <see cref="AddInfrastructure"/> porque só a Api autentica; jobs e testes de integração não precisam.
+    /// </summary>
+    public static IServiceCollection AddSeguranca(this IServiceCollection services)
+    {
+        ArgumentNullException.ThrowIfNull(services);
+        services.AddIdentityCore<Usuario>(OpcoesIdentidade.Configurar)
+            .AddEntityFrameworkStores<AcorduDbContext>();
+        services.AddScoped<IServicoAutenticacao, ServicoAutenticacao>();
         return services;
     }
 }
