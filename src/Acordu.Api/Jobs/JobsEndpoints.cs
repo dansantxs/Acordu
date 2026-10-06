@@ -5,7 +5,7 @@ using Acordu.Infrastructure.Persistence.Outbox;
 namespace Acordu.Api.Jobs;
 
 /// <summary>
-/// Jobs agendados como endpoints internos (ADR 0005 §6): chamados por cron externo com <c>X-Job-Token</c>, idempotentes
+/// Jobs agendados como endpoints internos (ADR 0006): chamados por timer na VM com <c>X-Job-Token</c>, idempotentes
 /// e por todos os tenants. Sem token configurado, ou com token errado, respondem 404 (não revelam a rota).
 /// </summary>
 internal static class JobsEndpoints
