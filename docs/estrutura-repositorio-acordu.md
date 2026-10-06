@@ -3,8 +3,8 @@
 | | |
 |---|---|
 | **Versão** | 0.1 |
-| **Última atualização** | 05/10/2026 |
-| **Stack** | .NET 10 · EF Core + Npgsql · PostgreSQL 17 · React + Vite (TS) · Cloud Run + Neon + Cloudflare Pages |
+| **Última atualização** | 06/10/2026 |
+| **Stack** | .NET 10 · EF Core + Npgsql · PostgreSQL 17 · React + Vite (TS) · Docker Compose + Caddy (VM Oracle compartilhada, ADR 0006) |
 | **Base** | Mesma organização do Saldu (ADR 0001), com prefixo `Acordu.*`. |
 
 ---
@@ -28,8 +28,7 @@ acordu/
 │  └─ workflows/
 │     ├─ ci.yml                        # build + testes a cada push/PR
 │     ├─ migrations.yml                # gera migrations sob demanda
-│     ├─ deploy.yml                    # build → Artifact Registry → migrations (Neon direto) → Cloud Run
-│     └─ jobs.yml                      # cron diário: recorrências, fechamento, backup (pg_dump)
+│     └─ deploy.yml                    # build ARM64 → GHCR → migrations → deploy na VM por SSH
 ├─ docs/
 │  ├─ ers/
 │  │  └─ ERS-acordu-v1.md
@@ -38,14 +37,15 @@ acordu/
 │  │  ├─ 0002-portal-escopo-por-cliente.md
 │  │  ├─ 0003-sla-horas-uteis.md
 │  │  ├─ 0004-tempo-em-minutos-e-consumo-read-model.md
-│  │  └─ 0005-hospedagem-serverless-gratuita.md
+│  │  ├─ 0005-hospedagem-serverless-gratuita.md   # revogado — plano B
+│  │  └─ 0006-retorno-oracle-always-free.md
 │  ├─ estrategia-produto-acordu.md
 │  ├─ modelo-de-dominio-acordu.md
 │  ├─ contrato-api-acordu-v1.md
 │  ├─ read-side-acordu-v1.md
 │  ├─ seguranca-modelo-acesso-acordu-v1.md
 │  ├─ deploy-ci-acordu-v1.md
-│  ├─ setup-infra-acordu.md
+│  ├─ setup-infra-oracle-acordu.md
 │  ├─ estrutura-repositorio-acordu.md
 │  ├─ convencoes-codigo-acordu.md
 │  └─ convencoes-commit-acordu.md
@@ -86,7 +86,7 @@ acordu/
 │  │  │  ├─ Consultas/                 # SQL do read side (helper com TenantId/ClienteId obrigatórios)
 │  │  │  └─ Migrations/
 │  │  ├─ MultiTenancy/                 # filtros globais por TenantId e ClienteId
-│  │  ├─ Armazenamento/                # object storage S3-compatível + URLs assinadas
+│  │  ├─ Armazenamento/                # object storage S3-compatível (OCI) + URLs assinadas
 │  │  ├─ Email/                        # Resend + outbox
 │  │  ├─ Agendamento/                  # jobs idempotentes: recorrências, fechamento automático, alertas de SLA
 │  │  ├─ Seguranca/                    # Identity, JWT, tokens de link
@@ -97,7 +97,7 @@ acordu/
 │  │  ├─ Middleware/                   # contexto de tenant/cliente, Problem Details
 │  │  ├─ Program.cs
 │  │  └─ appsettings*.json
-│  └─ Acordu.Worker/                   # (ADIADO) — jobs são endpoints internos da Api (ADR 0005)
+│  └─ Acordu.Worker/                   # (ADIADO) — jobs são endpoints internos da Api, disparados por timer na VM
 ├─ apps/
 │  └─ web/                             # React + Vite + TypeScript (SPA)
 │     └─ src/
@@ -113,7 +113,10 @@ acordu/
 │  ├─ Acordu.Api.FunctionalTests/                # WebApplicationFactory
 │  └─ Acordu.ArchitectureTests/                  # NetArchTest: camadas, relógio, filtros, DTOs do portal
 ├─ docker/
-│  └─ api.Dockerfile                   # ReadyToRun, base chiseled com ICU + tzdata (Cloud Run)
+│  ├─ api.Dockerfile
+│  ├─ web.Dockerfile                   # build do SPA + servidor estático interno
+│  └─ Caddyfile.acordu                 # bloco de site do Acordu, incluído no Caddy compartilhado
+├─ docker-compose.yml                  # prod: acordu-api + acordu-web na rede externa infra_net (Caddy e Postgres compartilhados)
 ├─ docker-compose.dev.yml              # dev local: Postgres 17 na porta 5434 (object storage local entra no marco de anexos)
 ├─ Acordu.sln
 ├─ Directory.Build.props
@@ -180,9 +183,10 @@ Testes obrigatórios nos níveis de integração **e** API: cross-tenant (RNF-SE
 
 ## 7. Infra e deploy
 
-- Hospedagem serverless gratuita (ADR 0005): API no Cloud Run (projeto `acordu-prod`), banco Neon próprio, SPA no Cloudflare Pages (build de `apps/web`, sem imagem). Não há compose de produção.
-- Jobs agendados ficam em `Infrastructure/Agendamento` e são expostos pela Api em `/internal/jobs/*`; o disparo é externo.
-- Detalhes: `deploy-ci-acordu-v1.md` e `setup-infra-acordu.md`.
+- A VM, o Postgres e o Caddy de borda são **compartilhados com o Saldu** (ADR 0001). Este repositório só entrega as imagens do Acordu e o bloco de site do Caddy.
+- `docker-compose.yml` sobe `acordu-api` e `acordu-web` em `/opt/acordu`, na rede externa `infra_net` da stack de infraestrutura (`/opt/infra`). ADR 0006.
+- Jobs agendados ficam em `Infrastructure/Agendamento` e são expostos pela Api em `/internal/jobs/*`; o disparo é um timer na VM.
+- Detalhes: `deploy-ci-acordu-v1.md` e `setup-infra-oracle-acordu.md`.
 
 ---
 

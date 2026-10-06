@@ -68,7 +68,7 @@ Se a VM for perdida **e** não houver capacidade Ampere para recriá-la: executa
 
 ## Alternativas consideradas
 
-- **Manter o serverless (ADR 0005):** custo zero também, mas com cold start, limites rígidos do Neon Free, dados nos EUA e cota dividida. Com a VM de volta, não compensa. Fica como plano B.
+- **Manter o serverless (ADR 0005):** custo zero também, mas com cold start, limites rígidos do Neon Free e cota gratuita dividida com o Saldu. Com a VM de volta, não compensa. Fica como plano B.
 - **Ir direto ao nível 1 (Magalu):** custo fixo sem usuário pagante. Fica como destino.
 - **VMs separadas por produto desde já:** a cota Always Free é por tenancy, e dividi-la não traz ganho no volume atual.
 
