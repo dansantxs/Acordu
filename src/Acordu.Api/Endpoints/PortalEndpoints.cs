@@ -1,0 +1,97 @@
+using Acordu.Api.Seguranca;
+using Acordu.Application.Common;
+using Acordu.Application.Portal;
+using Acordu.Domain.Acesso;
+using Acordu.Domain.Enums;
+
+namespace Acordu.Api.Endpoints;
+
+/// <summary>
+/// Portal do cliente (contrato §12), no grupo <c>/api/v1/portal</c> (política Portal + <see cref="SessaoPortal"/>).
+/// DTOs próprios; solicitação de outro cliente ou fora do escopo → 404.
+/// </summary>
+internal static class PortalEndpoints
+{
+    public static void MapPortal(this RouteGroupBuilder portal)
+    {
+        portal.WithTags("Portal");
+
+        portal.MapGet("/eu", async (LeituraPortal leitura, CancellationToken cancellationToken) =>
+            Results.Ok(await leitura.EuAsync(cancellationToken)))
+            .Produces<PortalEuDto>();
+
+        var solicitacoes = portal.MapGroup("/solicitacoes");
+
+        solicitacoes.MapGet(string.Empty, async (
+            string? statusExterno, int? pagina, int? tamanhoPagina, LeituraPortal leitura, CancellationToken cancellationToken) =>
+        {
+            var status = statusExterno?.Split(',', StringSplitOptions.RemoveEmptyEntries)
+                .Select(s => EnumsDaApi.Ler<StatusExterno>(s, nameof(statusExterno))!.Value)
+                .ToList();
+            return Results.Ok(await leitura.ListarAsync(status, new Paginacao(pagina, tamanhoPagina), cancellationToken));
+        })
+            .RequirePermissao(Permissoes.PortalSolicitacaoVer)
+            .Produces<ResultadoPaginado<SolicitacaoPortalResumoDto>>();
+
+        solicitacoes.MapPost(string.Empty, async (
+            NovaSolicitacaoPortalRequest corpo, ComandosPortal comandos, LeituraPortal leitura, CancellationToken cancellationToken) =>
+        {
+            var id = await comandos.AbrirSolicitacaoAsync(corpo, cancellationToken);
+            return Results.Created($"/api/v1/portal/solicitacoes/{id}", await leitura.DetalharAsync(id, cancellationToken));
+        })
+            .RequirePermissao(Permissoes.PortalSolicitacaoCriar)
+            .Produces<SolicitacaoPortalDto>(StatusCodes.Status201Created);
+
+        solicitacoes.MapGet("/{id:guid}", async (Guid id, LeituraPortal leitura, CancellationToken cancellationToken) =>
+            Results.Ok(await leitura.DetalharAsync(id, cancellationToken)))
+            .RequirePermissao(Permissoes.PortalSolicitacaoVer)
+            .Produces<SolicitacaoPortalDto>();
+
+        solicitacoes.MapGet("/{id:guid}/interacoes", async (Guid id, LeituraPortal leitura, CancellationToken cancellationToken) =>
+            Results.Ok(await leitura.InteracoesAsync(id, cancellationToken)))
+            .RequirePermissao(Permissoes.PortalSolicitacaoVer)
+            .Produces<IReadOnlyList<InteracaoPortalDto>>();
+
+        solicitacoes.MapPost("/{id:guid}/interacoes", async (
+            Guid id, RespostaPortalRequest corpo, ComandosPortal comandos, LeituraPortal leitura, CancellationToken cancellationToken) =>
+        {
+            var interacaoId = await comandos.ResponderAsync(id, corpo, cancellationToken);
+            var interacao = (await leitura.InteracoesAsync(id, cancellationToken)).Single(i => i.Id == interacaoId);
+            return Results.Created($"/api/v1/portal/solicitacoes/{id}/interacoes", interacao);
+        })
+            .RequirePermissao(Permissoes.PortalSolicitacaoComentar)
+            .Produces<InteracaoPortalDto>(StatusCodes.Status201Created);
+
+        solicitacoes.MapPost("/{id:guid}/aprovacao", async (
+            Guid id, ComandosPortal comandos, LeituraPortal leitura, CancellationToken cancellationToken) =>
+        {
+            await comandos.AprovarAsync(id, cancellationToken);
+            return Results.Ok(await leitura.DetalharAsync(id, cancellationToken));
+        })
+            .RequirePermissao(Permissoes.PortalSolicitacaoAprovar)
+            .Produces<SolicitacaoPortalDto>();
+
+        solicitacoes.MapPost("/{id:guid}/reprovacao", async (
+            Guid id, ReprovacaoPortalRequest corpo, ComandosPortal comandos, LeituraPortal leitura, CancellationToken cancellationToken) =>
+        {
+            await comandos.ReprovarAsync(id, corpo, cancellationToken);
+            return Results.Ok(await leitura.DetalharAsync(id, cancellationToken));
+        })
+            .RequirePermissao(Permissoes.PortalSolicitacaoAprovar)
+            .Produces<SolicitacaoPortalDto>();
+
+        var contratos = portal.MapGroup("/contratos");
+
+        contratos.MapGet(string.Empty, async (LeituraPortal leitura, CancellationToken cancellationToken) =>
+            Results.Ok(await leitura.ContratosAsync(cancellationToken)))
+            .RequirePermissao(Permissoes.PortalExtratoVer)
+            .Produces<IReadOnlyList<ContratoPortalDto>>();
+
+        contratos.MapGet("/{id:guid}/extrato", async (
+            Guid id, string? periodo, LeituraPortal leitura, CancellationToken cancellationToken) =>
+            Results.Ok(await leitura.ExtratoAsync(
+                id, periodo is null ? null : ContratosEndpoints.Mes(periodo), cancellationToken)))
+            .RequirePermissao(Permissoes.PortalExtratoVer)
+            .Produces<ExtratoPortalDto>();
+    }
+}

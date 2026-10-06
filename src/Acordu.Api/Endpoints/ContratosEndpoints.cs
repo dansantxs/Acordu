@@ -101,7 +101,7 @@ internal static class ContratosEndpoints
             .RequirePermissao(Permissoes.ContratoGerenciar)
             .Produces<ContratoDto>();
 
-    private static MesReferencia Mes(string periodo) =>
+    internal static MesReferencia Mes(string periodo) =>
         DateOnly.TryParseExact(periodo + "-01", "yyyy-MM-dd", CultureInfo.InvariantCulture, DateTimeStyles.None, out var dia)
             ? MesReferencia.De(dia)
             : throw new BadHttpRequestException("Período no formato yyyy-MM.");

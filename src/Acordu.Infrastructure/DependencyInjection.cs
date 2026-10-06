@@ -5,6 +5,7 @@ using Acordu.Application.Categorias;
 using Acordu.Application.Clientes;
 using Acordu.Application.Contratos;
 using Acordu.Application.AcessosPortal;
+using Acordu.Application.Portal;
 using Acordu.Application.Portal.Extrato;
 using Acordu.Application.Projetos;
 using Acordu.Application.Solicitacoes;
@@ -48,6 +49,7 @@ public static class DependencyInjection
         services.AddScoped<IMembrosDaEquipe, MembrosDaEquipe>();
         services.AddScoped<ITenantAtual, TenantAtual>();
         services.AddScoped<IAcessosDoPortal, AcessosDoPortal>();
+        services.AddScoped<IPortalAtual, PortalAtual>();
         services.AddSingleton<ProcessadorOutbox>();
 
         services.AddScoped<ConsultaSql>();
@@ -56,6 +58,7 @@ public static class DependencyInjection
         services.AddScoped<IConsultasContrato, ConsultasContrato>();
         services.AddScoped<IConsultasProjeto, ConsultasProjeto>();
         services.AddScoped<IConsultaExtratoPortal, ConsultaExtratoPortal>();
+        services.AddScoped<IConsultasPortal, ConsultasPortal>();
         services.AddScoped<IConsultaSemelhantes, ConsultaSemelhantes>();
         services.AddScoped<IConsultasSolicitacao, ConsultasSolicitacao>();
         services.AddScoped<IConsultasTarefa, ConsultasTarefa>();

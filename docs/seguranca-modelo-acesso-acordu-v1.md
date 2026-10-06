@@ -102,7 +102,7 @@ Efeito do `EscopoPortal` sobre o papel Cliente (aplicado na Application, além d
 | Escopo | Solicitações visíveis | Extrato |
 |---|---|---|
 | `TODAS_DO_CLIENTE` | Todas do cliente | Sim |
-| `PROPRIAS` | Só as que ele abriu ou em que é o contato | **Não** (o extrato expõe pedidos de colegas) |
+| `PROPRIAS` | Só as que ele abriu ou em que é o contato (abrir pelo portal grava o contato logado: é a mesma regra) | **Não** (o extrato expõe pedidos de colegas); nem a lista de contratos |
 
 ### 3.3 Guardas (invariantes)
 - **≥ 1 Dono por tenant** (herdado).
@@ -132,6 +132,7 @@ Fluxos específicos:
 
 ### 5.1 Equipe e contatos com conta
 Herdado: access token JWT curto (30–60 min) + refresh token persistido e revogável. Claims: `sub`, `tenant_id`, `papel`, `permissoes`; **(Acordu)** para Cliente, também `cliente_id` e `escopo_portal`.
+- **(Acordu) Portal:** a cada requisição em `/api/v1/portal`, a Api confere no banco que o usuário ainda é contato ativo do cliente, com vínculo, e usa o escopo do vínculo (não o da claim). Revogação vale na requisição seguinte, sem esperar o access token expirar; uma consulta indexada por requisição.
 
 ### 5.2 Troca de tenant
 Herdada. Um usuário Cliente em um tenant e Membro em outro troca de tenant e recebe token com o papel correspondente.
