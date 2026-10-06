@@ -3,7 +3,7 @@
 | | |
 |---|---|
 | **Versão** | 0.2 (documento vivo — revisar conforme validar) |
-| **Data** | 05/10/2026 |
+| **Data** | 06/10/2026 |
 | **Empresa** | Utile Systems (produtos: Saldu, Acordu) |
 | **Natureza** | Visão e estratégia. Hipóteses a validar com usuários, não decisões cravadas. |
 
@@ -158,10 +158,10 @@ Implicação arquitetural (ADR 0002):
 
 ## 10. Relação com o Saldu
 
-- **Mesma engenharia:** .NET 10, EF Core + Npgsql, PostgreSQL, React + Vite (TS), GitHub Actions, hospedagem serverless gratuita (Cloud Run + Neon + Cloudflare Pages, ADR 0005).
+- **Mesma engenharia:** .NET 10, EF Core + Npgsql, PostgreSQL, React + Vite (TS), Docker Compose + Caddy, GitHub Actions → GHCR, OCI Always Free (ARM).
 - **Mesmas convenções:** estrutura de repositório, DDD pragmático em 4 camadas, `convencoes-codigo`, Conventional Commits, ADRs, ERS.
-- **ADRs reaproveitados por referência:** Postgres (0001), EF Core (0002), multi-tenant shared schema (0003), OpenAPI + Scalar (0004), complementares gerenciados (0005; o núcleo self-hosted foi substituído pelo ADR 0005 do Acordu), Identity + JWT + RBAC (0007), vínculo N-N (0008). ADRs próprios do Acordu: 0001 (herança), 0002 (portal/escopo por cliente), 0003 (SLA em horas úteis), 0004 (tempo em minutos e consumo como read model), 0005 (hospedagem serverless gratuita e plano de escala).
-- **Infra:** cada produto com projeto Google e banco Neon próprios, sob a mesma conta de faturamento (`utile-billing`), dividindo a cota gratuita. Infra compartilhada (VM com Caddy + Postgres) só no nível 3 do plano de escala. Repositórios **separados**.
+- **ADRs reaproveitados por referência:** Postgres (0001), EF Core (0002), multi-tenant shared schema (0003), OpenAPI + Scalar (0004), self-hosted + gerenciados (0005), Identity + JWT + RBAC (0007), vínculo N-N (0008). ADRs próprios do Acordu: 0001 (herança), 0002 (portal/escopo por cliente), 0003 (SLA em horas úteis), 0004 (tempo em minutos e consumo como read model), 0005 (hospedagem serverless — revogado, plano B), 0006 (retorno à Oracle Always Free e plano de escala).
+- **Infra compartilhada:** mesma VM (`vps-arm-01`, Oracle Always Free, Phoenix), mesmo Postgres 17 com um banco por produto, Caddy roteando por domínio, stacks em `/opt/infra`, `/opt/saldu` e `/opt/acordu` (ADR 0006). Repositórios **separados**.
 - **Sinergia:** o motor de projeção determinística é a assinatura técnica comum aos dois produtos.
 
 ---
@@ -212,4 +212,5 @@ Diferente do Saldu (construído à mão para aprender .NET), **o Acordu é imple
 | 30/09/2026 | **Base de conhecimento gerada a partir das solicitações resolvidas**: v1 solução estruturada + semelhantes (sem IA); v2 artigos e portal; v3 rascunho por IA com aprovação humana; sempre isolada por tenant | Hipótese |
 | 30/09/2026 | Empresa: **Utile Systems** (`utilesystems.com.br` livre; INPI a verificar) | Decidido |
 | 02/10/2026 | Estratégia e cronograma ficam **no repositório** (`docs/`), privado; revisar antes de qualquer abertura pública | Decidido |
-| 05/10/2026 | Saldu perdeu a conta Oracle Cloud: hospedagem serverless gratuita (Cloud Run + Neon + Cloudflare Pages), projeto e banco próprios por produto, plano de escala até VM no Brasil (ADR 0005) | Decidido |
+| 05/10/2026 | Conta Oracle Cloud inacessível: hospedagem serverless gratuita (Cloud Run + Neon + Cloudflare Pages), projeto e banco próprios por produto, plano de escala até VM no Brasil (ADR 0005) | Revogado em 06/10 |
+| 06/10/2026 | Conta Oracle recuperada: volta à VM Ampere compartilhada com o Saldu; níveis 1 (Magalu Cloud SP) e 2; serverless como plano B (ADR 0006) | Decidido |

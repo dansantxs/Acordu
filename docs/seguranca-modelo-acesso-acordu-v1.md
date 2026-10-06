@@ -3,7 +3,7 @@
 | | |
 |---|---|
 | **Versão** | 0.1 |
-| **Data** | 05/10/2026 |
+| **Data** | 06/10/2026 |
 | **Escopo** | Identidade, autenticação, autorização (RBAC + escopo por cliente), sessões do portal, proteção de dados, anexos e auditoria. |
 | **Base** | Modelo de acesso do Saldu (ADRs 0007/0008 herdados) + ADR 0002 do Acordu. |
 | **Natureza** | Especificação. Decisões e contratos, **sem implementação**. |
@@ -143,8 +143,8 @@ Herdada. Um usuário Cliente em um tenant e Membro em outro troca de tenant e re
 
 ## 6. Proteção de dados
 
-- **Em trânsito:** HTTPS obrigatório (TLS do Cloud Run e do Cloudflare Pages), HSTS. Conexão com o Neon sempre com `SSL Mode=Require`.
-- **Em repouso:** banco criptografado pelo Neon; buckets criptografados pelo Google Cloud Storage (ADR 0005).
+- **Em trânsito:** HTTPS obrigatório (Caddy), HSTS.
+- **Em repouso:** volume da OCI criptografado; object storage criptografado pela OCI.
 - **Coluna:** sem criptografia de coluna no v1 (herdado; textos precisam de busca full-text).
 - **LGPD:** o prestador é **controlador** dos dados dos seus clientes; o Acordu é **operador**. Exportação e exclusão por tenant sob solicitação; exclusão de contato anonimiza nome/e-mail nas interações, preservando o histórico do trabalho.
 - **Nada de dado de cliente em log e no Discord:** só identificadores e status (herdado).

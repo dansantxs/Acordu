@@ -16,7 +16,7 @@ namespace Acordu.Api.Composicao;
 
 /// <summary>
 /// Composição única da Api, usada pelo <c>Program</c> e pelos testes funcionais (que montam o mesmo pipeline e penduram
-/// endpoints de teste nos grupos). Configuração só por variáveis de ambiente (ADR 0005): <c>ConnectionStrings__Acordu</c>,
+/// endpoints de teste nos grupos). Configuração só por variáveis de ambiente (ADR 0006): <c>ConnectionStrings__Acordu</c>,
 /// <c>Jwt__ChaveAssinatura</c>, <c>Jobs__Token</c>, <c>Cors__Origem</c>.
 /// </summary>
 internal static class ComposicaoApi
@@ -99,7 +99,7 @@ internal static class ComposicaoApi
                 .AddDocument(DocumentoPortal, "Acordu — portal"));
         }
 
-        // Não toca o banco: o UptimeRobot chama a cada 5 min e acordaria o Neon (ADR 0005 §5).
+        // Não toca o banco: é chamado pelo uptime externo e pelo healthcheck do deploy (ADR 0006).
         app.MapGet("/api/health", () => Results.Ok(new { status = "ok" })).ExcludeFromDescription();
         app.MapJobs(app.Configuration);
 
