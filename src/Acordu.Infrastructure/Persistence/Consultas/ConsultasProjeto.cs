@@ -1,4 +1,8 @@
+using System.Globalization;
+using Acordu.Application.Common;
 using Acordu.Application.Projetos;
+using Acordu.Domain.Enums;
+using Acordu.Infrastructure.Persistence.Configurations;
 using Microsoft.EntityFrameworkCore;
 
 namespace Acordu.Infrastructure.Persistence.Consultas;
@@ -41,6 +45,50 @@ public sealed class ConsultasProjeto : IConsultasProjeto
 
         return new ProgressoProjetoDto(
             somas.Concluidas, somas.Total, somas.Apontado, projeto.Estimativa?.Minutos ?? somas.EstimativaTarefas);
+    }
+
+    public async Task<ResultadoPaginado<ProjetoResumoDto>> ListarAsync(
+        Guid? clienteId, StatusProjeto? status, Paginacao paginacao, CancellationToken cancellationToken = default)
+    {
+        var consulta = from p in _db.Projetos.AsNoTracking()
+                       join c in _db.Clientes on p.ClienteId equals c.Id
+                       where (clienteId == null || p.ClienteId == clienteId) && (status == null || p.Status == status)
+                       select new { p, ClienteNome = c.Nome };
+        var total = await consulta.CountAsync(cancellationToken);
+        var linhas = await consulta
+            .OrderBy(x => x.p.Nome).ThenBy(x => x.p.Id)
+            .Skip(paginacao.Pular).Take(paginacao.TamanhoPagina)
+            .ToListAsync(cancellationToken);
+        return new ResultadoPaginado<ProjetoResumoDto>(
+            [.. linhas.Select(x => new ProjetoResumoDto(
+                x.p.Id, x.p.Nome, new Referencia(x.p.ClienteId, x.ClienteNome), x.p.ContratoId, x.p.Prazo, x.p.Estimativa?.Minutos,
+                x.p.Status))],
+            paginacao.Pagina,
+            paginacao.TamanhoPagina,
+            total);
+    }
+
+    public async Task<ProjetoDto?> DetalharAsync(Guid id, CancellationToken cancellationToken = default)
+    {
+        var linha = await (from p in _db.Projetos.AsNoTracking()
+                           join c in _db.Clientes on p.ClienteId equals c.Id
+                           where p.Id == id
+                           select new { p, ClienteNome = c.Nome, Versao = EF.Property<uint>(p, ConfiguracaoRaiz.Versao) })
+            .SingleOrDefaultAsync(cancellationToken);
+        if (linha is null)
+            return null;
+
+        var projeto = linha.p;
+        return new ProjetoDto(
+            projeto.Id,
+            linha.Versao.ToString(CultureInfo.InvariantCulture),
+            projeto.Nome,
+            new Referencia(projeto.ClienteId, linha.ClienteNome),
+            projeto.ContratoId,
+            projeto.Prazo,
+            projeto.Estimativa?.Minutos,
+            projeto.Status,
+            (await ProgressoAsync(id, cancellationToken))!);
     }
 
     private sealed class Somas

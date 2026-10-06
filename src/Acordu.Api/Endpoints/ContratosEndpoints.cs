@@ -1,5 +1,4 @@
 using System.Globalization;
-using System.Text.Json;
 using Acordu.Api.Seguranca;
 using Acordu.Application.Common;
 using Acordu.Application.Contratos;
@@ -54,7 +53,7 @@ internal static class ContratosEndpoints
         MapTransicao(contratos, "/reativacao", (c, id, versao, _, ct) => c.ReativarAsync(id, versao, ct));
         MapTransicao(contratos, "/encerramento", async (c, id, versao, requisicao, ct) =>
         {
-            var corpo = await CorpoOpcionalAsync<EncerramentoRequest>(requisicao, ct);
+            var corpo = await CorpoOpcional.LerAsync<EncerramentoRequest>(requisicao, ct);
             await c.EncerrarAsync(id, corpo?.Data, versao, ct);
         });
 
@@ -101,22 +100,6 @@ internal static class ContratosEndpoints
         })
             .RequirePermissao(Permissoes.ContratoGerenciar)
             .Produces<ContratoDto>();
-
-    /// <summary>Corpo JSON opcional: requisição sem corpo (ou sem JSON) vale como nulo, sem 415.</summary>
-    private static async Task<T?> CorpoOpcionalAsync<T>(HttpRequest requisicao, CancellationToken cancellationToken)
-        where T : class
-    {
-        if (!requisicao.HasJsonContentType())
-            return null;
-        try
-        {
-            return await requisicao.ReadFromJsonAsync<T>(cancellationToken);
-        }
-        catch (JsonException ex)
-        {
-            throw new BadHttpRequestException("Corpo da requisição inválido.", ex);
-        }
-    }
 
     private static MesReferencia Mes(string periodo) =>
         DateOnly.TryParseExact(periodo + "-01", "yyyy-MM-dd", CultureInfo.InvariantCulture, DateTimeStyles.None, out var dia)

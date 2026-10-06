@@ -1,9 +1,14 @@
 namespace Acordu.Application.Projetos;
 
-/// <summary>Progresso de projeto (read side §7). Nulo quando o projeto não existe ou não é visível no contexto.</summary>
+/// <summary>Projetos e progresso (read side §7). Nulo quando o projeto não existe ou não é visível no contexto.</summary>
 public interface IConsultasProjeto
 {
     Task<ProgressoProjetoDto?> ProgressoAsync(Guid projetoId, CancellationToken cancellationToken = default);
+
+    Task<Common.ResultadoPaginado<ProjetoResumoDto>> ListarAsync(
+        Guid? clienteId, Domain.Enums.StatusProjeto? status, Common.Paginacao paginacao, CancellationToken cancellationToken = default);
+
+    Task<ProjetoDto?> DetalharAsync(Guid id, CancellationToken cancellationToken = default);
 }
 
 /// <summary>
