@@ -10,8 +10,8 @@ namespace Acordu.Infrastructure.Persistence.Outbox;
 /// <summary>
 /// Entrega as mensagens pendentes da outbox aos <see cref="IManipuladorPosCommit{TEvento}"/>, cada uma num escopo próprio
 /// com o contexto fixado no tenant da mensagem. Entrega "pelo menos uma vez"; falha agenda nova tentativa e, esgotadas
-/// as tentativas, a mensagem sai da fila com o erro guardado. v1: uma instância processando (sem lock entre réplicas);
-/// o HostedService que chama este processador entra com a Api.
+/// as tentativas, a mensagem sai da fila com o erro guardado. Chamado no fim da requisição (só as mensagens dela) e pelo
+/// job <c>tick</c> (o que sobrou). Sem lock entre instâncias no v1.
 /// </summary>
 public sealed class ProcessadorOutbox
 {
@@ -33,15 +33,32 @@ public sealed class ProcessadorOutbox
     public async Task<int> ProcessarLoteAsync(int tamanhoLote, CancellationToken cancellationToken = default)
     {
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(tamanhoLote);
+        var agora = _relogio.GetUtcNow();
+        return await ProcessarAsync(
+            fila => fila.Where(m => m.ProximaTentativaEm <= agora).OrderBy(m => m.Sequencia).Take(tamanhoLote),
+            cancellationToken);
+    }
+
+    /// <summary>
+    /// Processa as mensagens indicadas que ainda estejam pendentes (despacho no fim da requisição que as gravou),
+    /// sem esperar o horário da próxima tentativa.
+    /// </summary>
+    public async Task<int> ProcessarAsync(IReadOnlyCollection<Guid> ids, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(ids);
+        if (ids.Count == 0)
+            return 0;
+
+        return await ProcessarAsync(fila => fila.Where(m => ids.Contains(m.Id)).OrderBy(m => m.Sequencia), cancellationToken);
+    }
+
+    private async Task<int> ProcessarAsync(
+        Func<IQueryable<MensagemOutbox>, IQueryable<MensagemOutbox>> selecionar, CancellationToken cancellationToken)
+    {
         await using var escopoFila = _escopos.CreateAsyncScope();
         var db = escopoFila.ServiceProvider.GetRequiredService<AcorduDbContext>();
-        var agora = _relogio.GetUtcNow();
-
-        var mensagens = await db.Set<MensagemOutbox>()
-            .Where(m => m.ProcessadaEm == null && m.FalhouEm == null && m.ProximaTentativaEm <= agora)
-            .OrderBy(m => m.Sequencia)
-            .Take(tamanhoLote)
-            .ToListAsync(cancellationToken);
+        var pendentes = db.Set<MensagemOutbox>().Where(m => m.ProcessadaEm == null && m.FalhouEm == null);
+        var mensagens = await selecionar(pendentes).ToListAsync(cancellationToken);
 
         foreach (var mensagem in mensagens)
         {

@@ -26,15 +26,32 @@ jobs:
           global-json-file: global.json
 
       - name: Restore
-        run: dotnet restore Acordu.sln
+        run: |
+          set -o pipefail
+          dotnet restore Acordu.sln 2>&1 | tee restore.log
 
       - name: Build
-        run: dotnet build Acordu.sln --configuration Release --no-restore
+        run: |
+          set -o pipefail
+          dotnet build Acordu.sln --configuration Release --no-restore 2>&1 | tee build.log
 
       - name: Test
         run: >
           dotnet test Acordu.sln --configuration Release --no-build
           --logger "trx" --results-directory TestResults
+
+      - name: Anotar erros de restore e build
+        if: failure()
+        shell: python
+        run: |
+          # Erros de NuGet não casam com o problem matcher do setup-dotnet; os logs não são baixáveis pela sessão.
+          import glob
+          vistos = set()
+          for arquivo in glob.glob("*.log"):
+              for linha in open(arquivo, encoding="utf-8", errors="replace"):
+                  if ": error " in linha and linha not in vistos and len(vistos) < 40:
+                      vistos.add(linha)
+                      print("::error title=" + arquivo + "::" + linha.strip().replace("%", "%25")[:1800])
 
       - name: Anotar testes que falharam
         if: failure()

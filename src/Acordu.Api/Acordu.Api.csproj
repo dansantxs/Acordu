@@ -4,10 +4,15 @@
     <ProjectReference Include="..\Acordu.Infrastructure\Acordu.Infrastructure.csproj" />
   </ItemGroup>
   <ItemGroup>
+    <PackageReference Include="Microsoft.AspNetCore.OpenApi" />
+    <PackageReference Include="Scalar.AspNetCore" />
     <!-- Só para o dotnet-ef usar a Api como startup project ao gerar migrations. -->
     <PackageReference Include="Microsoft.EntityFrameworkCore.Design">
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
+  </ItemGroup>
+  <ItemGroup>
+    <InternalsVisibleTo Include="Acordu.Api.FunctionalTests" />
   </ItemGroup>
 </Project>
