@@ -113,5 +113,7 @@ public sealed class PrimeiraRespostaERetomadaTests
     {
         public Task<CalendarioUtil> DoTenantAsync(CancellationToken cancellationToken = default) =>
             Task.FromResult(CalendarioUtil.Padrao(Tenant));
+
+        public Task<CalendarioUtil> ParaEdicaoAsync(CancellationToken cancellationToken = default) => DoTenantAsync(cancellationToken);
     }
 }

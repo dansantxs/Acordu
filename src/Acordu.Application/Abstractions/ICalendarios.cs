@@ -6,4 +6,7 @@ namespace Acordu.Application.Abstractions;
 public interface ICalendarios
 {
     Task<CalendarioUtil> DoTenantAsync(CancellationToken cancellationToken = default);
+
+    /// <summary>O calendário rastreado para edição; se o tenant ainda não tiver um, cria o padrão.</summary>
+    Task<CalendarioUtil> ParaEdicaoAsync(CancellationToken cancellationToken = default);
 }
