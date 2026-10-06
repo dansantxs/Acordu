@@ -25,6 +25,12 @@ public sealed class AcorduDbContext : DbContext
         _contexto = contexto;
     }
 
+    public DbSet<Tenant> Tenants => Set<Tenant>();
+
+    public DbSet<Papel> Papeis => Set<Papel>();
+
+    public DbSet<Vinculo> Vinculos => Set<Vinculo>();
+
     public DbSet<CalendarioUtil> Calendarios => Set<CalendarioUtil>();
 
     public DbSet<Cliente> Clientes => Set<Cliente>();
@@ -84,6 +90,9 @@ public sealed class AcorduDbContext : DbContext
         modelBuilder.HasPostgresExtension("pg_trgm");
         modelBuilder.HasPostgresExtension("unaccent");
 
+        modelBuilder.ApplyConfiguration(new TenantConfiguration());
+        modelBuilder.ApplyConfiguration(new PapelConfiguration());
+        modelBuilder.ApplyConfiguration(new VinculoConfiguration());
         modelBuilder.ApplyConfiguration(new CalendarioUtilConfiguration());
         modelBuilder.ApplyConfiguration(new ClienteConfiguration());
         modelBuilder.ApplyConfiguration(new CategoriaConfiguration());
@@ -104,11 +113,19 @@ public sealed class AcorduDbContext : DbContext
     }
 
     /// <summary>
-    /// Filtro "tenant" em toda raiz. Filtro "cliente" no contexto de Cliente: raízes com ClienteId filtram por ele; a
-    /// tabela de clientes, pelo próprio Id; Cronometro (só interno) some; Categoria e CalendarioUtil continuam visíveis.
+    /// Filtro "tenant" em toda raiz (em <see cref="Tenant"/>, pelo próprio Id). Filtro "cliente" no contexto de Cliente:
+    /// raízes com ClienteId filtram por ele; a tabela de clientes, pelo próprio Id; vínculos, pelo cliente (o contato só
+    /// vê o próprio vínculo e os de colegas do mesmo cliente); Cronometro (só interno) some; Categoria, CalendarioUtil e
+    /// Papel continuam visíveis.
     /// </summary>
     private void AplicarFiltros(ModelBuilder modelBuilder)
     {
+        modelBuilder.Entity<Tenant>().HasQueryFilter(FiltrosGlobais.Tenant, e => e.Id == _contexto.TenantId);
+        FiltrarTenant<Papel>(modelBuilder);
+        FiltrarTenant<Vinculo>(modelBuilder);
+        modelBuilder.Entity<Vinculo>().HasQueryFilter(
+            FiltrosGlobais.Cliente, e => !_contexto.EhCliente || e.ClienteId == _contexto.ClienteId);
+
         FiltrarTenant<CalendarioUtil>(modelBuilder);
         FiltrarTenant<Categoria>(modelBuilder);
 
@@ -154,6 +171,7 @@ public sealed class AcorduDbContext : DbContext
     /// </summary>
     private void GarantirIsolamento()
     {
+        GarantirIsolamentoDosTenants();
         foreach (var entrada in ChangeTracker.Entries<EntidadeBase>())
         {
             if (entrada.State is not (EntityState.Added or EntityState.Modified or EntityState.Deleted))
@@ -174,8 +192,21 @@ public sealed class AcorduDbContext : DbContext
         }
     }
 
+    /// <summary>O próprio <see cref="Tenant"/> só é gravado pela equipe dele (o registro define o contexto antes).</summary>
+    private void GarantirIsolamentoDosTenants()
+    {
+        foreach (var entrada in ChangeTracker.Entries<Tenant>())
+        {
+            if (entrada.State is not (EntityState.Added or EntityState.Modified or EntityState.Deleted))
+                continue;
+            if (_contexto.TenantId != entrada.Entity.Id || _contexto.EhCliente)
+                throw new IsolamentoVioladoException("Gravação de Tenant fora do tenant do contexto.");
+        }
+    }
+
     private static Guid? ClienteDe(EntidadeBase entidade) => entidade switch
     {
+        Vinculo vinculo => vinculo.ClienteId,
         RaizComCliente raiz => raiz.ClienteId,
         Tarefa tarefa => tarefa.ClienteId,
         Apontamento apontamento => apontamento.ClienteId,
