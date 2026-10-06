@@ -8,7 +8,7 @@ public sealed class AcessoPortalTests
     private static readonly TimeSpan TrintaDias = TimeSpan.FromDays(30);
 
     private static AcessoPortalEmitido Emitir() =>
-        AcessoPortal.Emitir(Guid.NewGuid(), Tenant, Contratos.Cliente, Guid.NewGuid(), Guid.NewGuid(), Brasilia(6, 10), TrintaDias);
+        AcessoPortal.Emitir(Guid.NewGuid(), Calendarios.Tenant, Contratos.Cliente, Guid.NewGuid(), Guid.NewGuid(), Brasilia(6, 10), TrintaDias);
 
     [Fact]
     public void Emitir_GuardaSoOHashEDevolveOToken()
@@ -34,7 +34,7 @@ public sealed class AcessoPortalTests
     public void Emitir_ValidadeNaoPositiva_LancaExcecao()
     {
         var acao = () => AcessoPortal.Emitir(
-            Guid.NewGuid(), Tenant, Contratos.Cliente, Guid.NewGuid(), Guid.NewGuid(), Brasilia(6, 10), TimeSpan.Zero);
+            Guid.NewGuid(), Calendarios.Tenant, Contratos.Cliente, Guid.NewGuid(), Guid.NewGuid(), Brasilia(6, 10), TimeSpan.Zero);
 
         acao.Should().Throw<ArgumentOutOfRangeException>();
     }

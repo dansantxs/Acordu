@@ -18,7 +18,7 @@ internal static class Solicitacoes
         DateTimeOffset? agora = null) =>
         Solicitacao.Abrir(
             Guid.NewGuid(),
-            Tenant,
+            Calendarios.Tenant,
             Contratos.Cliente,
             numero: 1042,
             titulo: "Ajustar banner da campanha",

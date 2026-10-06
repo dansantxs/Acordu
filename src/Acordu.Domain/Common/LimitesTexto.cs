@@ -8,6 +8,7 @@ public static class LimitesTexto
 {
     public const int Nome = 200;
     public const int NomeCategoria = 100;
+    public const int NomePapel = 100;
     public const int Email = 254;
     public const int Telefone = 30;
     public const int Cargo = 100;

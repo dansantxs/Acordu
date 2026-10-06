@@ -116,7 +116,7 @@ public sealed class CalculadoraSlaTests
         public void ExpedienteDiferentePorDia_RespeitaCadaJanela()
         {
             var calendario = CalendarioUtil.Criar(
-                Tenant,
+                Calendarios.Tenant,
                 CalendarioUtil.FusoPadrao,
                 [
                     new JanelaDiaria(DayOfWeek.Thursday, new TimeOnly(8, 0), new TimeOnly(18, 0)),
