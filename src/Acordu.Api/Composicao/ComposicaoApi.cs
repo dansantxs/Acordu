@@ -112,6 +112,9 @@ internal static class ComposicaoApi
         grupos.Interno.MapClientes();
         grupos.Interno.MapContratos();
         grupos.Interno.MapSolicitacoes();
+        grupos.Interno.MapTarefas();
+        grupos.Interno.MapProjetos();
+        grupos.Interno.MapApontamentos();
         return grupos;
     }
 
