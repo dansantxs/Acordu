@@ -1,6 +1,8 @@
 using Acordu.Api.Composicao;
+using Acordu.Api.Seguranca;
 using Acordu.Application.Abstractions;
 using Acordu.Application.Abstractions.Eventos;
+using Acordu.Domain.Acesso;
 using Acordu.Domain.Entities;
 using Acordu.Domain.Enums;
 using Acordu.Domain.Events;
@@ -52,6 +54,8 @@ public sealed class ApiFixture : IAsyncLifetime
         {
             ["ConnectionStrings:Acordu"] = _postgres.GetConnectionString(),
             ["Jobs:Token"] = TokenJobs,
+            ["Jwt:ChaveAssinatura"] = "chave-dos-testes-funcionais-com-mais-de-32-bytes",
+            ["RateLimit:Auth:PorMinuto"] = "100000",
         });
         builder.Services.AddSingleton<TimeProvider>(Relogio);
         builder.Services.AddSingleton(Entregas);
@@ -79,8 +83,22 @@ public sealed class ApiFixture : IAsyncLifetime
         return new AcorduDbContext(opcoes.Options, contexto);
     }
 
-    private static void MapearEndpointsDeTeste(RouteGroupBuilder api)
+    private static void MapearEndpointsDeTeste(GruposApi grupos)
     {
+        var api = grupos.Base;
+
+        // Contexto resolvido do token, visto de uma rota interna e de uma do portal.
+        grupos.Interno.MapGet("/teste-auth/contexto", (ITenantContext contexto) => Results.Ok(new
+        {
+            contexto.TenantId,
+            contexto.UsuarioId,
+            contexto.Papel,
+            contexto.EhCliente,
+            Permissoes = contexto.Permissoes.Count,
+        }));
+        grupos.Interno.MapGet("/teste-auth/contratos", () => Results.Ok()).RequirePermissao(Permissoes.ContratoGerenciar);
+        grupos.Portal.MapGet("/teste-auth", (ITenantContext contexto) => Results.Ok(new { contexto.ClienteId, contexto.EscopoPortal }));
+
         var teste = api.MapGroup("/teste");
 
         teste.MapGet("/erro/{tipo}", (string tipo) => tipo switch
