@@ -5,6 +5,7 @@ using Acordu.Application.Clientes;
 using Acordu.Application.Common;
 using Acordu.Application.Configuracoes;
 using Acordu.Application.Contratos;
+using Acordu.Application.Portal;
 using Acordu.Application.AcessosPortal;
 using Acordu.Application.Projetos;
 using Acordu.Application.Solicitacoes;
@@ -32,6 +33,8 @@ internal static class CasosDeUso
         services.AddScoped<ComandosCategoria>();
         services.AddScoped<ComandosAcessoPortal>();
         services.AddScoped<RevogacaoAcessoPortal>();
+        services.AddScoped<ComandosPortal>();
+        services.AddScoped<LeituraPortal>();
 
         // Reações de estado na mesma transação (modelo §7).
         services.AddScoped<IManipuladorEvento<InteracaoRegistrada>, PrimeiraRespostaERetomada>();

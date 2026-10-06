@@ -117,7 +117,7 @@ internal static class ComposicaoApi
         var grupos = new GruposApi(
             api,
             api.MapGroup(string.Empty).RequireAuthorization(Politicas.Equipe),
-            api.MapGroup("/portal").RequireAuthorization(Politicas.Portal));
+            api.MapGroup("/portal").RequireAuthorization(Politicas.Portal).AddEndpointFilter(SessaoPortal.ConferirAsync));
         grupos.Interno.MapClientes();
         grupos.Interno.MapContratos();
         grupos.Interno.MapSolicitacoes();
@@ -125,6 +125,7 @@ internal static class ComposicaoApi
         grupos.Interno.MapProjetos();
         grupos.Interno.MapApontamentos();
         grupos.Interno.MapConfiguracoes();
+        grupos.Portal.MapPortal();
         return grupos;
     }
 
