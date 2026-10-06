@@ -24,6 +24,16 @@ public interface IServicoAutenticacao
     /// <summary>Revoga o refresh token, se existir e estiver ativo.</summary>
     Task SairAsync(string? refreshToken, CancellationToken cancellationToken = default);
 
+    /// <summary>Dados do convite do portal para a tela de aceite. Nulo se o token não vale (sem dizer o motivo).</summary>
+    Task<ConvitePortalInfo?> ConsultarConviteAsync(string token, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Aceita o convite do portal e abre a sessão no tenant do prestador. E-mail sem conta: cria o usuário com
+    /// <paramref name="nome"/> (ou o nome do contato) e a senha. Com conta: a senha precisa ser a dela. Nulo se o token não
+    /// vale; senha errada ou fraca → <see cref="ArgumentException"/> no campo.
+    /// </summary>
+    Task<Sessao?> AceitarConviteAsync(string token, string? nome, string senha, CancellationToken cancellationToken = default);
+
     /// <summary>Dados do <c>/auth/eu</c>, lidos do banco (não do token). Nulo se o vínculo não existe mais.</summary>
     Task<PerfilUsuario?> PerfilAsync(Guid usuarioId, Guid tenantId, CancellationToken cancellationToken = default);
 }
