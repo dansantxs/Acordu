@@ -1,3 +1,4 @@
+using Acordu.Application.Common;
 using Acordu.Domain.Enums;
 
 namespace Acordu.Application.Solicitacoes;
@@ -43,8 +44,6 @@ public sealed record SolicitacaoDto(
     DateTimeOffset? CanceladaEm,
     string? MotivoCancelamento);
 
-/// <summary>Id e nome de quem é referenciado (cliente, contato, responsável).</summary>
-public sealed record Referencia(Guid Id, string Nome);
 
 /// <summary>Prazos e situação do SLA; nulo quando a solicitação não tem contrato.</summary>
 public sealed record SlaDto(
