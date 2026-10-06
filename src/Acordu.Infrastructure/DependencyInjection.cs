@@ -1,10 +1,12 @@
 using Acordu.Application.Abstractions;
+using Acordu.Application.Apontamentos;
 using Acordu.Application.Autenticacao;
 using Acordu.Application.Clientes;
 using Acordu.Application.Contratos;
 using Acordu.Application.Portal.Extrato;
 using Acordu.Application.Projetos;
 using Acordu.Application.Solicitacoes;
+using Acordu.Application.Tarefas;
 using Acordu.Infrastructure.MultiTenancy;
 using Acordu.Infrastructure.Persistence;
 using Acordu.Infrastructure.Persistence.Consultas;
@@ -51,6 +53,8 @@ public static class DependencyInjection
         services.AddScoped<IConsultaExtratoPortal, ConsultaExtratoPortal>();
         services.AddScoped<IConsultaSemelhantes, ConsultaSemelhantes>();
         services.AddScoped<IConsultasSolicitacao, ConsultasSolicitacao>();
+        services.AddScoped<IConsultasTarefa, ConsultasTarefa>();
+        services.AddScoped<IConsultasApontamento, ConsultasApontamento>();
         return services;
     }
 
