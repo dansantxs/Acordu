@@ -94,7 +94,7 @@ portal.extrato.ver
 |---|---|---|
 | **Dono** | INTERNO | Todas as internas. |
 | **Membro** | INTERNO | Todas as internas **exceto**: `contrato.gerenciar`, `contrato.ajustar_saldo`, `contrato.fechar_periodo`, `apontamento.editar_todos`, `configuracao.gerenciar`, `usuario.*`, `papel.gerenciar`, `auditoria.ver`. |
-| **Leitor** | INTERNO | Todas as `*.ver` internas + `dashboard.ver`. |
+| **Leitor** | INTERNO | Todas as `*.ver` internas **exceto `auditoria.ver`** + `dashboard.ver`. (Auditoria é dado de gestão: fica com o Dono e papéis customizados.) |
 | **Cliente** | CLIENTE | Todas as `portal.*`. |
 
 Efeito do `EscopoPortal` sobre o papel Cliente (aplicado na Application, além das permissões):
