@@ -10,6 +10,7 @@ using Acordu.Application.Portal.Extrato;
 using Acordu.Application.Projetos;
 using Acordu.Application.Solicitacoes;
 using Acordu.Application.Tarefas;
+using Acordu.Infrastructure.Agendamento;
 using Acordu.Infrastructure.MultiTenancy;
 using Acordu.Infrastructure.Persistence;
 using Acordu.Infrastructure.Persistence.Consultas;
@@ -35,6 +36,7 @@ public static class DependencyInjection
         ArgumentException.ThrowIfNullOrWhiteSpace(connectionString);
 
         services.TryAddSingleton(TimeProvider.System);
+        services.AddLogging(); // idempotente; jobs e testes de integração sem host também têm ILogger<T>
         services.AddScoped<ContextoTenant>();
         services.AddScoped<ITenantContext>(sp => sp.GetRequiredService<ContextoTenant>());
         services.AddDbContext<AcorduDbContext>(options => AcorduDbContextOptions.Configurar(options, connectionString));
@@ -51,6 +53,7 @@ public static class DependencyInjection
         services.AddScoped<IAcessosDoPortal, AcessosDoPortal>();
         services.AddScoped<IPortalAtual, PortalAtual>();
         services.AddSingleton<ProcessadorOutbox>();
+        services.AddSingleton<ExecutorPorTenant>();
 
         services.AddScoped<ConsultaSql>();
         services.AddScoped<IConsultasCliente, ConsultasCliente>();

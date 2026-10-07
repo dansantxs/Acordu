@@ -156,6 +156,13 @@ public sealed class ConsultasSolicitacao : IConsultasSolicitacao
             i.RegistradaEm))];
     }
 
+    public async Task<IReadOnlyList<Guid>> ResolvidasAteAsync(DateTimeOffset limite, CancellationToken cancellationToken = default) =>
+        await _db.Solicitacoes.AsNoTracking()
+            .Where(s => s.Status == StatusSolicitacao.Resolvida && s.ResolvidaEm != null && s.ResolvidaEm <= limite)
+            .OrderBy(s => s.ResolvidaEm)
+            .Select(s => s.Id)
+            .ToListAsync(cancellationToken);
+
     private static IQueryable<Solicitacao> Filtrar(
         IQueryable<Solicitacao> consulta, FiltroSolicitacoes filtro, DateTimeOffset agora, CalendarioUtil calendario)
     {

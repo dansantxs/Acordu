@@ -1,5 +1,7 @@
 using System.Security.Cryptography;
 using System.Text;
+using Acordu.Application.Solicitacoes;
+using Acordu.Infrastructure.Agendamento;
 using Acordu.Infrastructure.Persistence.Outbox;
 
 namespace Acordu.Api.Jobs;
@@ -37,6 +39,16 @@ internal static class JobsEndpoints
             }
 
             return Results.Ok(new { outboxProcessadas = total });
+        });
+
+        // Diário: RESOLVIDAS há mais de Tenant.DiasFechamentoAutomatico dias corridos → FECHADA (RF-SOL-09).
+        jobs.MapPost("/fechamento-automatico", async (ExecutorPorTenant executor, CancellationToken cancellationToken) =>
+        {
+            var resultado = await executor.ExecutarAsync(
+                "fechamento-automatico",
+                (servicos, ct) => servicos.GetRequiredService<FechamentoAutomatico>().ExecutarAsync(ct),
+                cancellationToken);
+            return Results.Ok(new { resultado.Tenants, fechadas = resultado.Tratados, resultado.Falhas });
         });
     }
 
