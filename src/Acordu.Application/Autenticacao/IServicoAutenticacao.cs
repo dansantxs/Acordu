@@ -34,6 +34,12 @@ public interface IServicoAutenticacao
     /// </summary>
     Task<Sessao?> AceitarConviteAsync(string token, string? nome, string senha, CancellationToken cancellationToken = default);
 
+    /// <summary>
+    /// Troca o token de um link de acesso (RF-POR-08) por uma sessão restrita à solicitação, sem refresh. Nulo se o token
+    /// não vale (inexistente, expirado, revogado, contato ou cliente inativo), sem distinguir.
+    /// </summary>
+    Task<SessaoLink?> TrocarLinkAsync(string token, CancellationToken cancellationToken = default);
+
     /// <summary>Dados do <c>/auth/eu</c>, lidos do banco (não do token). Nulo se o vínculo não existe mais.</summary>
     Task<PerfilUsuario?> PerfilAsync(Guid usuarioId, Guid tenantId, CancellationToken cancellationToken = default);
 }

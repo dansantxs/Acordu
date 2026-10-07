@@ -6,9 +6,17 @@ namespace Acordu.Application.Portal;
 // DTOs exclusivos do portal (contrato §12): nada de status interno, Ids de pessoas da equipe, tempo não visível ou
 // interação interna. Nunca reaproveitar DTO da equipe aqui (teste de arquitetura).
 
-/// <summary><c>GET /portal/eu</c>: contato, cliente, prestador e o que o escopo libera.</summary>
+/// <summary>
+/// <c>GET /portal/eu</c>: contato, cliente, prestador e o que o escopo libera. <see cref="SolicitacaoId"/> só na sessão
+/// de link (a única solicitação que ela abre).
+/// </summary>
 public sealed record PortalEuDto(
-    ContatoPortalDto Contato, ClientePortalDto Cliente, PrestadorPortalDto Prestador, EscopoPortal EscopoPortal, bool VeContratos);
+    ContatoPortalDto Contato,
+    ClientePortalDto Cliente,
+    PrestadorPortalDto Prestador,
+    EscopoPortal EscopoPortal,
+    bool VeContratos,
+    Guid? SolicitacaoId);
 
 public sealed record ContatoPortalDto(Guid Id, string Nome, string Email);
 

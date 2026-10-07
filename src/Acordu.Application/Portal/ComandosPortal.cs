@@ -104,17 +104,22 @@ public sealed class ComandosPortal
         return solicitacao.Id;
     }
 
-    /// <summary>Resposta do cliente, sempre EXTERNA. Devolve o Id da interação.</summary>
+    /// <summary>
+    /// Resposta do cliente, sempre EXTERNA. Devolve o Id da interação. Autor: o usuário do contato ou, na sessão de link
+    /// (sem conta), o Id do próprio contato.
+    /// </summary>
     public async Task<Guid> ResponderAsync(Guid solicitacaoId, RespostaPortalRequest dados, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(dados);
         var solicitacao = await CarregarAsync(solicitacaoId, Permissoes.PortalSolicitacaoComentar, cancellationToken);
+        var contato = await _portal.ContatoAsync(cancellationToken);
         var interacao = Interacao.Registrar(
             Guid.CreateVersion7(),
             solicitacao.TenantId,
             solicitacao.ClienteId,
             solicitacao.Id,
-            _contexto.Usuario(),
+            // Sessão de link não tem usuário: o autor é o contato (os nomes caem no contato do cliente).
+            _contexto.UsuarioId ?? contato.ContatoId,
             autorEhCliente: true,
             dados.Texto,
             Visibilidade.Externa,
@@ -153,13 +158,13 @@ public sealed class ComandosPortal
             throw new TransicaoInvalidaException("A solicitação não está aguardando a sua aprovação.");
     }
 
-    /// <summary>Pelos filtros do contato; no escopo PROPRIAS, só aquelas em que ele é o contato (fora disso, 404).</summary>
+    /// <summary>Pelos filtros do contato e pela regra de visibilidade (escopo ou link); fora disso, 404.</summary>
     private async Task<Solicitacao> CarregarAsync(Guid id, string permissao, CancellationToken cancellationToken)
     {
         _contexto.Exigir(permissao);
         var contato = await _portal.ContatoAsync(cancellationToken);
         var solicitacao = await _solicitacoes.ObterPorIdAsync(id, cancellationToken);
-        if (solicitacao is null || (contato.Escopo == EscopoPortal.Proprias && solicitacao.ContatoId != contato.ContatoId))
+        if (solicitacao is null || !contato.Ve(solicitacao.Id, solicitacao.ContatoId))
             throw new NaoEncontradoException("Solicitação não encontrada.");
         return solicitacao;
     }
