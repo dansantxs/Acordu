@@ -17,4 +17,7 @@ public interface IConsultasSolicitacao
 
     /// <summary>Linha do tempo em ordem de registro; nulo se a solicitação não é visível.</summary>
     Task<IReadOnlyList<InteracaoDto>?> InteracoesAsync(Guid solicitacaoId, CancellationToken cancellationToken = default);
+
+    /// <summary>RESOLVIDAS com <c>ResolvidaEm</c> até <paramref name="limite"/> (candidatas ao fechamento automático).</summary>
+    Task<IReadOnlyList<Guid>> ResolvidasAteAsync(DateTimeOffset limite, CancellationToken cancellationToken = default);
 }
