@@ -70,7 +70,8 @@ public sealed class Papel : EntidadeBase
             tenantId,
             NomeLeitor,
             TipoPapel.Interno,
-            Catalogo.Internas.Where(p => p.EndsWith(".ver", StringComparison.Ordinal))),
+            // Auditoria é dado de gestão: fica com o Dono (e papéis customizados), não com quem só lê.
+            Catalogo.Internas.Where(p => p.EndsWith(".ver", StringComparison.Ordinal) && p != Catalogo.AuditoriaVer)),
         Semear(tenantId, NomeCliente, TipoPapel.Cliente, Catalogo.DoPortal),
     ];
 

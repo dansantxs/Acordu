@@ -43,7 +43,7 @@ public sealed class PapelTests
     }
 
     [Fact]
-    public void Leitor_SoAsDeVerIncluindoDashboard()
+    public void Leitor_SoAsDeVerIncluindoDashboard_SemAuditoria()
     {
         var leitor = Padrao(Papel.NomeLeitor);
 
@@ -51,8 +51,8 @@ public sealed class PapelTests
         [
             Permissoes.ClienteVer, Permissoes.ContratoVer, Permissoes.SolicitacaoVer, Permissoes.TarefaVer,
             Permissoes.ProjetoVer, Permissoes.ApontamentoVer, Permissoes.RecorrenciaVer, Permissoes.DashboardVer,
-            Permissoes.AuditoriaVer,
         ]);
+        leitor.Permissoes.Should().NotContain(Permissoes.AuditoriaVer);
     }
 
     [Fact]
