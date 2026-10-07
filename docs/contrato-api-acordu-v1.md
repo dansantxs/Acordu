@@ -64,6 +64,7 @@ Específico do Acordu:
   "solicitacaoId": "f1e...", "tipo": "LINK_SOLICITACAO" }
 ```
 Token inválido, expirado ou revogado → `401` (sem distinguir o motivo).
+Contato ou cliente inativado também invalida o link. A sessão de link não tem refresh nem usuário: `/auth/eu` e `/auth/tenant-ativo` respondem `403` a ela.
 
 **Convite do portal** (decidido na implementação, segurança §4):
 - O token chega no link do e-mail (`{App__UrlPublica}/portal/convite/{token}`); a SPA o tira da URL na primeira carga. Vale 7 dias a partir do envio.
@@ -281,8 +282,13 @@ Contrato de outro cliente ou não vigente → `422`. Sem `contratoId`, a API usa
 { "contatoId": "ct7...", "validadeDias": 30, "enviarEmail": true }
 // response (o link só aparece aqui, uma vez)
 { "acessoId": "a1...", "expiraEm": "2026-10-30T17:10:00Z",
-  "link": "https://acordu.app.br/portal/l/k3Jq..." }
+  "link": "https://acordu.app.br/portal/l/k3Jq...", "emailEnviado": true }
 ```
+
+Decidido na implementação (6d3):
+- `contatoId`: contato ativo do cliente da solicitação (senão `400` no campo). `validadeDias` de 1 a 90, padrão 30. `enviarEmail` nulo envia. Um link por (solicitação, contato): emitir de novo revoga o anterior. Solicitação FECHADA ou CANCELADA, ou cliente inativo → `422`.
+- O e-mail sai logo depois do commit, na própria requisição (o token não pode ir para a outbox); falha no envio não desfaz a emissão e volta como `emailEnviado: false`.
+- `GET /solicitacoes/{id}/acessos-portal` (`portal.gerenciar_acessos`) → links válidos `[{ acessoId, contatoId, contatoNome, emitidoEm, expiraEm }]`, sem o token. `DELETE .../{acessoId}` → `204`, idempotente; a sessão aberta pelo link para de valer na requisição seguinte.
 
 ---
 
@@ -452,6 +458,7 @@ Todas as rotas aplicam o filtro por `ClienteId` (e `ContatoId` se `escopoPortal 
 `consumidoMinutos` do extrato soma **apenas** apontamentos faturáveis; a lista mostra os `visivelCliente`. Um apontamento faturável marcado como não visível entra no total com a descrição genérica "Atendimento" (o cliente nunca vê um total que não consegue conferir linha a linha).
 
 Decidido na implementação (6d2):
+- **Sessão de link (6d3):** rotas sem ✓L → `403`; outra solicitação → `404`; acesso revogado ou expirado → `401` na requisição seguinte. `/portal/eu` traz `solicitacaoId` (nulo na sessão com conta). Resposta pelo link tem como autor o contato (nome do contato nas interações). `POST /portal/solicitacoes` tem rate limit por usuário (`RateLimit__Portal__PorMinuto`, padrão 10).
 - **Sessão:** a cada requisição do portal, o contato e o escopo são lidos do banco (contato ativo, de cliente ativo, com vínculo). Acesso revogado → `401 nao-autenticado` já na requisição seguinte; mudança de escopo vale na hora nas rotas do portal (o token só é atualizado no próximo refresh).
 - **Escopo PROPRIAS:** solicitações em que o contato é o contato da solicitação (abrir pelo portal grava o contato logado, então "as que abriu" é a mesma regra). Fora do escopo → `404`. `/portal/contratos` e o extrato → `403` (`veContratos` em `/portal/eu` diz se a tela mostra).
 - `GET /portal/eu` → `{ contato: { id, nome, email }, cliente: { id, nome }, prestador: { nome }, escopoPortal, veContratos }`.

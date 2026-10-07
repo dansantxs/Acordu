@@ -199,6 +199,7 @@ class AcessoPortal <<aggregate root>> {
   +Emitir(..., agora, validade): AcessoPortalEmitido(acesso, token)
   +HashDoToken(token): string
   +Validar(token, agora): bool
+  +EstaValido(agora): bool
   +Revogar(agora)
 }
 
@@ -403,7 +404,7 @@ Regras:
 
 ### 4.10 AcessoPortal
 - `Emitir` gera token aleatório de 32 bytes, guarda **só o hash** (SHA-256) e devolve o token em claro uma única vez (vai no e-mail).
-- `Validar`: hash confere (comparação em tempo constante), não revogado, `agora < ExpiraEm`. Escopo: uma solicitação (RNF-SEG-06).
+- `Validar`: hash confere (comparação em tempo constante) e `EstaValido` (não revogado, `agora < ExpiraEm`; conferido a cada requisição da sessão de link). Escopo: uma solicitação (RNF-SEG-06).
 - Token: 32 bytes do `RandomNumberGenerator`, base64url (43 caracteres); `TokenHash` = SHA-256 do token em hex minúsculo, usado também para localizar o acesso na troca do link por sessão (índice único).
 - A validade vem da Application (padrão de 30 dias, segurança §5.3). "Reemitir revoga o anterior" e revogar os links ao remover o contato são orquestrados pela Application. `Revogar` é idempotente e mantém o primeiro instante.
 

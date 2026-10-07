@@ -143,6 +143,7 @@ Herdada. Um usuário Cliente em um tenant e Membro em outro troca de tenant e re
 - `POST /auth/portal/link` troca o token por um **access token de 60 min, sem refresh**. Claims: `tenant_id`, `cliente_id`, `acesso_portal_id`, `solicitacao_id`, `tipo = LINK_SOLICITACAO`, permissões fixas (`portal.solicitacao.ver`, `.comentar`, `.aprovar`).
 - A cada requisição, o middleware confere se o `AcessoPortal` continua válido (não revogado nem expirado) — revogação vale imediatamente, sem esperar o token expirar.
 - Se o contato ganhar conta depois, o link continua funcionando até expirar.
+- **(Implementação)** A conferência por requisição lê o `AcessoPortal` (não revogado, não expirado) e o contato dele (ativo, de cliente ativo). Sem `sub` no token: interação registrada pelo link tem como autor o Id do contato. O e-mail do link sai logo após o commit, na requisição (o link também volta na resposta da emissão), nunca pela outbox.
 
 ---
 
