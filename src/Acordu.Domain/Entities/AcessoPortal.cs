@@ -65,7 +65,10 @@ public sealed class AcessoPortal : RaizComCliente
 
     /// <summary>Hash confere (comparação em tempo constante), não revogado e <paramref name="agora"/> antes da expiração.</summary>
     public bool Validar(string token, DateTimeOffset agora) =>
-        !Revogado && agora < ExpiraEm && TokenSeguro.Confere(token, TokenHash);
+        EstaValido(agora) && TokenSeguro.Confere(token, TokenHash);
+
+    /// <summary>Não revogado e <paramref name="agora"/> antes da expiração: conferido a cada requisição da sessão de link.</summary>
+    public bool EstaValido(DateTimeOffset agora) => !Revogado && agora < ExpiraEm;
 
     /// <summary>Revoga o acesso; revogar de novo mantém o instante original.</summary>
     public void Revogar(DateTimeOffset agora) => RevogadoEm ??= agora.ToUniversalTime();
