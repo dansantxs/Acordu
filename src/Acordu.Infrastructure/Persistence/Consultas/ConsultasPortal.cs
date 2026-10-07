@@ -51,7 +51,8 @@ public sealed class ConsultasPortal : IConsultasPortal
             new ClientePortalDto(cliente.Id, cliente.Nome),
             new PrestadorPortalDto(tenant.NomePortal ?? tenant.Nome),
             contato.Escopo,
-            contato.VeContratos);
+            contato.VeContratos,
+            contato.SolicitacaoPermitida);
     }
 
     public async Task<ResultadoPaginado<SolicitacaoPortalResumoDto>> ListarSolicitacoesAsync(
@@ -126,7 +127,7 @@ public sealed class ConsultasPortal : IConsultasPortal
             .OrderBy(i => i.RegistradaEm).ThenBy(i => i.Id)
             .Select(i => new { i.Id, i.Texto, i.AutorId, i.AutorEhCliente, i.RegistradaEm })
             .ToListAsync(cancellationToken);
-        var nomes = await Nomes.DeUsuariosAsync(_db, interacoes.Select(i => i.AutorId), cancellationToken);
+        var nomes = await Nomes.DeAutoresAsync(_db, contato.ClienteId, interacoes.Select(i => i.AutorId), cancellationToken);
         return [.. interacoes.Select(i => new InteracaoPortalDto(
             i.Id, i.Texto, nomes.GetValueOrDefault(i.AutorId, string.Empty), !i.AutorEhCliente, i.RegistradaEm))];
     }
@@ -150,11 +151,16 @@ public sealed class ConsultasPortal : IConsultasPortal
             : new SaldoContratoPortal(consumo.Tipo, consumo.FranquiaMinutos, consumo.SaldoMinutos, consumo.Percentual);
     }
 
-    /// <summary>Solicitações do cliente do contexto (filtro global) que o escopo do contato deixa ver.</summary>
+    /// <summary>
+    /// Solicitações do cliente do contexto (filtro global) que o contato pode ver: na sessão de link, só a dela; com
+    /// conta, pelo escopo (mesma regra de <see cref="ContatoDoPortal.Ve"/>).
+    /// </summary>
     private IQueryable<Solicitacao> Visiveis(ContatoDoPortal contato)
     {
         ArgumentNullException.ThrowIfNull(contato);
         var consulta = _db.Solicitacoes.AsNoTracking().Where(s => s.ClienteId == contato.ClienteId);
+        if (contato.SolicitacaoPermitida is { } permitida)
+            return consulta.Where(s => s.Id == permitida);
         return contato.Escopo == EscopoPortal.Proprias ? consulta.Where(s => s.ContatoId == contato.ContatoId) : consulta;
     }
 

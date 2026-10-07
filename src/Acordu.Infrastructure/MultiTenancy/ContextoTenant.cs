@@ -24,6 +24,10 @@ public sealed class ContextoTenant : ITenantContext
 
     public EscopoPortal? EscopoPortal { get; private set; }
 
+    public Guid? AcessoPortalId { get; private set; }
+
+    public Guid? SolicitacaoPermitida { get; private set; }
+
     /// <summary>Equipe do prestador (ou o sistema agindo dentro de um tenant), sem usuário nem permissões.</summary>
     public void DefinirEquipe(Guid tenantId) => Definir(tenantId, null);
 
@@ -53,6 +57,27 @@ public sealed class ContextoTenant : ITenantContext
         Papel = papel;
         Permissoes = permissoes.ToFrozenSet(StringComparer.Ordinal);
         EscopoPortal = escopo;
+    }
+
+    /// <summary>
+    /// Sessão de link por solicitação (RF-POR-08): cliente do acesso, sem usuário, com as permissões fixas do link e uma
+    /// única solicitação visível. A validade do acesso é conferida no banco a cada requisição.
+    /// </summary>
+    public void DefinirLink(Guid tenantId, Guid clienteId, Guid acessoPortalId, Guid solicitacaoId, IEnumerable<string> permissoes)
+    {
+        if (clienteId == Guid.Empty)
+            throw new ArgumentException("O ClienteId não pode ser vazio.", nameof(clienteId));
+        if (acessoPortalId == Guid.Empty)
+            throw new ArgumentException("O acesso não pode ser vazio.", nameof(acessoPortalId));
+        if (solicitacaoId == Guid.Empty)
+            throw new ArgumentException("A solicitação não pode ser vazia.", nameof(solicitacaoId));
+        ArgumentNullException.ThrowIfNull(permissoes);
+
+        Definir(tenantId, clienteId);
+        AcessoPortalId = acessoPortalId;
+        SolicitacaoPermitida = solicitacaoId;
+        Permissoes = permissoes.ToFrozenSet(StringComparer.Ordinal);
+        EscopoPortal = Domain.Enums.EscopoPortal.Proprias;
     }
 
     private void Definir(Guid tenantId, Guid? clienteId)

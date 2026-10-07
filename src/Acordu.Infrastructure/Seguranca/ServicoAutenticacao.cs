@@ -228,6 +228,24 @@ public sealed class ServicoAutenticacao : IServicoAutenticacao
         return sessao;
     }
 
+    public async Task<SessaoLink?> TrocarLinkAsync(string token, CancellationToken cancellationToken = default)
+    {
+        if (string.IsNullOrWhiteSpace(token))
+            return null;
+
+        var hash = AcessoPortal.HashDoToken(token);
+        var acesso = await _db.AcessosPortal.IgnoreQueryFilters(Filtros).AsNoTracking()
+            .SingleOrDefaultAsync(a => a.TokenHash == hash, cancellationToken);
+        if (acesso is null || !acesso.Validar(token, _relogio.GetUtcNow()))
+            return null;
+
+        var contatoAtivo = await _db.Clientes.IgnoreQueryFilters(Filtros).AsNoTracking()
+            .Where(c => c.Id == acesso.ClienteId && c.TenantId == acesso.TenantId && c.Ativo)
+            .SelectMany(c => c.Contatos)
+            .AnyAsync(c => c.Id == acesso.ContatoId && c.Ativo, cancellationToken);
+        return contatoAtivo ? new SessaoLink(acesso.TenantId, acesso.ClienteId, acesso.Id, acesso.SolicitacaoId) : null;
+    }
+
     public async Task<PerfilUsuario?> PerfilAsync(Guid usuarioId, Guid tenantId, CancellationToken cancellationToken = default)
     {
         var usuario = await _usuarios.FindByIdAsync(usuarioId.ToString());

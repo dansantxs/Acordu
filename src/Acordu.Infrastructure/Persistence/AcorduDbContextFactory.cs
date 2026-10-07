@@ -34,5 +34,9 @@ public sealed class AcorduDbContextFactory : IDesignTimeDbContextFactory<AcorduD
         public IReadOnlySet<string> Permissoes { get; } = new HashSet<string>();
 
         public Domain.Enums.EscopoPortal? EscopoPortal => null;
+
+        public Guid? AcessoPortalId => null;
+
+        public Guid? SolicitacaoPermitida => null;
     }
 }
