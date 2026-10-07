@@ -17,6 +17,30 @@ internal static class Nomes
             .ToDictionaryAsync(u => u.Id, u => u.Nome, cancellationToken);
     }
 
+    /// <summary>
+    /// Nomes dos autores de interações: usuários e, para quem respondeu pela sessão de link (sem conta, o autor é o
+    /// contato), os contatos do cliente.
+    /// </summary>
+    public static async Task<Dictionary<Guid, string>> DeAutoresAsync(
+        AcorduDbContext db, Guid clienteId, IEnumerable<Guid> ids, CancellationToken cancellationToken)
+    {
+        var lista = ids.Distinct().ToList();
+        var nomes = await DeUsuariosAsync(db, lista, cancellationToken);
+        var faltando = lista.Where(id => !nomes.ContainsKey(id)).ToList();
+        if (faltando.Count == 0)
+            return nomes;
+
+        var contatos = await db.Clientes.AsNoTracking()
+            .Where(c => c.Id == clienteId)
+            .SelectMany(c => c.Contatos)
+            .Where(c => faltando.Contains(c.Id))
+            .Select(c => new { c.Id, c.Nome })
+            .ToListAsync(cancellationToken);
+        foreach (var contato in contatos)
+            nomes[contato.Id] = contato.Nome;
+        return nomes;
+    }
+
     public static Referencia? Pessoa(Guid? id, IReadOnlyDictionary<Guid, string> nomes) =>
         id is { } valor ? new Referencia(valor, nomes.GetValueOrDefault(valor, string.Empty)) : null;
 }

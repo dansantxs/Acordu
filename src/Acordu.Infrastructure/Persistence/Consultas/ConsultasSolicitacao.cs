@@ -135,14 +135,18 @@ public sealed class ConsultasSolicitacao : IConsultasSolicitacao
 
     public async Task<IReadOnlyList<InteracaoDto>?> InteracoesAsync(Guid solicitacaoId, CancellationToken cancellationToken = default)
     {
-        if (!await _db.Solicitacoes.AnyAsync(s => s.Id == solicitacaoId, cancellationToken))
+        var clienteId = await _db.Solicitacoes
+            .Where(s => s.Id == solicitacaoId)
+            .Select(s => (Guid?)s.ClienteId)
+            .SingleOrDefaultAsync(cancellationToken);
+        if (clienteId is null)
             return null;
 
         var interacoes = await _db.Interacoes.AsNoTracking()
             .Where(i => i.SolicitacaoId == solicitacaoId)
             .OrderBy(i => i.RegistradaEm).ThenBy(i => i.Id)
             .ToListAsync(cancellationToken);
-        var pessoas = await NomesDeUsuariosAsync(interacoes.Select(i => i.AutorId), cancellationToken);
+        var pessoas = await Nomes.DeAutoresAsync(_db, clienteId.Value, interacoes.Select(i => i.AutorId), cancellationToken);
         return [.. interacoes.Select(i => new InteracaoDto(
             i.Id,
             new Referencia(i.AutorId, pessoas.GetValueOrDefault(i.AutorId, string.Empty)),

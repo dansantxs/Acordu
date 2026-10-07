@@ -59,6 +59,7 @@ public static class DependencyInjection
         services.AddScoped<IConsultasProjeto, ConsultasProjeto>();
         services.AddScoped<IConsultaExtratoPortal, ConsultaExtratoPortal>();
         services.AddScoped<IConsultasPortal, ConsultasPortal>();
+        services.AddScoped<IConsultasLinkPortal, ConsultasLinkPortal>();
         services.AddScoped<IConsultaSemelhantes, ConsultaSemelhantes>();
         services.AddScoped<IConsultasSolicitacao, ConsultasSolicitacao>();
         services.AddScoped<IConsultasTarefa, ConsultasTarefa>();

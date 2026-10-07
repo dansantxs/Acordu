@@ -1,5 +1,6 @@
 using System.Security.Claims;
 using Acordu.Application.Autenticacao;
+using Acordu.Domain.Acesso;
 using Microsoft.IdentityModel.JsonWebTokens;
 using Microsoft.IdentityModel.Tokens;
 
@@ -26,6 +27,33 @@ internal static class EmissorJwt
         if (sessao.EscopoPortal is { } escopo)
             claims.Add(new Claim(ClaimsAcordu.Escopo, ClaimsAcordu.Texto(escopo)));
 
+        return Assinar(claims, configuracao, agora);
+    }
+
+    /// <summary>
+    /// Sessão de link (segurança §5.3): sem <c>sub</c> nem papel, com as permissões fixas do link, o acesso e a
+    /// solicitação. Mesma validade do access token; sem refresh.
+    /// </summary>
+    public static TokenDeAcesso EmitirLink(SessaoLink sessao, ConfiguracaoJwt configuracao, DateTimeOffset agora)
+    {
+        ArgumentNullException.ThrowIfNull(sessao);
+        ArgumentNullException.ThrowIfNull(configuracao);
+
+        var claims = new List<Claim>
+        {
+            new(ClaimsAcordu.Tenant, sessao.TenantId.ToString()),
+            new(ClaimsAcordu.Cliente, sessao.ClienteId.ToString()),
+            new(ClaimsAcordu.AcessoPortal, sessao.AcessoPortalId.ToString()),
+            new(ClaimsAcordu.Solicitacao, sessao.SolicitacaoId.ToString()),
+            new(ClaimsAcordu.Tipo, ClaimsAcordu.TipoLink),
+            new(JwtRegisteredClaimNames.Jti, Guid.CreateVersion7().ToString()),
+        };
+        claims.AddRange(Permissoes.DoLink.Select(p => new Claim(ClaimsAcordu.Permissoes, p)));
+        return Assinar(claims, configuracao, agora);
+    }
+
+    private static TokenDeAcesso Assinar(List<Claim> claims, ConfiguracaoJwt configuracao, DateTimeOffset agora)
+    {
         var expiraEm = agora + ConfiguracaoJwt.Validade;
         var descritor = new SecurityTokenDescriptor
         {

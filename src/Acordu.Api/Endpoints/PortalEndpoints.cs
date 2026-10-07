@@ -8,7 +8,7 @@ namespace Acordu.Api.Endpoints;
 
 /// <summary>
 /// Portal do cliente (contrato §12), no grupo <c>/api/v1/portal</c> (política Portal + <see cref="SessaoPortal"/>).
-/// DTOs próprios; solicitação de outro cliente ou fora do escopo → 404.
+/// DTOs próprios; solicitação de outro cliente ou fora do escopo → 404. <c>PermitirLink()</c> marca as rotas ✓L.
 /// </summary>
 internal static class PortalEndpoints
 {
@@ -18,6 +18,7 @@ internal static class PortalEndpoints
 
         portal.MapGet("/eu", async (LeituraPortal leitura, CancellationToken cancellationToken) =>
             Results.Ok(await leitura.EuAsync(cancellationToken)))
+            .PermitirLink()
             .Produces<PortalEuDto>();
 
         var solicitacoes = portal.MapGroup("/solicitacoes");
@@ -40,15 +41,18 @@ internal static class PortalEndpoints
             return Results.Created($"/api/v1/portal/solicitacoes/{id}", await leitura.DetalharAsync(id, cancellationToken));
         })
             .RequirePermissao(Permissoes.PortalSolicitacaoCriar)
+            .RequireRateLimiting(ComposicaoSeguranca.LimitePortal)
             .Produces<SolicitacaoPortalDto>(StatusCodes.Status201Created);
 
         solicitacoes.MapGet("/{id:guid}", async (Guid id, LeituraPortal leitura, CancellationToken cancellationToken) =>
             Results.Ok(await leitura.DetalharAsync(id, cancellationToken)))
+            .PermitirLink()
             .RequirePermissao(Permissoes.PortalSolicitacaoVer)
             .Produces<SolicitacaoPortalDto>();
 
         solicitacoes.MapGet("/{id:guid}/interacoes", async (Guid id, LeituraPortal leitura, CancellationToken cancellationToken) =>
             Results.Ok(await leitura.InteracoesAsync(id, cancellationToken)))
+            .PermitirLink()
             .RequirePermissao(Permissoes.PortalSolicitacaoVer)
             .Produces<IReadOnlyList<InteracaoPortalDto>>();
 
@@ -59,6 +63,7 @@ internal static class PortalEndpoints
             var interacao = (await leitura.InteracoesAsync(id, cancellationToken)).Single(i => i.Id == interacaoId);
             return Results.Created($"/api/v1/portal/solicitacoes/{id}/interacoes", interacao);
         })
+            .PermitirLink()
             .RequirePermissao(Permissoes.PortalSolicitacaoComentar)
             .Produces<InteracaoPortalDto>(StatusCodes.Status201Created);
 
@@ -68,6 +73,7 @@ internal static class PortalEndpoints
             await comandos.AprovarAsync(id, cancellationToken);
             return Results.Ok(await leitura.DetalharAsync(id, cancellationToken));
         })
+            .PermitirLink()
             .RequirePermissao(Permissoes.PortalSolicitacaoAprovar)
             .Produces<SolicitacaoPortalDto>();
 
@@ -77,6 +83,7 @@ internal static class PortalEndpoints
             await comandos.ReprovarAsync(id, corpo, cancellationToken);
             return Results.Ok(await leitura.DetalharAsync(id, cancellationToken));
         })
+            .PermitirLink()
             .RequirePermissao(Permissoes.PortalSolicitacaoAprovar)
             .Produces<SolicitacaoPortalDto>();
 

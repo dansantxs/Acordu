@@ -12,3 +12,6 @@ public sealed record Sessao(
     EscopoPortal? EscopoPortal,
     string RefreshToken,
     DateTimeOffset RefreshExpiraEm);
+
+/// <summary>Sessão de link por solicitação: o que vai no access token (segurança §5.3). Não há usuário nem refresh.</summary>
+public sealed record SessaoLink(Guid TenantId, Guid ClienteId, Guid AcessoPortalId, Guid SolicitacaoId);

@@ -64,6 +64,12 @@ public static class Permissoes
         PortalSolicitacaoVer, PortalSolicitacaoCriar, PortalSolicitacaoComentar, PortalSolicitacaoAprovar, PortalExtratoVer,
     };
 
+    /// <summary>Permissões fixas da sessão de link por solicitação (segurança §5.3): ver, responder e aprovar.</summary>
+    public static IReadOnlySet<string> DoLink { get; } = new HashSet<string>(StringComparer.Ordinal)
+    {
+        PortalSolicitacaoVer, PortalSolicitacaoComentar, PortalSolicitacaoAprovar,
+    };
+
     /// <summary>Permissões que um papel do tipo dado pode conter.</summary>
     public static IReadOnlySet<string> Permitidas(Enums.TipoPapel tipo) => tipo switch
     {

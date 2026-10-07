@@ -20,5 +20,11 @@ public sealed record AceiteConviteRequest(string Token, string? Nome, string Sen
 /// </summary>
 public sealed record ConvitePortalInfo(string NomePrestador, string NomeContato, string Email, bool TemConta);
 
+/// <summary>Corpo do <c>POST /auth/portal/link</c>.</summary>
+public sealed record LinkPortalRequest(string Token);
+
+/// <summary>Resposta do <c>POST /auth/portal/link</c>: access token de 60 min, sem refresh, de uma solicitação.</summary>
+public sealed record TokenDeLink(string AccessToken, DateTimeOffset ExpiraEm, Guid SolicitacaoId, string Tipo);
+
 /// <summary>Resposta das rotas que abrem sessão; o refresh token vai em cookie HttpOnly, nunca no corpo.</summary>
 public sealed record TokenDeAcesso(string AccessToken, DateTimeOffset ExpiraEm);

@@ -16,6 +16,13 @@ public sealed class EnderecosPublicos
         _base = baseUrl.AbsoluteUri.EndsWith('/') ? baseUrl : new Uri(baseUrl.AbsoluteUri + "/");
     }
 
+    /// <summary>Link de acesso a uma solicitação, sem senha (RF-POR-08).</summary>
+    public Uri LinkPortal(string token)
+    {
+        ArgumentException.ThrowIfNullOrEmpty(token);
+        return new Uri(_base, $"portal/l/{token}");
+    }
+
     /// <summary>Página de aceite do convite do portal.</summary>
     public Uri ConvitePortal(string token)
     {

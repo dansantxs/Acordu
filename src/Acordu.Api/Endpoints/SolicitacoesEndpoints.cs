@@ -1,4 +1,5 @@
 using Acordu.Api.Seguranca;
+using Acordu.Application.AcessosPortal;
 using Acordu.Application.Common;
 using Acordu.Application.Solicitacoes;
 using Acordu.Domain.Acesso;
@@ -113,6 +114,31 @@ internal static class SolicitacoesEndpoints
         })
             .RequirePermissao(Permissoes.SolicitacaoComentar)
             .Produces<InteracaoDto>(StatusCodes.Status201Created);
+
+        // Links de acesso sem senha (RF-POR-08). O link (com o token) só aparece na resposta da emissão.
+        solicitacoes.MapPost("/{id:guid}/acessos-portal", async (
+            Guid id, EmissaoLinkRequest corpo, ComandosLinkPortal comandos, CancellationToken cancellationToken) =>
+        {
+            var emitido = await comandos.EmitirAsync(id, corpo, cancellationToken);
+            return Results.Created($"/api/v1/solicitacoes/{id}/acessos-portal", emitido);
+        })
+            .RequirePermissao(Permissoes.PortalGerenciarAcessos)
+            .Produces<LinkEmitidoDto>(StatusCodes.Status201Created);
+
+        solicitacoes.MapGet("/{id:guid}/acessos-portal", async (
+            Guid id, IConsultasLinkPortal consultas, TimeProvider relogio, CancellationToken cancellationToken) =>
+            Results.Ok(await consultas.ListarAsync(id, relogio.GetUtcNow(), cancellationToken)
+                ?? throw new NaoEncontradoException("Solicitação não encontrada.")))
+            .RequirePermissao(Permissoes.PortalGerenciarAcessos)
+            .Produces<IReadOnlyList<LinkPortalDto>>();
+
+        solicitacoes.MapDelete("/{id:guid}/acessos-portal/{acessoId:guid}", async (
+            Guid id, Guid acessoId, ComandosLinkPortal comandos, CancellationToken cancellationToken) =>
+        {
+            await comandos.RevogarAsync(id, acessoId, cancellationToken);
+            return Results.NoContent();
+        })
+            .RequirePermissao(Permissoes.PortalGerenciarAcessos);
 
         solicitacoes.MapGet("/{id:guid}/semelhantes", async (Guid id, IConsultaSemelhantes consultas, CancellationToken cancellationToken) =>
             Results.Ok(await consultas.SemelhantesAsync(id, cancellationToken) ?? throw new NaoEncontradoException("Solicitação não encontrada.")))

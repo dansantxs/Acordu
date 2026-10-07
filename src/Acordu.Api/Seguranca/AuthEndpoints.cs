@@ -84,6 +84,20 @@ internal static class AuthEndpoints
             .RequireRateLimiting(ComposicaoSeguranca.LimiteAuth)
             .Produces<TokenDeAcesso>(StatusCodes.Status201Created);
 
+        publicas.MapPost("/portal/link", async (
+            LinkPortalRequest corpo, IServicoAutenticacao servico, ConfiguracaoJwt jwt, TimeProvider relogio,
+            CancellationToken cancellationToken) =>
+        {
+            var sessao = await servico.TrocarLinkAsync(corpo.Token, cancellationToken);
+            if (sessao is null)
+                return NaoAutenticado("Link inválido, expirado ou revogado. Peça um novo link a quem atende você.");
+
+            var acesso = EmissorJwt.EmitirLink(sessao, jwt, relogio.GetUtcNow());
+            return Results.Ok(new TokenDeLink(acesso.AccessToken, acesso.ExpiraEm, sessao.SolicitacaoId, ClaimsAcordu.TipoLink));
+        })
+            .RequireRateLimiting(ComposicaoSeguranca.LimiteAuth)
+            .Produces<TokenDeLink>();
+
         auth.MapPost("/tenant-ativo", async (
             TrocaTenantRequest corpo, ITenantContext contexto, IServicoAutenticacao servico, ConfiguracaoJwt jwt,
             TimeProvider relogio, HttpRequest requisicao, HttpResponse resposta, CancellationToken cancellationToken) =>
@@ -94,7 +108,7 @@ internal static class AuthEndpoints
                 ? SemPermissao("Você não tem acesso a esse tenant.")
                 : Results.Ok(Responder(sessao, jwt, relogio, resposta));
         })
-            .RequireAuthorization()
+            .RequireAuthorization(Politicas.Usuario)
             .Produces<TokenDeAcesso>();
 
         auth.MapGet("/eu", async (ITenantContext contexto, IServicoAutenticacao servico, CancellationToken cancellationToken) =>
@@ -102,7 +116,7 @@ internal static class AuthEndpoints
             var perfil = await servico.PerfilAsync(contexto.UsuarioId!.Value, contexto.TenantId!.Value, cancellationToken);
             return perfil is null ? NaoAutenticado("Seu acesso a este tenant foi removido.") : Results.Ok(perfil);
         })
-            .RequireAuthorization()
+            .RequireAuthorization(Politicas.Usuario)
             .Produces<PerfilUsuario>();
     }
 
