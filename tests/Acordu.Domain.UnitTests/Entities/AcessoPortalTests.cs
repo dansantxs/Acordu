@@ -77,4 +77,15 @@ public sealed class AcessoPortalTests
         acesso.RevogadoEm.Should().Be(Brasilia(7, 9));
         acesso.Validar(token, Brasilia(7, 10)).Should().BeFalse();
     }
+
+    [Fact]
+    public void EstaValido_AteExpirarOuSerRevogado()
+    {
+        var (acesso, _) = Emitir();
+
+        acesso.EstaValido(Brasilia(20, 10)).Should().BeTrue();
+        acesso.EstaValido(Brasilia(6, 10) + TrintaDias).Should().BeFalse();
+        acesso.Revogar(Brasilia(7, 9));
+        acesso.EstaValido(Brasilia(7, 10)).Should().BeFalse();
+    }
 }

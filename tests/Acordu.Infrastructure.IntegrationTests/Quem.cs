@@ -13,6 +13,10 @@ internal sealed record Quem(Guid? TenantId, bool EhCliente, Guid? ClienteId) : I
 
     public Domain.Enums.EscopoPortal? EscopoPortal => null;
 
+    public Guid? AcessoPortalId => null;
+
+    public Guid? SolicitacaoPermitida => null;
+
     public static Quem Sistema() => new(null, false, null);
 
     public static Quem Equipe(Guid tenantId) => new(tenantId, false, null);
