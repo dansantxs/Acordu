@@ -14,6 +14,12 @@ internal static class ClaimsAcordu
     public const string Cliente = "cliente_id";
     public const string Escopo = "escopo_portal";
 
+    /// <summary>Sessão de link (segurança §5.3): acesso que a abriu, solicitação e tipo.</summary>
+    public const string AcessoPortal = "acesso_portal_id";
+    public const string Solicitacao = "solicitacao_id";
+    public const string Tipo = "tipo";
+    public const string TipoLink = "LINK_SOLICITACAO";
+
     /// <summary>Mesmo formato do JSON e do banco: <c>TODAS_DO_CLIENTE</c>.</summary>
     public static string Texto(EscopoPortal escopo) => JsonNamingPolicy.SnakeCaseUpper.ConvertName(escopo.ToString());
 

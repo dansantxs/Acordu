@@ -10,6 +10,9 @@ internal static class ComposicaoSeguranca
 {
     public const string LimiteAuth = "auth";
 
+    /// <summary>Abertura de solicitação pelo portal (segurança §9): por usuário, ou por IP sem usuário.</summary>
+    public const string LimitePortal = "portal";
+
     public static IServiceCollection AddSegurancaApi(this IServiceCollection services, IConfiguration configuracao)
     {
         var jwt = ConfiguracaoJwt.De(configuracao);
@@ -41,9 +44,13 @@ internal static class ComposicaoSeguranca
         services.AddAuthorization(Politicas.Registrar);
 
         var limite = configuracao.GetValue("RateLimit:Auth:PorMinuto", 10);
+        var limitePortal = configuracao.GetValue("RateLimit:Portal:PorMinuto", 10);
         services.AddRateLimiter(opcoes =>
         {
             opcoes.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+            opcoes.AddPolicy(LimitePortal, http => RateLimitPartition.GetFixedWindowLimiter(
+                http.User.FindFirst(ClaimsAcordu.Usuario)?.Value ?? http.Connection.RemoteIpAddress?.ToString() ?? "desconhecido",
+                _ => new FixedWindowRateLimiterOptions { PermitLimit = limitePortal, Window = TimeSpan.FromMinutes(1), QueueLimit = 0 }));
             opcoes.AddPolicy(LimiteAuth, http => RateLimitPartition.GetFixedWindowLimiter(
                 http.Connection.RemoteIpAddress?.ToString() ?? "desconhecido",
                 _ => new FixedWindowRateLimiterOptions { PermitLimit = limite, Window = TimeSpan.FromMinutes(1), QueueLimit = 0 }));
