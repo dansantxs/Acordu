@@ -111,6 +111,7 @@ Os jobs já são endpoints internos idempotentes (`POST /internal/jobs/<nome>`, 
 
 - Na VM, um **timer do systemd** (`acordu-jobs.timer`) chama `POST http://acordu-api:8080/internal/jobs/tick` a cada 5 minutos, a partir de um container efêmero na `infra_net` (`docker run --rm --network infra_net curlimages/curl ...`), com o token lido do `.env`. Jobs diários usam um segundo timer.
 - O tick entrega o que a outbox da requisição não conseguiu entregar e roda os alertas de SLA; os diários cuidam de recorrências e fechamento automático.
+- Implementados: `POST /internal/jobs/tick` (outbox) e `POST /internal/jobs/fechamento-automatico` (diário; responde `{ tenants, fechadas, falhas }`). Jobs por tenant rodam cada tenant num escopo próprio; falha num tenant é logada, não para os demais e entra em `falhas` (o timer só alerta em resposta não-2xx).
 - Resposta não-2xx ou falha do timer → Discord (`OnFailure=` do serviço).
 
 ---

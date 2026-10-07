@@ -306,6 +306,7 @@ Sequencial por tenant, gerado na Infrastructure (`IGeradorProtocolo`: tabela `co
 
 ### 4.3 Solicitacao
 - **Invariantes:** título obrigatório (≤ 200); descrição opcional (≤ 10.000); cliente obrigatório; `Numero > 0`; contrato e `PoliticaSla` informados juntos ou nenhum (sem contrato não há SLA); se houver contrato, deve ser do mesmo cliente e vigente (checado na Application, que carrega o contrato); `Solucao` obrigatória para resolver; motivo obrigatório para cancelar e **sempre** para reabrir (equipe ou reprovação do cliente).
+- **Fechamento automático (RF-SOL-09):** job diário fecha a RESOLVIDA cujo `ResolvidaEm` tem `Tenant.DiasFechamentoAutomatico` dias corridos ou mais (não dias úteis: é o prazo que o cliente entende). Agido pelo sistema, sem usuário; reprovar antes disso reabre e zera `ResolvidaEm`.
 - **Reabrir** descarta `Solucao` e `ResolvidaEm` (a solução reprovada não deve aparecer em "semelhantes"). A janela de N dias (RF-SOL-10) é garantida pela Application e pelo fechamento automático.
 - **Edições** (`Editar`, `DefinirCategoria`, `Atribuir`) são permitidas em qualquer estado não final; `Repriorizar` também não é permitido em RESOLVIDA. Fora disso → `TransicaoInvalidaException`.
 - **`PrimeiraRespostaEm`** fica na própria solicitação (não no relógio): é registrada mesmo sem contrato. `RegistrarPrimeiraResposta` é idempotente.
