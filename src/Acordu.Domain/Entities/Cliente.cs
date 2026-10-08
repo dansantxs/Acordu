@@ -104,17 +104,7 @@ public sealed class Cliente : EntidadeBase
         return dados;
     }
 
-    private static string NormalizarEmail(string email)
-    {
-        var valor = Texto.Obrigatorio(email, LimitesTexto.Email, nameof(email)).ToLowerInvariant();
-        var arroba = valor.IndexOf('@', StringComparison.Ordinal);
-        var valido = arroba > 0
-            && arroba == valor.LastIndexOf('@')
-            && valor.IndexOf('.', arroba) > arroba + 1
-            && !valor.EndsWith('.')
-            && !valor.Any(char.IsWhiteSpace);
-        return valido ? valor : throw new ArgumentException("E-mail inválido.", nameof(email));
-    }
+    private static string NormalizarEmail(string email) => Common.Email.Normalizar(email, nameof(email));
 
     private Contato BuscarContato(Guid contatoId) =>
         _contatos.Find(c => c.Id == contatoId)
