@@ -199,19 +199,8 @@ public sealed class ServicoAutenticacao : IServicoAutenticacao
             await ConferirSenhaAsync(usuario, senha);
 
         await using var transacao = await _db.Database.BeginTransactionAsync(cancellationToken);
-        if (usuario is null)
-        {
-            var nomeValido = Obrigatorio(string.IsNullOrWhiteSpace(nome) ? contato.Nome : nome, Usuario.TamanhoNome, nameof(nome));
-            // O token chegou por e-mail: o e-mail está confirmado.
-            usuario = new Usuario(contato.Email, nomeValido) { EmailConfirmed = true };
-            var criacao = await _usuarios.CreateAsync(usuario, senha);
-            if (!criacao.Succeeded)
-            {
-                throw ErroDeRegistro(criacao) == ErroRegistro.Senha
-                    ? new ArgumentException($"A senha precisa de ao menos {OpcoesIdentidade.TamanhoMinimoSenha} caracteres.", nameof(senha))
-                    : new InvalidOperationException("Não foi possível criar a conta do contato: " + string.Join(", ", criacao.Errors.Select(e => e.Code)));
-            }
-        }
+        usuario ??= await CriarUsuarioDoConviteAsync(
+            contato.Email, string.IsNullOrWhiteSpace(nome) ? contato.Nome : nome, senha);
 
         if (await _db.Vinculos.AnyAsync(v => v.UsuarioId == usuario.Id, cancellationToken))
             throw new AcessoPortalException("Este e-mail já tem acesso a este prestador, pela equipe ou por outro cliente.");
@@ -220,6 +209,55 @@ public sealed class ServicoAutenticacao : IServicoAutenticacao
         var vinculo = Vinculo.Criar(Guid.CreateVersion7(), usuario.Id, papel, cliente.Id, convite.Escopo);
         _db.Add(vinculo);
         cliente.VincularUsuarioAoContato(contato.Id, usuario.Id);
+        convite.Aceitar(token, usuario.Id, agora);
+
+        var sessao = Abrir(usuario, vinculo, papel, agora);
+        await _db.SaveChangesAsync(cancellationToken);
+        await transacao.CommitAsync(cancellationToken);
+        return sessao;
+    }
+
+    public async Task<ConviteEquipeInfo?> ConsultarConviteEquipeAsync(string token, CancellationToken cancellationToken = default)
+    {
+        var convite = await ConviteEquipeValidoAsync(token, cancellationToken);
+        if (convite is null)
+            return null;
+
+        var temConta = await _usuarios.FindByEmailAsync(convite.Convite.Email) is not null;
+        return new ConviteEquipeInfo(convite.Tenant.Nome, convite.Convite.Email, convite.Papel.Nome, temConta);
+    }
+
+    public async Task<Sessao?> AceitarConviteEquipeAsync(
+        string token, string? nome, string senha, CancellationToken cancellationToken = default)
+    {
+        var dados = await ConviteEquipeValidoAsync(token, cancellationToken);
+        if (dados is null)
+            return null;
+        if (string.IsNullOrEmpty(senha))
+            throw new ArgumentException("A senha é obrigatória.", nameof(senha));
+
+        var (convite, papel, _) = dados;
+        var agora = _relogio.GetUtcNow();
+        _contexto.DefinirEquipe(convite.TenantId);
+
+        // Conta existente: a senha é conferida antes da transação, para a contagem de falhas (lockout) ficar gravada.
+        var usuario = await _usuarios.FindByEmailAsync(convite.Email);
+        if (usuario is not null)
+            await ConferirSenhaAsync(usuario, senha);
+
+        await using var transacao = await _db.Database.BeginTransactionAsync(cancellationToken);
+        if (usuario is null)
+        {
+            if (string.IsNullOrWhiteSpace(nome))
+                throw new ArgumentException("Informe seu nome.", nameof(nome));
+            usuario = await CriarUsuarioDoConviteAsync(convite.Email, nome, senha);
+        }
+
+        if (await _db.Vinculos.AnyAsync(v => v.UsuarioId == usuario.Id, cancellationToken))
+            throw new EquipeException("Este e-mail já tem acesso a este prestador, pela equipe ou como contato de um cliente.");
+
+        var vinculo = Vinculo.Criar(Guid.CreateVersion7(), usuario.Id, papel);
+        _db.Add(vinculo);
         convite.Aceitar(token, usuario.Id, agora);
 
         var sessao = Abrir(usuario, vinculo, papel, agora);
@@ -332,6 +370,45 @@ public sealed class ServicoAutenticacao : IServicoAutenticacao
         return new ConviteCarregado(convite, cliente, contato, tenant);
     }
 
+    /// <summary>
+    /// Convite para a equipe pelo hash do token, válido e com o papel ainda existente. Rastreado, para o aceite gravar.
+    /// Nulo em qualquer falha, sem distinguir o motivo.
+    /// </summary>
+    private async Task<ConviteEquipeCarregado?> ConviteEquipeValidoAsync(string? token, CancellationToken cancellationToken)
+    {
+        if (string.IsNullOrWhiteSpace(token))
+            return null;
+
+        var hash = TokenSeguro.Hash(token);
+        var convite = await _db.ConvitesEquipe.IgnoreQueryFilters(Filtros)
+            .SingleOrDefaultAsync(c => c.TokenHash == hash, cancellationToken);
+        if (convite is null || !convite.Validar(token, _relogio.GetUtcNow()))
+            return null;
+
+        var papel = await _db.Papeis.IgnoreQueryFilters(Filtros)
+            .SingleOrDefaultAsync(p => p.Id == convite.PapelId && p.TenantId == convite.TenantId, cancellationToken);
+        if (papel is null)
+            return null;
+
+        var tenant = await _db.Tenants.IgnoreQueryFilters(Filtros).SingleAsync(t => t.Id == convite.TenantId, cancellationToken);
+        return new ConviteEquipeCarregado(convite, papel, tenant);
+    }
+
+    /// <summary>Conta criada no aceite de um convite: o token chegou por e-mail, então o e-mail já nasce confirmado.</summary>
+    private async Task<Usuario> CriarUsuarioDoConviteAsync(string email, string nome, string senha)
+    {
+        var usuario = new Usuario(email, Obrigatorio(nome, Usuario.TamanhoNome, nameof(nome))) { EmailConfirmed = true };
+        var criacao = await _usuarios.CreateAsync(usuario, senha);
+        if (!criacao.Succeeded)
+        {
+            throw ErroDeRegistro(criacao) == ErroRegistro.Senha
+                ? new ArgumentException($"A senha precisa de ao menos {OpcoesIdentidade.TamanhoMinimoSenha} caracteres.", nameof(senha))
+                : new InvalidOperationException("Não foi possível criar a conta: " + string.Join(", ", criacao.Errors.Select(e => e.Code)));
+        }
+
+        return usuario;
+    }
+
     private async Task ConferirSenhaAsync(Usuario usuario, string senha)
     {
         if (await _usuarios.IsLockedOutAsync(usuario))
@@ -388,6 +465,8 @@ public sealed class ServicoAutenticacao : IServicoAutenticacao
             return ErroRegistro.Senha;
         return codigos.Exists(c => c.StartsWith("Duplicate", StringComparison.Ordinal)) ? ErroRegistro.EmailEmUso : ErroRegistro.EmailInvalido;
     }
+
+    private sealed record ConviteEquipeCarregado(ConviteEquipe Convite, Papel Papel, Tenant Tenant);
 
     private sealed record ConviteCarregado(ConvitePortal Convite, Cliente Cliente, Contato Contato, Tenant Tenant);
 
