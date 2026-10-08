@@ -12,16 +12,20 @@ namespace Acordu.Application.AcessosPortal;
 public sealed class RevogacaoAcessoPortal
 {
     private readonly IAcessosDoPortal _acessos;
-    private readonly IRepositorio<Vinculo> _vinculos;
+    private readonly IVinculos _vinculos;
+    private readonly IRepositorio<Vinculo> _repositorioVinculos;
     private readonly RelogioDoTenant _relogio;
 
-    public RevogacaoAcessoPortal(IAcessosDoPortal acessos, IRepositorio<Vinculo> vinculos, RelogioDoTenant relogio)
+    public RevogacaoAcessoPortal(
+        IAcessosDoPortal acessos, IVinculos vinculos, IRepositorio<Vinculo> repositorioVinculos, RelogioDoTenant relogio)
     {
         ArgumentNullException.ThrowIfNull(acessos);
         ArgumentNullException.ThrowIfNull(vinculos);
+        ArgumentNullException.ThrowIfNull(repositorioVinculos);
         ArgumentNullException.ThrowIfNull(relogio);
         _acessos = acessos;
         _vinculos = vinculos;
+        _repositorioVinculos = repositorioVinculos;
         _relogio = relogio;
     }
 
@@ -41,11 +45,11 @@ public sealed class RevogacaoAcessoPortal
             return;
 
         // Só o vínculo deste cliente: a mesma pessoa pode ser da equipe em outro tenant, nunca neste (um vínculo por tenant).
-        var vinculo = await _acessos.VinculoAsync(usuarioId, cancellationToken);
+        var vinculo = await _vinculos.DoUsuarioAsync(usuarioId, cancellationToken);
         if (vinculo is not null && vinculo.ClienteId == cliente.Id)
         {
-            _vinculos.Remover(vinculo);
-            await _acessos.RevogarSessoesAsync(usuarioId, agora, cancellationToken);
+            _repositorioVinculos.Remover(vinculo);
+            await _vinculos.RevogarSessoesAsync(usuarioId, agora, cancellationToken);
         }
 
         cliente.DesvincularUsuarioDoContato(contato.Id);

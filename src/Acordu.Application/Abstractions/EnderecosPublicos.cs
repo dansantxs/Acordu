@@ -23,6 +23,13 @@ public sealed class EnderecosPublicos
         return new Uri(_base, $"portal/l/{token}");
     }
 
+    /// <summary>Página de aceite do convite para a equipe.</summary>
+    public Uri ConviteEquipe(string token)
+    {
+        ArgumentException.ThrowIfNullOrEmpty(token);
+        return new Uri(_base, $"convite/{token}");
+    }
+
     /// <summary>Página de aceite do convite do portal.</summary>
     public Uri ConvitePortal(string token)
     {
