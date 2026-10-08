@@ -136,4 +136,14 @@ public sealed class PapelTests
         membro.Nome.Should().Be(Papel.NomeMembro);
         membro.Possui(Permissoes.ContratoGerenciar).Should().BeFalse();
     }
+
+    [Fact]
+    public void EhDono_SoOPadraoDono()
+    {
+        var padroes = Papel.Padroes(Calendarios.Tenant);
+        var customizado = Papel.Criar(Guid.NewGuid(), Calendarios.Tenant, Papel.NomeDono + " 2", TipoPapel.Interno, Permissoes.Internas);
+
+        padroes.Where(p => p.EhDono).Select(p => p.Nome).Should().Equal(Papel.NomeDono);
+        customizado.EhDono.Should().BeFalse("papel customizado não conta para a guarda de ≥ 1 Dono");
+    }
 }
