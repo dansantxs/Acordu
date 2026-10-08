@@ -52,6 +52,8 @@ public sealed class AcorduDbContext : IdentityUserContext<Usuario, Guid>
 
     public DbSet<ConvitePortal> ConvitesPortal => Set<ConvitePortal>();
 
+    public DbSet<ConviteEquipe> ConvitesEquipe => Set<ConviteEquipe>();
+
     public DbSet<Projeto> Projetos => Set<Projeto>();
 
     public DbSet<Tarefa> Tarefas => Set<Tarefa>();
@@ -110,6 +112,7 @@ public sealed class AcorduDbContext : IdentityUserContext<Usuario, Guid>
         builder.ApplyConfiguration(new InteracaoConfiguration());
         builder.ApplyConfiguration(new AcessoPortalConfiguration());
         builder.ApplyConfiguration(new ConvitePortalConfiguration());
+        builder.ApplyConfiguration(new ConviteEquipeConfiguration());
         builder.ApplyConfiguration(new ProjetoConfiguration());
         builder.ApplyConfiguration(new TarefaConfiguration());
         builder.ApplyConfiguration(new ApontamentoConfiguration());
@@ -158,6 +161,10 @@ public sealed class AcorduDbContext : IdentityUserContext<Usuario, Guid>
         FiltrarTenant<Apontamento>(modelBuilder);
         modelBuilder.Entity<Apontamento>().HasQueryFilter(
             FiltrosGlobais.Cliente, e => !_contexto.EhCliente || e.ClienteId == _contexto.ClienteId);
+
+        // Convite para a equipe: só interno; some no contexto de Cliente.
+        FiltrarTenant<ConviteEquipe>(modelBuilder);
+        modelBuilder.Entity<ConviteEquipe>().HasQueryFilter(FiltrosGlobais.Cliente, e => !_contexto.EhCliente);
 
         FiltrarTenant<Cronometro>(modelBuilder);
         modelBuilder.Entity<Cronometro>().HasQueryFilter(FiltrosGlobais.Cliente, e => !_contexto.EhCliente);

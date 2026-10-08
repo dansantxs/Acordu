@@ -417,6 +417,11 @@ Regras:
 - Um pendente por contato: reconvidar revoga o anterior (Application). O escopo do convite vira o do `Vinculo` no aceite.
 - Evento `ConvitePortalCriado` → `EnvioConvitePortal` (pós-commit) gera o token e manda o e-mail.
 
+### 4.10.2 ConviteEquipe
+- Convite para a equipe com um papel INTERNO (papel CLIENTE → `EquipeException`). Raiz só do tenant (some no contexto de Cliente). E-mail normalizado por `Common.Email` (o mesmo dos contatos).
+- Mesmo ciclo do `ConvitePortal`: nasce sem token, `GerarToken` no envio (7 dias), `Validar`, `Aceitar`, `Revogar` (só pendente). Evento `ConviteEquipeCriado` → `EnvioConviteEquipe` (pós-commit).
+- Guarda "≥ 1 Dono" é regra entre agregados, na Application: conta vínculos com `Papel.EhDono` (o papel padrão Dono).
+
 ### 4.11 CalendarioUtil
 - Um por tenant, semeado no cadastro (seg–sex 08:00–18:00, fuso `America/Sao_Paulo`, sem feriados).
 - **Invariantes:** fuso IANA válido; janelas diárias com início < fim; ao menos um dia útil na semana; feriados sem duplicata.

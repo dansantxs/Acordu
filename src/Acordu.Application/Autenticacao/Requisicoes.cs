@@ -26,5 +26,8 @@ public sealed record LinkPortalRequest(string Token);
 /// <summary>Resposta do <c>POST /auth/portal/link</c>: access token de 60 min, sem refresh, de uma solicitação.</summary>
 public sealed record TokenDeLink(string AccessToken, DateTimeOffset ExpiraEm, Guid SolicitacaoId, string Tipo);
 
+/// <summary>Tela de aceite do convite para a equipe: quem convidou, com que papel e se o e-mail já tem conta.</summary>
+public sealed record ConviteEquipeInfo(string NomeTenant, string Email, string Papel, bool TemConta);
+
 /// <summary>Resposta das rotas que abrem sessão; o refresh token vai em cookie HttpOnly, nunca no corpo.</summary>
 public sealed record TokenDeAcesso(string AccessToken, DateTimeOffset ExpiraEm);

@@ -29,6 +29,16 @@ internal sealed partial class CaixaDeEmails : IEnviadorEmail
         return LinkDoConvite().Match(mensagem.Texto).Groups[1].Value;
     }
 
+    /// <summary>Token do último convite para a equipe enviado ao e-mail.</summary>
+    public string TokenDoConviteEquipe(string email)
+    {
+        var mensagem = Para(email).Last(m => m.Categoria == "convite-equipe");
+        return LinkDoConviteEquipe().Match(mensagem.Texto).Groups[1].Value;
+    }
+
     [GeneratedRegex(@"/portal/convite/([A-Za-z0-9_-]{43})")]
     private static partial Regex LinkDoConvite();
+
+    [GeneratedRegex(@"/convite/([A-Za-z0-9_-]{43})")]
+    private static partial Regex LinkDoConviteEquipe();
 }

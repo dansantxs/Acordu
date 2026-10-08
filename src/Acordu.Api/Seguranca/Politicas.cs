@@ -28,6 +28,12 @@ internal static class Politicas
             .RequireClaim(ClaimsAcordu.Usuario));
     }
 
+    /// <summary>Exige ao menos uma das permissões (ex.: <c>usuario.*</c> do contrato §3).</summary>
+    public static TBuilder RequireAlgumaPermissao<TBuilder>(this TBuilder builder, params string[] permissoes)
+        where TBuilder : IEndpointConventionBuilder =>
+        builder.RequireAuthorization(p => p.RequireAuthenticatedUser().RequireAssertion(c =>
+            permissoes.Any(permissao => c.User.HasClaim(ClaimsAcordu.Permissoes, permissao))));
+
     /// <summary>Rota do portal liberada também à sessão de link (✓L no contrato §12); as demais respondem 403 a ela.</summary>
     public static TBuilder PermitirLink<TBuilder>(this TBuilder builder)
         where TBuilder : IEndpointConventionBuilder =>

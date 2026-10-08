@@ -399,6 +399,76 @@ namespace Acordu.Infrastructure.Persistence.Migrations
                     b.ToTable("contratos", (string)null);
                 });
 
+            modelBuilder.Entity("Acordu.Domain.Entities.ConviteEquipe", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<DateTimeOffset?>("AceitoEm")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("aceito_em");
+
+                    b.Property<Guid>("ConvidadoPor")
+                        .HasColumnType("uuid")
+                        .HasColumnName("convidado_por");
+
+                    b.Property<DateTimeOffset>("CriadoEm")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("criado_em");
+
+                    b.Property<string>("Email")
+                        .IsRequired()
+                        .HasMaxLength(254)
+                        .HasColumnType("character varying(254)")
+                        .HasColumnName("email");
+
+                    b.Property<DateTimeOffset?>("ExpiraEm")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("expira_em");
+
+                    b.Property<Guid>("PapelId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("papel_id");
+
+                    b.Property<DateTimeOffset?>("RevogadoEm")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("revogado_em");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
+                    b.Property<string>("TokenHash")
+                        .HasMaxLength(64)
+                        .HasColumnType("character(64)")
+                        .HasColumnName("token_hash")
+                        .IsFixedLength();
+
+                    b.Property<Guid?>("UsuarioId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("usuario_id");
+
+                    b.Property<uint>("Versao")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("xid")
+                        .HasColumnName("xmin");
+
+                    b.HasKey("Id")
+                        .HasName("pk_convites_equipe");
+
+                    b.HasIndex("TokenHash")
+                        .IsUnique()
+                        .HasDatabaseName("ix_convites_equipe_token_hash")
+                        .HasFilter("token_hash IS NOT NULL");
+
+                    b.HasIndex("TenantId", "Email")
+                        .HasDatabaseName("ix_convites_equipe_tenant_id_email");
+
+                    b.ToTable("convites_equipe", (string)null);
+                });
+
             modelBuilder.Entity("Acordu.Domain.Entities.ConvitePortal", b =>
                 {
                     b.Property<Guid>("Id")

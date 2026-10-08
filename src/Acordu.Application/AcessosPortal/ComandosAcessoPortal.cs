@@ -16,6 +16,7 @@ public sealed class ComandosAcessoPortal
     private readonly IRepositorio<Cliente> _clientes;
     private readonly IRepositorio<ConvitePortal> _convites;
     private readonly IAcessosDoPortal _acessos;
+    private readonly IVinculos _vinculos;
     private readonly RevogacaoAcessoPortal _revogacao;
     private readonly RelogioDoTenant _relogio;
     private readonly IUnitOfWork _unidade;
@@ -25,6 +26,7 @@ public sealed class ComandosAcessoPortal
         IRepositorio<Cliente> clientes,
         IRepositorio<ConvitePortal> convites,
         IAcessosDoPortal acessos,
+        IVinculos vinculos,
         RevogacaoAcessoPortal revogacao,
         RelogioDoTenant relogio,
         IUnitOfWork unidade)
@@ -33,6 +35,7 @@ public sealed class ComandosAcessoPortal
         ArgumentNullException.ThrowIfNull(clientes);
         ArgumentNullException.ThrowIfNull(convites);
         ArgumentNullException.ThrowIfNull(acessos);
+        ArgumentNullException.ThrowIfNull(vinculos);
         ArgumentNullException.ThrowIfNull(revogacao);
         ArgumentNullException.ThrowIfNull(relogio);
         ArgumentNullException.ThrowIfNull(unidade);
@@ -40,6 +43,7 @@ public sealed class ComandosAcessoPortal
         _clientes = clientes;
         _convites = convites;
         _acessos = acessos;
+        _vinculos = vinculos;
         _revogacao = revogacao;
         _relogio = relogio;
         _unidade = unidade;
@@ -60,7 +64,7 @@ public sealed class ComandosAcessoPortal
             throw new AcessoPortalException("Contato inativo não recebe convite para o portal.");
         if (contato.UsuarioId is not null)
             throw new AcessoPortalException("O contato já tem acesso ao portal. Altere o escopo ou revogue o acesso.");
-        if (await _acessos.EmailJaVinculadoAsync(contato.Email, cancellationToken))
+        if (await _vinculos.EmailJaVinculadoAsync(contato.Email, cancellationToken))
             throw new AcessoPortalException("Este e-mail já tem acesso a este prestador, pela equipe ou por outro cliente.");
 
         var agora = _relogio.Agora;
@@ -79,7 +83,7 @@ public sealed class ComandosAcessoPortal
         var escopo = dados.EscopoPortal ?? throw ErroDeCampo.Criar("escopoPortal", "Informe o escopo do portal.");
         var (cliente, contato) = await CarregarAsync(clienteId, contatoId, cancellationToken);
 
-        var vinculo = contato.UsuarioId is { } usuarioId ? await _acessos.VinculoAsync(usuarioId, cancellationToken) : null;
+        var vinculo = contato.UsuarioId is { } usuarioId ? await _vinculos.DoUsuarioAsync(usuarioId, cancellationToken) : null;
         if (vinculo is not null && vinculo.ClienteId == cliente.Id)
         {
             vinculo.AlterarEscopo(escopo);

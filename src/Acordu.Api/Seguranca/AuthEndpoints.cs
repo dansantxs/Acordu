@@ -84,6 +84,27 @@ internal static class AuthEndpoints
             .RequireRateLimiting(ComposicaoSeguranca.LimiteAuth)
             .Produces<TokenDeAcesso>(StatusCodes.Status201Created);
 
+        publicas.MapPost("/convite/consulta", async (
+            ConsultaConviteRequest corpo, IServicoAutenticacao servico, CancellationToken cancellationToken) =>
+        {
+            var convite = await servico.ConsultarConviteEquipeAsync(corpo.Token, cancellationToken);
+            return convite is null ? ConviteInvalido() : Results.Ok(convite);
+        })
+            .RequireRateLimiting(ComposicaoSeguranca.LimiteAuth)
+            .Produces<ConviteEquipeInfo>();
+
+        publicas.MapPost("/convite", async (
+            AceiteConviteRequest corpo, IServicoAutenticacao servico, ConfiguracaoJwt jwt, TimeProvider relogio,
+            HttpResponse resposta, CancellationToken cancellationToken) =>
+        {
+            var sessao = await servico.AceitarConviteEquipeAsync(corpo.Token, corpo.Nome, corpo.Senha, cancellationToken);
+            return sessao is null
+                ? ConviteInvalido()
+                : Results.Created("/api/v1/auth/eu", Responder(sessao, jwt, relogio, resposta));
+        })
+            .RequireRateLimiting(ComposicaoSeguranca.LimiteAuth)
+            .Produces<TokenDeAcesso>(StatusCodes.Status201Created);
+
         publicas.MapPost("/portal/link", async (
             LinkPortalRequest corpo, IServicoAutenticacao servico, ConfiguracaoJwt jwt, TimeProvider relogio,
             CancellationToken cancellationToken) =>
@@ -127,7 +148,7 @@ internal static class AuthEndpoints
     }
 
     private static IResult ConviteInvalido() =>
-        NaoAutenticado("Convite inválido, expirado ou já utilizado. Peça um novo convite a quem atende você.");
+        NaoAutenticado("Convite inválido, expirado ou já utilizado. Peça um novo convite a quem convidou você.");
 
     private static IResult NaoAutenticado(string detalhe) =>
         Results.Problem(detalhe, statusCode: StatusCodes.Status401Unauthorized, title: "Não autenticado",

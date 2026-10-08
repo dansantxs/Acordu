@@ -48,6 +48,9 @@ public sealed class Papel : EntidadeBase
     /// <summary>Semeado no registro (§3.2): não é renomeado, alterado nem excluído.</summary>
     public bool Padrao { get; private set; }
 
+    /// <summary>O papel padrão Dono: a guarda "≥ 1 Dono por tenant" conta só ele (papel customizado não conta).</summary>
+    public bool EhDono => Padrao && Nome == NomeDono;
+
     public IReadOnlyCollection<string> Permissoes => _permissoes;
 
     /// <summary>Papel sob medida do tenant.</summary>

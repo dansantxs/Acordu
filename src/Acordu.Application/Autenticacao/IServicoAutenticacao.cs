@@ -40,6 +40,16 @@ public interface IServicoAutenticacao
     /// </summary>
     Task<SessaoLink?> TrocarLinkAsync(string token, CancellationToken cancellationToken = default);
 
+    /// <summary>Dados do convite para a equipe (tela de aceite). Nulo se o token não vale.</summary>
+    Task<ConviteEquipeInfo?> ConsultarConviteEquipeAsync(string token, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Aceita o convite para a equipe e abre a sessão no tenant que convidou: e-mail sem conta cria o usuário (nome
+    /// obrigatório); com conta, a senha precisa ser a dela. Nulo se o token não vale; e-mail que já tem vínculo no tenant
+    /// → regra de negócio (422).
+    /// </summary>
+    Task<Sessao?> AceitarConviteEquipeAsync(string token, string? nome, string senha, CancellationToken cancellationToken = default);
+
     /// <summary>Dados do <c>/auth/eu</c>, lidos do banco (não do token). Nulo se o vínculo não existe mais.</summary>
     Task<PerfilUsuario?> PerfilAsync(Guid usuarioId, Guid tenantId, CancellationToken cancellationToken = default);
 }
