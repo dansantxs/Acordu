@@ -129,6 +129,7 @@ acordu/
 | `docs/adr/0004-tempo-em-minutos-e-consumo-read-model.md` | `Duracao` em minutos; consumo como read model. |
 | `docs/adr/0005-hospedagem-serverless-gratuita.md` | Serverless (Cloud Run + Neon + Cloudflare Pages) — **revogado**, plano B. |
 | `docs/adr/0006-retorno-oracle-always-free.md` | VM Oracle compartilhada, plano de escala (Magalu Cloud SP) e regras de portabilidade. |
+| `docs/adr/0007-transporte-da-sessao.md` | Access token em memória (`Bearer`); refresh só em cookie HttpOnly, com rotação. |
 | `docs/estrategia-produto-acordu.md` | Visão, mercado, posicionamento, fases e monetização. |
 | `docs/modelo-de-dominio-acordu.md` | Agregados, máquinas de estado, VOs, serviços, eventos. |
 | `docs/contrato-api-acordu-v1.md` | Endpoints internos e do portal, formatos, erros. |

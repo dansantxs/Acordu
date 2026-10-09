@@ -38,7 +38,8 @@ acordu/
 │  │  ├─ 0003-sla-horas-uteis.md
 │  │  ├─ 0004-tempo-em-minutos-e-consumo-read-model.md
 │  │  ├─ 0005-hospedagem-serverless-gratuita.md   # revogado — plano B
-│  │  └─ 0006-retorno-oracle-always-free.md
+│  │  ├─ 0006-retorno-oracle-always-free.md
+│  │  └─ 0007-transporte-da-sessao.md
 │  ├─ estrategia-produto-acordu.md
 │  ├─ modelo-de-dominio-acordu.md
 │  ├─ contrato-api-acordu-v1.md
