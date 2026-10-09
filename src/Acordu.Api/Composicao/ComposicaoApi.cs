@@ -21,7 +21,8 @@ namespace Acordu.Api.Composicao;
 /// Composição única da Api, usada pelo <c>Program</c> e pelos testes funcionais (que montam o mesmo pipeline e penduram
 /// endpoints de teste nos grupos). Configuração só por variáveis de ambiente (ADR 0006): <c>ConnectionStrings__Acordu</c>,
 /// <c>Jwt__ChaveAssinatura</c>, <c>Jobs__Token</c>, <c>Cors__Origem</c>, <c>App__UrlPublica</c> (links dos e-mails) e
-/// <c>Email__RegistrarConteudo</c> (só em desenvolvimento).
+/// <c>Email__ResendChave</c>, <c>Email__Remetente</c>, <c>Email__NomeRemetente</c> e <c>Email__RegistrarConteudo</c> (só em
+/// desenvolvimento).
 /// </summary>
 internal static class ComposicaoApi
 {
@@ -50,9 +51,7 @@ internal static class ComposicaoApi
         services.AddSegurancaApi(configuracao);
         services.AddCasosDeUso();
         services.AddSingleton(new EnderecosPublicos(new Uri(configuracao["App:UrlPublica"] ?? UrlPublicaPadrao)));
-        // TryAdd: os testes registram antes uma caixa de e-mails em memória.
-        services.TryAddSingleton<IEnviadorEmail>(sp => new EnviadorEmailLog(
-            sp.GetRequiredService<ILogger<EnviadorEmailLog>>(), configuracao.GetValue("Email:RegistrarConteudo", false)));
+        AdicionarEmail(services, configuracao);
 
         services.AddProblemDetails(opcoes => opcoes.CustomizeProblemDetails = contexto =>
         {
@@ -84,6 +83,31 @@ internal static class ComposicaoApi
             opcoes.AddDocumentTransformer(DeclararBearer);
         });
         return services;
+    }
+
+    /// <summary>
+    /// Resend quando há <c>Email__ResendChave</c>; senão, só log. TryAdd: os testes registram antes uma caixa de e-mails
+    /// em memória.
+    /// </summary>
+    private static void AdicionarEmail(IServiceCollection services, IConfiguration configuracao)
+    {
+        var opcoes = new OpcoesEmail(
+            configuracao["Email:ResendChave"],
+            configuracao["Email:Remetente"] ?? OpcoesEmail.RemetentePadrao,
+            configuracao["Email:NomeRemetente"] ?? OpcoesEmail.NomeRemetentePadrao,
+            configuracao.GetValue("Email:RegistrarConteudo", false));
+        services.AddSingleton(opcoes);
+        if (opcoes.UsaResend)
+        {
+            services.AddHttpClient(nameof(EnviadorEmailResend), http => http.Timeout = TimeSpan.FromSeconds(15));
+            services.TryAddSingleton<IEnviadorEmail>(sp => new EnviadorEmailResend(
+                sp.GetRequiredService<IHttpClientFactory>().CreateClient(nameof(EnviadorEmailResend)), opcoes));
+        }
+        else
+        {
+            services.TryAddSingleton<IEnviadorEmail>(sp => new EnviadorEmailLog(
+                sp.GetRequiredService<ILogger<EnviadorEmailLog>>(), opcoes.RegistrarConteudo));
+        }
     }
 
     /// <summary>
