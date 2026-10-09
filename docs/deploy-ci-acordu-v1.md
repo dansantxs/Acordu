@@ -129,7 +129,7 @@ Os jobs já são endpoints internos idempotentes (`POST /internal/jobs/<nome>`, 
 ## 7. Segredos
 
 - **GitHub Actions (repositório acordu):** token GHCR, chave SSH de deploy do Acordu, host/usuário, webhook do Discord.
-- **VM (`/opt/acordu/.env`, fora do git, `chmod 600`):** connection strings (`acordu_app` e `acordu_migrator`), chave de assinatura do JWT **própria** (não reutilizar a do Saldu), chave de API do Resend, credenciais do object storage (Customer Secret Key restrita aos buckets do Acordu), DSN do Sentry, webhook do Discord.
+- **VM (`/opt/acordu/.env`, fora do git, `chmod 600`):** connection strings (`acordu_app` e `acordu_migrator`), chave de assinatura do JWT **própria** (não reutilizar a do Saldu), chave de API do Resend (`Email__ResendChave`; remetente em `Email__Remetente`, padrão `nao-responda@send.acordu.app.br`, e nome padrão em `Email__NomeRemetente`; sem a chave, a API só registra os e-mails em log), endereço público do front (`App__UrlPublica`, base dos links dos e-mails), credenciais do object storage (Customer Secret Key restrita aos buckets do Acordu), DSN do Sentry, webhook do Discord.
 
 ---
 
