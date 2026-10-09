@@ -132,7 +132,7 @@ Fluxos específicos:
 ## 5. Sessões e tokens
 
 ### 5.1 Equipe e contatos com conta
-Herdado: access token JWT curto (30–60 min) + refresh token persistido e revogável. Claims: `sub`, `tenant_id`, `papel`, `permissoes`; **(Acordu)** para Cliente, também `cliente_id` e `escopo_portal`.
+Herdado: access token JWT curto (30–60 min) + refresh token persistido e revogável. **Transporte (ADR 0007):** access token no corpo e em memória no SPA, enviado por `Bearer`; refresh só em cookie HttpOnly, Secure, SameSite=Strict, restrito a `/api/v1/auth`, com rotação e detecção de reuso. Claims: `sub`, `tenant_id`, `papel`, `permissoes`; **(Acordu)** para Cliente, também `cliente_id` e `escopo_portal`.
 - **(Acordu) Portal:** a cada requisição em `/api/v1/portal`, a Api confere no banco que o usuário ainda é contato ativo do cliente, com vínculo, e usa o escopo do vínculo (não o da claim). Revogação vale na requisição seguinte, sem esperar o access token expirar; uma consulta indexada por requisição.
 
 ### 5.2 Troca de tenant

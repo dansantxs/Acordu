@@ -37,7 +37,7 @@ Herdadas do Saldu, com as adaptações do Acordu:
 
 Igual ao Saldu: `POST /auth/registro`, `/auth/login`, `/auth/refresh`, `/auth/logout`, `/auth/tenant-ativo`, confirmação de e-mail e recuperação de senha.
 
-Sessão (Acordu, decidido na implementação):
+Sessão (Acordu, formalizado no ADR 0007):
 - As rotas que abrem sessão (`registro`, `login`, `refresh`, `tenant-ativo`) respondem `{ "accessToken": "eyJ...", "expiraEm": "..." }` (JWT de 60 min) e entregam o **refresh token só em cookie** `acordu_refresh` — HttpOnly, Secure, SameSite=Strict, `Path=/api/v1/auth`, 30 dias. Nunca no corpo: fica fora do alcance de JavaScript. SPA e API estão no mesmo site, então o cookie é first-party.
 - `POST /auth/registro` → `201`: `{ nome, email, senha, nomeEmpresa }`; cria usuário, tenant (Dono) e já abre a sessão (confirmação de e-mail adiada). Campo inválido, e-mail em uso ou senha curta (< 10) → `400 validacao` com o campo em `errors`.
 - `POST /auth/login` → `200`; credencial errada, conta bloqueada (5 falhas, 15 min) ou usuário sem vínculo → `401`, sem distinguir. Abre no último tenant usado.
