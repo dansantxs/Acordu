@@ -77,7 +77,8 @@ public sealed class EnvioConvitePortal : IManipuladorPosCommit<ConvitePortalCria
 
                 Se você não esperava este convite, pode ignorar este e-mail.
                 """,
-                "convite-portal"),
+                "convite-portal",
+                prestador),
             cancellationToken);
     }
 }
