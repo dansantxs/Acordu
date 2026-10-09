@@ -19,4 +19,9 @@ public sealed class ConvitesEquipe : IConvitesEquipe
         await _db.ConvitesEquipe
             .Where(c => c.Email == email && c.AceitoEm == null && c.RevogadoEm == null)
             .ToListAsync(cancellationToken);
+
+    public async Task<IReadOnlyList<ConviteEquipe>> PendentesDoPapelAsync(Guid papelId, CancellationToken cancellationToken = default) =>
+        await _db.ConvitesEquipe
+            .Where(c => c.PapelId == papelId && c.AceitoEm == null && c.RevogadoEm == null)
+            .ToListAsync(cancellationToken);
 }

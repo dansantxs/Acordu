@@ -5,6 +5,7 @@ using Acordu.Application.Categorias;
 using Acordu.Application.Clientes;
 using Acordu.Application.Contratos;
 using Acordu.Application.Equipe;
+using Acordu.Application.Papeis;
 using Acordu.Application.AcessosPortal;
 using Acordu.Application.Portal;
 using Acordu.Application.Portal.Extrato;
@@ -55,6 +56,7 @@ public static class DependencyInjection
         services.AddScoped<IVinculos, Vinculos>();
         services.AddScoped<IConvitesEquipe, ConvitesEquipe>();
         services.AddScoped<IConsultasEquipe, ConsultasEquipe>();
+        services.AddScoped<IConsultasPapel, ConsultasPapel>();
         services.AddScoped<IPortalAtual, PortalAtual>();
         services.AddSingleton<ProcessadorOutbox>();
         services.AddSingleton<ExecutorPorTenant>();

@@ -28,6 +28,9 @@ public sealed class Vinculos : IVinculos
          where p.Padrao && p.Nome == Papel.NomeDono
          select v.Id).CountAsync(cancellationToken);
 
+    public Task<int> ContarPorPapelAsync(Guid papelId, CancellationToken cancellationToken = default) =>
+        _db.Vinculos.CountAsync(v => v.PapelId == papelId, cancellationToken);
+
     public async Task RevogarSessoesAsync(Guid usuarioId, DateTimeOffset agora, CancellationToken cancellationToken = default)
     {
         var tenantId = _contexto.TenantId ?? throw new InvalidOperationException("Revogar sessões exige tenant no contexto.");
