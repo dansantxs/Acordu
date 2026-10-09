@@ -27,8 +27,11 @@ public interface IConsultasEquipe
     Task<IReadOnlyList<ConviteEquipeDto>> ConvitesPendentesAsync(CancellationToken cancellationToken = default);
 }
 
-/// <summary>Convites pendentes de um e-mail, rastreados (reconvidar revoga o anterior).</summary>
+/// <summary>Convites pendentes, rastreados (reconvidar e excluir o papel revogam).</summary>
 public interface IConvitesEquipe
 {
     Task<IReadOnlyList<Domain.Entities.ConviteEquipe>> PendentesAsync(string email, CancellationToken cancellationToken = default);
+
+    /// <summary>Pendentes com o papel (excluir o papel os revoga).</summary>
+    Task<IReadOnlyList<Domain.Entities.ConviteEquipe>> PendentesDoPapelAsync(Guid papelId, CancellationToken cancellationToken = default);
 }

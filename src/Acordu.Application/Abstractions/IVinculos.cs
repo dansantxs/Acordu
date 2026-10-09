@@ -14,6 +14,9 @@ public interface IVinculos
     /// <summary>Quantos vínculos têm o papel padrão Dono (guarda "≥ 1 Dono por tenant").</summary>
     Task<int> ContarDonosAsync(CancellationToken cancellationToken = default);
 
+    /// <summary>Quantos vínculos do tenant usam o papel (papel em uso não é excluído).</summary>
+    Task<int> ContarPorPapelAsync(Guid papelId, CancellationToken cancellationToken = default);
+
     /// <summary>Revoga os refresh tokens ativos do usuário no tenant do contexto.</summary>
     Task RevogarSessoesAsync(Guid usuarioId, DateTimeOffset agora, CancellationToken cancellationToken = default);
 

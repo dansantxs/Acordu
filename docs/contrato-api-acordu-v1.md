@@ -95,6 +95,19 @@ Regras:
 - Aceite: diverge do Saldu (`POST /convites/{id}/aceite`) para seguir o padrão do portal: só o token, no corpo, em `/auth` (o Id na URL vaza em log e histórico). Conta nova exige `nome` e nasce com e-mail confirmado; conta existente exige a senha dela (`400` em `senha`, conta para o bloqueio). Token inválido, expirado, revogado ou usado → `401`.
 - Pessoa que não é da equipe deste tenant (inexistente, de outro tenant ou contato de cliente) → `404`.
 
+Papéis (6e2, todos com `papel.gerenciar`):
+
+| Método | Rota | Descrição |
+|---|---|---|
+| GET | `/papeis` | `[{ id, nome, tipo, padrao, permissoes, pessoas }]`, padrões primeiro (Dono, Membro, Leitor, Cliente). |
+| GET | `/papeis/permissoes` | Catálogo do que um papel sob medida pode ter (as internas, §3.1 da segurança). |
+| POST | `/papeis` | `{ nome, permissoes }` → `201`. Sempre INTERNO. |
+| PATCH | `/papeis/{id}` | Formulário inteiro `{ nome, permissoes }` → `200`. Vale no próximo refresh de quem tem o papel. |
+| DELETE | `/papeis/{id}` | `204`; revoga os convites pendentes com o papel. |
+
+- Nome repetido no tenant (sem diferenciar maiúsculas) → `400` em `nome`; permissão fora do catálogo interno ou lista vazia → `400` em `permissoes`.
+- Papel padrão não é alterado nem excluído → `422 transicao-invalida`. Papel em uso (alguém com ele) não é excluído → `422`.
+
 ---
 
 ## 4. Clientes e contatos

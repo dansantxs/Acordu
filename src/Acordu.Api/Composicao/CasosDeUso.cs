@@ -6,6 +6,7 @@ using Acordu.Application.Common;
 using Acordu.Application.Configuracoes;
 using Acordu.Application.Contratos;
 using Acordu.Application.Equipe;
+using Acordu.Application.Papeis;
 using Acordu.Application.Portal;
 using Acordu.Application.AcessosPortal;
 using Acordu.Application.Projetos;
@@ -36,6 +37,7 @@ internal static class CasosDeUso
         services.AddScoped<RevogacaoAcessoPortal>();
         services.AddScoped<ComandosLinkPortal>();
         services.AddScoped<ComandosEquipe>();
+        services.AddScoped<ComandosPapel>();
         services.AddScoped<FechamentoAutomatico>();
         services.AddScoped<ComandosPortal>();
         services.AddScoped<LeituraPortal>();
