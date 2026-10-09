@@ -417,6 +417,32 @@ class AcessoPortal {
   +expiraEm: DateTime
   +revogado: bool
 }
+class ConvitePortal {
+  +id: Guid
+  +tenantId: Guid
+  +clienteId: Guid
+  +contatoId: Guid
+  +escopo: EscopoPortal
+  +criadoEm: DateTime
+  +tokenHash: string?
+  +expiraEm: DateTime?
+  +aceitoEm: DateTime?
+  +usuarioId: Guid?
+  +revogadoEm: DateTime?
+}
+class ConviteEquipe {
+  +id: Guid
+  +tenantId: Guid
+  +email: string
+  +papelId: Guid
+  +convidadoPor: Guid
+  +criadoEm: DateTime
+  +tokenHash: string?
+  +expiraEm: DateTime?
+  +aceitoEm: DateTime?
+  +usuarioId: Guid?
+  +revogadoEm: DateTime?
+}
 
 Cliente "1" --> "*" Contato
 Cliente "1" --> "*" Contrato
@@ -433,6 +459,9 @@ RecorrenciaTarefa "0..1" --> "*" Tarefa
 Tarefa "1" --> "*" Apontamento
 Contrato "0..1" --> "*" Apontamento
 Solicitacao "1" --> "*" AcessoPortal
+Contato "1" --> "*" ConvitePortal
+ConvitePortal "0..1" --> "0..1" Vinculo : aceite cria
+ConviteEquipe "0..1" --> "0..1" Vinculo : aceite cria
 
 enum TipoContrato { MENSAL_FIXO\nBANCO_HORAS\nAVULSO }
 enum StatusContrato { ATIVO\nSUSPENSO\nENCERRADO }
@@ -453,6 +482,8 @@ Observações de modelagem:
 - `(TenantId, Numero)` único em `Solicitacao`; `(RecorrenciaId, DataReferencia)` único em `Tarefa` (idempotência do RF-REC-03).
 - O **consumo do contrato não é estado persistido**: é read model (soma de apontamentos faturáveis + ajustes no período), como o saldo no Saldu.
 - `OrigemSolicitacao` já prevê EMAIL e WHATSAPP (v2) para não exigir migration de enum depois.
+- **Convites** (RF-USR-01 e RF-CLI-03): `ConviteEquipe` convida um e-mail para um papel **interno**; `ConvitePortal` convida um **contato** para o portal, com o escopo do vínculo (é raiz com `ClienteId`, sob o filtro do ADR 0002). Os dois guardam só o **hash** do token, valem 7 dias a partir do envio, são de uso único e ficam pendentes até serem aceitos ou revogados (`aceitoEm`/`revogadoEm`). Reenviar gera token novo e invalida o anterior. O aceite cria o `Vinculo` (e o `Usuario`, se a conta não existe) e registra o `usuarioId`. Papel Cliente nunca entra por `ConviteEquipe`, nem papel interno por `ConvitePortal`.
+- **Refresh tokens** ficam na tabela de identidade (hash, usuário, tenant, validade, consumo e revogação), fora do domínio; o transporte da sessão está no ADR 0007.
 - Valores monetários de contrato (mensalidade, valor-hora) ficam **fora do v1** — entram com o faturamento (v3), usando o value object `Dinheiro`.
 
 ### 3.5 Restrições de projeto
