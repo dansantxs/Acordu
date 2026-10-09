@@ -72,7 +72,8 @@ public sealed class EnvioConviteEquipe : IManipuladorPosCommit<ConviteEquipeCria
 
                 Se você não esperava este convite, pode ignorar este e-mail.
                 """,
-                "convite-equipe"),
+                "convite-equipe",
+                tenant.Nome),
             cancellationToken);
     }
 }
