@@ -4,7 +4,7 @@ using Microsoft.Extensions.Logging;
 namespace Acordu.Infrastructure.Email;
 
 /// <summary>
-/// Envio de e-mail só em log, até a integração com o Resend. Por padrão registra apenas a categoria (nada de dado de
+/// Envio de e-mail só em log, quando não há chave do Resend (desenvolvimento e testes). Por padrão registra apenas a categoria (nada de dado de
 /// cliente em log, segurança §6); <c>Email__RegistrarConteudo=true</c> (só em desenvolvimento) inclui destinatário,
 /// assunto e corpo, para seguir os links dos e-mails localmente.
 /// </summary>
