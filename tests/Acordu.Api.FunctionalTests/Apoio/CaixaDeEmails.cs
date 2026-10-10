@@ -36,6 +36,16 @@ internal sealed partial class CaixaDeEmails : IEnviadorEmail
         return LinkDoConviteEquipe().Match(mensagem.Texto).Groups[1].Value;
     }
 
+    /// <summary>Token do último e-mail da categoria enviado ao endereço (último segmento de 43 caracteres do link).</summary>
+    public string TokenDe(string email, string categoria)
+    {
+        var mensagem = Para(email).Last(m => m.Categoria == categoria);
+        return TokenNoLink().Matches(mensagem.Texto)[^1].Groups[1].Value;
+    }
+
+    [GeneratedRegex(@"/([A-Za-z0-9_-]{43})(?=\s|$)")]
+    private static partial Regex TokenNoLink();
+
     [GeneratedRegex(@"/portal/convite/([A-Za-z0-9_-]{43})")]
     private static partial Regex LinkDoConvite();
 
