@@ -3,11 +3,11 @@
 - **Status:** Revogada em 06/10/2026 — conta Oracle recuperada; mantida como plano B. Substituída pelo [ADR 0006](0006-retorno-oracle-always-free.md).
 - **Data:** 05/10/2026
 - **Contexto do projeto:** Acordu (v1)
-- **Substitui (níveis 0–2):** a hospedagem herdada no ADR 0001 (ADR 0005 do Saldu, núcleo self-hosted em VM) e as adaptações de infraestrutura compartilhada (mesma VM, mesmo Postgres, Caddy de borda, OCI Object Storage), equivalentes ao ADR 0009 do Saldu. O modelo compartilhado volta no **nível 3**.
+- **Substitui (níveis 0–2):** a hospedagem self-hosted do ADR 0001 e as adaptações de infraestrutura compartilhada (mesma VM, mesmo Postgres, Caddy de borda, OCI Object Storage). O modelo compartilhado volta no **nível 3**.
 
 ## Contexto
 
-O Acordu ia rodar na VM Oracle Cloud Always Free (Ampere ARM) do Saldu, com Caddy e PostgreSQL compartilhados numa stack de infraestrutura. O Saldu **perdeu a conta Oracle Cloud**: a VM, os buckets e o runbook deixaram de existir, e a hospedagem dos dois produtos foi redefinida.
+O Acordu ia rodar na VM Oracle Cloud Always Free (Ampere ARM) compartilhada, com Caddy e PostgreSQL numa stack de infraestrutura. A **conta Oracle Cloud ficou inacessível**: a VM, os buckets e o runbook deixaram de estar disponíveis, e a hospedagem foi redefinida.
 
 Restrições que continuam valendo:
 - **Custo zero** enquanto não houver usuário pagante.
@@ -23,15 +23,15 @@ Hoje não há free tier de VM confiável e sem cartão no Brasil; os planos grat
 | Peça | Escolha | Observações |
 |---|---|---|
 | API | **.NET 10 em container no Google Cloud Run**, região **`us-east4`** | Região Tier 1: o free tier do Cloud Run não vale em `southamerica-east1` (São Paulo). |
-| Banco | **Neon**, projeto próprio do Acordu, **Postgres 17**, região **`aws-us-east-1`** | Mesma costa da API. Não é compartilhado com o Saldu. |
+| Banco | **Neon**, projeto próprio do Acordu, **Postgres 17**, região **`aws-us-east-1`** | Mesma costa da API. Não é compartilhado com outros produtos. |
 | SPA | **Cloudflare Pages** (se/quando houver o front) | Estático, CDN, sem custo. |
 | Imagens | **Artifact Registry** em `us-east4`, com **política de limpeza** | Mantém só as últimas versões; a cota gratuita de armazenamento é pequena. |
 | Arquivos | Buckets privados no Cloud Storage: `acordu-anexos` (anexos) e `acordu-backups` (dumps) | Acesso pela API XML compatível com S3 (chave HMAC), sem SDK. Localização numa região do free tier do Cloud Storage. |
 
 ### 2. Conta e projeto
 
-- **Projeto Google próprio: `acordu-prod`**, ligado à conta de faturamento compartilhada **`utile-billing`** (Utile Systems). O Saldu tem o projeto dele na mesma conta.
-- **A cota grátis do Cloud Run e os 3 jobs gratuitos do Cloud Scheduler são por conta de faturamento**, ou seja, **divididos com o Saldu**. Qualquer uso novo (job agendado, serviço extra) considera o consumo dos dois produtos.
+- **Projeto Google próprio: `acordu-prod`**, ligado à conta de faturamento compartilhada **`nebrys-billing`** (Nebrys), onde ficam também os projetos dos outros produtos.
+- **A cota grátis do Cloud Run e os 3 jobs gratuitos do Cloud Scheduler são por conta de faturamento**, ou seja, **divididos entre os produtos**. Qualquer uso novo (job agendado, serviço extra) considera o consumo de todos.
 - Isolamento entre produtos fica no nível de **projeto** (IAM, service accounts, buckets), não de VM.
 
 ### 3. Código sem provedor
@@ -41,7 +41,7 @@ Hoje não há free tier de VM confiável e sem cartão no Brasil; os planos grat
 
 ### 4. Proteções de custo
 
-- **Alerta de orçamento** na `utile-billing`, filtrado pelo projeto `acordu-prod` (alerta não bloqueia gasto; é o aviso para agir).
+- **Alerta de orçamento** na `nebrys-billing`, filtrado pelo projeto `acordu-prod` (alerta não bloqueia gasto; é o aviso para agir).
 - **`max-instances` baixo** no Cloud Run (2 no nível 0), para um pico ou abuso não virar fatura.
 - Lifecycle nos buckets e limpeza no Artifact Registry, para armazenamento não crescer sem controle.
 
@@ -89,7 +89,7 @@ Com escala a zero (e CPU só durante requisições), `HostedService` em loop nã
 
 **Positivas**
 - Custo zero no v1, sem servidor para administrar (SO, TLS, patches).
-- Isolamento entre Acordu e Saldu por projeto e por banco: um não derruba o outro.
+- Isolamento entre produtos por projeto e por banco: um não derruba o outro.
 - Caminho de escala explícito, com gatilhos medíveis e migração mecânica.
 
 **Negativas / trade-offs**
@@ -97,14 +97,14 @@ Com escala a zero (e CPU só durante requisições), `HostedService` em loop nã
 - **~120 ms a mais de latência** por ida e volta a partir do Brasil.
 - **Dados nos EUA no v1:** transferência internacional (LGPD, art. 33) precisa constar na política de privacidade; clientes que exigirem dados no Brasil antecipam o nível 3.
 - **Limites rígidos do Neon Free** (armazenamento e CU-h): estourar suspende o banco até o próximo ciclo. Monitorar e migrar para o nível 2 antes.
-- **Cota gratuita dividida com o Saldu** (Cloud Run e Scheduler na mesma conta de faturamento).
+- **Cota gratuita dividida entre produtos** (Cloud Run e Scheduler na mesma conta de faturamento).
 - Jobs dependem de um disparador externo; se o cron falhar, nada roda. Mitigação: falha de disparo ou resposta não-2xx do endpoint vai para o Discord (workflow do Actions e retry do Scheduler). O `/api/health` não pode olhar isso, porque não consulta o banco.
 
 ## Revogação (06/10/2026)
 
 **Motivo:** a conta Oracle Cloud foi recuperada em 06/10/2026 (tenancy `dansantos`, região `us-phoenix-1`), com a VM Ampere existente. O motivo desta decisão — a perda da conta — deixou de existir, e a VM compartilhada volta a ser o nível 0 ([ADR 0006](0006-retorno-oracle-always-free.md)). Nada deste ADR chegou a ser provisionado.
 
-**O que deixa de valer:** Cloud Run, Neon, Cloudflare Pages, Artifact Registry, Cloud Storage e Cloud Scheduler como infraestrutura atual; o plano de escala do §8 (substituído pelo do ADR 0006); o projeto `acordu-prod` e a conta `utile-billing`.
+**O que deixa de valer:** Cloud Run, Neon, Cloudflare Pages, Artifact Registry, Cloud Storage e Cloud Scheduler como infraestrutura atual; o plano de escala do §8 (substituído pelo do ADR 0006); o projeto `acordu-prod` e a conta `nebrys-billing`.
 
 **O que continua valendo (incorporado ao ADR 0006):**
 - Código sem SDK de provedor e configuração só por variável de ambiente (§3).

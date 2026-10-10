@@ -2,7 +2,7 @@ namespace Acordu.Domain.ValueObjects;
 
 /// <summary>
 /// Quantidade de tempo em minutos inteiros, nunca negativa (ADR 0004).
-/// É o equivalente ao <c>Dinheiro</c> do Saldu: toda conta de horas passa por aqui,
+/// O tempo é o "dinheiro" do Acordu: toda conta de horas passa por aqui,
 /// e a conversão para "1h30" só acontece na apresentação.
 /// </summary>
 public readonly record struct Duracao : IComparable<Duracao>

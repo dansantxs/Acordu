@@ -5,7 +5,7 @@
 | **Versão** | 0.1 |
 | **Data** | 06/10/2026 |
 | **Escopo** | Identidade, autenticação, autorização (RBAC + escopo por cliente), sessões do portal, proteção de dados, anexos e auditoria. |
-| **Base** | Modelo de acesso do Saldu (ADRs 0007/0008 herdados) + ADR 0002 do Acordu. |
+| **Base** | ADR 0001 (identidade e multiusuário), ADR 0002 (portal) e ADR 0007 (transporte da sessão). |
 | **Natureza** | Especificação. Decisões e contratos, **sem implementação**. |
 
 ---
@@ -22,7 +22,7 @@
 
 ## 2. Modelo de identidade e acesso
 
-Igual ao Saldu (`Usuario` global gerido pelo Identity, `Tenant`, `Vinculo` N-N, `Papel` como conjunto de `Permissao`), com a extensão do ADR 0002:
+Modelo base do ADR 0001 (`Usuario` global gerido pelo Identity, `Tenant`, `Vinculo` N-N, `Papel` como conjunto de `Permissao`), com a extensão do ADR 0002:
 
 ```plantuml
 @startuml
@@ -56,7 +56,7 @@ AcessoPortal "*" -- "1" Contato
 
 - **Papel do tipo CLIENTE** só pode conter as permissões **do portal** (§3.1); papel INTERNO, só as **internas**. A divisão é pelo catálogo, não pelo prefixo: `portal.gerenciar_acessos` é interna. Garantido no domínio de `Papel`.
 - `Vinculo.ClienteId` e `EscopoPortal`: obrigatórios quando o papel é CLIENTE, proibidos nos demais.
-- Um mesmo login pode ser Membro no próprio tenant e Cliente em outro (ex.: um freelancer que também contrata uma agência). A troca de tenant ativo (herdada) resolve.
+- Um mesmo login pode ser Membro no próprio tenant e Cliente em outro (ex.: um freelancer que também contrata uma agência). A troca de tenant ativo (ADR 0001) resolve.
 
 ---
 
@@ -105,8 +105,8 @@ Efeito do `EscopoPortal` sobre o papel Cliente (aplicado na Application, além d
 | `PROPRIAS` | Só as que ele abriu ou em que é o contato (abrir pelo portal grava o contato logado: é a mesma regra) | **Não** (o extrato expõe pedidos de colegas); nem a lista de contratos |
 
 ### 3.3 Guardas (invariantes)
-- **≥ 1 Dono por tenant** (herdado).
-- Papel padrão não é excluível; papel em uso não é excluível sem realocação (herdado).
+- **≥ 1 Dono por tenant**.
+- Papel padrão não é excluível; papel em uso não é excluível sem realocação.
 - Não é possível atribuir papel CLIENTE por `/convites` nem papel INTERNO pelo convite de contato.
 - Revogar acesso de contato remove o `Vinculo` e **revoga todos os refresh tokens e links** dele naquele tenant.
 - Inativar cliente revoga os acessos de todos os seus contatos.
@@ -115,7 +115,7 @@ Efeito do `EscopoPortal` sobre o papel Cliente (aplicado na Application, além d
 
 ## 4. Autenticação
 
-Herdada do Saldu (Identity, confirmação de e-mail, lockout, política de senha, recuperação por e-mail via Resend).
+ASP.NET Core Identity (ADR 0001: confirmação de e-mail, lockout, política de senha, recuperação por e-mail via Resend).
 
 Fluxos específicos:
 - **Registro:** cria `Usuario` + `Tenant` (o prestador) + `Vinculo` Dono + `CalendarioUtil` padrão + papéis padrão.
@@ -132,11 +132,11 @@ Fluxos específicos:
 ## 5. Sessões e tokens
 
 ### 5.1 Equipe e contatos com conta
-Herdado: access token JWT curto (30–60 min) + refresh token persistido e revogável. **Transporte (ADR 0007):** access token no corpo e em memória no SPA, enviado por `Bearer`; refresh só em cookie HttpOnly, Secure, SameSite=Strict, restrito a `/api/v1/auth`, com rotação e detecção de reuso. Claims: `sub`, `tenant_id`, `papel`, `permissoes`; **(Acordu)** para Cliente, também `cliente_id` e `escopo_portal`.
+Base (ADR 0001): access token JWT curto (30–60 min) + refresh token persistido e revogável. **Transporte (ADR 0007):** access token no corpo e em memória no SPA, enviado por `Bearer`; refresh só em cookie HttpOnly, Secure, SameSite=Strict, restrito a `/api/v1/auth`, com rotação e detecção de reuso. Claims: `sub`, `tenant_id`, `papel`, `permissoes`; **(Acordu)** para Cliente, também `cliente_id` e `escopo_portal`.
 - **(Acordu) Portal:** a cada requisição em `/api/v1/portal`, a Api confere no banco que o usuário ainda é contato ativo do cliente, com vínculo, e usa o escopo do vínculo (não o da claim). Revogação vale na requisição seguinte, sem esperar o access token expirar; uma consulta indexada por requisição.
 
 ### 5.2 Troca de tenant
-Herdada. Um usuário Cliente em um tenant e Membro em outro troca de tenant e recebe token com o papel correspondente.
+Um usuário Cliente em um tenant e Membro em outro troca de tenant e recebe token com o papel correspondente.
 
 ### 5.3 Sessão de link (RF-POR-08)
 - Token do link: 32 bytes aleatórios (CSPRNG), base64url; no banco, **só o SHA-256**.
@@ -152,9 +152,9 @@ Herdada. Um usuário Cliente em um tenant e Membro em outro troca de tenant e re
 
 - **Em trânsito:** HTTPS obrigatório (Caddy), HSTS.
 - **Em repouso:** volume da OCI criptografado; object storage criptografado pela OCI.
-- **Coluna:** sem criptografia de coluna no v1 (herdado; textos precisam de busca full-text).
+- **Coluna:** sem criptografia de coluna no v1 (textos precisam de busca full-text).
 - **LGPD:** o prestador é **controlador** dos dados dos seus clientes; o Acordu é **operador**. Exportação e exclusão por tenant sob solicitação; exclusão de contato anonimiza nome/e-mail nas interações, preservando o histórico do trabalho.
-- **Nada de dado de cliente em log e no Discord:** só identificadores e status (herdado).
+- **Nada de dado de cliente em log e no Discord:** só identificadores e status.
 
 ---
 
@@ -187,7 +187,7 @@ Quem, tenant, ação, alvo, quando (IP opcional). Não audita leituras.
 - **Rate limiting:** login, `/auth/portal/link` (por IP e por token), abertura de solicitação pelo portal, upload de anexos.
 - **Headers de segurança:** HSTS, CSP (sem `unsafe-inline` no portal), `X-Content-Type-Options`, `Referrer-Policy: same-origin` (o token do link não pode vazar por Referer — a SPA troca o token e remove-o da URL na primeira carga).
 - **Testes obrigatórios:**
-  - cross-tenant (herdado) e **cross-cliente** (ADR 0002), em integração e API;
+  - cross-tenant (ADR 0001) e **cross-cliente** (ADR 0002), em integração e API;
   - papel Cliente em rota interna → 403;
   - sessão de link acessando outra solicitação → 404; link revogado → 401 na requisição seguinte;
   - nenhuma resposta do portal com interação/tarefa/apontamento interno;

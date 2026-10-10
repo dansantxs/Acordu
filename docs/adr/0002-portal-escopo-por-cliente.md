@@ -8,7 +8,7 @@
 
 O portal do cliente é diferencial central do produto: o contato da empresa atendida abre solicitações, acompanha status e SLA, responde, aprova entregas e vê o extrato de horas do contrato.
 
-Isso cria um **segundo nível de isolamento**. No Saldu, todo usuário de um tenant vê todos os dados do tenant. No Acordu, o tenant é o prestador, e dentro dele há vários clientes que **não podem se ver**: o contato do cliente A nunca pode enxergar nada do cliente B, e em alguns casos nem as solicitações de colegas do próprio cliente.
+Isso cria um **segundo nível de isolamento**. No modelo multi-tenant básico (ADR 0001), todo usuário de um tenant vê todos os dados do tenant. No Acordu, o tenant é o prestador, e dentro dele há vários clientes que **não podem se ver**: o contato do cliente A nunca pode enxergar nada do cliente B, e em alguns casos nem as solicitações de colegas do próprio cliente.
 
 Além disso, cada solicitação mistura itens que o cliente pode ver (comentários externos, tarefas marcadas como visíveis, horas faturáveis) com itens que ele nunca pode ver (notas internas, horas não faturáveis, discussões da equipe).
 
@@ -18,10 +18,10 @@ Além disso, cada solicitação mistura itens que o cliente pode ver (comentári
    - papel **Cliente** (semeado, com permissões só de portal: `portal.solicitacao.*`, `portal.extrato.ver`);
    - `ClienteId` (obrigatório para o papel Cliente, proibido nos demais);
    - `EscopoPortal`: `PROPRIAS` (só o que ele abriu) ou `TODAS_DO_CLIENTE`.
-   O mesmo login pode ser membro de um tenant e contato em outro (vínculo N-N do Saldu, ADR 0008 herdado).
+   O mesmo login pode ser membro de um tenant e contato em outro (vínculo N-N do ADR 0001).
 
 2. **Isolamento em duas camadas:**
-   - Camada 1 — `TenantId` via *global query filter* (herdado).
+   - Camada 1 — `TenantId` via *global query filter* (ADR 0001).
    - Camada 2 — **`ClienteId` via global query filter adicional**, ativo quando o `ITenantContext` indica papel Cliente. Toda raiz ligada a cliente carrega `ClienteId` desnormalizado (`Solicitacao`, `Interacao`, `Tarefa`, `Apontamento`, `Projeto`, `Contrato`, `AcessoPortal`), para o filtro não depender de joins.
    - `EscopoPortal = PROPRIAS` é aplicado na **Application** (casos de uso do portal filtram por `ContatoId`).
 

@@ -5,7 +5,7 @@
 | **Versão** | 0.1 |
 | **Última atualização** | 06/10/2026 |
 | **Stack** | .NET 10 · EF Core + Npgsql · PostgreSQL 17 · React + Vite (TS) · Docker Compose + Caddy (VM Oracle compartilhada, ADR 0006) |
-| **Base** | Mesma organização do Saldu (ADR 0001), com prefixo `Acordu.*`. |
+| **Base** | ADR 0001 (decisões de engenharia base); projetos com prefixo `Acordu.*`. |
 
 ---
 
@@ -33,7 +33,7 @@ acordu/
 │  ├─ ers/
 │  │  └─ ERS-acordu-v1.md
 │  ├─ adr/
-│  │  ├─ 0001-herdar-decisoes-do-saldu.md
+│  │  ├─ 0001-decisoes-de-engenharia-base.md
 │  │  ├─ 0002-portal-escopo-por-cliente.md
 │  │  ├─ 0003-sla-horas-uteis.md
 │  │  ├─ 0004-tempo-em-minutos-e-consumo-read-model.md
@@ -184,7 +184,7 @@ Testes obrigatórios nos níveis de integração **e** API: cross-tenant (RNF-SE
 
 ## 7. Infra e deploy
 
-- A VM, o Postgres e o Caddy de borda são **compartilhados com o Saldu** (ADR 0001). Este repositório só entrega as imagens do Acordu e o bloco de site do Caddy.
+- A VM, o Postgres e o Caddy de borda são **compartilhados com outros produtos** (ADRs 0001 e 0006). Este repositório só entrega as imagens do Acordu e o bloco de site do Caddy.
 - `docker-compose.yml` sobe `acordu-api` e `acordu-web` em `/opt/acordu`, na rede externa `infra_net` da stack de infraestrutura (`/opt/infra`). ADR 0006.
 - Jobs agendados ficam em `Infrastructure/Agendamento` e são expostos pela Api em `/internal/jobs/*`; o disparo é um timer na VM.
 - Detalhes: `deploy-ci-acordu-v1.md` e `setup-infra-oracle-acordu.md`.
@@ -193,7 +193,7 @@ Testes obrigatórios nos níveis de integração **e** API: cross-tenant (RNF-SE
 
 ## 8. Documentação
 
-- `docs/ers/`, `docs/adr/` e os demais em `docs/`, como no Saldu.
+- `docs/ers/`, `docs/adr/` e os demais em `docs/`.
 - **Estratégia de produto e cronograma** também ficam em `docs/`. Contêm estratégia de negócio: revisar (ou remover do histórico) antes de qualquer abertura pública do repositório.
 
 > **Regra de manutenção:** decisão de arquitetura → ADR; convenção de código → `convencoes-codigo-acordu.md`, no mesmo turno em que é decidida.
@@ -205,10 +205,10 @@ Testes obrigatórios nos níveis de integração **e** API: cross-tenant (RNF-SE
 1. **Esqueleto:** arquivos de raiz, `Acordu.sln`, projetos vazios compilando, `ArchitectureTests` já com as regras, `ci.yml`.
 2. **Domain:** `Duracao`, `Periodo`, `CalendarioUtil` + `CalculadoraSla` (maior risco, primeiro), `Solicitacao` e máquina de estados, `Contrato`, `Tarefa`, `Apontamento`, `RecorrenciaTarefa` + `GeradorDeDatas`. Cada um com testes.
 3. **Infrastructure base:** `AcorduDbContext`, migrations, filtros por tenant **e por cliente**, testes de isolamento (Testcontainers).
-4. **Api + auth:** Identity/JWT (herdado), contexto de tenant/cliente, endpoints de clientes, contratos e solicitações, testes funcionais.
+4. **Api + auth:** Identity/JWT (ADR 0001), contexto de tenant/cliente, endpoints de clientes, contratos e solicitações, testes funcionais.
 5. **Esqueleto andante no ar:** criar solicitação interna → tarefa → apontamento → ver consumo; deploy na VM.
 6. **Portal:** convite de contato, rotas `/portal`, extrato, aprovação, link sem senha.
 7. **Restante do v1:** recorrências + agendador, notificações por e-mail (outbox), dashboard, semelhantes.
 8. **Hardening:** `deploy.yml` completo, backup, alertas no Discord.
 
-Regra de ouro (igual ao Saldu): cada camada nasce com seus testes, de dentro para fora; os dois isolamentos são testados assim que a Infrastructure existe.
+Regra de ouro: cada camada nasce com seus testes, de dentro para fora; os dois isolamentos são testados assim que a Infrastructure existe.

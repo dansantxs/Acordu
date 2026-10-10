@@ -4,7 +4,7 @@
 - **Data:** 06/10/2026
 - **Contexto do projeto:** Acordu (v1)
 - **Revoga:** [ADR 0005](0005-hospedagem-serverless-gratuita.md) (hospedagem serverless), que passa a ser o **plano B**.
-- **Confirma:** a infraestrutura compartilhada com o Saldu herdada no ADR 0001 (núcleo self-hosted do ADR 0005 do Saldu).
+- **Confirma:** a hospedagem self-hosted e a infraestrutura compartilhada do ADR 0001.
 
 ## Contexto
 
@@ -15,13 +15,13 @@ Restrições que continuam valendo:
 - **Portabilidade:** perder um provedor não pode exigir reescrever código. O episódio de 05/10 mostrou que isso acontece sem aviso.
 - **Dev solo:** a operação precisa ser mecânica (runbook, backup testado, deploy automatizado).
 
-A VM Ampere (2 OCPU / 12 GB) cabe os dois produtos, sem cold start e sem os limites rígidos de computação e armazenamento dos bancos serverless gratuitos. A capacidade Ampere é disputada, e recriar a VM pode não ser possível de imediato. Por isso o plano B existe.
+A VM Ampere (2 OCPU / 12 GB) comporta os produtos que a dividem, sem cold start e sem os limites rígidos de computação e armazenamento dos bancos serverless gratuitos. A capacidade Ampere é disputada, e recriar a VM pode não ser possível de imediato. Por isso o plano B existe.
 
 ## Decisão
 
 ### 1. Nível 0 — VM compartilhada na Oracle (Phoenix)
 
-Saldu e Acordu na **mesma VM Ampere**, com **nomes por função** na infra compartilhada (um rebatismo de produto nunca obriga a renomear infraestrutura):
+O Acordu e os outros produtos na **mesma VM Ampere**, com **nomes por função** na infra compartilhada (um rebatismo de produto nunca obriga a renomear infraestrutura):
 
 | Recurso | Nome |
 |---|---|
@@ -35,7 +35,7 @@ Saldu e Acordu na **mesma VM Ampere**, com **nomes por função** na infra compa
 | Recursos exclusivos do Acordu na OCI | compartimento `acordu`, prefixo `acordu-` (buckets `acordu-anexos` e `acordu-backups`) |
 
 - O Acordu é **inquilino** da infra: entrega as imagens e o bloco de site do Caddy, e não altera `/opt/infra` no deploy, a não ser recarregando o Caddy.
-- O usuário do Saldu não acessa o banco `acordu`, e `acordu_app` não acessa o do Saldu.
+- Usuários de banco de outros produtos não acessam o banco `acordu`, e `acordu_app` não acessa os deles.
 - Cada container de produto tem `mem_limit` e `cpus`, para um produto não derrubar o outro.
 - Deploy: imagens **ARM64** no GitHub Actions → **GHCR** → VM por **SSH** (`docker compose pull && up -d`), com migrations antes do `up`.
 - Arquivos: OCI Object Storage pela API S3-compatível.
@@ -68,7 +68,7 @@ Se a VM for perdida **e** não houver capacidade Ampere para recriá-la: executa
 
 ## Alternativas consideradas
 
-- **Manter o serverless (ADR 0005):** custo zero também, mas com cold start, limites rígidos do Neon Free e cota gratuita dividida com o Saldu. Com a VM de volta, não compensa. Fica como plano B.
+- **Manter o serverless (ADR 0005):** custo zero também, mas com cold start, limites rígidos do Neon Free e cota gratuita dividida entre produtos. Com a VM de volta, não compensa. Fica como plano B.
 - **Ir direto ao nível 1 (Magalu):** custo fixo sem usuário pagante. Fica como destino.
 - **VMs separadas por produto desde já:** a cota Always Free é por tenancy, e dividi-la não traz ganho no volume atual.
 
@@ -76,7 +76,7 @@ Se a VM for perdida **e** não houver capacidade Ampere para recriá-la: executa
 
 **Positivas**
 - Custo zero, sem cold start e sem limites rígidos de banco no nível 0.
-- Infra que já existe e foi testada pelo Saldu; nomes por função sobrevivem a rebatismos.
+- Infra que já existe e já foi testada; nomes por função sobrevivem a rebatismos.
 - Caminho de escala com gatilhos explícitos e migração mecânica (dump/restore + DNS), e um plano B documentado para a perda da VM.
 
 **Negativas / trade-offs**

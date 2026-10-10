@@ -1,6 +1,6 @@
 # Convenção de Commits — Acordu
 
-Padrão adotado: **Conventional Commits** (igual ao Saldu).
+Padrão adotado: **Conventional Commits**.
 
 ## Formato
 

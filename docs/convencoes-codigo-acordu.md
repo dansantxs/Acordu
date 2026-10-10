@@ -5,7 +5,7 @@
 | **Versão** | 0.1 |
 | **Última atualização** | 02/10/2026 |
 | **Natureza** | Convenções técnicas do projeto. Toda convenção de código nova entra aqui (decisões de arquitetura entram num ADR). |
-| **Base** | Convenções do Saldu, com as adaptações do Acordu marcadas como **(Acordu)**. |
+| **Base** | Convenções do projeto; os itens marcados **(Acordu)** são específicos deste domínio. |
 
 ---
 
@@ -14,7 +14,7 @@
 - **snake_case no banco, PascalCase no C#**, via `EFCore.NamingConventions` + `UseSnakeCaseNamingConvention()`. Não anotar `[Table]`/`[Column]` só para renomear.
 - **Enum como texto** — **(Acordu)** em SCREAMING_SNAKE (`EM_ANDAMENTO`) via `EnumTextoConverter`, aplicado por convenção a todo enum de `Acordu.Domain.Enums`. Renomear valor de enum exige migration de dados.
 - **Construtor privado sem parâmetros** em entidades, usado só pelo EF; factories públicas validam invariantes. **(Acordu)** VOs owned (`Periodo`, `Solucao`, `RegraRecorrencia`, `JanelaDiaria`) são materializados pelo construtor público; como propriedades só com getter não são mapeadas por convenção, o mapeamento declara cada uma.
-- **`TenantId` em toda entidade de negócio** (*global query filter* — ADR 0003 do Saldu, herdado). **(Acordu)** Sem índice só em `TenantId`: cada tabela tem índices compostos que começam por ele (e nenhum índice que seja prefixo de outro).
+- **`TenantId` em toda entidade de negócio** (*global query filter* — ADR 0001). **(Acordu)** Sem índice só em `TenantId`: cada tabela tem índices compostos que começam por ele (e nenhum índice que seja prefixo de outro).
 - **(Acordu) Filtros globais nomeados** (EF Core 10): `tenant` (sempre) e `cliente` (contexto de contato). Sem tenant no contexto, nada é devolvido. No contexto de cliente, `clientes` filtra pelo próprio Id, `cronometros` some, `categorias` e `calendarios` seguem visíveis.
 - **(Acordu) Guarda na gravação:** o `AcorduDbContext` recusa incluir, alterar ou remover raiz de outro tenant — ou, no contexto de contato, de outro cliente ou de tipo sem cliente — com `IsolamentoVioladoException`, antes de qualquer SQL.
 - **(Acordu) Mapeamento de VOs e filhos:** VOs de uma raiz viram colunas na tabela dela (owned), com nomes fixos quando o read side depende deles (`prazo_resolucao`, `limite_risco`); `PoliticaSla` e `ModeloTarefa` viram `jsonb`; feriados viram `date[]`; entidades filhas (`Contato`, `ItemChecklist`, `Anexo`, expediente) têm tabela própria com cascade e são sempre carregadas com a raiz.
@@ -41,7 +41,7 @@
 
 ## 2. Domínio
 
-- **(Acordu) `Duracao`** é o VO central (papel que o `Dinheiro` tem no Saldu): `int Minutos` ≥ 0, imutável, operadores retornam nova instância, fábricas `FromMinutos`, `FromHoras(h, m)`. Nenhum `int minutos` solto em assinatura pública do domínio. Ajuste de saldo usa `DuracaoAssinada`.
+- **(Acordu) `Duracao`** é o VO central (o tempo é o "dinheiro" do Acordu): `int Minutos` ≥ 0, imutável, operadores retornam nova instância, fábricas `FromMinutos`, `FromHoras(h, m)`. Nenhum `int minutos` solto em assinatura pública do domínio. Ajuste de saldo usa `DuracaoAssinada`.
 - **(Acordu) Relógio injetado:** o `Acordu.Domain` nunca chama `DateTime.Now`, `DateTimeOffset.UtcNow` ou `DateOnly.FromDateTime(DateTime.Today)`. Todo método que depende do instante recebe `agora`/`hoje` por parâmetro. Na Application, o instante vem de `TimeProvider` (injetado; `FakeTimeProvider` nos testes).
 - **(Acordu) Fuso:** conversão para hora local do tenant só dentro da `CalculadoraSla` e na apresentação, usando o fuso do `CalendarioUtil`.
 - **Exceções:** `ArgumentException` para input malformado; **exceções de domínio próprias** para regra de negócio (`TransicaoInvalidaException`, `PeriodoFechadoException`, `ContratoIncoerenteException`, `SlaIncompletoException`...), todas derivadas de `DominioException`.

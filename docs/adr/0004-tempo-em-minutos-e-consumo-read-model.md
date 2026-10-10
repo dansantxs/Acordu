@@ -6,7 +6,7 @@
 
 ## Contexto
 
-No Acordu, **tempo é o dinheiro**: horas apontadas definem o consumo do contrato, o saldo do banco de horas e, no futuro, a cobrança. É o mesmo papel que o `Dinheiro` tem no Saldu, e os mesmos riscos existem: representação em ponto flutuante acumula erro (1,1h + 2,2h ≠ 3,3h em `double`), e arredondamentos espalhados pelo código geram extratos que não batem.
+No Acordu, **tempo é o dinheiro**: horas apontadas definem o consumo do contrato, o saldo do banco de horas e, no futuro, a cobrança. É o papel que um value object `Dinheiro` teria num sistema financeiro, e os mesmos riscos existem: representação em ponto flutuante acumula erro (1,1h + 2,2h ≠ 3,3h em `double`), e arredondamentos espalhados pelo código geram extratos que não batem.
 
 Também é preciso decidir onde vive o "quanto já foi consumido": como número guardado no contrato, ou calculado a partir dos apontamentos.
 
@@ -24,7 +24,6 @@ Também é preciso decidir onde vive o "quanto já foi consumido": como número 
 **Positivas**
 - Aritmética exata; extrato do portal sempre soma igual ao detalhe.
 - Uma fonte da verdade (os apontamentos); impossível o consumo "descolar" das horas.
-- Coerente com o Saldu (saldo também é read model), então o mesmo raciocínio vale nos dois produtos.
 
 **Negativas / riscos**
 - Consumo é calculado a cada leitura. Mitigação: índice `(TenantId, ContratoId, Data)` em apontamentos com `INCLUDE (duracao_minutos, faturavel)`; cache por contrato/período invalidado pelos eventos de apontamento, **só se** a medição pedir.

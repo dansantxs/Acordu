@@ -4,7 +4,7 @@
 |---|---|
 | **Versão** | 0.2 (documento vivo — revisar conforme validar) |
 | **Data** | 06/10/2026 |
-| **Empresa** | Utile Systems (produtos: Saldu, Acordu) |
+| **Empresa** | Nebrys |
 | **Natureza** | Visão e estratégia. Hipóteses a validar com usuários, não decisões cravadas. |
 
 > **Nome:** **Acordu** — de *acordo* (PT), *acuerdo* (ES) e *accord* (EN): o acordo com o cliente (contrato, SLA, entregas) que o produto torna visível. O "u" final torna o nome inventado (defensável como marca). Domínios `acordu.app.br` e `acordu.com.br` livres em 30/09/2026. Busca exata no INPI (30/09/2026): nenhum resultado para "Acordu" nem "Acordo". **Pendente:** busca por radical e registrar os domínios.
@@ -62,7 +62,7 @@ Exemplos: agência de marketing/design, escritório de contabilidade, consultori
 
 - **Herói:** o fluxo contínuo **solicitação → tarefa/projeto → horas → contrato → prestação de contas ao cliente**, numa ferramenta só.
 - **Muralha:** transparência para o cliente (portal) + simplicidade (implanta em uma tarde, não em semanas).
-- **Assinatura técnica:** projeção determinística e explicável (mesmo DNA do Saldu) aplicada ao contrato.
+- **Assinatura técnica:** projeção determinística e explicável aplicada ao contrato.
 
 ---
 
@@ -80,7 +80,7 @@ Exemplos: agência de marketing/design, escritório de contabilidade, consultori
 | **Contrato** | Acordo com o cliente: mensal fixo, banco de horas ou avulso; define SLA e o que é faturável. |
 | **Recorrência de tarefa** | Trabalho agendado que se repete (ex.: "fechamento mensal do cliente X", "preventiva trimestral"). |
 
-Modelagem detalhada vira `modelo-de-dominio-acordu.md` (formato do Saldu).
+Modelagem detalhada em `modelo-de-dominio-acordu.md`.
 
 ---
 
@@ -101,7 +101,7 @@ Regras de visibilidade:
 
 Implicação arquitetural (ADR 0002):
 - O contato do cliente é um `Usuario` com `Vinculo` no tenant do prestador, com um papel **Cliente** e **escopo por `ClienteId`**.
-- Isolamento em duas camadas: *global query filter* por `TenantId` (como no Saldu) **+** filtro por `ClienteId` para usuários do portal. Teste obrigatório: contato do cliente A nunca vê dados do cliente B do mesmo tenant.
+- Isolamento em duas camadas: *global query filter* por `TenantId` (ADR 0001) **+** filtro por `ClienteId` para usuários do portal. Teste obrigatório: contato do cliente A nunca vê dados do cliente B do mesmo tenant.
 - Acesso sem senha opcional: link mágico por solicitação (para contatos que não querem conta).
 
 ---
@@ -111,7 +111,7 @@ Implicação arquitetural (ADR 0002):
 1. **Fluxo contínuo** atendimento → execução → horas → contrato, sem trocar de ferramenta.
 2. **Portal transparente** (§6).
 3. **Tarefas recorrentes nativas** — o prestador programa o trabalho periódico e o sistema gera as tarefas.
-4. **Projeção do contrato** (mesmo DNA do Saldu): *"no ritmo atual, o cliente X esgota o banco de horas dia 18"*; *"este mês o cliente Y consumiu 30% acima da média"*. Determinística, com a base exposta.
+4. **Projeção do contrato** (assinatura técnica): *"no ritmo atual, o cliente X esgota o banco de horas dia 18"*; *"este mês o cliente Y consumiu 30% acima da média"*. Determinística, com a base exposta.
 5. **Preço previsível:** não cobrar pelos contatos do cliente (portal ilimitado); cobrança por equipe interna ou faixa fixa.
 6. **WhatsApp** como canal de entrada (fase posterior — ver §8).
 7. **Base de conhecimento que se escreve sozinha:** o que foi resolvido vira conhecimento reutilizável, em duas camadas:
@@ -125,7 +125,7 @@ Implicação arquitetural (ADR 0002):
 ## 8. Escopo por fase
 
 **v1 (núcleo):**
-- Autenticação, multi-tenant, RBAC (reuso do desenho do Saldu) + papel Cliente com escopo.
+- Autenticação, multi-tenant, RBAC (ADR 0001) + papel Cliente com escopo.
 - Clientes, contatos, contratos (mensal / banco de horas / avulso) com SLA.
 - Solicitações (portal + criação interna), tarefas, projetos, apontamento de horas.
 - Tarefas recorrentes.
@@ -149,30 +149,29 @@ Implicação arquitetural (ADR 0002):
 
 ## 9. Monetização (hipóteses)
 
-- **Freemium enxuto** ou **trial + plano pago**, como no Saldu — decidir após validação.
+- **Freemium enxuto** ou **trial + plano pago** — decidir após validação.
 - Cobrança **por usuário interno** (atendente/executor) ou **por faixa** (até N usuários), com **portal de clientes ilimitado** — o contraponto direto ao "preço por agente + add-ons".
 - Canal WhatsApp como add-on transparente (custo repassado da Meta/provedor), nunca surpresa.
 - Referência de faixa a validar: abaixo de Movidesk (R$700/mês) para equipes pequenas.
 
 ---
 
-## 10. Relação com o Saldu
+## 10. Engenharia e infraestrutura
 
-- **Mesma engenharia:** .NET 10, EF Core + Npgsql, PostgreSQL, React + Vite (TS), Docker Compose + Caddy, GitHub Actions → GHCR, OCI Always Free (ARM).
-- **Mesmas convenções:** estrutura de repositório, DDD pragmático em 4 camadas, `convencoes-codigo`, Conventional Commits, ADRs, ERS.
-- **ADRs reaproveitados por referência:** Postgres (0001), EF Core (0002), multi-tenant shared schema (0003), OpenAPI + Scalar (0004), self-hosted + gerenciados (0005), Identity + JWT + RBAC (0007), vínculo N-N (0008). ADRs próprios do Acordu: 0001 (herança), 0002 (portal/escopo por cliente), 0003 (SLA em horas úteis), 0004 (tempo em minutos e consumo como read model), 0005 (hospedagem serverless — revogado, plano B), 0006 (retorno à Oracle Always Free e plano de escala).
-- **Infra compartilhada:** mesma VM (`vps-arm-01`, Oracle Always Free, Phoenix), mesmo Postgres 17 com um banco por produto, Caddy roteando por domínio, stacks em `/opt/infra`, `/opt/saldu` e `/opt/acordu` (ADR 0006). Repositórios **separados**.
-- **Sinergia:** o motor de projeção determinística é a assinatura técnica comum aos dois produtos.
+- **Stack:** .NET 10, EF Core + Npgsql, PostgreSQL, React + Vite (TS), Docker Compose + Caddy, GitHub Actions → GHCR, OCI Always Free (ARM).
+- **Convenções:** estrutura de repositório, DDD pragmático em 4 camadas, `convencoes-codigo`, Conventional Commits, ADRs, ERS.
+- **ADRs:** 0001 (decisões de engenharia base), 0002 (portal/escopo por cliente), 0003 (SLA em horas úteis), 0004 (tempo em minutos e consumo como read model), 0005 (hospedagem serverless — revogado, plano B), 0006 (retorno à Oracle Always Free e plano de escala), 0007 (transporte da sessão).
+- **Infra compartilhada:** VM `vps-arm-01` (Oracle Always Free, Phoenix) dividida com outros produtos da Nebrys, Postgres 17 com um banco por produto, Caddy roteando por domínio, stacks em `/opt/infra` e `/opt/acordu` (ADR 0006). Repositório **próprio**.
+- **Assinatura técnica:** o motor de projeção determinística e explicável.
 
 ---
 
 ## 11. Modo de construção
 
-Diferente do Saldu (construído à mão para aprender .NET), **o Acordu é implementado pelo Claude**, com o Daniel como revisor e dono das decisões:
+**O Acordu é implementado pelo Claude**, com o Daniel como revisor e dono das decisões:
 - Daniel define/aprova visão, ERS, modelo e ADRs; Claude implementa por marcos, com testes.
 - Toda entrega passa por revisão (PR) do Daniel antes do merge.
-- Motivo: a estrutura é a mesma do Saldu — o aprendizado vem de um; o outro reaproveita o padrão.
-- Consequência de agenda: o Acordu consome sobretudo tempo de **revisão e decisão**, não de digitação — reduz a disputa de horas com o Saldu, mas não a zera. O Saldu segue como prioridade até o esqueleto andante (marco 2).
+- Consequência de agenda: o Acordu consome sobretudo tempo de **revisão e decisão**, não de digitação.
 
 ---
 
@@ -181,7 +180,7 @@ Diferente do Saldu (construído à mão para aprender .NET), **o Acordu é imple
 - **Fronteira com a empregadora** (§1): manter rigorosamente; nada do ASMTasks entra.
 - **Escopo:** PSA tende a crescer infinito. Guardar o v1 no fluxo núcleo; faturamento e WhatsApp ficam fora.
 - **Mercado amplo demais:** "qualquer prestador" pode virar "ninguém". A validação deve escolher 1–2 verticais de entrada.
-- **Dois produtos, um dev:** revisar o cronograma dos dois juntos a cada marco.
+- **Vários produtos, um dev:** revisar o cronograma do Acordu junto com os demais a cada marco.
 - **Nome:** "acordo" também evoca renegociação de dívida e acordo judicial no Brasil (ex.: Acordo Certo); busca exata no INPI limpa; busca por radical pendente.
 
 ---
@@ -206,11 +205,10 @@ Diferente do Saldu (construído à mão para aprender .NET), **o Acordu é imple
 | 30/09/2026 | Posicionamento: "PSA leve" — atendimento → execução → horas → contrato, com transparência ao cliente | Hipótese |
 | 30/09/2026 | **Portal do cliente com status do serviço** é diferencial central (status externos, SLA, extrato de horas) | Decidido |
 | 30/09/2026 | Contato do cliente = `Usuario` + `Vinculo` com papel Cliente e escopo por `ClienteId` (ADR 0002) | Decidido |
-| 30/09/2026 | Mesma stack, estrutura e convenções do Saldu; ADRs 0001–0005/0007/0008 reaproveitados por referência | Decidido |
+| 30/09/2026 | Stack e decisões de engenharia base registradas no ADR 0001 | Decidido |
 | 30/09/2026 | Implementação feita pelo Claude; Daniel revisa e decide | Decidido |
-| 30/09/2026 | Saldu segue prioridade até o esqueleto andante | Diretriz |
 | 30/09/2026 | **Base de conhecimento gerada a partir das solicitações resolvidas**: v1 solução estruturada + semelhantes (sem IA); v2 artigos e portal; v3 rascunho por IA com aprovação humana; sempre isolada por tenant | Hipótese |
-| 30/09/2026 | Empresa: **Utile Systems** (`utilesystems.com.br` livre; INPI a verificar) | Decidido |
 | 02/10/2026 | Estratégia e cronograma ficam **no repositório** (`docs/`), privado; revisar antes de qualquer abertura pública | Decidido |
 | 05/10/2026 | Conta Oracle Cloud inacessível: hospedagem serverless gratuita (Cloud Run + Neon + Cloudflare Pages), projeto e banco próprios por produto, plano de escala até VM no Brasil (ADR 0005) | Revogado em 06/10 |
-| 06/10/2026 | Conta Oracle recuperada: volta à VM Ampere compartilhada com o Saldu; níveis 1 (Magalu Cloud SP) e 2; serverless como plano B (ADR 0006) | Decidido |
+| 06/10/2026 | Conta Oracle recuperada: volta à VM Ampere compartilhada com outros produtos; níveis 1 (Magalu Cloud SP) e 2; serverless como plano B (ADR 0006) | Decidido |
+| 10/10/2026 | Empresa: **Nebrys** (`nebrys.com.br` livre em 10/10/2026; INPI a verificar) | Decidido |

@@ -4,14 +4,14 @@
 |---|---|
 | **Versão** | 0.3 |
 | **Data** | 06/10/2026 |
-| **Objetivo** | Preparar na OCI tudo o que o Acordu precisa **além** do que o Saldu já provisionou. |
+| **Objetivo** | Preparar na OCI tudo o que o Acordu precisa **além** do que a infraestrutura compartilhada já provê. |
 | **Natureza** | Runbook operacional (ordem de execução) + registro do estado provisionado (ver fim). |
 
-> **Premissa (ADRs 0001 e 0006):** o Acordu roda **na mesma VM** do Saldu, como inquilino da infra compartilhada (nível 0 do ADR 0006). Tenancy **`dansantos`**, região home **`us-phoenix-1`**, conta recuperada em 06/10/2026 com a VM Ampere existente. A conta, a região, a rede, a VM, o SO e o Docker já existem e **não** são refeitos aqui — o runbook do Saldu continua sendo a referência para eles. Ver §9 para a alternativa de VM separada e o ADR 0006 para os níveis de escala e o plano B.
+> **Premissa (ADRs 0001 e 0006):** o Acordu roda **na VM compartilhada**, como inquilino da infra compartilhada (nível 0 do ADR 0006). Tenancy **`dansantos`**, região home **`us-phoenix-1`**, conta recuperada em 06/10/2026 com a VM Ampere existente. A conta, a região, a rede, a VM, o SO e o Docker já existem e **não** são refeitos aqui — estão descritos no ADR 0006 e na §0.1. Ver §9 para a alternativa de VM separada e o ADR 0006 para os níveis de escala e o plano B.
 
 > A versão 0.2 deste runbook (`setup-infra-acordu.md`, Google Cloud + Neon + Cloudflare Pages) pertence ao ADR 0005, revogado e mantido como plano B; está no histórico do git (commit `a635190`).
 
-> **Aviso de recência (herdado):** a Oracle mudou os limites do Always Free sem aviso em jun/2026. Confirme limites vigentes (compute **e** object storage) antes de provisionar.
+> **Aviso de recência:** a Oracle mudou os limites do Always Free sem aviso em jun/2026. Confirme limites vigentes (compute **e** object storage) antes de provisionar.
 
 ---
 
@@ -26,17 +26,16 @@ Infra **compartilhada** recebe nome de **função**; recurso **exclusivo** de um
 | Subnet pública | `infra-subnet-publica` (`10.0.0.0/24`) | `infra` |
 | VM Ampere | `vps-arm-01` | `infra` |
 | IP público reservado | `vps-arm-01-ip` | `infra` |
-| Recursos só do Saldu (buckets, IAM) | prefixo `saldu-` | `saldu` |
 | Recursos só do Acordu (buckets, IAM) | prefixo `acordu-` | `acordu` |
 | Stack compartilhada na VM | `/opt/infra` (Caddy + PostgreSQL 17) | — |
 | Rede Docker compartilhada | `infra_net` (externa, criada pela stack de infra) | — |
-| Stacks dos produtos na VM | `/opt/saldu`, `/opt/acordu` | — |
+| Stacks dos produtos na VM | `/opt/<produto>` (ex.: `/opt/acordu`) | — |
 
 O sufixo `-01` reserva espaço para uma segunda VM (§9).
 
-**Migração dos nomes antigos** (`pondus`, `pondus-vcn`, `pondus-vps`, `pondus-ip`):
+**Migração dos nomes antigos** (recursos criados antes com nome de produto):
 - Compartimento, VM e IP reservado: renomear pelo console (sem impacto).
-- VCN: **não** é renomeável; trocar o nome exige recriar a VCN **e a VM**. Fazer agora (nada em produção) num horário com tempo para insistir se faltar capacidade Ampere em PHX, **ou** manter `pondus-vcn` como exceção documentada até a próxima recriação da VM — nunca recriar só por causa do nome com produção no ar.
+- VCN: **não** é renomeável; trocar o nome exige recriar a VCN **e a VM**. Fazer agora (nada em produção) num horário com tempo para insistir se faltar capacidade Ampere em PHX, **ou** manter a VCN antiga como exceção documentada até a próxima recriação da VM — nunca recriar só por causa do nome com produção no ar.
 
 ## 0.1 O que já existe e o Acordu reaproveita
 
@@ -64,7 +63,7 @@ O sufixo `-01` reserva espaço para uma segunda VM (§9).
 
 ### 1. Compartimento
 - Criar o compartimento **`acordu`** para os recursos **exclusivos** do Acordu (buckets e políticas).
-- A VM, a rede e o IP ficam no compartimento `infra` (compartilhado). O Saldu segue o mesmo padrão, com o compartimento `saldu` para os recursos dele.
+- A VM, a rede e o IP ficam no compartimento `infra` (compartilhado). Cada produto segue o mesmo padrão, com compartimento próprio para os seus recursos.
 
 ### 2. Object Storage
 Criar dois buckets no compartimento `acordu`, ambos **privados** (sem acesso público) e com criptografia gerenciada pela Oracle:
@@ -76,7 +75,7 @@ Criar dois buckets no compartimento `acordu`, ambos **privados** (sem acesso pú
 
 Anotar o **namespace** do Object Storage da tenancy (aparece nos detalhes do bucket) — entra no endpoint S3.
 
-> **Cota:** os 20 GB gratuitos de Object Storage são da **tenancy inteira** (backups do Saldu + backups do Acordu + anexos). Criar alerta de uso (via Monitoring/Budgets) em ~15 GB.
+> **Cota:** os 20 GB gratuitos de Object Storage são da **tenancy inteira** (backups de todos os produtos + anexos do Acordu). Criar alerta de uso (via Monitoring/Budgets) em ~15 GB.
 
 ### 3. Identidade de aplicação (acesso da API aos buckets)
 A API acessa o object storage pela **API compatível com S3**, que usa *Customer Secret Keys*.
@@ -93,7 +92,7 @@ A API acessa o object storage pela **API compatível com S3**, que usa *Customer
 5. Endpoint S3: `https://<namespace>.compat.objectstorage.us-phoenix-1.oraclecloud.com`, região `us-phoenix-1`, *path-style*.
 6. Validar na implementação que a URL pré-assinada (SigV4) funciona no endpoint compatível; se não, usar *Pre-Authenticated Requests* da OCI com expiração curta (registrar a escolha em ADR).
 
-> Por que um usuário dedicado: se a chave vazar, o estrago fica limitado aos buckets do Acordu; o Saldu e a tenancy não são afetados. Revogar = apagar a Customer Secret Key.
+> Por que um usuário dedicado: se a chave vazar, o estrago fica limitado aos buckets do Acordu; os outros produtos e a tenancy não são afetados. Revogar = apagar a Customer Secret Key.
 
 ### 4. Banco de dados (na VM, no Postgres compartilhado)
 Via `docker exec` no container do Postgres 17 da stack de infra (ver `deploy-ci-acordu-v1.md` §2):
@@ -111,18 +110,18 @@ ALTER DEFAULT PRIVILEGES FOR ROLE acordu_migrator IN SCHEMA public
   GRANT USAGE, SELECT ON SEQUENCES TO acordu_app;
 GRANT USAGE ON SCHEMA public TO acordu_app;
 ```
-Conferir: `acordu_app` **não** consegue `\c saldu`; o usuário do Saldu não consegue `\c acordu`.
+Conferir: `acordu_app` **não** consegue conectar em bancos de outros produtos, e os usuários deles não conseguem `\c acordu`.
 
 Extensões (`pg_trgm`, `unaccent`) são criadas pela primeira migration; se a imagem exigir superusuário para isso, criar uma vez aqui com o usuário `postgres`.
 
 ### 5. Pastas e usuário de deploy (na VM)
 - `/opt/acordu/` com `docker-compose.yml` (serviços na rede externa `infra_net`) e `.env` (`chmod 600`, dono `deploy`).
 - Timer dos jobs (`acordu-jobs.timer`), conforme `deploy-ci-acordu-v1.md` §5.1; `JOBS__TOKEN` no `.env`.
-- Mesmo usuário `deploy` do Saldu, mas **chave SSH própria do repositório Acordu** em `~deploy/.ssh/authorized_keys`, com comentário `acordu-deploy` (revogável sem afetar o Saldu).
+- Usuário `deploy` compartilhado da VM, mas **chave SSH própria do repositório Acordu** em `~deploy/.ssh/authorized_keys`, com comentário `acordu-deploy` (revogável sem afetar outros produtos).
 
 ### 6. DNS
 - Registrar **`acordu.app.br`** e **`acordu.com.br`** no registro.br.
-- Delegar para o **Cloudflare** (complementares do ADR 0005 do Saldu, herdado; só DNS) e criar:
+- Delegar para o **Cloudflare** (serviço complementar do ADR 0001; só DNS) e criar:
   - `A acordu.app.br` → `vps-arm-01-ip` (proxy Cloudflare **desligado** até o Caddy emitir o primeiro certificado; depois ligar, com SSL "Full (strict)");
   - `CNAME www` → `acordu.app.br`;
   - `acordu.com.br`: redirecionamento para `acordu.app.br` (regra do Cloudflare).
@@ -137,7 +136,7 @@ O Acordu envia e-mail para os **clientes dos clientes** — reputação de domí
 5. Chave de API do Resend **exclusiva do Acordu** no `.env`.
 
 ### 8. GHCR
-Na VM, o `docker login ghcr.io` já feito para o Saldu serve se o token tiver `read:packages` para as duas imagens; senão, gerar um token que cubra ambas.
+Na VM, o `docker login ghcr.io` já existente serve se o token tiver `read:packages` para as duas imagens; senão, gerar um token que cubra ambas.
 
 ---
 
@@ -145,7 +144,7 @@ Na VM, o `docker login ghcr.io` já feito para o Saldu serve se o token tiver `r
 
 ```
 A.  Repo acordu (estrutura + docs + push)
-B0. Pré-requisito: MFA revisado (códigos de recuperação + segundo fator), nomes por função aplicados (§0), stack /opt/infra (Caddy + Postgres) criada e Saldu migrado para ela
+B0. Pré-requisito: MFA revisado (códigos de recuperação + segundo fator), nomes por função aplicados (§0), stack /opt/infra (Caddy + Postgres) criada e produtos existentes migrados para ela
 B1. Compartimento acordu
 B2. Buckets acordu-anexos (versionado) e acordu-backups (lifecycle 14d) + alerta de cota
 B3. Usuário acordu-app + grupo + política + Customer Secret Key
@@ -163,13 +162,13 @@ B8. GHCR com acesso às imagens do Acordu
 
 - [ ] MFA da tenancy com códigos de recuperação guardados fora da Oracle e segundo fator cadastrado.
 - [ ] Nomes por função aplicados (compartimento `infra`, `vps-arm-01`, `vps-arm-01-ip`; VCN `infra-vcn` ou exceção documentada).
-- [ ] Stack `/opt/infra` (Caddy + PostgreSQL 17, rede `infra_net`) no ar; Saldu funcionando depois da migração.
+- [ ] Stack `/opt/infra` (Caddy + PostgreSQL 17, rede `infra_net`) no ar; produtos existentes funcionando depois da migração.
 - [ ] `vps-arm-01-ip` associado à VM.
 - [ ] Compartimento `acordu` criado.
 - [ ] Buckets privados criados, versionamento e lifecycle configurados.
 - [ ] Alerta de uso do Object Storage (~15 GB).
 - [ ] `acordu-app` com Customer Secret Key; política limitada aos dois buckets.
-- [ ] Banco `acordu` e roles criados; isolamento do banco `saldu` conferido.
+- [ ] Banco `acordu` e roles criados; isolamento em relação aos bancos de outros produtos conferido.
 - [ ] `/opt/acordu/.env` com permissões 600.
 - [ ] Chave SSH de deploy do Acordu instalada.
 - [ ] `acordu.app.br` e `acordu.com.br` registrados e no Cloudflare.
@@ -202,8 +201,8 @@ _(preencher conforme executar)_
 | Recurso | Valor |
 |---|---|
 | Tenancy / região | `dansantos` / `us-phoenix-1` — recuperada em 06/10/2026 |
-| Compartimento compartilhado | `infra` (ex-`pondus`) — _renomear_ |
-| VCN | `infra-vcn` — _recriar ou manter `pondus-vcn` como exceção_ |
+| Compartimento compartilhado | `infra` — _renomear o compartimento antigo_ |
+| VCN | `infra-vcn` — _recriar ou manter a VCN antiga como exceção_ |
 | VM / IP | `vps-arm-01` / `vps-arm-01-ip` — _renomear_ |
 | Compartimento do Acordu | `acordu` — _pendente_ |
 | Buckets | `acordu-anexos`, `acordu-backups` — _pendente_ |
@@ -213,4 +212,4 @@ _(preencher conforme executar)_
 | Domínios | `acordu.app.br`, `acordu.com.br` — _registrar_ |
 | Resend | domínio verificado? _pendente_ |
 
-> Regra de segurança (herdada): OCIDs, chaves e senhas **não** entram neste documento nem no repositório.
+> Regra de segurança: OCIDs, chaves e senhas **não** entram neste documento nem no repositório.

@@ -5,30 +5,30 @@
 | **Versão** | 0.3 |
 | **Data** | 06/10/2026 |
 | **Alvo** | Nível 0 do ADR 0006: VM compartilhada `vps-arm-01` (Oracle Cloud Always Free, tenancy `dansantos`, `us-phoenix-1`, Ampere A1, ARM, Ubuntu 24.04), no compartimento `infra`. |
-| **Base** | ADR 0006 e a estratégia de deploy do Saldu (princípios, CI, GHCR, migrations, backup, TLS). Aqui só o que é **próprio** do Acordu ou muda por **compartilhar** a VM. Provisionamento em `setup-infra-oracle-acordu.md`. |
+| **Base** | ADR 0006 (princípios, CI, GHCR, migrations, backup, TLS). Aqui o que é **próprio** do Acordu e o que muda por **compartilhar** a VM. Provisionamento em `setup-infra-oracle-acordu.md`. |
 
 > A versão 0.2 (05/10/2026) descrevia a hospedagem serverless do ADR 0005, revogado em 06/10/2026 e mantido como plano B; ela está no histórico do git (commit `a635190`).
 
 ---
 
-## 1. Princípios (herdados)
+## 1. Princípios
 
-ARM64 com cross-build; vendor-neutro (Compose + Postgres + Caddy); Compose, não Kubernetes; orçamento de 2 OCPU / 12 GB — agora dividido entre dois produtos. Regras do ADR 0006 §5: nenhum SDK de provedor no código, configuração só por variável de ambiente, migrations aditivas, PostgreSQL 17 em todos os ambientes, backup diário com restore testado.
+ARM64 com cross-build; vendor-neutro (Compose + Postgres + Caddy); Compose, não Kubernetes; orçamento de 2 OCPU / 12 GB — dividido entre os produtos da VM. Regras do ADR 0006 §5: nenhum SDK de provedor no código, configuração só por variável de ambiente, migrations aditivas, PostgreSQL 17 em todos os ambientes, backup diário com restore testado.
 
 ---
 
 ## 2. Topologia compartilhada
 
-Com dois produtos na mesma VM, o **Caddy de borda** e o **PostgreSQL** deixam de pertencer a um produto e passam para uma **stack de infraestrutura** própria. Cada produto tem seu compose e se conecta à rede compartilhada `infra_net` (externa, criada pela stack de infra). O Acordu é **inquilino**: não altera `/opt/infra`, só adiciona o bloco de site e recarrega o Caddy.
+Com mais de um produto na mesma VM, o **Caddy de borda** e o **PostgreSQL** deixam de pertencer a um produto e passam para uma **stack de infraestrutura** própria. Cada produto tem seu compose e se conecta à rede compartilhada `infra_net` (externa, criada pela stack de infra). O Acordu é **inquilino**: não altera `/opt/infra`, só adiciona o bloco de site e recarrega o Caddy.
 
 ```
 Internet ── 80/443
 ┌──────────────────────── vps-arm-01 (Ampere ARM) ──────────────────────┐
 │ /opt/infra   (stack de infraestrutura)                                 │
 │   caddy     ── TLS + roteamento por domínio  (rede: infra_net)         │
-│   postgres  ── PostgreSQL 17; bancos: saldu, acordu  (rede: infra_net) │
+│   postgres  ── PostgreSQL 17; um banco por produto (rede: infra_net) │
 │                                                                        │
-│ /opt/saldu   saldu-web, saldu-api            (rede: infra_net)         │
+│ /opt/<prod>  <prod>-web, <prod>-api          (rede: infra_net)         │
 │ /opt/acordu  acordu-web, acordu-api          (rede: infra_net)         │
 └────────────────────────────────────────────────────────────────────────┘
 ```
@@ -40,7 +40,7 @@ Internet ── 80/443
 | `acordu-web` | `acordu-web` | interna | Servidor estático do SPA (Caddy `file_server`). |
 | `acordu-api` | `acordu-api` (.NET 10) | interna | API. Jobs (recorrências, fechamento automático, alertas de SLA, varredura da outbox) são endpoints `/internal/jobs/*` disparados por timer na VM (§5.1). |
 
-**Impacto no Saldu (a propagar no repositório dele):** hoje o `web` do Saldu é o Caddy de borda. Com a stack de infra, ele vira um `saldu-web` estático interno, igual ao do Acordu, e o Postgres sai do compose do Saldu. Fazer essa migração **uma vez**, antes do primeiro deploy do Acordu, com backup do banco do Saldu antes.
+**Pré-requisito:** a stack `/opt/infra` (Caddy de borda + PostgreSQL) precisa existir antes do primeiro deploy do Acordu. Produto que hoje embute o próprio Caddy ou Postgres migra para ela **uma vez**, com backup antes.
 
 ### 2.1 Roteamento (bloco `docker/Caddyfile.acordu`, importado pelo Caddy de infra)
 ```
@@ -65,7 +65,7 @@ www.acordu.app.br {
     redir https://acordu.app.br{uri} permanent
 }
 ```
-`/internal/*` não sai pela borda: os jobs são chamados de dentro da `infra_net`. O Caddy de infra tem `import /etc/caddy/sites/*.caddy`; o deploy do Acordu copia o bloco para `sites/acordu.caddy` e faz `caddy reload` (sem derrubar o Saldu).
+`/internal/*` não sai pela borda: os jobs são chamados de dentro da `infra_net`. O Caddy de infra tem `import /etc/caddy/sites/*.caddy`; o deploy do Acordu copia o bloco para `sites/acordu.caddy` e faz `caddy reload` (sem derrubar os outros sites).
 
 ### 2.2 Limites de recursos
 Cada serviço de produto tem `mem_limit` e `cpus` no compose, para um produto não derrubar o outro. Ponto de partida:
@@ -74,8 +74,8 @@ Cada serviço de produto tem `mem_limit` e `cpus` no compose, para um produto n�
 |---|---|---|
 | postgres (infra) | 3 GB | 1.0 |
 | caddy (infra) | 256 MB | 0.25 |
-| saldu-api / acordu-api | 1,5 GB cada | 0.75 cada |
-| saldu-web / acordu-web | 64 MB cada | 0.1 cada |
+| acordu-api (e cada API de outro produto) | 1,5 GB | 0.75 |
+| acordu-web (e cada web de outro produto) | 64 MB | 0.1 |
 
 Revisar com a medição real (o `docker stats` do primeiro mês).
 
@@ -83,7 +83,7 @@ Revisar com a medição real (o `docker stats` do primeiro mês).
 
 ## 3. CI (`ci.yml`) — a cada push/PR
 
-Igual ao Saldu:
+Pipeline:
 - **Backend:** restore → build → todos os testes (incluindo `ArchitectureTests`); integração com Testcontainers (`postgres:17`, mesma versão da VM). **(Acordu)** O teste do object storage usa um emulador S3 em container no runner (escolha no marco de anexos).
 - **Frontend:** install → lint → Vitest → build.
 - Merge em `main` só com tudo verde e PR revisado.
@@ -92,7 +92,7 @@ Igual ao Saldu:
 
 ## 4. Build e publicação
 
-Igual ao Saldu: Buildx + QEMU `linux/arm64`, tag por SHA + `latest`, push no GHCR. Imagens: `ghcr.io/<usuario>/acordu-api` e `acordu-web`.
+Buildx + QEMU `linux/arm64`, tag por SHA + `latest`, push no GHCR. Imagens: `ghcr.io/<usuario>/acordu-api` e `acordu-web`.
 
 ---
 
@@ -119,7 +119,7 @@ Os jobs já são endpoints internos idempotentes (`POST /internal/jobs/<nome>`, 
 ## 6. Banco de dados
 
 - Banco `acordu` na instância compartilhada (`postgres:17` em `/opt/infra`).
-- Dois usuários: `acordu_migrator` (DDL, só no deploy) e `acordu_app` (DML, usado pela API). Nenhum dos dois tem `CONNECT` no banco `saldu`, e vice-versa.
+- Dois usuários: `acordu_migrator` (DDL, só no deploy) e `acordu_app` (DML, usado pela API). Nenhum dos dois tem `CONNECT` em bancos de outros produtos, e vice-versa.
 - `REVOKE ALL ON DATABASE acordu FROM PUBLIC`.
 - Pool: `Maximum Pool Size=20` na connection string (o Postgres compartilhado fica com `max_connections` 100).
 - Extensões `pg_trgm` e `unaccent` criadas pela migration (o `acordu_migrator` precisa de permissão para `CREATE EXTENSION` nesse banco — concedida uma vez no setup).
@@ -129,7 +129,7 @@ Os jobs já são endpoints internos idempotentes (`POST /internal/jobs/<nome>`, 
 ## 7. Segredos
 
 - **GitHub Actions (repositório acordu):** token GHCR, chave SSH de deploy do Acordu, host/usuário, webhook do Discord.
-- **VM (`/opt/acordu/.env`, fora do git, `chmod 600`):** connection strings (`acordu_app` e `acordu_migrator`), chave de assinatura do JWT **própria** (não reutilizar a do Saldu), chave de API do Resend (`Email__ResendChave`; remetente em `Email__Remetente`, padrão `nao-responda@send.acordu.app.br`, e nome padrão em `Email__NomeRemetente`; sem a chave, a API só registra os e-mails em log), endereço público do front (`App__UrlPublica`, base dos links dos e-mails), credenciais do object storage (Customer Secret Key restrita aos buckets do Acordu), DSN do Sentry, webhook do Discord.
+- **VM (`/opt/acordu/.env`, fora do git, `chmod 600`):** connection strings (`acordu_app` e `acordu_migrator`), chave de assinatura do JWT **própria** (nunca compartilhada com outro produto), chave de API do Resend (`Email__ResendChave`; remetente em `Email__Remetente`, padrão `nao-responda@send.acordu.app.br`, e nome padrão em `Email__NomeRemetente`; sem a chave, a API só registra os e-mails em log), endereço público do front (`App__UrlPublica`, base dos links dos e-mails), credenciais do object storage (Customer Secret Key restrita aos buckets do Acordu), DSN do Sentry, webhook do Discord.
 
 ---
 
@@ -144,17 +144,17 @@ Os jobs já são endpoints internos idempotentes (`POST /internal/jobs/<nome>`, 
 
 ## 9. Monitoramento
 
-Herdado (healthchecks, uptime externo, Sentry, Discord). **(Acordu)** O `/api/health` não consulta o banco; a saúde dos jobs vem do timer (falha → Discord, §5.1) e do heartbeat diário.
+Base: healthchecks, uptime externo, Sentry, Discord. **(Acordu)** O `/api/health` não consulta o banco; a saúde dos jobs vem do timer (falha → Discord, §5.1) e do heartbeat diário.
 
 ---
 
 ## 10. Checklist de riscos
 
 - [ ] Nomes por função da infra aplicados (`vps-arm-01`, `infra`, `infra-vcn`, `infra_net`; ver `setup-infra-oracle-acordu.md` §0).
-- [ ] Stack `/opt/infra` criada e Saldu migrado para ela (com backup antes).
-- [ ] Banco `acordu` isolado do `saldu` (usuários e `REVOKE` conferidos).
+- [ ] Stack `/opt/infra` criada e produtos existentes migrados para ela (com backup antes).
+- [ ] Banco `acordu` isolado dos bancos de outros produtos (usuários e `REVOKE` conferidos).
 - [ ] Limites de memória/CPU aplicados e medidos.
-- [ ] Bloco do Caddy do Acordu recarrega sem afetar o Saldu; `/internal/*` responde 404 pela borda.
+- [ ] Bloco do Caddy do Acordu recarrega sem afetar os outros sites; `/internal/*` responde 404 pela borda.
 - [ ] Timer dos jobs ativo; endpoints respondem 404 sem token e são idempotentes.
 - [ ] Postgres 17 em dev, testes e VM.
 - [ ] Imagem da API com `tzdata` e ICU (o cálculo de SLA resolve fusos IANA como `America/Sao_Paulo`; imagens Alpine não trazem por padrão).
@@ -162,4 +162,4 @@ Herdado (healthchecks, uptime externo, Sentry, Discord). **(Acordu)** O `/api/he
 - [ ] Buckets privados; Customer Secret Key restrita aos buckets do Acordu.
 - [ ] Backup do banco + versionamento dos anexos + restore testado.
 - [ ] Domínio de envio verificado no Resend (SPF/DKIM) antes do primeiro e-mail a cliente.
-- [ ] Cota de 20 GB de object storage do Always Free acompanhada (é da tenancy toda: backups dos dois produtos + anexos).
+- [ ] Cota de 20 GB de object storage do Always Free acompanhada (é da tenancy toda: backups de todos os produtos + anexos).
