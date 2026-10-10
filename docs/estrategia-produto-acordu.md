@@ -3,7 +3,7 @@
 | | |
 |---|---|
 | **Versão** | 0.2 (documento vivo — revisar conforme validar) |
-| **Data** | 06/10/2026 |
+| **Data** | 10/10/2026 |
 | **Empresa** | Nebrys |
 | **Natureza** | Visão e estratégia. Hipóteses a validar com usuários, não decisões cravadas. |
 
