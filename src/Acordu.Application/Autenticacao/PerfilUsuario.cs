@@ -2,11 +2,15 @@ using Acordu.Domain.Enums;
 
 namespace Acordu.Application.Autenticacao;
 
-/// <summary>Resposta do <c>GET /auth/eu</c> (contrato §2).</summary>
+/// <summary>
+/// Resposta do <c>GET /auth/eu</c> (contrato §2). <see cref="EmailConfirmado"/> falso não bloqueia nada: a SPA mostra o
+/// aviso para confirmar.
+/// </summary>
 public sealed record PerfilUsuario(
     Guid UsuarioId,
     string Nome,
     string Email,
+    bool EmailConfirmado,
     TenantAtivo Tenant,
     string Papel,
     IReadOnlyList<string> Permissoes,
