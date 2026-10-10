@@ -3,7 +3,7 @@
 - **Status:** Aceito
 - **Data:** 09/10/2026
 - **Contexto do projeto:** Acordu (v1)
-- **Complementa:** ADR 0007 do Saldu (Identity + JWT curto + refresh revogável), herdado pelo [ADR 0001](0001-herdar-decisoes-do-saldu.md). Aquele ADR decide **o que** é a sessão; este decide **por onde** cada token viaja e onde fica guardado.
+- **Complementa:** [ADR 0001](0001-decisoes-de-engenharia-base.md) (Identity + JWT curto + refresh revogável). Aquele ADR decide **o que** é a sessão; este decide **por onde** cada token viaja e onde fica guardado.
 
 ## Contexto
 
@@ -11,7 +11,7 @@ A sessão tem dois tokens:
 - **access token** (JWT de 60 min), que carrega tenant, papel, permissões e, para Cliente, `cliente_id` e `escopo_portal`;
 - **refresh token** (opaco, 30 dias, persistido como hash e revogável), que só serve para obter um novo access token.
 
-O herdado do Saldu não dizia como os tokens chegam ao navegador nem onde ficam. A implementação (`/auth/*`) escolheu cookie HttpOnly para o refresh, e isso estava registrado só no contrato da API (§2). Como a escolha condiciona o frontend, o deploy (mesmo site) e a defesa contra XSS e CSRF, ela precisa de registro próprio.
+O ADR 0001 não dizia como os tokens chegam ao navegador nem onde ficam. A implementação (`/auth/*`) escolheu cookie HttpOnly para o refresh, e isso estava registrado só no contrato da API (§2). Como a escolha condiciona o frontend, o deploy (mesmo site) e a defesa contra XSS e CSRF, ela precisa de registro próprio.
 
 As ameaças que pesam:
 - **XSS:** qualquer token legível por JavaScript pode ser roubado por um script injetado. O refresh é o mais valioso, porque dura 30 dias e gera novos access tokens.

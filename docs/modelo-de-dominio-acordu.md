@@ -12,7 +12,7 @@
 
 ## 1. Princípios de modelagem
 
-Mesmos do Saldu:
+Princípios:
 
 - **Agregados pequenos.** Coleções que crescem sem limite (interações, apontamentos, ajustes) viram agregados próprios.
 - **Referência por Id entre agregados.** Nunca navegação de objeto entre raízes.
@@ -365,7 +365,7 @@ Regras:
 ### 4.5 Interacao
 - **Invariantes:** texto (≤ 10.000) ou ao menos um anexo; autor cliente ⇒ visibilidade EXTERNA obrigatória; anexos validados contra a `PoliticaAnexos` (tamanho máximo, content types permitidos, máximo por interação), montada pela Application a partir da configuração (padrão do contrato da API: 5 anexos de até 20 MB) → `AnexoInvalidoException`; nome de arquivo sem caminho (`/`, `\`, `..`).
 - O arquivo é enviado ao object storage antes; o domínio recebe `NovoAnexo` (nome, tipo, tamanho, chave). Imutável depois de registrada no v1.
-- Anexo guarda metadados + `ChaveArmazenamento`; o binário vive no object storage (ADR 0005 do Saldu — complementares).
+- Anexo guarda metadados + `ChaveArmazenamento`; o binário vive no object storage (ADR 0001 — serviços complementares).
 - **Emite:** `InteracaoRegistrada` (com `Visibilidade` e `AutorEhCliente`) — gatilho das regras do §3.1 e das notificações.
 
 ### 4.6 Tarefa
@@ -435,7 +435,7 @@ Regras:
 - Nome único por tenant é regra entre agregados: Application + índice único no banco.
 
 ### 4.13 Identidade e acesso
-Mesmo desenho do Saldu (`Tenant`, `Usuario` global, `Vinculo` N-N, `Papel`, `Permissao`), com a extensão do ADR 0002: `Vinculo.ClienteId` e `Vinculo.EscopoPortal`, obrigatórios quando o papel é **Cliente** e proibidos nos demais.
+Desenho base do ADR 0001 (`Tenant`, `Usuario` global, `Vinculo` N-N, `Papel`, `Permissao`), com a extensão do ADR 0002: `Vinculo.ClienteId` e `Vinculo.EscopoPortal`, obrigatórios quando o papel é **Cliente** e proibidos nos demais.
 
 ---
 
@@ -468,7 +468,7 @@ Puros e determinísticos — principal alvo dos testes unitários.
 
 ### 6.2 GeradorDeDatas
 - `Proxima(regra, aPartirDe: DateOnly): DateOnly?` (nula depois do fim) e `Ocorrencias(regra, de, ate)`.
-- Clamp de fim de mês sem "contaminar" os meses seguintes: dia 31 gera 31/01, 28/02, 31/03 (mesma regra do Saldu, implementação própria). Candidato a ser extraído num pacote comum aos dois produtos **se** a duplicação incomodar — não agora.
+- Clamp de fim de mês sem "contaminar" os meses seguintes: dia 31 gera 31/01, 28/02, 31/03.
 
 ---
 
@@ -509,7 +509,7 @@ Não são estado de domínio; vivem como queries na Application (`read-side-acor
 
 ## 9. Diretrizes de codificação do domínio
 
-- Tudo das convenções do Saldu vale, trocando `Pondus.*`/`Saldu.*` por `Acordu.*`.
+- Vale tudo de `convencoes-codigo-acordu.md`.
 - `Duracao` em todo lugar onde há tempo gasto/previsto; nenhum `int minutos` solto em assinatura pública.
 - Nenhum `DateTime.Now`/`UtcNow` no `Acordu.Domain`: o instante entra por parâmetro; a Application usa `TimeProvider` (.NET) para obtê-lo, o que também permite testes com relógio falso.
 - Exceções de domínio específicas: `TransicaoInvalidaException`, `PeriodoFechadoException`, `ContratoIncoerenteException`, `SlaIncompletoException`.

@@ -1,10 +1,10 @@
 # Acordu
 
-> Um produto **Utile Systems**.
+> Um produto **Nebrys**.
 
 Gestão de **atendimento, tarefas e contratos** para prestadores de serviço, com **portal transparente para o cliente**. Todo pedido do cliente vira trabalho rastreado — e o cliente vê o status, o prazo e quanto do contrato foi consumido.
 
-Construído desde o início como **multi-tenant**, com a mesma engenharia do **Saldu**.
+Construído desde o início como **multi-tenant**.
 
 **Status:** planejamento concluído; código do v1 a iniciar — ver [Status](#status).
 
@@ -32,7 +32,7 @@ Construído desde o início como **multi-tenant**, com a mesma engenharia do **S
 | Área | Estado |
 |---|---|
 | Planejamento (ERS, modelo, API, read side, ADRs, segurança) | ✅ concluído |
-| Infraestrutura (compartilhada com o Saldu) | ⏳ passos próprios do Acordu pendentes |
+| Infraestrutura (VM compartilhada) | ⏳ passos próprios do Acordu pendentes |
 | Código do v1 | ⏳ a iniciar |
 | CI/CD e deploy | ⏳ planejado |
 
@@ -60,7 +60,7 @@ Construído desde o início como **multi-tenant**, com a mesma engenharia do **S
 | Arquivos | Object storage S3-compatível (OCI) |
 | E-mail | Resend |
 | Infra | Docker Compose + Caddy |
-| Hospedagem | Oracle Cloud Always Free (Ampere ARM, `us-phoenix-1`), VM compartilhada com o Saldu — ADR 0006 |
+| Hospedagem | Oracle Cloud Always Free (Ampere ARM, `us-phoenix-1`), VM compartilhada com outros produtos — ADR 0006 |
 | CI/CD | GitHub Actions → GHCR → VM |
 
 ---
@@ -123,7 +123,7 @@ acordu/
 | Documento | Conteúdo |
 |---|---|
 | `docs/ers/ERS-acordu-v1.md` | Especificação de requisitos (ISO/IEC/IEEE 29148). |
-| `docs/adr/0001-herdar-decisoes-do-saldu.md` | Decisões de engenharia herdadas do Saldu. |
+| `docs/adr/0001-decisoes-de-engenharia-base.md` | Banco, ORM, multi-tenant, OpenAPI, hospedagem, identidade e multiusuário. |
 | `docs/adr/0002-portal-escopo-por-cliente.md` | Portal: contato como usuário com escopo por cliente. |
 | `docs/adr/0003-sla-horas-uteis.md` | SLA em horas úteis, calendário por tenant, pausa. |
 | `docs/adr/0004-tempo-em-minutos-e-consumo-read-model.md` | `Duracao` em minutos; consumo como read model. |
@@ -152,7 +152,7 @@ Regra de higiene: **decisão de arquitetura vira ADR**; **convenção de código
 **Pré-requisitos:** .NET 10 SDK, Node LTS, Docker.
 
 ```
-# Postgres local (porta 5434; o Saldu usa 5433)
+# Postgres local (porta 5434)
 docker compose -f docker-compose.dev.yml up -d
 
 # backend
@@ -180,7 +180,7 @@ Obrigatórios: isolamento **entre tenants** e **entre clientes** do mesmo tenant
 
 ## Deploy
 
-Imagens **ARM64** no GitHub Actions → **GHCR** → `docker compose pull && up -d` na VM, com migrations como etapa explícita. Caddy e PostgreSQL 17 ficam numa stack de infraestrutura compartilhada com o Saldu (`/opt/infra`, rede `infra_net`); o Acordu é inquilino em `/opt/acordu`. Jobs agendados (recorrências, fechamento automático, alertas de SLA) são endpoints internos idempotentes (`/internal/jobs/*`, com token), disparados por timer na VM (ADR 0006). Ver `docs/adr/0006-retorno-oracle-always-free.md`, `docs/deploy-ci-acordu-v1.md` e `docs/setup-infra-oracle-acordu.md`.
+Imagens **ARM64** no GitHub Actions → **GHCR** → `docker compose pull && up -d` na VM, com migrations como etapa explícita. Caddy e PostgreSQL 17 ficam numa stack de infraestrutura compartilhada (`/opt/infra`, rede `infra_net`); o Acordu é inquilino em `/opt/acordu`. Jobs agendados (recorrências, fechamento automático, alertas de SLA) são endpoints internos idempotentes (`/internal/jobs/*`, com token), disparados por timer na VM (ADR 0006). Ver `docs/adr/0006-retorno-oracle-always-free.md`, `docs/deploy-ci-acordu-v1.md` e `docs/setup-infra-oracle-acordu.md`.
 
 ---
 
@@ -205,8 +205,8 @@ Imagens **ARM64** no GitHub Actions → **GHCR** → `docker compose pull && up 
 
 ## Licença
 
-Todos os direitos reservados — projeto proprietário da **Utile Systems** enquanto privado. Uma licença poderá ser definida caso o projeto seja aberto no futuro.
+Todos os direitos reservados — projeto proprietário da **Nebrys** enquanto privado. Uma licença poderá ser definida caso o projeto seja aberto no futuro.
 
 ---
 
-*Acordu é um produto da Utile Systems.*
+*Acordu é um produto da Nebrys.*

@@ -11,7 +11,7 @@
 
 ## 1. Princípios
 
-- **CQRS-lite** (como no Saldu): leituras não passam por agregados; são queries que retornam DTOs.
+- **CQRS-lite** (ADR 0001): leituras não passam por agregados; são queries que retornam DTOs.
 - **Tempo em minutos inteiros** (ADR 0004): toda soma é de `integer`; nenhuma conversão para horas antes da apresentação.
 - **Determinismo:** mesma base de dados + mesmo instante de referência → mesmo número. O "agora" é parâmetro (`TimeProvider`), nunca `now()` do SQL.
 - **Explicabilidade:** todo total mostrado ao cliente é conferível linha a linha no mesmo DTO.

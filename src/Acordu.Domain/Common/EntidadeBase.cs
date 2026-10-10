@@ -2,7 +2,7 @@ namespace Acordu.Domain.Common;
 
 /// <summary>
 /// Raiz de agregado com identidade e tenant. O <see cref="TenantId"/> é definido na criação e
-/// nunca muda: é a chave do isolamento multi-tenant (ADR 0003 do Saldu, herdado).
+/// nunca muda: é a chave do isolamento multi-tenant (ADR 0001).
 /// </summary>
 public abstract class EntidadeBase
 {

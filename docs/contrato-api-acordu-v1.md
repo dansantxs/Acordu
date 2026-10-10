@@ -12,7 +12,7 @@
 
 ## 1. Convenções gerais
 
-Herdadas do Saldu, com as adaptações do Acordu:
+Convenções gerais, com as adaptações marcadas como (Acordu):
 
 - **Autenticação:** `Authorization: Bearer <token>` em tudo, exceto `/auth/*` e a troca de link do portal.
 - **Tenant:** sempre derivado do token (tenant ativo). Nunca na URL nem no corpo.
@@ -27,7 +27,7 @@ Herdadas do Saldu, com as adaptações do Acordu:
 - **Paginação:** `{ "itens": [...], "pagina": 1, "tamanhoPagina": 50, "total": 213 }`; parâmetros `?pagina=&tamanhoPagina=` (máx. 200).
 - **Ordenação:** `?ordem=campo` / `?ordem=-campo` nas listagens que a suportam.
 - **Concorrência otimista:** respostas de recursos mutáveis trazem `versao` (row version do Postgres). `PATCH` e ações de transição aceitam `If-Match: <versao>`; divergência → **409**.
-- **Transições de estado** são sub-recursos de ação (`POST /solicitacoes/{id}/resolucao`), não `PATCH` de campo — como no Saldu.
+- **Transições de estado** são sub-recursos de ação (`POST /solicitacoes/{id}/resolucao`), não `PATCH` de campo.
 - **(Acordu) `PATCH` recebe todos os campos editáveis do recurso** (o formulário inteiro); campo opcional ausente ou nulo é apagado. Com `If-Match`, não há perda de atualização. Recurso criado → `201` com o detalhe e `Location`; inativação/exclusão → `204`.
 - **Erros:** Problem Details (RFC 9457), §13.
 
@@ -35,7 +35,7 @@ Herdadas do Saldu, com as adaptações do Acordu:
 
 ## 2. Autenticação e sessão
 
-Igual ao Saldu: `POST /auth/registro`, `/auth/login`, `/auth/refresh`, `/auth/logout`, `/auth/tenant-ativo`, confirmação de e-mail e recuperação de senha.
+Rotas: `POST /auth/registro`, `/auth/login`, `/auth/refresh`, `/auth/logout`, `/auth/tenant-ativo`, confirmação de e-mail e recuperação de senha.
 
 Sessão (Acordu, formalizado no ADR 0007):
 - As rotas que abrem sessão (`registro`, `login`, `refresh`, `tenant-ativo`) respondem `{ "accessToken": "eyJ...", "expiraEm": "..." }` (JWT de 60 min) e entregam o **refresh token só em cookie** `acordu_refresh` — HttpOnly, Secure, SameSite=Strict, `Path=/api/v1/auth`, 30 dias. Nunca no corpo: fica fora do alcance de JavaScript. SPA e API estão no mesmo site, então o cookie é first-party.
@@ -76,7 +76,7 @@ Contato ou cliente inativado também invalida o link. A sessão de link não tem
 
 ## 3. Usuários, convites e papéis
 
-Superfície herdada do Saldu (`/usuarios`, `/convites`, `/papeis`), com o aceite do convite em `/auth` (decidido em 07/10, ver abaixo). O papel **Cliente** não pode ser atribuído por `/convites` nem por troca de papel — contatos entram pelo §4.2.
+Superfície de equipe (`/usuarios`, `/convites`, `/papeis`), com o aceite do convite em `/auth` (decidido em 07/10, ver abaixo). O papel **Cliente** não pode ser atribuído por `/convites` nem por troca de papel — contatos entram pelo §4.2.
 
 | Método | Rota | Descrição | Permissão |
 |---|---|---|---|
@@ -92,7 +92,7 @@ Superfície herdada do Saldu (`/usuarios`, `/convites`, `/papeis`), com o aceite
 Regras:
 - **Sempre ≥ 1 Dono:** rebaixar ou remover o último vínculo com o papel padrão Dono → `422`. Papel customizado com todas as permissões não conta como Dono.
 - Convite: papel do tipo CLIENTE → `422`; e-mail que já tem vínculo no tenant (equipe ou contato) → `422`; reconvidar o mesmo e-mail revoga o pendente anterior. Token como o do portal (gerado no envio, só o hash no banco, 7 dias).
-- Aceite: diverge do Saldu (`POST /convites/{id}/aceite`) para seguir o padrão do portal: só o token, no corpo, em `/auth` (o Id na URL vaza em log e histórico). Conta nova exige `nome` e nasce com e-mail confirmado; conta existente exige a senha dela (`400` em `senha`, conta para o bloqueio). Token inválido, expirado, revogado ou usado → `401`.
+- Aceite: em vez de `POST /convites/{id}/aceite`, segue o padrão do portal: só o token, no corpo, em `/auth` (o Id na URL vaza em log e histórico). Conta nova exige `nome` e nasce com e-mail confirmado; conta existente exige a senha dela (`400` em `senha`, conta para o bloqueio). Token inválido, expirado, revogado ou usado → `401`.
 - Pessoa que não é da equipe deste tenant (inexistente, de outro tenant ou contato de cliente) → `404`.
 
 Papéis (6e2, todos com `papel.gerenciar`):

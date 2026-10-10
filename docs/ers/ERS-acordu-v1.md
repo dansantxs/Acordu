@@ -25,7 +25,7 @@ Aplicação web (SPA) apoiada por uma API REST, **multi-tenant** desde o início
 
 ### 1.3 Visão geral do produto
 
-**1.3.1 Perspectiva.** Sistema novo, escrito do zero, sem reaproveitar código, schema, telas ou documentação de nenhum sistema anterior (ver `estrategia-produto-acordu.md` §1). Arquitetura API-first, mesma engenharia do Saldu.
+**1.3.1 Perspectiva.** Sistema novo, escrito do zero, sem reaproveitar código, schema, telas ou documentação de nenhum sistema anterior (ver `estrategia-produto-acordu.md` §1). Arquitetura API-first; base técnica no ADR 0001.
 
 **1.3.2 Funções.** Ver Seção 3.2 e o diagrama de casos de uso (Seção 2).
 
@@ -38,7 +38,7 @@ Aplicação web (SPA) apoiada por uma API REST, **multi-tenant** desde o início
 | **Leitor** | Estagiário, sócio passivo | Somente leitura interna. |
 | **Contato do cliente** (papel Cliente) | Pessoa da empresa atendida | Apenas o portal, restrito ao **seu** cliente. |
 
-**1.3.4 Limitações.** Mesma VM Oracle Cloud Always Free do Saldu (ARM, 2 OCPU / 12 GB), compartilhada entre os dois produtos (ADR 0006; plano de escala e plano B no mesmo ADR). Disponibilidade *best-effort* no v1.
+**1.3.4 Limitações.** VM Oracle Cloud Always Free (ARM, 2 OCPU / 12 GB), compartilhada com outros produtos (ADR 0006; plano de escala e plano B no mesmo ADR). Disponibilidade *best-effort* no v1.
 
 ### 1.4 Definições
 Ver Apêndice B.
@@ -101,12 +101,12 @@ Convenções: **RF** = requisito funcional, **RNF** = não funcional. Verificaç
 ### 3.1 Interfaces externas
 - **Usuário:** SPA responsiva; o **portal do cliente** é uma área da mesma SPA com layout e rotas próprias (`/portal`), otimizada para celular.
 - **Software:** API REST autenticada (JSON); e-mail transacional (Resend); armazenamento de anexos em objeto (S3-compatível — OCI Object Storage).
-- **Dados:** PostgreSQL (banco próprio do Acordu, na mesma instância do Saldu).
+- **Dados:** PostgreSQL (banco próprio do Acordu, na instância compartilhada da VM).
 - **Localização:** pt-BR, fuso configurável por tenant (padrão `America/Sao_Paulo`), formatos brasileiros.
 
 ### 3.2 Requisitos funcionais
 
-**Autenticação, tenant e multiusuário** — mesmo desenho do Saldu (ADRs 0007/0008 de referência)
+**Autenticação, tenant e multiusuário** — desenho do ADR 0001, transporte da sessão no ADR 0007
 | ID | Requisito | Verif. |
 |---|---|---|
 | RF-AUT-01 | Cadastro por e-mail e senha, criando o Tenant (prestador) e o vínculo como Dono. | T |
@@ -180,7 +180,7 @@ Convenções: **RF** = requisito funcional, **RNF** = não funcional. Verificaç
 | RF-REC-01 | Configurar modelo de tarefa recorrente: título, descrição, cliente, contrato, responsável, checklist, estimativa. | T |
 | RF-REC-02 | Regra de recorrência: SEMANAL (dia da semana), MENSAL (dia do mês), TRIMESTRAL, ANUAL; antecedência de geração em dias; fim opcional. | T |
 | RF-REC-03 | Agendador gera a tarefa na data devida, **idempotente** (no máximo uma tarefa por recorrência e data de referência). | T |
-| RF-REC-04 | Dia inexistente no mês (29–31) → **último dia do mês** (mesma regra do Saldu). | T |
+| RF-REC-04 | Dia inexistente no mês (29–31) → **último dia do mês**. | T |
 | RF-REC-05 | Pausar, retomar e encerrar a recorrência; pausar não gera tarefas retroativas ao retomar. | T |
 
 **Portal do cliente**
@@ -264,7 +264,7 @@ Convenções: **RF** = requisito funcional, **RNF** = não funcional. Verificaç
 
 ### 3.4 Requisitos de banco de dados (modelo lógico)
 
-Identidade e acesso (`Usuario`, `Tenant`, `Vinculo`, `Papel`, `Permissao`, `LogAuditoria`) seguem o modelo do Saldu; `Vinculo` ganha `clienteId` (opcional, obrigatório para o papel Cliente) e `escopoPortal`.
+Identidade e acesso (`Usuario`, `Tenant`, `Vinculo`, `Papel`, `Permissao`, `LogAuditoria`) seguem o desenho do ADR 0001; `Vinculo` ganha `clienteId` (opcional, obrigatório para o papel Cliente) e `escopoPortal`.
 
 ```plantuml
 @startuml
@@ -478,9 +478,9 @@ enum EscopoPortal { PROPRIAS\nTODAS_DO_CLIENTE }
 
 Observações de modelagem:
 - Toda entidade de negócio carrega `TenantId` (indexado). Entidades ligadas a um cliente carregam `ClienteId` para permitir o filtro do RNF-SEG-02 sem joins.
-- **Tempo em minutos inteiros** (`int`), nunca `float` — o equivalente ao `Dinheiro` no Saldu. Conversão para horas só na apresentação.
+- **Tempo em minutos inteiros** (`int`), nunca `float` (ADR 0004). Conversão para horas só na apresentação.
 - `(TenantId, Numero)` único em `Solicitacao`; `(RecorrenciaId, DataReferencia)` único em `Tarefa` (idempotência do RF-REC-03).
-- O **consumo do contrato não é estado persistido**: é read model (soma de apontamentos faturáveis + ajustes no período), como o saldo no Saldu.
+- O **consumo do contrato não é estado persistido**: é read model (soma de apontamentos faturáveis + ajustes no período).
 - `OrigemSolicitacao` já prevê EMAIL e WHATSAPP (v2) para não exigir migration de enum depois.
 - **Convites** (RF-USR-01 e RF-CLI-03): `ConviteEquipe` convida um e-mail para um papel **interno**; `ConvitePortal` convida um **contato** para o portal, com o escopo do vínculo (é raiz com `ClienteId`, sob o filtro do ADR 0002). Os dois guardam só o **hash** do token, valem 7 dias a partir do envio, são de uso único e ficam pendentes até serem aceitos ou revogados (`aceitoEm`/`revogadoEm`). Reenviar gera token novo e invalida o anterior. O aceite cria o `Vinculo` (e o `Usuario`, se a conta não existe) e registra o `usuarioId`. Papel Cliente nunca entra por `ConviteEquipe`, nem papel interno por `ConvitePortal`.
 - **Refresh tokens** ficam na tabela de identidade (hash, usuário, tenant, validade, consumo e revogação), fora do domínio; o transporte da sessão está no ADR 0007.
@@ -489,10 +489,10 @@ Observações de modelagem:
 ### 3.5 Restrições de projeto
 - Runtime **.NET 10**; **EF Core + Npgsql**; **PostgreSQL 17** (extensões `pg_trgm` e `unaccent` para RF-CON-02).
 - Frontend **React + Vite (TS)**; tipos gerados do OpenAPI.
-- **Docker Compose + Caddy** na VM compartilhada com o Saldu; banco separado; Caddy roteia por domínio.
+- **Docker Compose + Caddy** na VM compartilhada com outros produtos; banco separado; Caddy roteia por domínio.
 - Agendador (recorrências, fechamento automático, alertas de SLA) roda como **endpoints internos idempotentes** (`/internal/jobs/*`, com token), disparados por timer na VM (ADR 0006).
 - CI/CD: GitHub Actions (build ARM64) → GHCR → VPS.
-- Mesmas convenções de código, commit e estrutura do Saldu, trocando o prefixo para `Acordu.*`.
+- Convenções de código, commit e estrutura em `docs/`, prefixo `Acordu.*`.
 
 ### 3.6 Atributos de qualidade
 Prioridade decrescente no v1: **isolamento (tenant e cliente)**, **corretude do tempo e do SLA** (horas apontadas e prazos são a base da cobrança e da confiança), **simplicidade de uso** (implantação em uma tarde), **privacidade (LGPD)**, **desempenho** no envelope compartilhado.
@@ -510,19 +510,19 @@ cloud "Resend" as mail
 
 node "VPS Oracle Always Free · ARM · 2 OCPU / 12 GB" {
   node "Docker Compose" {
-    component "Caddy\n(saldu.* e acordu.*)" as caddy
+    component "Caddy de borda\n(roteia por domínio)" as caddy
     component "Acordu API .NET 10\n+ /internal/jobs (timer na VM)" as api
-    component "Saldu API" as saldu
-    database "PostgreSQL 17\nbancos: saldu, acordu" as pg
+    component "Outros produtos" as outros
+    database "PostgreSQL 17\num banco por produto" as pg
   }
 }
 
 eq --> caddy : HTTPS
 ct --> caddy : HTTPS (/portal)
 caddy --> api : /api
-caddy --> saldu
+caddy --> outros
 api --> pg
-saldu --> pg
+outros --> pg
 api --> oss : anexos (URL assinada)
 api --> mail : notificações
 @enduml
@@ -568,7 +568,7 @@ API -> DB : status FECHADA
 
 ## 6. Estratégia de testes
 
-Mesma pirâmide do Saldu (xUnit + AwesomeAssertions, Testcontainers, WebApplicationFactory; Vitest no front; Playwright nos fluxos principais).
+Pirâmide de testes (xUnit + AwesomeAssertions, Testcontainers, WebApplicationFactory; Vitest no front; Playwright nos fluxos principais).
 
 ### 6.1 Núcleo de maior risco (unitários de domínio)
 - **Máquina de estados** de `Solicitacao`, `Tarefa`, `Contrato`, `RecorrenciaTarefa` (transições válidas e inválidas).
@@ -589,7 +589,7 @@ Cada requisito com verificação **T** tem ao menos um teste automatizado associ
 
 ## Apêndice A — Premissas e dependências
 - **Verticais de entrada ainda não escolhidas.** Cenários de referência desta versão: **agência** (projetos + solicitações de ajuste, contrato mensal) e **escritório de contabilidade** (tarefas recorrentes mensais + dúvidas de clientes). Revisar os requisitos quando a validação escolher as verticais.
-- Infra compartilhada com o Saldu; se o consumo de um produto afetar o outro, reavaliar a separação.
+- Infra compartilhada com outros produtos; se o consumo de um afetar o Acordu, reavaliar a separação (ADR 0006).
 - Resend como provedor de e-mail (substituível); anexos em OCI Object Storage via API S3-compatível.
 - Nada do ASMTasks é reaproveitado (ver `estrategia-produto-acordu.md` §1).
 
