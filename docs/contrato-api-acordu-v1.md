@@ -39,10 +39,14 @@ Igual ao Saldu: `POST /auth/registro`, `/auth/login`, `/auth/refresh`, `/auth/lo
 
 Sessão (Acordu, formalizado no ADR 0007):
 - As rotas que abrem sessão (`registro`, `login`, `refresh`, `tenant-ativo`) respondem `{ "accessToken": "eyJ...", "expiraEm": "..." }` (JWT de 60 min) e entregam o **refresh token só em cookie** `acordu_refresh` — HttpOnly, Secure, SameSite=Strict, `Path=/api/v1/auth`, 30 dias. Nunca no corpo: fica fora do alcance de JavaScript. SPA e API estão no mesmo site, então o cookie é first-party.
-- `POST /auth/registro` → `201`: `{ nome, email, senha, nomeEmpresa }`; cria usuário, tenant (Dono) e já abre a sessão (confirmação de e-mail adiada). Campo inválido, e-mail em uso ou senha curta (< 10) → `400 validacao` com o campo em `errors`.
+- `POST /auth/registro` → `201`: `{ nome, email, senha, nomeEmpresa }`; cria usuário, tenant (Dono), já abre a sessão e envia a confirmação de e-mail (o login **não** exige e-mail confirmado; `/auth/eu` traz `emailConfirmado` para a SPA avisar). Campo inválido, e-mail em uso ou senha curta (< 10) → `400 validacao` com o campo em `errors`.
 - `POST /auth/login` → `200`; credencial errada, conta bloqueada (5 falhas, 15 min) ou usuário sem vínculo → `401`, sem distinguir. Abre no último tenant usado.
 - `POST /auth/refresh` (só o cookie) → `200` com novo access token e **novo** cookie (rotação). Reapresentar um refresh já trocado revoga todas as sessões do usuário naquele tenant → `401`.
 - `POST /auth/logout` → `204`; revoga o refresh e apaga o cookie.
+- `POST /auth/confirmacao-email` `{ token }` (público) → `204`; token inválido, expirado ou usado → `401`. Link `{App__UrlPublica}/conta/confirmacao/{token}`, válido por 48 h.
+- `POST /auth/confirmacao-email/reenvio` (com conta) → `202`; invalida o link anterior; e-mail já confirmado não recebe nada.
+- `POST /auth/senha/esqueci` `{ email }` (público) → sempre `202`, tenha o e-mail conta ou não. Link `{App__UrlPublica}/conta/senha/{token}`, válido por 1 h; novo pedido invalida o anterior.
+- `POST /auth/senha/redefinir` `{ token, novaSenha }` (público) → `204` e apaga o cookie: troca a senha, confirma o e-mail, desbloqueia a conta e revoga **todas** as sessões do usuário (em todos os tenants). Senha fraca → `400` em `novaSenha` (o link continua valendo); token inválido → `401`.
 - `POST /auth/tenant-ativo` `{ tenantId }` (autenticado) → `200`; sem vínculo no tenant → `403`. Revoga o refresh anterior.
 - Mudança de papel/permissão vale no próximo refresh (o access token carrega as permissões).
 
