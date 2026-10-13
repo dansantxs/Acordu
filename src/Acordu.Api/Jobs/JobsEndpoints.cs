@@ -1,5 +1,6 @@
 using System.Security.Cryptography;
 using System.Text;
+using Acordu.Application.Notificacoes;
 using Acordu.Application.Solicitacoes;
 using Acordu.Infrastructure.Agendamento;
 using Acordu.Infrastructure.Persistence.Outbox;
@@ -26,8 +27,8 @@ internal static class JobsEndpoints
                 ? proximo(contexto)
                 : ValueTask.FromResult<object?>(Results.NotFound()));
 
-        // Varre a outbox (o que não saiu no fim das requisições). Alertas de SLA entram aqui depois.
-        jobs.MapPost("/tick", async (ProcessadorOutbox processador, CancellationToken cancellationToken) =>
+        // Varre a outbox (o que não saiu no fim das requisições) e envia os alertas de SLA (RF-NOT-02).
+        jobs.MapPost("/tick", async (ProcessadorOutbox processador, ExecutorPorTenant executor, CancellationToken cancellationToken) =>
         {
             var total = 0;
             for (var lote = 0; lote < LotesPorTick; lote++)
@@ -38,7 +39,11 @@ internal static class JobsEndpoints
                     break;
             }
 
-            return Results.Ok(new { outboxProcessadas = total });
+            var alertas = await executor.ExecutarAsync(
+                "alertas-sla",
+                (servicos, ct) => servicos.GetRequiredService<AlertasSla>().ExecutarAsync(ct),
+                cancellationToken);
+            return Results.Ok(new { outboxProcessadas = total, alertasSla = alertas.Tratados, falhas = alertas.Falhas });
         });
 
         // Diário: RESOLVIDAS há mais de Tenant.DiasFechamentoAutomatico dias corridos → FECHADA (RF-SOL-09).

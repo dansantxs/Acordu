@@ -104,7 +104,8 @@ public sealed class Solicitacao : RaizComCliente
         Guid? contratoId,
         PoliticaSla? politicaSla,
         DateTimeOffset agora,
-        CalendarioUtil calendario)
+        CalendarioUtil calendario,
+        Guid? abertaPor = null)
     {
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(numero);
         ValidarPrioridade(prioridade);
@@ -132,7 +133,8 @@ public sealed class Solicitacao : RaizComCliente
         if (politicaSla is not null)
             solicitacao.Sla = RelogioSla.Iniciar(politicaSla.PrazosDe(prioridade), agora, calendario);
 
-        solicitacao.Registrar(new SolicitacaoAberta(id, tenantId, clienteId, numero, origem, solicitacao.AbertaEm));
+        solicitacao.Registrar(new SolicitacaoAberta(
+            id, tenantId, clienteId, numero, origem, solicitacao.AbertaEm, Ids.Opcional(abertaPor, nameof(abertaPor))));
         return solicitacao;
     }
 
@@ -149,8 +151,11 @@ public sealed class Solicitacao : RaizComCliente
         CategoriaId = Ids.Opcional(categoriaId, nameof(categoriaId));
     }
 
-    /// <summary>Define ou remove o responsável. Emite <see cref="SolicitacaoAtribuida"/> só quando muda.</summary>
-    public void Atribuir(Guid? responsavelId)
+    /// <summary>
+    /// Define ou remove o responsável. Emite <see cref="SolicitacaoAtribuida"/> só quando muda, com quem atribuiu (para não
+    /// avisar quem atribuiu a si mesmo).
+    /// </summary>
+    public void Atribuir(Guid? responsavelId, Guid? atribuidoPor = null)
     {
         GarantirNaoFinalizada(nameof(Atribuir));
         var novo = Ids.Opcional(responsavelId, nameof(responsavelId));
@@ -158,7 +163,7 @@ public sealed class Solicitacao : RaizComCliente
             return;
 
         ResponsavelId = novo;
-        Registrar(new SolicitacaoAtribuida(Id, TenantId, ClienteId, novo));
+        Registrar(new SolicitacaoAtribuida(Id, TenantId, ClienteId, novo, Ids.Opcional(atribuidoPor, nameof(atribuidoPor))));
     }
 
     /// <summary>

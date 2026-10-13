@@ -54,6 +54,8 @@ public static class DependencyInjection
         services.AddScoped<ITenantAtual, TenantAtual>();
         services.AddScoped<IAcessosDoPortal, AcessosDoPortal>();
         services.AddScoped<IVinculos, Vinculos>();
+        services.AddScoped<IPessoasDaEquipe, PessoasDaEquipe>();
+        services.AddScoped<IMarcadoresDeAviso, MarcadoresDeAviso>();
         services.AddScoped<IConvitesEquipe, ConvitesEquipe>();
         services.AddScoped<IConsultasEquipe, ConsultasEquipe>();
         services.AddScoped<IConsultasPapel, ConsultasPapel>();

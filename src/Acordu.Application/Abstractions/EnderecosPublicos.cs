@@ -16,6 +16,9 @@ public sealed class EnderecosPublicos
         _base = baseUrl.AbsoluteUri.EndsWith('/') ? baseUrl : new Uri(baseUrl.AbsoluteUri + "/");
     }
 
+    /// <summary>Solicitação no app da equipe.</summary>
+    public Uri SolicitacaoInterna(Guid solicitacaoId) => new(_base, $"solicitacoes/{solicitacaoId}");
+
     /// <summary>Solicitação no portal, para o contato com conta.</summary>
     public Uri SolicitacaoNoPortal(Guid solicitacaoId) => new(_base, $"portal/solicitacoes/{solicitacaoId}");
 

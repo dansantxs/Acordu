@@ -163,6 +163,13 @@ public sealed class ConsultasSolicitacao : IConsultasSolicitacao
             .Select(s => s.Id)
             .ToListAsync(cancellationToken);
 
+    public async Task<IReadOnlyList<Guid>> CandidatasAAlertaDeSlaAsync(DateTimeOffset agora, CancellationToken cancellationToken = default) =>
+        await _db.Solicitacoes.AsNoTracking()
+            .Where(s => EmAberto.Contains(s.Status) && s.Sla != null && s.Sla.LimiteRisco <= agora)
+            .OrderBy(s => s.Sla!.PrazoResolucao)
+            .Select(s => s.Id)
+            .ToListAsync(cancellationToken);
+
     private static IQueryable<Solicitacao> Filtrar(
         IQueryable<Solicitacao> consulta, FiltroSolicitacoes filtro, DateTimeOffset agora, CalendarioUtil calendario)
     {

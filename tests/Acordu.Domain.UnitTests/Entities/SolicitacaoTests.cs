@@ -592,6 +592,18 @@ public sealed class SolicitacaoTests
         }
 
         [Fact]
+        public void Atribuir_ComQuemAtribuiu_VaiNoEvento()
+        {
+            var responsavel = Guid.NewGuid();
+            var quem = Guid.NewGuid();
+            var solicitacao = Em(StatusSolicitacao.Aberta);
+
+            solicitacao.Atribuir(responsavel, quem);
+
+            ((SolicitacaoAtribuida)solicitacao.Eventos[0]).AtribuidoPor.Should().Be(quem);
+        }
+
+        [Fact]
         public void Atribuir_Nulo_RemoveResponsavel()
         {
             var solicitacao = Em(StatusSolicitacao.Aberta);

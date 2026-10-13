@@ -115,7 +115,8 @@ public sealed class ComandosSolicitacao
             contrato?.Id,
             contrato?.Sla,
             _relogio.Agora,
-            calendario);
+            calendario,
+            _contexto.UsuarioId);
         _solicitacoes.Adicionar(solicitacao);
         await _unidade.SalvarAsync(cancellationToken);
         return solicitacao.Id;
@@ -132,7 +133,7 @@ public sealed class ComandosSolicitacao
 
         solicitacao.Editar(dados.Titulo, dados.Descricao);
         solicitacao.DefinirCategoria(dados.CategoriaId);
-        solicitacao.Atribuir(dados.ResponsavelId);
+        solicitacao.Atribuir(dados.ResponsavelId, _contexto.UsuarioId);
         if (dados.Prioridade != solicitacao.Prioridade)
         {
             var politica = solicitacao.ContratoId is { } contratoId

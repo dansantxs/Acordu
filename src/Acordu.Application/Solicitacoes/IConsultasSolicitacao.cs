@@ -20,4 +20,10 @@ public interface IConsultasSolicitacao
 
     /// <summary>RESOLVIDAS com <c>ResolvidaEm</c> até <paramref name="limite"/> (candidatas ao fechamento automático).</summary>
     Task<IReadOnlyList<Guid>> ResolvidasAteAsync(DateTimeOffset limite, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Em aberto (não RESOLVIDA, FECHADA nem CANCELADA), com SLA, cujo limite de risco já passou em <paramref name="agora"/>:
+    /// candidatas aos alertas de SLA (a situação final vem do domínio).
+    /// </summary>
+    Task<IReadOnlyList<Guid>> CandidatasAAlertaDeSlaAsync(DateTimeOffset agora, CancellationToken cancellationToken = default);
 }
