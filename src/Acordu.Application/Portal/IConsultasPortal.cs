@@ -1,3 +1,4 @@
+using Acordu.Application.Anexos;
 using Acordu.Application.Common;
 using Acordu.Domain.Enums;
 using Acordu.Domain.ValueObjects;
@@ -28,4 +29,7 @@ public interface IConsultasPortal
     /// <summary>Nulo se o contrato não é visível.</summary>
     Task<SaldoContratoPortal?> SaldoAsync(
         Guid contratoId, MesReferencia periodo, DateOnly hoje, CancellationToken cancellationToken = default);
+
+    /// <summary>Anexo de interação EXTERNA de uma solicitação visível ao contato (escopo e link); nulo caso contrário.</summary>
+    Task<AnexoArmazenado?> AnexoAsync(ContatoDoPortal contato, Guid anexoId, CancellationToken cancellationToken = default);
 }

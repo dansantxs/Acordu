@@ -1,4 +1,5 @@
 using Acordu.Application.Abstractions;
+using Acordu.Application.Anexos;
 using Acordu.Application.Common;
 using Acordu.Application.Contratos;
 using Acordu.Domain.Acesso;
@@ -15,11 +16,8 @@ namespace Acordu.Application.Solicitacoes;
 /// </summary>
 public sealed class ComandosSolicitacao
 {
-    /// <summary>Política padrão do contrato da API (5 anexos de até 20 MB); anexos entram no marco de anexos.</summary>
-    internal static readonly PoliticaAnexos PoliticaPadrao = new(
-        20L * 1024 * 1024,
-        ["application/pdf", "image/png", "image/jpeg", "text/plain", "application/zip"],
-        5);
+    /// <summary>Política padrão do contrato da API (5 anexos de até 20 MB, tipos pelo conteúdo).</summary>
+    internal static PoliticaAnexos PoliticaPadrao => RecebimentoAnexos.Politica;
 
     private readonly ITenantContext _contexto;
     private readonly IRepositorio<Solicitacao> _solicitacoes;
@@ -34,6 +32,7 @@ public sealed class ComandosSolicitacao
     private readonly RelogioDoTenant _relogio;
     private readonly IUnitOfWork _unidade;
     private readonly IControleVersao _versoes;
+    private readonly RecebimentoAnexos _anexos;
 
     public ComandosSolicitacao(
         ITenantContext contexto,
@@ -48,8 +47,11 @@ public sealed class ComandosSolicitacao
         ICalendarios calendarios,
         RelogioDoTenant relogio,
         IUnitOfWork unidade,
-        IControleVersao versoes)
+        IControleVersao versoes,
+        RecebimentoAnexos anexos)
     {
+        ArgumentNullException.ThrowIfNull(anexos);
+        _anexos = anexos;
         ArgumentNullException.ThrowIfNull(contexto);
         ArgumentNullException.ThrowIfNull(solicitacoes);
         ArgumentNullException.ThrowIfNull(clientes);
@@ -171,11 +173,31 @@ public sealed class ComandosSolicitacao
     public Task CancelarAsync(Guid id, string motivo, string? versao, CancellationToken cancellationToken = default) =>
         TransicaoAsync(id, versao, (s, agora, _) => s.Cancelar(motivo, agora), cancellationToken);
 
-    /// <summary>Comentário da equipe. Interação EXTERNA registra a primeira resposta (§3.1), na mesma transação.</summary>
-    public async Task<Guid> ComentarAsync(Guid solicitacaoId, InteracaoRequest dados, CancellationToken cancellationToken = default)
+    /// <summary>
+    /// Comentário da equipe, com anexos opcionais (enviados ao storage antes; descartados se a gravação falhar).
+    /// Interação EXTERNA registra a primeira resposta (§3.1), na mesma transação.
+    /// </summary>
+    public async Task<Guid> ComentarAsync(
+        Guid solicitacaoId, InteracaoRequest dados, IReadOnlyList<ArquivoRecebido>? arquivos = null,
+        CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(dados);
         var solicitacao = await CarregarAsync(solicitacaoId, Permissoes.SolicitacaoComentar, null, cancellationToken);
+        var anexos = await _anexos.EnviarAsync(solicitacao.TenantId, solicitacao.Id, arquivos, cancellationToken);
+        try
+        {
+            return await RegistrarComentarioAsync(solicitacao, dados, anexos, cancellationToken);
+        }
+        catch
+        {
+            await _anexos.DescartarAsync(anexos);
+            throw;
+        }
+    }
+
+    private async Task<Guid> RegistrarComentarioAsync(
+        Solicitacao solicitacao, InteracaoRequest dados, IReadOnlyList<NovoAnexo> anexos, CancellationToken cancellationToken)
+    {
         var interacao = Interacao.Registrar(
             Guid.CreateVersion7(),
             solicitacao.TenantId,
@@ -185,7 +207,7 @@ public sealed class ComandosSolicitacao
             autorEhCliente: false,
             dados.Texto,
             dados.Visibilidade ?? Visibilidade.Interna,
-            [],
+            anexos,
             PoliticaPadrao,
             _relogio.Agora);
         _interacoes.Adicionar(interacao);

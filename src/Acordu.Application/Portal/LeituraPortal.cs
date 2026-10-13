@@ -1,4 +1,5 @@
 using Acordu.Application.Abstractions;
+using Acordu.Application.Anexos;
 using Acordu.Application.Common;
 using Acordu.Application.Portal.Extrato;
 using Acordu.Domain.Acesso;
@@ -19,9 +20,18 @@ public sealed class LeituraPortal
     private readonly IConsultaExtratoPortal _extrato;
     private readonly RelogioDoTenant _relogio;
 
+    private readonly RecebimentoAnexos _anexos;
+
     public LeituraPortal(
-        ITenantContext contexto, IPortalAtual portal, IConsultasPortal consultas, IConsultaExtratoPortal extrato, RelogioDoTenant relogio)
+        ITenantContext contexto,
+        IPortalAtual portal,
+        IConsultasPortal consultas,
+        IConsultaExtratoPortal extrato,
+        RelogioDoTenant relogio,
+        RecebimentoAnexos anexos)
     {
+        ArgumentNullException.ThrowIfNull(anexos);
+        _anexos = anexos;
         ArgumentNullException.ThrowIfNull(contexto);
         ArgumentNullException.ThrowIfNull(portal);
         ArgumentNullException.ThrowIfNull(consultas);
@@ -64,6 +74,16 @@ public sealed class LeituraPortal
         var contato = await _portal.ContatoAsync(cancellationToken);
         return await _consultas.InteracoesAsync(contato, id, cancellationToken)
             ?? throw new NaoEncontradoException("Solicitação não encontrada.");
+    }
+
+    /// <summary>URL assinada de um anexo de interação EXTERNA de solicitação visível ao contato (✓L); senão 404.</summary>
+    public async Task<Uri> UrlDoAnexoAsync(Guid anexoId, CancellationToken cancellationToken = default)
+    {
+        _contexto.Exigir(Permissoes.PortalSolicitacaoVer);
+        var contato = await _portal.ContatoAsync(cancellationToken);
+        var anexo = await _consultas.AnexoAsync(contato, anexoId, cancellationToken)
+            ?? throw new NaoEncontradoException("Anexo não encontrado.");
+        return _anexos.UrlDeDownload(anexo);
     }
 
     public async Task<IReadOnlyList<ContratoPortalDto>> ContratosAsync(CancellationToken cancellationToken = default)

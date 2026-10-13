@@ -1,3 +1,4 @@
+using Acordu.Application.Anexos;
 using Acordu.Application.Common;
 
 namespace Acordu.Application.Solicitacoes;
@@ -17,6 +18,9 @@ public interface IConsultasSolicitacao
 
     /// <summary>Linha do tempo em ordem de registro; nulo se a solicitação não é visível.</summary>
     Task<IReadOnlyList<InteracaoDto>?> InteracoesAsync(Guid solicitacaoId, CancellationToken cancellationToken = default);
+
+    /// <summary>Anexo de qualquer interação visível no contexto; nulo se não existe.</summary>
+    Task<AnexoArmazenado?> AnexoAsync(Guid anexoId, CancellationToken cancellationToken = default);
 
     /// <summary>RESOLVIDAS com <c>ResolvidaEm</c> até <paramref name="limite"/> (candidatas ao fechamento automático).</summary>
     Task<IReadOnlyList<Guid>> ResolvidasAteAsync(DateTimeOffset limite, CancellationToken cancellationToken = default);
