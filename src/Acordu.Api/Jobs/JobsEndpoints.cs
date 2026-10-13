@@ -1,6 +1,7 @@
 using System.Security.Cryptography;
 using System.Text;
 using Acordu.Application.Notificacoes;
+using Acordu.Application.Recorrencias;
 using Acordu.Application.Solicitacoes;
 using Acordu.Infrastructure.Agendamento;
 using Acordu.Infrastructure.Persistence.Outbox;
@@ -27,9 +28,16 @@ internal static class JobsEndpoints
                 ? proximo(contexto)
                 : ValueTask.FromResult<object?>(Results.NotFound()));
 
-        // Varre a outbox (o que não saiu no fim das requisições) e envia os alertas de SLA (RF-NOT-02).
+        // Gera as tarefas recorrentes devidas (RF-REC-03), varre a outbox (o que não saiu no fim das requisições) e envia
+        // os alertas de SLA (RF-NOT-02). As recorrências vêm antes: nenhum efeito pós-commit delas hoje, mas a ordem
+        // deixa qualquer um futuro sair no mesmo tick.
         jobs.MapPost("/tick", async (ProcessadorOutbox processador, ExecutorPorTenant executor, CancellationToken cancellationToken) =>
         {
+            var recorrencias = await executor.ExecutarAsync(
+                "recorrencias",
+                (servicos, ct) => servicos.GetRequiredService<GeracaoRecorrencias>().ExecutarAsync(ct),
+                cancellationToken);
+
             var total = 0;
             for (var lote = 0; lote < LotesPorTick; lote++)
             {
@@ -43,7 +51,13 @@ internal static class JobsEndpoints
                 "alertas-sla",
                 (servicos, ct) => servicos.GetRequiredService<AlertasSla>().ExecutarAsync(ct),
                 cancellationToken);
-            return Results.Ok(new { outboxProcessadas = total, alertasSla = alertas.Tratados, falhas = alertas.Falhas });
+            return Results.Ok(new
+            {
+                tarefasRecorrentes = recorrencias.Tratados,
+                outboxProcessadas = total,
+                alertasSla = alertas.Tratados,
+                falhas = recorrencias.Falhas + alertas.Falhas,
+            });
         });
 
         // Diário: RESOLVIDAS há mais de Tenant.DiasFechamentoAutomatico dias corridos → FECHADA (RF-SOL-09).

@@ -33,6 +33,7 @@ internal static class CasosDeUso
         services.AddScoped<ComandosTarefa>();
         services.AddScoped<ComandosProjeto>();
         services.AddScoped<ComandosRecorrencia>();
+        services.AddScoped<GeracaoRecorrencias>();
         services.AddScoped<ComandosApontamento>();
         services.AddScoped<ComandosConfiguracao>();
         services.AddScoped<ComandosCategoria>();
