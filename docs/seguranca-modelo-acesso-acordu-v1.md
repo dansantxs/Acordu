@@ -179,7 +179,7 @@ Um usuário Cliente em um tenant e Membro em outro troca de tenant e recebe toke
 
 Quem, tenant, ação, alvo, quando (IP opcional). Não audita leituras. Mecanismo, retenção e IP atrás do proxy: [ADR 0008](adr/0008-trilha-de-auditoria.md).
 
-- Registro na mesma transação da ação (`IAuditoria`, chamada nos casos de uso); ações com nome estável (`login.sucesso`, `contrato.edicao`...).
+- Registro na mesma transação da ação (`IAuditoria`, chamada nos casos de uso); ações com nome estável (lista no contrato §11a). Status e responsável da solicitação pelos eventos, num manipulador dentro da transação, para cobrir todos os caminhos.
 - Login com sucesso fica no tenant da sessão emitida; com falha, **sem tenant** (e-mail digitado, motivo, IP), visível só para a operação. Troca de link por sessão fica no tenant do link, sem usuário.
 - Leitura: `GET /auditoria` com `auditoria.ver` (Dono e papéis customizados). Contato nunca lê.
 - Retenção: 12 meses (job diário de expurgo), porque guarda IP e e-mail.

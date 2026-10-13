@@ -465,7 +465,28 @@ Decidido na implementação (6c3):
   "pagina": 1, "tamanhoPagina": 50, "total": 1 }
 ```
 - `de`/`ate`: datas no fuso do tenant, inclusivas. `usuario` nulo: o sistema (job) ou uma sessão de link do portal.
-- Ações (9a): `login.sucesso`, `portal.link.troca` (alvo: a solicitação; `dados`: `acessoPortalId`, `contatoId`). Login com falha não aparece (fica sem tenant). As ações de equipe, portal, contratos, apontamentos e solicitações entram no 9b.
+- Ações (`acao`, alvo, `dados`). Login com falha não aparece (fica sem tenant).
+
+| Área | Ações | Alvo | `dados` |
+|---|---|---|---|
+| Sessão | `login.sucesso` | — | — |
+| | `portal.link.troca` | solicitação | `acessoPortalId`, `contatoId` |
+| Equipe | `equipe.convite`, `equipe.convite.revogacao` | convite | `email`, `papel` |
+| | `equipe.papel.troca` | usuário | `de`, `para` (nomes dos papéis) |
+| | `equipe.remocao` | usuário | `papel` |
+| Portal | `portal.acesso.concessao`, `portal.acesso.escopo`, `portal.acesso.revogacao` | contato | `clienteId`, `escopo` |
+| | `portal.link.emissao`, `portal.link.revogacao` | solicitação | `acessoPortalId`, `contatoId` (emissão: `validadeDias`) |
+| Contratos | `contrato.criacao` | contrato | `clienteId`, `tipo`, `termos` (vigência, franquia, SLA) |
+| | `contrato.edicao` | contrato | `antes`, `depois` (termos) |
+| | `contrato.suspensao`, `contrato.reativacao`, `contrato.encerramento` | contrato | encerramento: `fim` |
+| | `contrato.ajuste_saldo` | contrato | `ajusteId`, `quantidadeMinutos`, `motivo`, `data` |
+| | `contrato.fechamento_periodo` | contrato | `periodo` |
+| Apontamentos | `apontamento.edicao` | apontamento | `antes`, `depois` |
+| | `apontamento.exclusao` | apontamento | `antes` |
+| Solicitações | `solicitacao.status` | solicitação | `de`, `para` (status interno) |
+| | `solicitacao.responsavel` | solicitação | `de`, `para` (ids) |
+
+- Status e responsável são auditados por qualquer caminho (equipe, portal, retomada pela resposta do contato, fechamento automático); `usuario` nulo no job e na sessão de link. Links emitidos automaticamente nos e-mails ao contato (§12a) não são auditados: é o sistema agindo. Troca de contrato da solicitação entra com o marco 12.
 - Registros com mais de 12 meses são expurgados (segurança §8).
 
 ---
