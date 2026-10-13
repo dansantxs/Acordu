@@ -505,6 +505,20 @@ Decidido na implementação (6d2):
 
 ---
 
+## 12a. E-mails ao contato (RF-NOT-01, 7c1)
+
+Sem rota própria: saem depois do commit quando a solicitação tem contato ativo (de cliente ativo).
+
+| Quando | Assunto |
+|---|---|
+| Aberta (qualquer origem) | "Recebemos sua solicitação #N" (protocolo) |
+| Mensagem EXTERNA da equipe | "Nova mensagem na solicitação #N" (com o texto) |
+| Status vira AGUARDANDO_CLIENTE | "Precisamos de você na solicitação #N" |
+| Resolvida | "Solicitação #N resolvida: confira e aprove" (com o prazo do fechamento automático) |
+
+- Remetente com o nome do prestador. A resposta do próprio contato não gera e-mail para ele.
+- Link: contato com conta → `{App__UrlPublica}/portal/solicitacoes/{id}`; sem conta → link de acesso sem senha (30 dias) **novo a cada e-mail**, revogando o anterior da mesma solicitação e contato. Solicitação fechada ou cancelada não ganha link novo.
+
 ## 13. Formato de erro (RFC 9457)
 
 ```json
