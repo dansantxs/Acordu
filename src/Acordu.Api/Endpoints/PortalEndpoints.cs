@@ -34,14 +34,24 @@ internal static class PortalEndpoints
             .RequirePermissao(Permissoes.PortalSolicitacaoVer)
             .Produces<ResultadoPaginado<SolicitacaoPortalResumoDto>>();
 
+        // JSON { titulo, descricao, prioridade } ou multipart (os mesmos campos + anexos) — RF-POR-01.
         solicitacoes.MapPost(string.Empty, async (
-            NovaSolicitacaoPortalRequest corpo, ComandosPortal comandos, LeituraPortal leitura, CancellationToken cancellationToken) =>
+            HttpRequest requisicao, ComandosPortal comandos, LeituraPortal leitura, CancellationToken cancellationToken) =>
         {
-            var id = await comandos.AbrirSolicitacaoAsync(corpo, cancellationToken);
+            var formulario = await FormularioComAnexos.LerAsync(requisicao, cancellationToken);
+            var corpo = formulario is null
+                ? await CorpoOpcional.LerAsync<NovaSolicitacaoPortalRequest>(requisicao, cancellationToken)
+                    ?? throw new BadHttpRequestException("Envie a solicitação em JSON ou multipart/form-data.")
+                : new NovaSolicitacaoPortalRequest(
+                    formulario.Campo("titulo") ?? string.Empty,
+                    formulario.Campo("descricao"),
+                    EnumsDaApi.Ler<Prioridade>(formulario.Campo("prioridade"), "prioridade"));
+            var id = await comandos.AbrirSolicitacaoAsync(corpo, formulario?.Arquivos, cancellationToken);
             return Results.Created($"/api/v1/portal/solicitacoes/{id}", await leitura.DetalharAsync(id, cancellationToken));
         })
             .RequirePermissao(Permissoes.PortalSolicitacaoCriar)
             .RequireRateLimiting(ComposicaoSeguranca.LimitePortal)
+            .Accepts<NovaSolicitacaoPortalRequest>("application/json", "multipart/form-data")
             .Produces<SolicitacaoPortalDto>(StatusCodes.Status201Created);
 
         solicitacoes.MapGet("/{id:guid}", async (Guid id, LeituraPortal leitura, CancellationToken cancellationToken) =>

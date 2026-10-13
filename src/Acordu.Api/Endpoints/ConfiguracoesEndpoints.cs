@@ -36,6 +36,28 @@ internal static class ConfiguracoesEndpoints
             .RequirePermissao(Permissoes.ConfiguracaoGerenciar)
             .Produces<ConfiguracaoPortalDto>();
 
+        // Logotipo do portal (RF-POR-09): multipart com o campo "logo"; PNG, JPEG ou WebP até 512 KB.
+        configuracoes.MapPut("/portal/logo", async (
+            HttpRequest requisicao, LogotipoPortal logotipo, ComandosConfiguracao comandos, CancellationToken cancellationToken) =>
+        {
+            var formulario = await FormularioComAnexos.LerAsync(requisicao, "logo", 1024 * 1024, cancellationToken)
+                ?? throw new BadHttpRequestException("Envie o logotipo em multipart/form-data, no campo logo.");
+            await logotipo.EnviarAsync(formulario.Arquivos.Count > 0 ? formulario.Arquivos[0] : null, cancellationToken);
+            return Results.Ok(await comandos.ObterPortalAsync(cancellationToken));
+        })
+            .RequirePermissao(Permissoes.ConfiguracaoGerenciar)
+            .Accepts<IFormFile>("multipart/form-data")
+            .Produces<ConfiguracaoPortalDto>();
+
+        configuracoes.MapDelete("/portal/logo", async (
+            LogotipoPortal logotipo, ComandosConfiguracao comandos, CancellationToken cancellationToken) =>
+        {
+            await logotipo.RemoverAsync(cancellationToken);
+            return Results.Ok(await comandos.ObterPortalAsync(cancellationToken));
+        })
+            .RequirePermissao(Permissoes.ConfiguracaoGerenciar)
+            .Produces<ConfiguracaoPortalDto>();
+
         var categorias = interno.MapGroup("/categorias").WithTags("Configurações");
 
         // Leitura liberada à equipe: quem abre solicitação escolhe a categoria.

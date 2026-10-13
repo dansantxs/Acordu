@@ -28,15 +28,22 @@ internal sealed class FormularioComAnexos
     public string? Campo(string nome) =>
         Formulario is not null && Formulario.TryGetValue(nome, out var valor) && !string.IsNullOrWhiteSpace(valor) ? valor.ToString() : null;
 
-    public static async Task<FormularioComAnexos?> LerAsync(HttpRequest requisicao, CancellationToken cancellationToken)
+    public static Task<FormularioComAnexos?> LerAsync(HttpRequest requisicao, CancellationToken cancellationToken) =>
+        LerAsync(requisicao, CampoAnexos, TamanhoMaximoCorpo, cancellationToken);
+
+    /// <param name="campoArquivos">Campo dos arquivos no formulário (<c>anexos</c>, ou <c>logo</c>).</param>
+    /// <param name="tamanhoMaximoCorpo">Limite do corpo inteiro; acima dele o Kestrel responde 413.</param>
+    public static async Task<FormularioComAnexos?> LerAsync(
+        HttpRequest requisicao, string campoArquivos, long tamanhoMaximoCorpo, CancellationToken cancellationToken)
     {
+        ArgumentNullException.ThrowIfNull(requisicao);
         if (!requisicao.HasFormContentType)
             return null;
         if (requisicao.HttpContext.Features.Get<IHttpMaxRequestBodySizeFeature>() is { IsReadOnly: false } limite)
-            limite.MaxRequestBodySize = TamanhoMaximoCorpo;
+            limite.MaxRequestBodySize = tamanhoMaximoCorpo;
 
         var formulario = await requisicao.ReadFormAsync(cancellationToken);
-        var arquivos = formulario.Files.GetFiles(CampoAnexos)
+        var arquivos = formulario.Files.GetFiles(campoArquivos)
             .Select(f => new ArquivoRecebido(Path.GetFileName(f.FileName), f.Length, f.OpenReadStream))
             .ToList();
         return new FormularioComAnexos(formulario, arquivos);
