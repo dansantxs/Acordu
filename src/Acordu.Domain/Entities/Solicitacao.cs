@@ -162,8 +162,10 @@ public sealed class Solicitacao : RaizComCliente
         if (novo == ResponsavelId)
             return;
 
+        var anterior = ResponsavelId;
         ResponsavelId = novo;
-        Registrar(new SolicitacaoAtribuida(Id, TenantId, ClienteId, novo, Ids.Opcional(atribuidoPor, nameof(atribuidoPor))));
+        Registrar(new SolicitacaoAtribuida(
+            Id, TenantId, ClienteId, novo, Ids.Opcional(atribuidoPor, nameof(atribuidoPor)), anterior));
     }
 
     /// <summary>
