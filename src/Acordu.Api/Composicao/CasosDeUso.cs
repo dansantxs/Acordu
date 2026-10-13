@@ -62,6 +62,13 @@ internal static class CasosDeUso
         services.AddScoped<IManipuladorPosCommit<SolicitacaoAberta>>(sp => sp.GetRequiredService<AvisosAEquipe>());
         services.AddScoped<IManipuladorPosCommit<SolicitacaoAtribuida>>(sp => sp.GetRequiredService<AvisosAEquipe>());
         services.AddScoped<AlertasSla>();
+
+        // Alertas de consumo de contrato (RF-CTR-07).
+        services.AddScoped<AlertasConsumo>();
+        services.AddScoped<IManipuladorPosCommit<ApontamentoRegistrado>>(sp => sp.GetRequiredService<AlertasConsumo>());
+        services.AddScoped<IManipuladorPosCommit<ApontamentoAlterado>>(sp => sp.GetRequiredService<AlertasConsumo>());
+        services.AddScoped<IManipuladorPosCommit<ApontamentoExcluido>>(sp => sp.GetRequiredService<AlertasConsumo>());
+        services.AddScoped<IManipuladorPosCommit<AjusteSaldoRegistrado>>(sp => sp.GetRequiredService<AlertasConsumo>());
         return services;
     }
 }
