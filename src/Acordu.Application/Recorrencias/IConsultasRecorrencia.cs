@@ -10,4 +10,7 @@ public interface IConsultasRecorrencia
         Guid? clienteId, StatusRecorrencia? status, Paginacao paginacao, CancellationToken cancellationToken = default);
 
     Task<RecorrenciaDto?> DetalharAsync(Guid id, CancellationToken cancellationToken = default);
+
+    /// <summary>ATIVAS do tenant com geração devida em <paramref name="hoje"/> (próxima data − antecedência ≤ hoje).</summary>
+    Task<IReadOnlyList<Guid>> DevidasAsync(DateOnly hoje, CancellationToken cancellationToken = default);
 }
