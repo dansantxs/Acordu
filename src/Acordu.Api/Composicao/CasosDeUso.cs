@@ -1,5 +1,6 @@
 using Acordu.Application.Abstractions.Eventos;
 using Acordu.Application.Apontamentos;
+using Acordu.Application.Auditoria;
 using Acordu.Application.Categorias;
 using Acordu.Application.Clientes;
 using Acordu.Application.Common;
@@ -48,6 +49,10 @@ internal static class CasosDeUso
 
         // Reações de estado na mesma transação (modelo §7).
         services.AddScoped<IManipuladorEvento<InteracaoRegistrada>, PrimeiraRespostaERetomada>();
+        // Auditoria de status e responsável da solicitação, por qualquer caminho (ADR 0008).
+        services.AddScoped<AuditoriaDeSolicitacoes>();
+        services.AddScoped<IManipuladorEvento<SolicitacaoStatusAlterado>>(sp => sp.GetRequiredService<AuditoriaDeSolicitacoes>());
+        services.AddScoped<IManipuladorEvento<SolicitacaoAtribuida>>(sp => sp.GetRequiredService<AuditoriaDeSolicitacoes>());
 
         // Efeitos externos depois do commit, pela outbox.
         services.AddScoped<IManipuladorPosCommit<ConvitePortalCriado>, EnvioConvitePortal>();
