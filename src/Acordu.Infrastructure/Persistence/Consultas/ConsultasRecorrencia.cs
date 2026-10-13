@@ -11,12 +11,26 @@ namespace Acordu.Infrastructure.Persistence.Consultas;
 public sealed class ConsultasRecorrencia : IConsultasRecorrencia
 {
     private readonly AcorduDbContext _db;
+    private readonly ConsultaSql _sql;
 
-    public ConsultasRecorrencia(AcorduDbContext db)
+    public ConsultasRecorrencia(AcorduDbContext db, ConsultaSql sql)
     {
         ArgumentNullException.ThrowIfNull(db);
+        ArgumentNullException.ThrowIfNull(sql);
         _db = db;
+        _sql = sql;
     }
+
+    /// <summary>SQL cru pela aritmética de datas (<c>date - integer</c>); o índice (status, proxima_data) cobre a varredura.</summary>
+    public async Task<IReadOnlyList<Guid>> DevidasAsync(DateOnly hoje, CancellationToken cancellationToken = default) =>
+        [.. (await _sql.ListarAsync<RecorrenciaDevida>(e => $"""
+            SELECT id
+            FROM recorrencias
+            WHERE tenant_id = {e.TenantId} AND status = 'ATIVA' AND proxima_data IS NOT NULL
+              AND proxima_data - regra_antecedencia_dias <= {hoje}
+              AND (CAST({e.ClienteId} AS uuid) IS NULL OR cliente_id = {e.ClienteId})
+            ORDER BY proxima_data, id
+            """, cancellationToken)).Select(r => r.Id)];
 
     public async Task<ResultadoPaginado<RecorrenciaResumoDto>> ListarAsync(
         Guid? clienteId, StatusRecorrencia? status, Paginacao paginacao, CancellationToken cancellationToken = default)
@@ -65,5 +79,11 @@ public sealed class ConsultasRecorrencia : IConsultasRecorrencia
             recorrencia.ProximaData,
             recorrencia.Status,
             linha.Versao.ToString(CultureInfo.InvariantCulture));
+    }
+
+    /// <summary>Linha da varredura do agendador.</summary>
+    private sealed class RecorrenciaDevida
+    {
+        public Guid Id { get; set; }
     }
 }
