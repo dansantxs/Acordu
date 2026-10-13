@@ -56,6 +56,12 @@ internal static class CasosDeUso
         services.AddScoped<IManipuladorPosCommit<InteracaoRegistrada>>(sp => sp.GetRequiredService<AvisosAoContato>());
         services.AddScoped<IManipuladorPosCommit<SolicitacaoStatusAlterado>>(sp => sp.GetRequiredService<AvisosAoContato>());
         services.AddScoped<IManipuladorPosCommit<SolicitacaoResolvida>>(sp => sp.GetRequiredService<AvisosAoContato>());
+
+        // E-mails internos (RF-NOT-02): nova solicitação e atribuição; SLA pelo job tick.
+        services.AddScoped<AvisosAEquipe>();
+        services.AddScoped<IManipuladorPosCommit<SolicitacaoAberta>>(sp => sp.GetRequiredService<AvisosAEquipe>());
+        services.AddScoped<IManipuladorPosCommit<SolicitacaoAtribuida>>(sp => sp.GetRequiredService<AvisosAEquipe>());
+        services.AddScoped<AlertasSla>();
         return services;
     }
 }
