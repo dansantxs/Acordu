@@ -398,9 +398,9 @@ Decidido na implementação (6c3):
 | Método | Rota | Descrição | Permissão |
 |---|---|---|---|
 | GET/POST | `/recorrencias` | Lista (`?clienteId=&status=`) / cria. | `recorrencia.ver` / `recorrencia.gerenciar` |
-| GET/PATCH/DELETE | `/recorrencias/{id}` | Detalha / edita modelo e regra / encerra. | idem |
+| GET/PATCH/DELETE | `/recorrencias/{id}` | Detalha / edita contrato, modelo e regra / encerra (204; fica como histórico). | idem |
 | POST | `/recorrencias/{id}/pausa` · `/retomada` | Transições. | `recorrencia.gerenciar` |
-| GET | `/recorrencias/{id}/previa` | Próximas datas (`?quantidade=6`). | `recorrencia.ver` |
+| GET | `/recorrencias/{id}/previa` | Próximas datas (`?quantidade=6`, 1–24). | `recorrencia.ver` |
 
 ```json
 // POST /recorrencias → 201
@@ -413,9 +413,14 @@ Decidido na implementação (6c3):
              "antecedenciaDias": 3, "inicio": "2026-10-01", "fim": null }
 }
 ```
-- `inicio` (opcional; padrão: hoje no fuso do tenant) é a âncora: nenhuma ocorrência antes dele, e o mês dele define o ciclo de TRIMESTRAL e ANUAL.
+- `inicio` (opcional; padrão: hoje no fuso do tenant) é a âncora: nenhuma ocorrência antes dele, e o mês dele define o ciclo de TRIMESTRAL e ANUAL. Início no passado só ancora o ciclo: a primeira ocorrência é a primeira ≥ hoje (sem tarefas retroativas).
 - `diaReferencia`: 1–7 em SEMANAL (1 = segunda, 7 = domingo); 1–31 nos demais (dia inexistente no mês vira o último dia).
 - `antecedenciaDias`: 0–365.
+- `PATCH` recebe `contratoId`, `modelo` e `regra` completos (o cliente não muda; `regra.inicio` ausente mantém o atual). Vale para as próximas tarefas: as já geradas não mudam. Regra diferente recalcula a próxima data a partir de hoje; regra igual não mexe nela. `If-Match` opcional, como nas demais edições.
+- Validação: cliente ativo; contrato, se houver, do mesmo cliente e não encerrado; responsável da equipe (checado só quando muda). Erro de campo aninhado vem com o caminho (`regra.diaReferencia`).
+- Detalhe: `{ id, clienteId, clienteNome, contratoId, modelo, regra, proximaData, status, versao }`; listagem paginada com `titulo`, `responsavelId`, `periodicidade`, `proximaData` e `status` (ativas primeiro, pela próxima data).
+- Prévia: ATIVA a partir da próxima data; PAUSADA, as datas que valeriam se retomasse hoje; ENCERRADA, lista vazia.
+
 `GET .../previa` → `["2026-10-31", "2026-11-30", "2026-12-31", "2027-01-31", "2027-02-28", "2027-03-31"]` (clamp de fim de mês visível para o usuário conferir).
 
 ---

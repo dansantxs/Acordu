@@ -11,6 +11,7 @@ using Acordu.Application.Papeis;
 using Acordu.Application.Portal;
 using Acordu.Application.AcessosPortal;
 using Acordu.Application.Projetos;
+using Acordu.Application.Recorrencias;
 using Acordu.Application.Solicitacoes;
 using Acordu.Application.Tarefas;
 using Acordu.Domain.Events;
@@ -31,6 +32,7 @@ internal static class CasosDeUso
         services.AddScoped<ComandosSolicitacao>();
         services.AddScoped<ComandosTarefa>();
         services.AddScoped<ComandosProjeto>();
+        services.AddScoped<ComandosRecorrencia>();
         services.AddScoped<ComandosApontamento>();
         services.AddScoped<ComandosConfiguracao>();
         services.AddScoped<ComandosCategoria>();

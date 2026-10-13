@@ -43,14 +43,18 @@ public sealed class RecorrenciaTarefa : RaizComCliente
 
     public StatusRecorrencia Status { get; private set; }
 
-    /// <summary>A Application garante que o contrato, se houver, é do mesmo cliente.</summary>
+    /// <summary>
+    /// A Application garante que o contrato, se houver, é do mesmo cliente. A primeira ocorrência é a primeira ≥ início e
+    /// ≥ <paramref name="hoje"/>: um início no passado só ancora o ciclo, sem gerar tarefas retroativas.
+    /// </summary>
     public static RecorrenciaTarefa Criar(
         Guid id,
         Guid tenantId,
         Guid clienteId,
         Guid? contratoId,
         ModeloTarefa modelo,
-        RegraRecorrencia regra)
+        RegraRecorrencia regra,
+        DateOnly hoje)
     {
         ArgumentNullException.ThrowIfNull(modelo);
         ArgumentNullException.ThrowIfNull(regra);
@@ -58,7 +62,7 @@ public sealed class RecorrenciaTarefa : RaizComCliente
         {
             ContratoId = Ids.Opcional(contratoId, nameof(contratoId)),
         };
-        recorrencia.DefinirProxima(GeradorDeDatas.Proxima(regra, regra.Inicio));
+        recorrencia.DefinirProxima(GeradorDeDatas.Proxima(regra, regra.Inicio > hoje ? regra.Inicio : hoje));
         return recorrencia;
     }
 
@@ -88,6 +92,13 @@ public sealed class RecorrenciaTarefa : RaizComCliente
         ArgumentNullException.ThrowIfNull(modelo);
         GarantirNaoEncerrada(nameof(AlterarModelo));
         Modelo = modelo;
+    }
+
+    /// <summary>Troca o contrato das próximas tarefas (apontamentos delas); a Application garante que é do mesmo cliente.</summary>
+    public void AlterarContrato(Guid? contratoId)
+    {
+        GarantirNaoEncerrada(nameof(AlterarContrato));
+        ContratoId = Ids.Opcional(contratoId, nameof(contratoId));
     }
 
     /// <summary>Troca a regra; a próxima data passa a ser a primeira ocorrência da nova regra a partir de hoje.</summary>
