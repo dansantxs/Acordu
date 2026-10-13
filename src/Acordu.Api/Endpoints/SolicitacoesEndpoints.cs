@@ -1,5 +1,6 @@
 using Acordu.Api.Seguranca;
 using Acordu.Application.AcessosPortal;
+using Acordu.Application.Anexos;
 using Acordu.Application.Common;
 using Acordu.Application.Solicitacoes;
 using Acordu.Domain.Acesso;
@@ -104,15 +105,23 @@ internal static class SolicitacoesEndpoints
             .RequirePermissao(Permissoes.SolicitacaoVer)
             .Produces<IReadOnlyList<InteracaoDto>>();
 
+        // JSON { texto, visibilidade } ou multipart (texto, visibilidade, anexos[]) — contrato §7.
         solicitacoes.MapPost("/{id:guid}/interacoes", async (
-            Guid id, InteracaoRequest corpo, ComandosSolicitacao comandos, IConsultasSolicitacao consultas,
+            Guid id, HttpRequest requisicao, ComandosSolicitacao comandos, IConsultasSolicitacao consultas,
             CancellationToken cancellationToken) =>
         {
-            var interacaoId = await comandos.ComentarAsync(id, corpo, cancellationToken);
+            var formulario = await FormularioComAnexos.LerAsync(requisicao, cancellationToken);
+            var corpo = formulario is null
+                ? await CorpoOpcional.LerAsync<InteracaoRequest>(requisicao, cancellationToken)
+                    ?? throw new BadHttpRequestException("Envie o comentário em JSON ou multipart/form-data.")
+                : new InteracaoRequest(
+                    formulario.Campo("texto"), EnumsDaApi.Ler<Visibilidade>(formulario.Campo("visibilidade"), "visibilidade"));
+            var interacaoId = await comandos.ComentarAsync(id, corpo, formulario?.Arquivos, cancellationToken);
             var linha = await consultas.InteracoesAsync(id, cancellationToken);
             return Results.Created($"/api/v1/solicitacoes/{id}/interacoes", linha!.Single(i => i.Id == interacaoId));
         })
             .RequirePermissao(Permissoes.SolicitacaoComentar)
+            .Accepts<InteracaoRequest>("application/json", "multipart/form-data")
             .Produces<InteracaoDto>(StatusCodes.Status201Created);
 
         // Links de acesso sem senha (RF-POR-08). O link (com o token) só aparece na resposta da emissão.
@@ -139,6 +148,13 @@ internal static class SolicitacoesEndpoints
             return Results.NoContent();
         })
             .RequirePermissao(Permissoes.PortalGerenciarAcessos);
+
+        // Anexo de interação (interna ou externa): 302 para a URL assinada de 5 minutos (segurança §7).
+        interno.MapGet("/anexos/{id:guid}/download", async (Guid id, DownloadAnexos download, CancellationToken cancellationToken) =>
+            Results.Redirect((await download.UrlAsync(id, cancellationToken)).ToString()))
+            .WithTags("Solicitações")
+            .RequirePermissao(Permissoes.SolicitacaoVer)
+            .Produces(StatusCodes.Status302Found);
 
         solicitacoes.MapGet("/{id:guid}/semelhantes", async (Guid id, IConsultaSemelhantes consultas, CancellationToken cancellationToken) =>
             Results.Ok(await consultas.SemelhantesAsync(id, cancellationToken) ?? throw new NaoEncontradoException("Solicitação não encontrada.")))

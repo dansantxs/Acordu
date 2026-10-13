@@ -1,3 +1,4 @@
+using Acordu.Application.Anexos;
 using Acordu.Application.Common;
 using Acordu.Domain.Exceptions;
 using Microsoft.AspNetCore.Diagnostics;
@@ -36,6 +37,10 @@ internal static partial class ManipuladorExcecoes
         TransicaoInvalidaException e => Problema(422, "transicao-invalida", "Transição de status inválida", e.Message),
         PeriodoFechadoException e => Problema(422, "periodo-fechado", "Período fechado", e.Message),
         ContratoIncoerenteException e => Problema(422, "contrato-incoerente", "Contrato incoerente", e.Message),
+        AnexoInvalidoException e => Problema(422, "anexo-invalido", "Anexo inválido", e.Message),
+        ArquivoGrandeDemaisException e => Problema(413, "anexo-grande-demais", "Anexo acima do limite", e.Message),
+        BadHttpRequestException { StatusCode: StatusCodes.Status413PayloadTooLarge } => Problema(
+            413, "anexo-grande-demais", "Anexo acima do limite", "O corpo da requisição passa do limite de anexos."),
         DominioException e => Problema(422, "validacao", "Regra de negócio violada", e.Message),
         NaoEncontradoException e => Problema(404, "nao-encontrado", "Não encontrado", e.Message),
         AcessoNegadoException e => Problema(403, "sem-permissao", "Sem permissão", e.Message),

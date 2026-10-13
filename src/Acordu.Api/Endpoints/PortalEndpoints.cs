@@ -56,16 +56,31 @@ internal static class PortalEndpoints
             .RequirePermissao(Permissoes.PortalSolicitacaoVer)
             .Produces<IReadOnlyList<InteracaoPortalDto>>();
 
+        // JSON { texto } ou multipart (texto, anexos[]).
         solicitacoes.MapPost("/{id:guid}/interacoes", async (
-            Guid id, RespostaPortalRequest corpo, ComandosPortal comandos, LeituraPortal leitura, CancellationToken cancellationToken) =>
+            Guid id, HttpRequest requisicao, ComandosPortal comandos, LeituraPortal leitura, CancellationToken cancellationToken) =>
         {
-            var interacaoId = await comandos.ResponderAsync(id, corpo, cancellationToken);
+            var formulario = await FormularioComAnexos.LerAsync(requisicao, cancellationToken);
+            var corpo = formulario is null
+                ? await CorpoOpcional.LerAsync<RespostaPortalRequest>(requisicao, cancellationToken)
+                    ?? throw new BadHttpRequestException("Envie a resposta em JSON ou multipart/form-data.")
+                : new RespostaPortalRequest(formulario.Campo("texto"));
+            var interacaoId = await comandos.ResponderAsync(id, corpo, formulario?.Arquivos, cancellationToken);
             var interacao = (await leitura.InteracoesAsync(id, cancellationToken)).Single(i => i.Id == interacaoId);
             return Results.Created($"/api/v1/portal/solicitacoes/{id}/interacoes", interacao);
         })
             .PermitirLink()
             .RequirePermissao(Permissoes.PortalSolicitacaoComentar)
+            .RequireRateLimiting(ComposicaoSeguranca.LimitePortal)
+            .Accepts<RespostaPortalRequest>("application/json", "multipart/form-data")
             .Produces<InteracaoPortalDto>(StatusCodes.Status201Created);
+
+        // Só anexos de interações EXTERNAS de solicitações visíveis ao contato; 302 para a URL assinada (5 min).
+        portal.MapGet("/anexos/{id:guid}/download", async (Guid id, LeituraPortal leitura, CancellationToken cancellationToken) =>
+            Results.Redirect((await leitura.UrlDoAnexoAsync(id, cancellationToken)).ToString()))
+            .PermitirLink()
+            .RequirePermissao(Permissoes.PortalSolicitacaoVer)
+            .Produces(StatusCodes.Status302Found);
 
         solicitacoes.MapPost("/{id:guid}/aprovacao", async (
             Guid id, ComandosPortal comandos, LeituraPortal leitura, CancellationToken cancellationToken) =>

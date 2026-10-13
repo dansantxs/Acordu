@@ -7,6 +7,7 @@ using Acordu.Api.Jobs;
 using Acordu.Api.Seguranca;
 using Acordu.Application.Abstractions;
 using Acordu.Infrastructure;
+using Acordu.Infrastructure.Armazenamento;
 using Acordu.Infrastructure.Email;
 using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.AspNetCore.Mvc;
@@ -52,6 +53,7 @@ internal static class ComposicaoApi
         services.AddCasosDeUso();
         services.AddSingleton(new EnderecosPublicos(new Uri(configuracao["App:UrlPublica"] ?? UrlPublicaPadrao)));
         AdicionarEmail(services, configuracao);
+        AdicionarArmazenamento(services, configuracao);
 
         services.AddProblemDetails(opcoes => opcoes.CustomizeProblemDetails = contexto =>
         {
@@ -108,6 +110,24 @@ internal static class ComposicaoApi
             services.TryAddSingleton<IEnviadorEmail>(sp => new EnviadorEmailLog(
                 sp.GetRequiredService<ILogger<EnviadorEmailLog>>(), opcoes.RegistrarConteudo));
         }
+    }
+
+    /// <summary>
+    /// Object storage S3 (OCI) quando há <c>Armazenamento__Endpoint</c>; senão, anexos indisponíveis. TryAdd: os testes
+    /// registram antes um armazenamento em memória.
+    /// </summary>
+    private static void AdicionarArmazenamento(IServiceCollection services, IConfiguration configuracao)
+    {
+        var opcoes = new OpcoesArmazenamento(
+            configuracao["Armazenamento:Endpoint"],
+            configuracao["Armazenamento:Regiao"] ?? OpcoesArmazenamento.RegiaoPadrao,
+            configuracao["Armazenamento:Bucket"] ?? OpcoesArmazenamento.BucketPadrao,
+            configuracao["Armazenamento:ChaveAcesso"],
+            configuracao["Armazenamento:ChaveSecreta"]);
+        if (opcoes.Configurado)
+            services.TryAddSingleton<IArmazenamentoArquivos>(_ => new ArmazenamentoS3(opcoes));
+        else
+            services.TryAddSingleton<IArmazenamentoArquivos, ArmazenamentoNaoConfigurado>();
     }
 
     /// <summary>
