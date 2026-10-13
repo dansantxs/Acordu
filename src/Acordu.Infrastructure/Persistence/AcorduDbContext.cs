@@ -120,6 +120,7 @@ public sealed class AcorduDbContext : IdentityUserContext<Usuario, Guid>
         builder.ApplyConfiguration(new CronometroConfiguration());
         builder.ApplyConfiguration(new RecorrenciaTarefaConfiguration());
         builder.ApplyConfiguration(new MensagemOutboxConfiguration());
+        builder.ApplyConfiguration(new MarcadorAvisoConfiguration());
         builder.ApplyConfiguration(new ContadorConfiguration());
 
         AplicarFiltros(builder);

@@ -1087,6 +1087,31 @@ namespace Acordu.Infrastructure.Persistence.Migrations
                     b.ToTable("vinculos", (string)null);
                 });
 
+            modelBuilder.Entity("Acordu.Infrastructure.Persistence.MarcadorAviso", b =>
+                {
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
+                    b.Property<Guid>("Referencia")
+                        .HasColumnType("uuid")
+                        .HasColumnName("referencia");
+
+                    b.Property<string>("Chave")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)")
+                        .HasColumnName("chave");
+
+                    b.Property<DateTimeOffset>("CriadoEm")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("criado_em");
+
+                    b.HasKey("TenantId", "Referencia", "Chave")
+                        .HasName("pk_marcadores_aviso");
+
+                    b.ToTable("marcadores_aviso", (string)null);
+                });
+
             modelBuilder.Entity("Acordu.Infrastructure.Persistence.Outbox.MensagemOutbox", b =>
                 {
                     b.Property<Guid>("Id")
