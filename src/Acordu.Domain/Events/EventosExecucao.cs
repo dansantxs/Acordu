@@ -20,3 +20,7 @@ public sealed record ApontamentoAlterado(
 /// <summary>Registrado antes da exclusão, que é feita pela Application.</summary>
 public sealed record ApontamentoExcluido(
     Guid ApontamentoId, Guid TenantId, Guid? ClienteId, Guid? ContratoId, DateOnly Data) : IEventoDominio;
+
+/// <summary>Ajuste de saldo lançado. Reação: recalcular o consumo do contrato e checar limiares (RF-CTR-07).</summary>
+public sealed record AjusteSaldoRegistrado(Guid AjusteId, Guid TenantId, Guid ClienteId, Guid ContratoId, DateOnly Data)
+    : IEventoDominio;
