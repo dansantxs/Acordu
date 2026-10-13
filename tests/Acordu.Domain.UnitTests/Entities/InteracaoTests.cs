@@ -129,4 +129,14 @@ public sealed class InteracaoTests
 
         interacao.Anexos[0].TipoConteudo.Should().Be("application/pdf");
     }
+
+    [Fact]
+    public void Registrar_AnexoComIdDefinido_UsaOId()
+    {
+        var id = Guid.NewGuid();
+
+        var interacao = Registrar(anexos: [new NovoAnexo("a.pdf", "application/pdf", 10, $"t/s/{id}", id)]);
+
+        interacao.Anexos[0].Id.Should().Be(id);
+    }
 }

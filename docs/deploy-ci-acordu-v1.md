@@ -84,7 +84,7 @@ Revisar com a medição real (o `docker stats` do primeiro mês).
 ## 3. CI (`ci.yml`) — a cada push/PR
 
 Pipeline:
-- **Backend:** restore → build → todos os testes (incluindo `ArchitectureTests`); integração com Testcontainers (`postgres:17`, mesma versão da VM). **(Acordu)** O teste do object storage usa um emulador S3 em container no runner (escolha no marco de anexos).
+- **Backend:** restore → build → todos os testes (incluindo `ArchitectureTests`); integração com Testcontainers (`postgres:17`, mesma versão da VM). **(Acordu)** O teste do object storage usa o emulador Adobe S3Mock (Testcontainers) no runner — as imagens públicas do MinIO deixaram de ser distribuídas; os testes funcionais usam um armazenamento em memória.
 - **Frontend:** install → lint → Vitest → build.
 - Merge em `main` só com tudo verde e PR revisado.
 
@@ -129,7 +129,7 @@ Os jobs já são endpoints internos idempotentes (`POST /internal/jobs/<nome>`, 
 ## 7. Segredos
 
 - **GitHub Actions (repositório acordu):** token GHCR, chave SSH de deploy do Acordu, host/usuário, webhook do Discord.
-- **VM (`/opt/acordu/.env`, fora do git, `chmod 600`):** connection strings (`acordu_app` e `acordu_migrator`), chave de assinatura do JWT **própria** (nunca compartilhada com outro produto), chave de API do Resend (`Email__ResendChave`; remetente em `Email__Remetente`, padrão `nao-responda@send.acordu.app.br`, e nome padrão em `Email__NomeRemetente`; sem a chave, a API só registra os e-mails em log), endereço público do front (`App__UrlPublica`, base dos links dos e-mails), `Proxy__ConfiarEncaminhamento=true` (IP real do cliente pelo `X-Forwarded-For` do Caddy, para auditoria e rate limit; ADR 0008), credenciais do object storage (Customer Secret Key restrita aos buckets do Acordu), DSN do Sentry, webhook do Discord.
+- **VM (`/opt/acordu/.env`, fora do git, `chmod 600`):** connection strings (`acordu_app` e `acordu_migrator`), chave de assinatura do JWT **própria** (nunca compartilhada com outro produto), chave de API do Resend (`Email__ResendChave`; remetente em `Email__Remetente`, padrão `nao-responda@send.acordu.app.br`, e nome padrão em `Email__NomeRemetente`; sem a chave, a API só registra os e-mails em log), endereço público do front (`App__UrlPublica`, base dos links dos e-mails), `Proxy__ConfiarEncaminhamento=true` (IP real do cliente pelo `X-Forwarded-For` do Caddy, para auditoria e rate limit; ADR 0008), object storage (`Armazenamento__Endpoint` = `https://{namespace}.compat.objectstorage.{regiao}.oraclecloud.com`, `Armazenamento__Regiao`, `Armazenamento__Bucket` padrão `acordu-anexos`, `Armazenamento__ChaveAcesso`/`Armazenamento__ChaveSecreta` da Customer Secret Key restrita aos buckets do Acordu; sem endpoint, anexos ficam indisponíveis), DSN do Sentry, webhook do Discord.
 
 ---
 

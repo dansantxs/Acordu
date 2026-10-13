@@ -100,7 +100,7 @@ public sealed class Interacao : RaizComCliente
             throw new AnexoInvalidoException($"O tipo do arquivo {nome} não é permitido.");
 
         return new Anexo(
-            Guid.CreateVersion7(), nome, anexo.TipoConteudo.Trim().ToLowerInvariant(), anexo.TamanhoBytes,
+            anexo.Id ?? Guid.CreateVersion7(), nome, anexo.TipoConteudo.Trim().ToLowerInvariant(), anexo.TamanhoBytes,
             anexo.ChaveArmazenamento);
     }
 }

@@ -1,3 +1,4 @@
+using Acordu.Application.Anexos;
 using Acordu.Application.Common;
 using Acordu.Domain.Enums;
 
@@ -60,7 +61,13 @@ public sealed record SolucaoDto(string? Problema, string? Causa, string Texto);
 
 /// <summary>Item da linha do tempo (internas e externas).</summary>
 public sealed record InteracaoDto(
-    Guid Id, Referencia Autor, bool AutorEhCliente, string? Texto, Visibilidade Visibilidade, DateTimeOffset RegistradaEm);
+    Guid Id,
+    Referencia Autor,
+    bool AutorEhCliente,
+    string? Texto,
+    Visibilidade Visibilidade,
+    DateTimeOffset RegistradaEm,
+    IReadOnlyList<AnexoDto> Anexos);
 
 /// <summary>Corpo do <c>POST /solicitacoes</c> (origem INTERNA).</summary>
 public sealed record NovaSolicitacaoRequest(

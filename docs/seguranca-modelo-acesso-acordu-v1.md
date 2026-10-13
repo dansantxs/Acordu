@@ -172,6 +172,7 @@ Um usuário Cliente em um tenant e Membro em outro troca de tenant e recebe toke
 - **Download:** a API verifica permissão (e visibilidade EXTERNA, no portal) e responde `302` para URL pré-assinada de **5 minutos**. O bucket é privado.
 - `Content-Disposition: attachment` sempre (evita executar HTML/SVG no navegador).
 - Antivírus fora do v1 (registrado como risco; avaliar ClamAV em container quando houver clientes pagantes).
+- **(Implementação, 10a)** `AWSSDK.S3` no endpoint S3 da OCI (path style, checksums só quando exigidos, upload sem `aws-chunked`). Arquivos validados (quantidade, tamanho, tipo pelo conteúdo) **antes** de enviar qualquer um; enviados antes do commit e removidos (melhor esforço) se a gravação falhar — órfão eventual fica no bucket versionado. Tipos detectados por tabela própria de assinaturas (`TiposDeArquivo`); a extensão só desempata ZIP × Office, OLE × Office antigo e texto × CSV.
 
 ---
 

@@ -13,5 +13,15 @@ services:
     volumes:
       - pgdata:/var/lib/postgresql/data
 
+  # Emulador S3 local para os anexos (as imagens públicas do MinIO deixaram de ser distribuídas). Na API:
+  # Armazenamento__Endpoint=http://localhost:9090, Armazenamento__Regiao=us-east-1, chaves quaisquer. Sem persistência.
+  s3:
+    image: adobe/s3mock:5.2.2
+    container_name: acordu-s3
+    environment:
+      COM_ADOBE_TESTING_S3MOCK_STORE_INITIAL_BUCKETS: acordu-anexos
+    ports:
+      - "9090:9090"
+
 volumes:
   pgdata:

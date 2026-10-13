@@ -1,4 +1,5 @@
 using Acordu.Application.Abstractions;
+using Acordu.Application.Anexos;
 using Acordu.Application.Common;
 using Acordu.Application.Contratos;
 using Acordu.Application.Solicitacoes;
@@ -6,6 +7,7 @@ using Acordu.Domain.Acesso;
 using Acordu.Domain.Entities;
 using Acordu.Domain.Enums;
 using Acordu.Domain.Exceptions;
+using Acordu.Domain.ValueObjects;
 
 namespace Acordu.Application.Portal;
 
@@ -26,6 +28,7 @@ public sealed class ComandosPortal
     private readonly ICalendarios _calendarios;
     private readonly RelogioDoTenant _relogio;
     private readonly IUnitOfWork _unidade;
+    private readonly RecebimentoAnexos _anexos;
 
     public ComandosPortal(
         ITenantContext contexto,
@@ -38,8 +41,11 @@ public sealed class ComandosPortal
         IGeradorProtocolo protocolo,
         ICalendarios calendarios,
         RelogioDoTenant relogio,
-        IUnitOfWork unidade)
+        IUnitOfWork unidade,
+        RecebimentoAnexos anexos)
     {
+        ArgumentNullException.ThrowIfNull(anexos);
+        _anexos = anexos;
         ArgumentNullException.ThrowIfNull(contexto);
         ArgumentNullException.ThrowIfNull(portal);
         ArgumentNullException.ThrowIfNull(solicitacoes);
@@ -106,13 +112,31 @@ public sealed class ComandosPortal
 
     /// <summary>
     /// Resposta do cliente, sempre EXTERNA. Devolve o Id da interação. Autor: o usuário do contato ou, na sessão de link
-    /// (sem conta), o Id do próprio contato.
+    /// (sem conta), o Id do próprio contato. Anexos opcionais, como nos comentários da equipe.
     /// </summary>
-    public async Task<Guid> ResponderAsync(Guid solicitacaoId, RespostaPortalRequest dados, CancellationToken cancellationToken = default)
+    public async Task<Guid> ResponderAsync(
+        Guid solicitacaoId, RespostaPortalRequest dados, IReadOnlyList<ArquivoRecebido>? arquivos = null,
+        CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(dados);
         var solicitacao = await CarregarAsync(solicitacaoId, Permissoes.PortalSolicitacaoComentar, cancellationToken);
         var contato = await _portal.ContatoAsync(cancellationToken);
+        var anexos = await _anexos.EnviarAsync(solicitacao.TenantId, solicitacao.Id, arquivos, cancellationToken);
+        try
+        {
+            return await RegistrarRespostaAsync(solicitacao, contato, dados, anexos, cancellationToken);
+        }
+        catch
+        {
+            await _anexos.DescartarAsync(anexos);
+            throw;
+        }
+    }
+
+    private async Task<Guid> RegistrarRespostaAsync(
+        Solicitacao solicitacao, ContatoDoPortal contato, RespostaPortalRequest dados, IReadOnlyList<NovoAnexo> anexos,
+        CancellationToken cancellationToken)
+    {
         var interacao = Interacao.Registrar(
             Guid.CreateVersion7(),
             solicitacao.TenantId,
@@ -123,7 +147,7 @@ public sealed class ComandosPortal
             autorEhCliente: true,
             dados.Texto,
             Visibilidade.Externa,
-            [],
+            anexos,
             ComandosSolicitacao.PoliticaPadrao,
             _relogio.Agora);
         _interacoes.Adicionar(interacao);

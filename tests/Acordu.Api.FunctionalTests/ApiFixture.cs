@@ -37,6 +37,8 @@ public sealed class ApiFixture : IAsyncLifetime
 
     internal CaixaDeEmails Emails { get; } = new();
 
+    internal ArmazenamentoDeTeste Arquivos { get; } = new();
+
     internal RelogioDeTeste Relogio { get; } = new(new DateTimeOffset(2026, 10, 6, 13, 0, 0, TimeSpan.Zero));
 
     internal WebApplication App => _app ?? throw new InvalidOperationException("Fixture não inicializado.");
@@ -64,6 +66,7 @@ public sealed class ApiFixture : IAsyncLifetime
         builder.Services.AddSingleton<TimeProvider>(Relogio);
         builder.Services.AddSingleton(Entregas);
         builder.Services.AddSingleton<IEnviadorEmail>(Emails);
+        builder.Services.AddSingleton<IArmazenamentoArquivos>(Arquivos);
         builder.Services.AddScoped<IManipuladorPosCommit<SolicitacaoAberta>, ManipuladorDeTeste>();
         builder.Services.AddAcorduApi(builder.Configuration);
 

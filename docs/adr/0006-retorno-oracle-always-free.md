@@ -59,7 +59,7 @@ Se a VM for perdida **e** não houver capacidade Ampere para recriá-la: executa
 
 ### 5. Regras que valem em todos os níveis
 
-- **Nenhum SDK de provedor no código.** Banco por connection string Npgsql; arquivos por API S3-compatível; e-mail pelo Resend via HTTP.
+- **Nenhum SDK de provedor no código.** Banco por connection string Npgsql; arquivos por API S3-compatível; e-mail pelo Resend via HTTP. *(Nota de 13/10/2026, marco 10a: a API S3 é falada pelo `AWSSDK.S3` usado só como cliente do protocolo, com endpoint configurável — funciona igual com OCI, MinIO ou outro S3; nenhum SDK da OCI entra.)*
 - **Toda configuração por variável de ambiente** (connection string, endpoint e credenciais S3, chave JWT, chave do Resend, token dos jobs, CORS). Trocar de provedor é trocar variáveis.
 - **Migrations aditivas:** a versão anterior da API continua funcionando com o schema novo (remoção e renomeação em duas etapas). Isso permite deploy e rollback sem janela.
 - **PostgreSQL 17 em todos os ambientes:** dev (`docker-compose.dev.yml`), testes (Testcontainers `postgres:17`), VM e qualquer destino de migração. Dump e restore entre versões iguais.

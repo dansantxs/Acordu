@@ -49,7 +49,11 @@ public sealed record SlaPortalDto(DateTimeOffset PrazoResolucao, SituacaoSla Sit
 public sealed record TarefaPortalDto(string Titulo, StatusTarefa Status);
 
 /// <summary>Interação EXTERNA; <see cref="DaEquipe"/> separa as mensagens do prestador das do cliente.</summary>
-public sealed record InteracaoPortalDto(Guid Id, string? Texto, string AutorNome, bool DaEquipe, DateTimeOffset RegistradaEm);
+public sealed record InteracaoPortalDto(
+    Guid Id, string? Texto, string AutorNome, bool DaEquipe, DateTimeOffset RegistradaEm, IReadOnlyList<AnexoPortalDto> Anexos);
+
+/// <summary>Anexo visto pelo contato (download em <c>/portal/anexos/{id}/download</c>).</summary>
+public sealed record AnexoPortalDto(Guid Id, string NomeArquivo, string TipoConteudo, long TamanhoBytes);
 
 public sealed record ContratoPortalDto(Guid Id, TipoContrato Tipo, DateOnly Inicio, DateOnly? Fim, int? FranquiaMinutos);
 

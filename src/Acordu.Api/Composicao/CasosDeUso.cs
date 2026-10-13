@@ -1,4 +1,5 @@
 using Acordu.Application.Abstractions.Eventos;
+using Acordu.Application.Anexos;
 using Acordu.Application.Apontamentos;
 using Acordu.Application.Auditoria;
 using Acordu.Application.Categorias;
@@ -28,6 +29,8 @@ internal static class CasosDeUso
     public static IServiceCollection AddCasosDeUso(this IServiceCollection services)
     {
         services.AddScoped<RelogioDoTenant>();
+        services.AddScoped<RecebimentoAnexos>();
+        services.AddScoped<DownloadAnexos>();
         services.AddScoped<ComandosCliente>();
         services.AddScoped<ComandosContrato>();
         services.AddScoped<ComandosSolicitacao>();
