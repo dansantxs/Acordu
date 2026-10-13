@@ -6,6 +6,7 @@ using Acordu.Application.Common;
 using Acordu.Application.Configuracoes;
 using Acordu.Application.Contratos;
 using Acordu.Application.Equipe;
+using Acordu.Application.Notificacoes;
 using Acordu.Application.Papeis;
 using Acordu.Application.Portal;
 using Acordu.Application.AcessosPortal;
@@ -48,6 +49,13 @@ internal static class CasosDeUso
         // Efeitos externos depois do commit, pela outbox.
         services.AddScoped<IManipuladorPosCommit<ConvitePortalCriado>, EnvioConvitePortal>();
         services.AddScoped<IManipuladorPosCommit<ConviteEquipeCriado>, EnvioConviteEquipe>();
+
+        // E-mails ao contato da solicitação (RF-NOT-01): uma classe, quatro eventos.
+        services.AddScoped<AvisosAoContato>();
+        services.AddScoped<IManipuladorPosCommit<SolicitacaoAberta>>(sp => sp.GetRequiredService<AvisosAoContato>());
+        services.AddScoped<IManipuladorPosCommit<InteracaoRegistrada>>(sp => sp.GetRequiredService<AvisosAoContato>());
+        services.AddScoped<IManipuladorPosCommit<SolicitacaoStatusAlterado>>(sp => sp.GetRequiredService<AvisosAoContato>());
+        services.AddScoped<IManipuladorPosCommit<SolicitacaoResolvida>>(sp => sp.GetRequiredService<AvisosAoContato>());
         return services;
     }
 }
