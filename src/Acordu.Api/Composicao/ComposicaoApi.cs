@@ -147,6 +147,7 @@ internal static class ComposicaoApi
         grupos.Interno.MapSolicitacoes();
         grupos.Interno.MapTarefas();
         grupos.Interno.MapProjetos();
+        grupos.Interno.MapRecorrencias();
         grupos.Interno.MapApontamentos();
         grupos.Interno.MapConfiguracoes();
         grupos.Interno.MapEquipe();
