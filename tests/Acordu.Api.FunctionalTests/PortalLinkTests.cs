@@ -38,6 +38,9 @@ public sealed partial class PortalLinkTests(ApiFixture api)
         sessao.GetProperty("solicitacaoId").GetGuid().Should().Be(solicitacao);
         sessao.GetProperty("tipo").GetString().Should().Be("LINK_SOLICITACAO");
         var acesso = sessao.GetProperty("accessToken").GetString()!;
+        var auditoria = await equipe.EsperarAsync(HttpStatusCode.OK, HttpMethod.Get, "/api/v1/auditoria?acao=portal.link.troca");
+        auditoria.GetProperty("itens")[0].GetProperty("alvoId").GetGuid().Should().Be(solicitacao);
+        auditoria.GetProperty("itens")[0].GetProperty("usuario").ValueKind.Should().Be(JsonValueKind.Null);
 
         var eu = await equipe.EsperarAsync(HttpStatusCode.OK, HttpMethod.Get, $"{Portal}/eu", token: acesso);
         eu.GetProperty("contato").GetProperty("id").GetGuid().Should().Be(contato);
