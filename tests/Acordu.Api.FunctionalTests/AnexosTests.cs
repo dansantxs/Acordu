@@ -17,8 +17,13 @@ public sealed class AnexosTests(ApiFixture api)
     private static readonly byte[] Pdf = Encoding.ASCII.GetBytes("%PDF-1.7\nconteúdo do relatório");
     private static readonly byte[] Exe = [0x4D, 0x5A, 0x90, 0x00, 0x03, 0x00];
 
+    private Task<(HttpStatusCode Status, JsonElement Corpo)> EnviarAsync(
+        string rota, string token, IEnumerable<(string Nome, byte[] Conteudo)> arquivos, params (string Campo, string Valor)[] campos) =>
+        EnviarAsync(HttpMethod.Post, "anexos", rota, token, arquivos, campos);
+
     private async Task<(HttpStatusCode Status, JsonElement Corpo)> EnviarAsync(
-        string rota, string token, IEnumerable<(string Nome, byte[] Conteudo)> arquivos, params (string Campo, string Valor)[] campos)
+        HttpMethod metodo, string campoArquivos, string rota, string token, IEnumerable<(string Nome, byte[] Conteudo)> arquivos,
+        params (string Campo, string Valor)[] campos)
     {
         using var formulario = new MultipartFormDataContent();
         foreach (var (campo, valor) in campos)
@@ -28,11 +33,11 @@ public sealed class AnexosTests(ApiFixture api)
             var parte = new ByteArrayContent(conteudo);
             // O tipo declarado é ignorado: vale o detectado pelo conteúdo.
             parte.Headers.ContentType = new MediaTypeHeaderValue("application/octet-stream");
-            formulario.Add(parte, "anexos", nome);
+            formulario.Add(parte, campoArquivos, nome);
         }
 
         using var http = api.NovoHttp();
-        using var pedido = new HttpRequestMessage(HttpMethod.Post, new Uri(rota, UriKind.Relative)) { Content = formulario };
+        using var pedido = new HttpRequestMessage(metodo, new Uri(rota, UriKind.Relative)) { Content = formulario };
         pedido.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
         using var resposta = await http.SendAsync(pedido);
         var texto = await resposta.Content.ReadAsStringAsync();
@@ -153,5 +158,88 @@ public sealed class AnexosTests(ApiFixture api)
         (await BaixarAsync($"/api/v1/anexos/{anexo}/download", leitor)).Status.Should().Be(HttpStatusCode.Redirect);
         (await BaixarAsync($"/api/v1/anexos/{anexo}/download", outra.Dono)).Status.Should().Be(HttpStatusCode.NotFound);
         (await BaixarAsync($"/api/v1/portal/anexos/{anexo}/download", contatoDeOutro.Token)).Status.Should().Be(HttpStatusCode.NotFound);
+    }
+
+    [Fact]
+    public async Task Portal_AbreSolicitacaoComAnexos_ViramAPrimeiraInteracao()
+    {
+        var equipe = await Equipe.CriarAsync(api);
+        var cliente = await Cenarios.ClienteAsync(equipe);
+        var contato = await ContatosDoPortal.CriarAsync(api, equipe, cliente);
+
+        var (status, aberta) = await EnviarAsync(
+            "/api/v1/portal/solicitacoes", contato.Token, [("erro.png", Png), ("nota.pdf", Pdf)],
+            ("titulo", "Site fora do ar"), ("descricao", "Desde ontem"), ("prioridade", "ALTA"));
+
+        status.Should().Be(HttpStatusCode.Created, "corpo: {0}", aberta);
+        var id = aberta.GetProperty("id").GetGuid();
+        aberta.GetProperty("titulo").GetString().Should().Be("Site fora do ar");
+        var linha = await equipe.EsperarAsync(HttpStatusCode.OK, HttpMethod.Get, $"/api/v1/solicitacoes/{id}/interacoes");
+        linha.GetArrayLength().Should().Be(1);
+        linha[0].GetProperty("autorEhCliente").GetBoolean().Should().BeTrue();
+        linha[0].GetProperty("visibilidade").GetString().Should().Be("EXTERNA");
+        linha[0].GetProperty("anexos").GetArrayLength().Should().Be(2);
+        var anexo = linha[0].GetProperty("anexos")[0].GetProperty("id").GetGuid();
+        api.Arquivos.Existe($"{equipe.TenantId}/{id}/{anexo}").Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task Portal_AberturaComAnexoInvalido_NaoCriaASolicitacao()
+    {
+        var equipe = await Equipe.CriarAsync(api);
+        var cliente = await Cenarios.ClienteAsync(equipe);
+        var contato = await ContatosDoPortal.CriarAsync(api, equipe, cliente);
+
+        var (status, _) = await EnviarAsync("/api/v1/portal/solicitacoes", contato.Token, [("x.pdf", Exe)], ("titulo", "Com vírus"));
+
+        status.Should().Be(HttpStatusCode.UnprocessableEntity);
+        var lista = await equipe.EsperarAsync(HttpStatusCode.OK, HttpMethod.Get, $"/api/v1/solicitacoes?clienteId={cliente}");
+        lista.GetProperty("total").GetInt32().Should().Be(0);
+    }
+
+    [Fact]
+    public async Task Logotipo_EnviaTrocaRemove_EApareceNoPortal()
+    {
+        var equipe = await Equipe.CriarAsync(api);
+        var cliente = await Cenarios.ClienteAsync(equipe);
+        var contato = await ContatosDoPortal.CriarAsync(api, equipe, cliente);
+        const string Rota = "/api/v1/configuracoes/portal/logo";
+
+        var (status, primeiro) = await EnviarAsync(HttpMethod.Put, "logo", Rota, equipe.Dono, [("marca.png", Png)]);
+        status.Should().Be(HttpStatusCode.OK, "corpo: {0}", primeiro);
+        var url = new Uri(primeiro.GetProperty("logoUrl").GetString()!);
+        url.AbsoluteUri.Should().StartWith($"{ArmazenamentoDeTeste.Base}{equipe.TenantId}/portal/logo-").And.Contain(".png").And.Contain("validade=60");
+        var chave = url.AbsolutePath.TrimStart('/');
+        api.Arquivos.Existe(chave).Should().BeTrue();
+
+        var eu = await equipe.EsperarAsync(HttpStatusCode.OK, HttpMethod.Get, "/api/v1/portal/eu", token: contato.Token);
+        eu.GetProperty("prestador").GetProperty("logoUrl").GetString().Should().Be(url.AbsoluteUri);
+
+        var (_, segundo) = await EnviarAsync(HttpMethod.Put, "logo", Rota, equipe.Dono, [("marca.jpg", [0xFF, 0xD8, 0xFF, 0xE0, 1, 2])]);
+        segundo.GetProperty("logoUrl").GetString().Should().Contain(".jpg");
+        api.Arquivos.Existe(chave).Should().BeFalse("o anterior é removido depois da troca");
+
+        var removido = await equipe.EsperarAsync(HttpStatusCode.OK, HttpMethod.Delete, Rota);
+        removido.GetProperty("logoUrl").ValueKind.Should().Be(JsonValueKind.Null);
+        api.Arquivos.ComPrefixo($"{equipe.TenantId}/portal/").Should().Be(0);
+    }
+
+    [Fact]
+    public async Task Logotipo_TipoTamanhoEPermissao()
+    {
+        var equipe = await Equipe.CriarAsync(api);
+        var membro = await equipe.ComPapelAsync(Papel.NomeMembro);
+        const string Rota = "/api/v1/configuracoes/portal/logo";
+        var grande = new byte[(512 * 1024) + 1];
+        Png.CopyTo(grande, 0);
+
+        var (pdf, erroPdf) = await EnviarAsync(HttpMethod.Put, "logo", Rota, equipe.Dono, [("marca.pdf", Pdf)]);
+        var (tamanho, _) = await EnviarAsync(HttpMethod.Put, "logo", Rota, equipe.Dono, [("marca.png", grande)]);
+        var (semPermissao, _) = await EnviarAsync(HttpMethod.Put, "logo", Rota, membro, [("marca.png", Png)]);
+
+        pdf.Should().Be(HttpStatusCode.BadRequest);
+        erroPdf.GetProperty("errors").TryGetProperty("logo", out _).Should().BeTrue();
+        tamanho.Should().Be(HttpStatusCode.RequestEntityTooLarge);
+        semPermissao.Should().Be(HttpStatusCode.Forbidden);
     }
 }
