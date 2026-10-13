@@ -2,6 +2,7 @@ using System.Buffers.Text;
 using System.Security.Cryptography;
 using System.Text;
 using Acordu.Application.Abstractions;
+using Acordu.Application.Auditoria;
 using Acordu.Application.Autenticacao;
 using Acordu.Domain.Common;
 using Acordu.Domain.Entities;
@@ -9,6 +10,7 @@ using Acordu.Domain.Enums;
 using Acordu.Domain.Exceptions;
 using Acordu.Infrastructure.MultiTenancy;
 using Acordu.Infrastructure.Persistence;
+using Acordu.Infrastructure.Persistence.Auditoria;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
@@ -35,6 +37,7 @@ public sealed partial class ServicoAutenticacao : IServicoAutenticacao
     private readonly IEnviadorEmail _email;
     private readonly EnderecosPublicos _enderecos;
     private readonly ILogger<ServicoAutenticacao> _logger;
+    private readonly IOrigemRequisicao _origem;
 
     public ServicoAutenticacao(
         AcorduDbContext db,
@@ -43,7 +46,8 @@ public sealed partial class ServicoAutenticacao : IServicoAutenticacao
         TimeProvider relogio,
         IEnviadorEmail email,
         EnderecosPublicos enderecos,
-        ILogger<ServicoAutenticacao> logger)
+        ILogger<ServicoAutenticacao> logger,
+        IOrigemRequisicao origem)
     {
         ArgumentNullException.ThrowIfNull(db);
         ArgumentNullException.ThrowIfNull(usuarios);
@@ -52,6 +56,8 @@ public sealed partial class ServicoAutenticacao : IServicoAutenticacao
         ArgumentNullException.ThrowIfNull(email);
         ArgumentNullException.ThrowIfNull(enderecos);
         ArgumentNullException.ThrowIfNull(logger);
+        ArgumentNullException.ThrowIfNull(origem);
+        _origem = origem;
         _db = db;
         _usuarios = usuarios;
         _contexto = contexto;
@@ -108,14 +114,16 @@ public sealed partial class ServicoAutenticacao : IServicoAutenticacao
     public async Task<Sessao?> EntrarAsync(string email, string senha, CancellationToken cancellationToken = default)
     {
         var usuario = string.IsNullOrWhiteSpace(email) ? null : await _usuarios.FindByEmailAsync(email.Trim());
-        if (usuario is null || string.IsNullOrEmpty(senha))
-            return null;
+        if (usuario is null)
+            return await FalhaNoLoginAsync(null, email, "email-desconhecido", cancellationToken);
+        if (string.IsNullOrEmpty(senha))
+            return await FalhaNoLoginAsync(usuario, email, "senha", cancellationToken);
         if (await _usuarios.IsLockedOutAsync(usuario))
-            return null;
+            return await FalhaNoLoginAsync(usuario, email, "bloqueado", cancellationToken);
         if (!await _usuarios.CheckPasswordAsync(usuario, senha))
         {
             await _usuarios.AccessFailedAsync(usuario);
-            return null;
+            return await FalhaNoLoginAsync(usuario, email, "senha", cancellationToken);
         }
 
         await _usuarios.ResetAccessFailedCountAsync(usuario);
@@ -125,11 +133,37 @@ public sealed partial class ServicoAutenticacao : IServicoAutenticacao
             .ToListAsync(cancellationToken);
         var vinculo = vinculos.FirstOrDefault(v => v.TenantId == usuario.UltimoTenantId) ?? vinculos.FirstOrDefault();
         if (vinculo is null)
-            return null;
+            return await FalhaNoLoginAsync(usuario, email, "sem-vinculo", cancellationToken);
 
-        var sessao = Abrir(usuario, vinculo, await PapelAsync(vinculo, cancellationToken), _relogio.GetUtcNow());
+        var agora = _relogio.GetUtcNow();
+        var sessao = Abrir(usuario, vinculo, await PapelAsync(vinculo, cancellationToken), agora);
+        // Sucesso fica no tenant da sessão emitida: o Dono dele vê (segurança §8).
+        _db.Add(RegistroAuditoria.Criar(
+            vinculo.TenantId, usuario.Id, AcoesAuditoria.LoginSucesso, null, null, null, _origem.Ip, agora));
         await _db.SaveChangesAsync(cancellationToken);
         return sessao;
+    }
+
+    /// <summary>
+    /// Login recusado: auditado sem tenant (só a operação vê), com o e-mail digitado e o motivo; a resposta continua
+    /// sem distinguir o motivo.
+    /// </summary>
+    private async Task<Sessao?> FalhaNoLoginAsync(Usuario? usuario, string? email, string motivo, CancellationToken cancellationToken)
+    {
+        var digitado = email?.Trim() ?? string.Empty;
+        if (digitado.Length > LimitesTexto.Email)
+            digitado = digitado[..LimitesTexto.Email];
+        _db.Add(RegistroAuditoria.Criar(
+            null,
+            usuario?.Id,
+            AcoesAuditoria.LoginFalha,
+            null,
+            null,
+            TrilhaDeAuditoria.Serializar(new { email = digitado, motivo }),
+            _origem.Ip,
+            _relogio.GetUtcNow()));
+        await _db.SaveChangesAsync(cancellationToken);
+        return null;
     }
 
     public async Task<Sessao?> RenovarAsync(string refreshToken, CancellationToken cancellationToken = default)
@@ -304,7 +338,20 @@ public sealed partial class ServicoAutenticacao : IServicoAutenticacao
             .Where(c => c.Id == acesso.ClienteId && c.TenantId == acesso.TenantId && c.Ativo)
             .SelectMany(c => c.Contatos)
             .AnyAsync(c => c.Id == acesso.ContatoId && c.Ativo, cancellationToken);
-        return contatoAtivo ? new SessaoLink(acesso.TenantId, acesso.ClienteId, acesso.Id, acesso.SolicitacaoId) : null;
+        if (!contatoAtivo)
+            return null;
+
+        _db.Add(RegistroAuditoria.Criar(
+            acesso.TenantId,
+            null,
+            AcoesAuditoria.LinkPortalTroca,
+            "solicitacao",
+            acesso.SolicitacaoId,
+            TrilhaDeAuditoria.Serializar(new { acessoPortalId = acesso.Id, contatoId = acesso.ContatoId }),
+            _origem.Ip,
+            _relogio.GetUtcNow()));
+        await _db.SaveChangesAsync(cancellationToken);
+        return new SessaoLink(acesso.TenantId, acesso.ClienteId, acesso.Id, acesso.SolicitacaoId);
     }
 
     public async Task<bool> ConfirmarEmailAsync(string token, CancellationToken cancellationToken = default)
