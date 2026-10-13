@@ -476,7 +476,7 @@ Puros e determinísticos — principal alvo dos testes unitários.
 
 | Evento | Disparado por | Reação (handler na Application) |
 |---|---|---|
-| `SolicitacaoAberta` | `Solicitacao.Abrir` | E-mail "recebida #N" ao contato; e-mail/notificação interna. |
+| `SolicitacaoAberta` | `Solicitacao.Abrir` | E-mail "recebida #N" ao contato (`AvisosAoContato`, 7c1); e-mail/notificação interna. |
 | `SolicitacaoStatusAlterado` | toda transição (inclusive resolver, reabrir, fechar, cancelar) | Notificar contato quando o status **externo** muda (`ExternoMudou`), exceto onde um evento específico já notifica (resolvida). |
 | `SolicitacaoAtribuida` | `Atribuir` (só quando muda) | E-mail interno de atribuição (RF-NOT-02). |
 | `SolicitacaoReaberta` | `Reabrir` | Notificar responsável (motivo no evento). |
@@ -485,6 +485,8 @@ Puros e determinísticos — principal alvo dos testes unitários.
 | `ApontamentoRegistrado/Alterado/Excluido` | `Apontamento` | Checar limiares de consumo (RF-CTR-07). |
 | `TarefaConcluida` | `Tarefa.Concluir` | (v1) nada obrigatório; (v2) sugerir resolver a solicitação se todas as tarefas concluíram. |
 | `ConvitePortalCriado` | `ConvitePortal.Criar` | Gera o token e envia o e-mail de aceite (§4.10.1). |
+
+**Avisos ao contato (7c1, RF-NOT-01):** `AvisosAoContato` reage a `SolicitacaoAberta`, `InteracaoRegistrada` (EXTERNA da equipe), `SolicitacaoStatusAlterado` (só para AGUARDANDO_CLIENTE) e `SolicitacaoResolvida`. Destinatário: o contato da solicitação, ativo, de cliente ativo. Link: portal para quem tem conta; sem conta, link de acesso novo a cada e-mail (revoga o anterior da mesma solicitação e contato; decidido em 13/10).
 
 Despacho **dentro da mesma transação** para efeitos de estado (primeira resposta, retomada) e **após o commit** para efeitos externos (e-mail), via outbox simples na Infrastructure — e-mail nunca sai de uma transação que falhou.
 
