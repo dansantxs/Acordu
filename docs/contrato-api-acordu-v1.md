@@ -519,6 +519,16 @@ Sem rota própria: saem depois do commit quando a solicitação tem contato ativ
 - Remetente com o nome do prestador. A resposta do próprio contato não gera e-mail para ele.
 - Link: contato com conta → `{App__UrlPublica}/portal/solicitacoes/{id}`; sem conta → link de acesso sem senha (30 dias) **novo a cada e-mail**, revogando o anterior da mesma solicitação e contato. Solicitação fechada ou cancelada não ganha link novo.
 
+## 12b. E-mails internos (RF-NOT-02, 7c2)
+
+| Quando | Para quem |
+|---|---|
+| Solicitação aberta (equipe ou portal) | Responsável; sem ele, quem tem `solicitacao.editar`. Nunca quem abriu. |
+| Responsável alterado | O novo responsável, se não atribuiu a si mesmo. |
+| SLA em risco (75% do prazo útil) ou violado | Responsável; sem ele, quem tem `solicitacao.editar`. Verificado no `tick`; situação = a pior entre primeira resposta e resolução (read side §5); um alerta por (solicitação, ciclo do SLA, situação); reabrir inicia novo ciclo. |
+
+O `tick` responde também `alertasSla` (solicitações alertadas) e `falhas` (tenants com erro, logados).
+
 ## 13. Formato de erro (RFC 9457)
 
 ```json

@@ -488,6 +488,8 @@ Puros e determinísticos — principal alvo dos testes unitários.
 
 **Avisos ao contato (7c1, RF-NOT-01):** `AvisosAoContato` reage a `SolicitacaoAberta`, `InteracaoRegistrada` (EXTERNA da equipe), `SolicitacaoStatusAlterado` (só para AGUARDANDO_CLIENTE) e `SolicitacaoResolvida`. Destinatário: o contato da solicitação, ativo, de cliente ativo. Link: portal para quem tem conta; sem conta, link de acesso novo a cada e-mail (revoga o anterior da mesma solicitação e contato; decidido em 13/10).
 
+**Avisos à equipe (7c2, RF-NOT-02):** `SolicitacaoAberta.AbertaPor` e `SolicitacaoAtribuida.AtribuidoPor` levam quem agiu (opcionais; `Abrir(..., abertaPor)` e `Atribuir(responsavel, atribuidoPor)`), para não avisar quem abriu nem quem se atribuiu. Alertas de SLA: `AlertasSla` no `tick`, com marcador (`marcadores_aviso`) por solicitação e chave `sla:{início do ciclo}:{situação}`.
+
 Despacho **dentro da mesma transação** para efeitos de estado (primeira resposta, retomada) e **após o commit** para efeitos externos (e-mail), via outbox simples na Infrastructure — e-mail nunca sai de uma transação que falhou.
 
 **Como funciona (Infrastructure, `UnitOfWork`):**
