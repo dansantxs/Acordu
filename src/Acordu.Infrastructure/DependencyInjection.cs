@@ -1,5 +1,6 @@
 using Acordu.Application.Abstractions;
 using Acordu.Application.Apontamentos;
+using Acordu.Application.Auditoria;
 using Acordu.Application.Autenticacao;
 using Acordu.Application.Categorias;
 using Acordu.Application.Clientes;
@@ -16,6 +17,7 @@ using Acordu.Application.Tarefas;
 using Acordu.Infrastructure.Agendamento;
 using Acordu.Infrastructure.MultiTenancy;
 using Acordu.Infrastructure.Persistence;
+using Acordu.Infrastructure.Persistence.Auditoria;
 using Acordu.Infrastructure.Persistence.Consultas;
 using Acordu.Infrastructure.Persistence.Eventos;
 using Acordu.Infrastructure.Persistence.Outbox;
@@ -57,6 +59,9 @@ public static class DependencyInjection
         services.AddScoped<IVinculos, Vinculos>();
         services.AddScoped<IPessoasDaEquipe, PessoasDaEquipe>();
         services.AddScoped<IMarcadoresDeAviso, MarcadoresDeAviso>();
+        services.AddScoped<IAuditoria, TrilhaDeAuditoria>();
+        services.TryAddScoped<IOrigemRequisicao, SemOrigemRequisicao>();
+        services.AddSingleton<ExpurgoAuditoria>();
         services.AddScoped<IConvitesEquipe, ConvitesEquipe>();
         services.AddScoped<IConsultasEquipe, ConsultasEquipe>();
         services.AddScoped<IConsultasPapel, ConsultasPapel>();
@@ -69,6 +74,7 @@ public static class DependencyInjection
         services.AddScoped<IConsultasCategoria, ConsultasCategoria>();
         services.AddScoped<IConsultasContrato, ConsultasContrato>();
         services.AddScoped<IConsultasRecorrencia, ConsultasRecorrencia>();
+        services.AddScoped<IConsultasAuditoria, ConsultasAuditoria>();
         services.AddScoped<IConsultasProjeto, ConsultasProjeto>();
         services.AddScoped<IConsultaExtratoPortal, ConsultaExtratoPortal>();
         services.AddScoped<IConsultasPortal, ConsultasPortal>();

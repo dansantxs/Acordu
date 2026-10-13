@@ -2,6 +2,7 @@ using Acordu.Application.Abstractions;
 using Acordu.Domain.Common;
 using Acordu.Domain.Entities;
 using Acordu.Infrastructure.MultiTenancy;
+using Acordu.Infrastructure.Persistence.Auditoria;
 using Acordu.Infrastructure.Persistence.Configurations;
 using Acordu.Infrastructure.Persistence.Conversores;
 using Acordu.Infrastructure.Persistence.Outbox;
@@ -121,6 +122,7 @@ public sealed class AcorduDbContext : IdentityUserContext<Usuario, Guid>
         builder.ApplyConfiguration(new RecorrenciaTarefaConfiguration());
         builder.ApplyConfiguration(new MensagemOutboxConfiguration());
         builder.ApplyConfiguration(new MarcadorAvisoConfiguration());
+        builder.ApplyConfiguration(new RegistroAuditoriaConfiguration());
         builder.ApplyConfiguration(new ContadorConfiguration());
 
         AplicarFiltros(builder);
@@ -170,6 +172,10 @@ public sealed class AcorduDbContext : IdentityUserContext<Usuario, Guid>
 
         FiltrarTenant<Cronometro>(modelBuilder);
         modelBuilder.Entity<Cronometro>().HasQueryFilter(FiltrosGlobais.Cliente, e => !_contexto.EhCliente);
+
+        // Auditoria: só a equipe do tenant lê (sem tenant = login com falha, invisível a todos).
+        modelBuilder.Entity<RegistroAuditoria>().HasQueryFilter(FiltrosGlobais.Tenant, e => e.TenantId == _contexto.TenantId);
+        modelBuilder.Entity<RegistroAuditoria>().HasQueryFilter(FiltrosGlobais.Cliente, e => !_contexto.EhCliente);
     }
 
     private void FiltrarTenant<T>(ModelBuilder modelBuilder)

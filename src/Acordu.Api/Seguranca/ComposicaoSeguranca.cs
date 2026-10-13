@@ -1,6 +1,9 @@
 using System.Threading.RateLimiting;
+using Acordu.Application.Abstractions;
 using Acordu.Infrastructure;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.HttpOverrides;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.IdentityModel.Tokens;
 
 namespace Acordu.Api.Seguranca;
@@ -43,6 +46,21 @@ internal static class ComposicaoSeguranca
             });
         services.AddAuthorization(Politicas.Registrar);
 
+        // IP do cliente para auditoria e rate limit. Atrás do Caddy (rede Docker interna, API sem porta exposta), confia
+        // no último salto do X-Forwarded-For; sem a chave, o IP é o da conexão.
+        services.AddHttpContextAccessor();
+        services.Replace(ServiceDescriptor.Scoped<IOrigemRequisicao, OrigemDaRequisicao>());
+        if (configuracao.GetValue("Proxy:ConfiarEncaminhamento", false))
+        {
+            services.Configure<ForwardedHeadersOptions>(opcoes =>
+            {
+                opcoes.ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto;
+                opcoes.ForwardLimit = 1;
+                opcoes.KnownIPNetworks.Clear();
+                opcoes.KnownProxies.Clear();
+            });
+        }
+
         var limite = configuracao.GetValue("RateLimit:Auth:PorMinuto", 10);
         var limitePortal = configuracao.GetValue("RateLimit:Portal:PorMinuto", 10);
         services.AddRateLimiter(opcoes =>
@@ -65,9 +83,10 @@ internal static class ComposicaoSeguranca
         return services;
     }
 
-    /// <summary>CORS, autenticação, contexto de tenant, rate limit e autorização, nessa ordem.</summary>
+    /// <summary>Cabeçalhos do proxy, CORS, autenticação, contexto de tenant, rate limit e autorização, nessa ordem.</summary>
     public static void UseSegurancaApi(this WebApplication app)
     {
+        app.UseForwardedHeaders();
         app.UseCors();
         app.UseAuthentication();
         app.Use(ContextoDaRequisicao.DefinirAsync);

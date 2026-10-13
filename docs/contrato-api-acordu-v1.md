@@ -452,6 +452,24 @@ Decidido na implementação (6c3):
 
 ---
 
+## 11a. Auditoria
+
+| Método | Rota | Descrição | Permissão |
+|---|---|---|---|
+| GET | `/auditoria` | Trilha do tenant, mais recentes primeiro (`?de=&ate=&acao=&usuarioId=&alvoId=&pagina=&tamanhoPagina=`). | `auditoria.ver` |
+
+```json
+// GET /auditoria?acao=login.sucesso → 200
+{ "itens": [ { "id": "01a1...", "ocorridoEm": "2026-10-13T17:02:11Z", "acao": "login.sucesso",
+               "usuario": { "id": "u1...", "nome": "Ana" }, "alvoTipo": null, "alvoId": null, "dados": null, "ip": "177.10.2.3" } ],
+  "pagina": 1, "tamanhoPagina": 50, "total": 1 }
+```
+- `de`/`ate`: datas no fuso do tenant, inclusivas. `usuario` nulo: o sistema (job) ou uma sessão de link do portal.
+- Ações (9a): `login.sucesso`, `portal.link.troca` (alvo: a solicitação; `dados`: `acessoPortalId`, `contatoId`). Login com falha não aparece (fica sem tenant). As ações de equipe, portal, contratos, apontamentos e solicitações entram no 9b.
+- Registros com mais de 12 meses são expurgados (segurança §8).
+
+---
+
 ## 12. Portal do cliente (`/api/v1/portal`)
 
 Todas as rotas aplicam o filtro por `ClienteId` (e `ContatoId` se `escopoPortal = PROPRIAS`). Sessão de **link** acessa só as rotas marcadas com ✓L, e só a sua solicitação.

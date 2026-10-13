@@ -1087,6 +1087,60 @@ namespace Acordu.Infrastructure.Persistence.Migrations
                     b.ToTable("vinculos", (string)null);
                 });
 
+            modelBuilder.Entity("Acordu.Infrastructure.Persistence.Auditoria.RegistroAuditoria", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<string>("Acao")
+                        .IsRequired()
+                        .HasMaxLength(80)
+                        .HasColumnType("character varying(80)")
+                        .HasColumnName("acao");
+
+                    b.Property<Guid?>("AlvoId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("alvo_id");
+
+                    b.Property<string>("AlvoTipo")
+                        .HasMaxLength(40)
+                        .HasColumnType("character varying(40)")
+                        .HasColumnName("alvo_tipo");
+
+                    b.Property<string>("Dados")
+                        .HasColumnType("jsonb")
+                        .HasColumnName("dados");
+
+                    b.Property<string>("Ip")
+                        .HasMaxLength(45)
+                        .HasColumnType("character varying(45)")
+                        .HasColumnName("ip");
+
+                    b.Property<DateTimeOffset>("OcorridoEm")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("ocorrido_em");
+
+                    b.Property<Guid?>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
+                    b.Property<Guid?>("UsuarioId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("usuario_id");
+
+                    b.HasKey("Id")
+                        .HasName("pk_auditoria");
+
+                    b.HasIndex("OcorridoEm")
+                        .HasDatabaseName("ix_auditoria_ocorrido_em");
+
+                    b.HasIndex("TenantId", "OcorridoEm")
+                        .HasDatabaseName("ix_auditoria_tenant_id_ocorrido_em");
+
+                    b.ToTable("auditoria", (string)null);
+                });
+
             modelBuilder.Entity("Acordu.Infrastructure.Persistence.MarcadorAviso", b =>
                 {
                     b.Property<Guid>("TenantId")
