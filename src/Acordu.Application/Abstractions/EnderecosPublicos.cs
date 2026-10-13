@@ -23,6 +23,20 @@ public sealed class EnderecosPublicos
         return new Uri(_base, $"portal/l/{token}");
     }
 
+    /// <summary>Confirmação de e-mail da conta.</summary>
+    public Uri ConfirmacaoEmail(string token)
+    {
+        ArgumentException.ThrowIfNullOrEmpty(token);
+        return new Uri(_base, $"conta/confirmacao/{token}");
+    }
+
+    /// <summary>Redefinição de senha.</summary>
+    public Uri RedefinicaoSenha(string token)
+    {
+        ArgumentException.ThrowIfNullOrEmpty(token);
+        return new Uri(_base, $"conta/senha/{token}");
+    }
+
     /// <summary>Página de aceite do convite para a equipe.</summary>
     public Uri ConviteEquipe(string token)
     {

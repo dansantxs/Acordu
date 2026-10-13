@@ -7,7 +7,8 @@ namespace Acordu.Application.Autenticacao;
 public interface IServicoAutenticacao
 {
     /// <summary>
-    /// Cria usuário, tenant, papéis padrão, vínculo Dono e calendário padrão numa transação, e já abre a sessão.
+    /// Cria usuário, tenant, papéis padrão, vínculo Dono e calendário padrão numa transação, e já abre a sessão. Depois do
+    /// commit, envia a confirmação de e-mail (falha no envio não desfaz o registro: há o reenvio).
     /// Entrada inválida → <see cref="ArgumentException"/> com o campo.
     /// </summary>
     Task<Sessao> RegistrarAsync(string nome, string email, string senha, string nomeEmpresa, CancellationToken cancellationToken = default);
@@ -49,6 +50,26 @@ public interface IServicoAutenticacao
     /// → regra de negócio (422).
     /// </summary>
     Task<Sessao?> AceitarConviteEquipeAsync(string token, string? nome, string senha, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Confirma o e-mail pelo token do link (uso único, 48 h). Falso se o token não vale, sem distinguir o motivo.
+    /// </summary>
+    Task<bool> ConfirmarEmailAsync(string token, CancellationToken cancellationToken = default);
+
+    /// <summary>Reenvia a confirmação (invalida o link anterior). E-mail já confirmado: nada a fazer.</summary>
+    Task ReenviarConfirmacaoAsync(Guid usuarioId, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Envia o link de redefinição de senha (1 h; invalida o anterior) se o e-mail tiver conta. Não revela se tem: quem
+    /// chama responde igual nos dois casos.
+    /// </summary>
+    Task SolicitarRedefinicaoSenhaAsync(string email, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Troca a senha pelo token do link, confirma o e-mail, desbloqueia a conta e revoga todas as sessões (todos os
+    /// tenants). Falso se o token não vale; senha fraca → <see cref="ArgumentException"/> e o token continua valendo.
+    /// </summary>
+    Task<bool> RedefinirSenhaAsync(string token, string novaSenha, CancellationToken cancellationToken = default);
 
     /// <summary>Dados do <c>/auth/eu</c>, lidos do banco (não do token). Nulo se o vínculo não existe mais.</summary>
     Task<PerfilUsuario?> PerfilAsync(Guid usuarioId, Guid tenantId, CancellationToken cancellationToken = default);

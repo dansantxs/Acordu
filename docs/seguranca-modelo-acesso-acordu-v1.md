@@ -117,6 +117,12 @@ Efeito do `EscopoPortal` sobre o papel Cliente (aplicado na Application, além d
 
 ASP.NET Core Identity (ADR 0001: confirmação de e-mail, lockout, política de senha, recuperação por e-mail via Resend).
 
+**(Acordu, 7b, decidido em 09/10):**
+- **Login não exige e-mail confirmado** (diverge do Saldu): bloquear trava quem está experimentando o produto; quem registrou com o e-mail de outra pessoa perde a conta para o dono real pela redefinição de senha. A SPA avisa pelo `emailConfirmado` do `/auth/eu`. Conta criada por convite já nasce confirmada.
+- **Tokens próprios** (`tokens_conta`), não os do Identity: 32 bytes, só o SHA-256 no banco, uso único, um novo pedido revoga os anteriores da mesma finalidade; confirmação 48 h, redefinição 1 h. Sem dependência das chaves do DataProtection (que se perderiam a cada recriação do container).
+- E-mails da conta saem na própria requisição, depois do commit (são pedidos do próprio usuário, repetíveis e sem tenant para a outbox); falha no envio vai para o log.
+- `senha/esqueci` não revela se o e-mail tem conta. Redefinir revoga todos os refresh tokens do usuário e zera o bloqueio.
+
 Fluxos específicos:
 - **Registro:** cria `Usuario` + `Tenant` (o prestador) + `Vinculo` Dono + `CalendarioUtil` padrão + papéis padrão.
 - **Convite para a equipe (6e1):** equipe com `usuario.convidar` convida um e-mail com um papel INTERNO → e-mail com link de aceite → `POST /auth/convite` cria a conta (ou confere a senha da existente) e o `Vinculo` com o papel do convite. Mesmas regras de token do convite do portal; o convite é entidade própria (`ConviteEquipe`), não um vínculo pendente.

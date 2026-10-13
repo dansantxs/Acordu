@@ -29,5 +29,14 @@ public sealed record TokenDeLink(string AccessToken, DateTimeOffset ExpiraEm, Gu
 /// <summary>Tela de aceite do convite para a equipe: quem convidou, com que papel e se o e-mail já tem conta.</summary>
 public sealed record ConviteEquipeInfo(string NomeTenant, string Email, string Papel, bool TemConta);
 
+/// <summary>Corpo do <c>POST /auth/confirmacao-email</c>.</summary>
+public sealed record ConfirmacaoEmailRequest(string Token);
+
+/// <summary>Corpo do <c>POST /auth/senha/esqueci</c>.</summary>
+public sealed record EsqueciSenhaRequest(string Email);
+
+/// <summary>Corpo do <c>POST /auth/senha/redefinir</c>.</summary>
+public sealed record RedefinicaoSenhaRequest(string Token, string NovaSenha);
+
 /// <summary>Resposta das rotas que abrem sessão; o refresh token vai em cookie HttpOnly, nunca no corpo.</summary>
 public sealed record TokenDeAcesso(string AccessToken, DateTimeOffset ExpiraEm);

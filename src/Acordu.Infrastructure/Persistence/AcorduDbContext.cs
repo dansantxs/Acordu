@@ -95,6 +95,7 @@ public sealed class AcorduDbContext : IdentityUserContext<Usuario, Guid>
         base.OnModelCreating(builder);
         IdentidadeConfiguration.Aplicar(builder);
         builder.ApplyConfiguration(new RefreshTokenConfiguration());
+        builder.ApplyConfiguration(new TokenContaConfiguration());
 
         // Busca de solicitações semelhantes (read side §8): trigramas e remoção de acentos.
         builder.HasPostgresExtension("pg_trgm");

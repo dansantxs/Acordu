@@ -84,6 +84,32 @@ internal static class AuthEndpoints
             .RequireRateLimiting(ComposicaoSeguranca.LimiteAuth)
             .Produces<TokenDeAcesso>(StatusCodes.Status201Created);
 
+        publicas.MapPost("/confirmacao-email", async (
+            ConfirmacaoEmailRequest corpo, IServicoAutenticacao servico, CancellationToken cancellationToken) =>
+            await servico.ConfirmarEmailAsync(corpo.Token, cancellationToken)
+                ? Results.NoContent()
+                : NaoAutenticado("Link de confirmação inválido, expirado ou já usado. Peça um novo."))
+            .RequireRateLimiting(ComposicaoSeguranca.LimiteAuth);
+
+        // Sempre 202: não revela se o e-mail tem conta.
+        publicas.MapPost("/senha/esqueci", async (
+            EsqueciSenhaRequest corpo, IServicoAutenticacao servico, CancellationToken cancellationToken) =>
+        {
+            await servico.SolicitarRedefinicaoSenhaAsync(corpo.Email, cancellationToken);
+            return Results.Accepted();
+        })
+            .RequireRateLimiting(ComposicaoSeguranca.LimiteAuth);
+
+        publicas.MapPost("/senha/redefinir", async (
+            RedefinicaoSenhaRequest corpo, IServicoAutenticacao servico, HttpResponse resposta, CancellationToken cancellationToken) =>
+        {
+            if (!await servico.RedefinirSenhaAsync(corpo.Token, corpo.NovaSenha, cancellationToken))
+                return NaoAutenticado("Link de redefinição inválido, expirado ou já usado. Peça um novo.");
+            CookieRefresh.Limpar(resposta);
+            return Results.NoContent();
+        })
+            .RequireRateLimiting(ComposicaoSeguranca.LimiteAuth);
+
         publicas.MapPost("/convite/consulta", async (
             ConsultaConviteRequest corpo, IServicoAutenticacao servico, CancellationToken cancellationToken) =>
         {
@@ -131,6 +157,15 @@ internal static class AuthEndpoints
         })
             .RequireAuthorization(Politicas.Usuario)
             .Produces<TokenDeAcesso>();
+
+        auth.MapPost("/confirmacao-email/reenvio", async (
+            ITenantContext contexto, IServicoAutenticacao servico, CancellationToken cancellationToken) =>
+        {
+            await servico.ReenviarConfirmacaoAsync(contexto.UsuarioId!.Value, cancellationToken);
+            return Results.Accepted();
+        })
+            .RequireAuthorization(Politicas.Usuario)
+            .RequireRateLimiting(ComposicaoSeguranca.LimiteAuth);
 
         auth.MapGet("/eu", async (ITenantContext contexto, IServicoAutenticacao servico, CancellationToken cancellationToken) =>
         {

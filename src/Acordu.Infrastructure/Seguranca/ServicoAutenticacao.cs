@@ -1,6 +1,7 @@
 using System.Buffers.Text;
 using System.Security.Cryptography;
 using System.Text;
+using Acordu.Application.Abstractions;
 using Acordu.Application.Autenticacao;
 using Acordu.Domain.Common;
 using Acordu.Domain.Entities;
@@ -10,6 +11,7 @@ using Acordu.Infrastructure.MultiTenancy;
 using Acordu.Infrastructure.Persistence;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 
 namespace Acordu.Infrastructure.Seguranca;
 
@@ -17,27 +19,46 @@ namespace Acordu.Infrastructure.Seguranca;
 /// Registro, login e sessões sobre o Identity (segurança §4–5). Login e renovação acontecem sem tenant no contexto,
 /// então os vínculos e papéis são lidos ignorando os filtros — sempre restritos ao usuário em questão.
 /// </summary>
-public sealed class ServicoAutenticacao : IServicoAutenticacao
+public sealed partial class ServicoAutenticacao : IServicoAutenticacao
 {
     public static readonly TimeSpan ValidadeRefresh = TimeSpan.FromDays(30);
 
     private static readonly string[] Filtros = [FiltrosGlobais.Tenant, FiltrosGlobais.Cliente];
 
+    public static readonly TimeSpan ValidadeConfirmacao = TimeSpan.FromHours(48);
+    public static readonly TimeSpan ValidadeRedefinicao = TimeSpan.FromHours(1);
+
     private readonly AcorduDbContext _db;
     private readonly UserManager<Usuario> _usuarios;
     private readonly ContextoTenant _contexto;
     private readonly TimeProvider _relogio;
+    private readonly IEnviadorEmail _email;
+    private readonly EnderecosPublicos _enderecos;
+    private readonly ILogger<ServicoAutenticacao> _logger;
 
-    public ServicoAutenticacao(AcorduDbContext db, UserManager<Usuario> usuarios, ContextoTenant contexto, TimeProvider relogio)
+    public ServicoAutenticacao(
+        AcorduDbContext db,
+        UserManager<Usuario> usuarios,
+        ContextoTenant contexto,
+        TimeProvider relogio,
+        IEnviadorEmail email,
+        EnderecosPublicos enderecos,
+        ILogger<ServicoAutenticacao> logger)
     {
         ArgumentNullException.ThrowIfNull(db);
         ArgumentNullException.ThrowIfNull(usuarios);
         ArgumentNullException.ThrowIfNull(contexto);
         ArgumentNullException.ThrowIfNull(relogio);
+        ArgumentNullException.ThrowIfNull(email);
+        ArgumentNullException.ThrowIfNull(enderecos);
+        ArgumentNullException.ThrowIfNull(logger);
         _db = db;
         _usuarios = usuarios;
         _contexto = contexto;
         _relogio = relogio;
+        _email = email;
+        _enderecos = enderecos;
+        _logger = logger;
     }
 
     public async Task<Sessao> RegistrarAsync(
@@ -79,6 +100,8 @@ public sealed class ServicoAutenticacao : IServicoAutenticacao
         var sessao = Abrir(usuario, vinculo, dono, agora);
         await _db.SaveChangesAsync(cancellationToken);
         await transacao.CommitAsync(cancellationToken);
+
+        await EnviarConfirmacaoAsync(usuario, cancellationToken);
         return sessao;
     }
 
@@ -284,6 +307,71 @@ public sealed class ServicoAutenticacao : IServicoAutenticacao
         return contatoAtivo ? new SessaoLink(acesso.TenantId, acesso.ClienteId, acesso.Id, acesso.SolicitacaoId) : null;
     }
 
+    public async Task<bool> ConfirmarEmailAsync(string token, CancellationToken cancellationToken = default)
+    {
+        var registro = await TokenValidoAsync(token, FinalidadeTokenConta.ConfirmacaoEmail, cancellationToken);
+        var usuario = registro is null ? null : await _usuarios.FindByIdAsync(registro.UsuarioId.ToString());
+        if (registro is null || usuario is null)
+            return false;
+
+        registro.Usar(_relogio.GetUtcNow());
+        usuario.EmailConfirmed = true;
+        await _db.SaveChangesAsync(cancellationToken);
+        return true;
+    }
+
+    public async Task ReenviarConfirmacaoAsync(Guid usuarioId, CancellationToken cancellationToken = default)
+    {
+        var usuario = await _usuarios.FindByIdAsync(usuarioId.ToString());
+        if (usuario is { EmailConfirmed: false })
+            await EnviarConfirmacaoAsync(usuario, cancellationToken);
+    }
+
+    public async Task SolicitarRedefinicaoSenhaAsync(string email, CancellationToken cancellationToken = default)
+    {
+        var usuario = string.IsNullOrWhiteSpace(email) ? null : await _usuarios.FindByEmailAsync(email.Trim());
+        if (usuario is null)
+            return;
+
+        var token = await EmitirTokenAsync(usuario.Id, FinalidadeTokenConta.RedefinicaoSenha, ValidadeRedefinicao, cancellationToken);
+        await EnviarAsync(MensagensDeConta.Redefinicao(
+            usuario.Email!, usuario.Nome, _enderecos.RedefinicaoSenha(token), ValidadeRedefinicao), cancellationToken);
+    }
+
+    public async Task<bool> RedefinirSenhaAsync(string token, string novaSenha, CancellationToken cancellationToken = default)
+    {
+        var registro = await TokenValidoAsync(token, FinalidadeTokenConta.RedefinicaoSenha, cancellationToken);
+        var usuario = registro is null ? null : await _usuarios.FindByIdAsync(registro.UsuarioId.ToString());
+        if (registro is null || usuario is null)
+            return false;
+
+        // Senha validada antes de consumir o token: senha fraca deixa o link valendo para nova tentativa.
+        if (string.IsNullOrEmpty(novaSenha))
+            throw new ArgumentException("A nova senha é obrigatória.", nameof(novaSenha));
+        foreach (var validador in _usuarios.PasswordValidators)
+        {
+            if (!(await validador.ValidateAsync(_usuarios, usuario, novaSenha)).Succeeded)
+                throw new ArgumentException($"A senha precisa de ao menos {OpcoesIdentidade.TamanhoMinimoSenha} caracteres.", nameof(novaSenha));
+        }
+
+        var agora = _relogio.GetUtcNow();
+        await using var transacao = await _db.Database.BeginTransactionAsync(cancellationToken);
+        usuario.PasswordHash = _usuarios.PasswordHasher.HashPassword(usuario, novaSenha);
+        usuario.EmailConfirmed = true; // o link chegou pelo e-mail
+        usuario.AccessFailedCount = 0;
+        usuario.LockoutEnd = null;
+        await _usuarios.UpdateSecurityStampAsync(usuario);
+        registro.Usar(agora);
+        var sessoes = await _db.Set<RefreshToken>()
+            .Where(r => r.UsuarioId == usuario.Id && r.ConsumidoEm == null && r.RevogadoEm == null)
+            .ToListAsync(cancellationToken);
+        foreach (var sessao in sessoes)
+            sessao.Revogar(agora);
+        await _db.SaveChangesAsync(cancellationToken);
+        await transacao.CommitAsync(cancellationToken);
+        return true;
+    }
+
     public async Task<PerfilUsuario?> PerfilAsync(Guid usuarioId, Guid tenantId, CancellationToken cancellationToken = default)
     {
         var usuario = await _usuarios.FindByIdAsync(usuarioId.ToString());
@@ -316,6 +404,7 @@ public sealed class ServicoAutenticacao : IServicoAutenticacao
             usuario.Id,
             usuario.Nome,
             usuario.Email ?? string.Empty,
+            usuario.EmailConfirmed,
             new TenantAtivo(tenant.Id, tenant.Nome, fuso),
             papel.Nome,
             [.. papel.Permissoes],
@@ -408,6 +497,61 @@ public sealed class ServicoAutenticacao : IServicoAutenticacao
 
         return usuario;
     }
+
+    /// <summary>Gera um token da conta (revogando os anteriores da mesma finalidade) e grava o hash.</summary>
+    private async Task<string> EmitirTokenAsync(
+        Guid usuarioId, FinalidadeTokenConta finalidade, TimeSpan validade, CancellationToken cancellationToken)
+    {
+        var agora = _relogio.GetUtcNow();
+        var anteriores = await _db.Set<TokenConta>()
+            .Where(t => t.UsuarioId == usuarioId && t.Finalidade == finalidade && t.UsadoEm == null && t.RevogadoEm == null)
+            .ToListAsync(cancellationToken);
+        foreach (var anterior in anteriores)
+            anterior.Revogar(agora);
+
+        var (registro, token) = TokenConta.Emitir(usuarioId, finalidade, agora, validade);
+        _db.Add(registro);
+        await _db.SaveChangesAsync(cancellationToken);
+        return token;
+    }
+
+    private async Task<TokenConta?> TokenValidoAsync(string? token, FinalidadeTokenConta finalidade, CancellationToken cancellationToken)
+    {
+        if (string.IsNullOrWhiteSpace(token))
+            return null;
+
+        var hash = TokenSeguro.Hash(token);
+        var registro = await _db.Set<TokenConta>().SingleOrDefaultAsync(t => t.Hash == hash, cancellationToken);
+        return registro is not null && registro.Finalidade == finalidade && registro.Valido(token, _relogio.GetUtcNow())
+            ? registro
+            : null;
+    }
+
+    private async Task EnviarConfirmacaoAsync(Usuario usuario, CancellationToken cancellationToken)
+    {
+        var token = await EmitirTokenAsync(usuario.Id, FinalidadeTokenConta.ConfirmacaoEmail, ValidadeConfirmacao, cancellationToken);
+        await EnviarAsync(MensagensDeConta.Confirmacao(
+            usuario.Email!, usuario.Nome, _enderecos.ConfirmacaoEmail(token), ValidadeConfirmacao), cancellationToken);
+    }
+
+    /// <summary>
+    /// E-mails da conta saem na própria requisição, depois do commit: são pedidos do próprio usuário, repetíveis (reenvio,
+    /// novo pedido) e sem tenant para a outbox. Falha no envio fica no log e não muda a resposta.
+    /// </summary>
+    private async Task EnviarAsync(MensagemEmail mensagem, CancellationToken cancellationToken)
+    {
+        try
+        {
+            await _email.EnviarAsync(mensagem, cancellationToken);
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            FalhaNoEmail(_logger, mensagem.Categoria, ex);
+        }
+    }
+
+    [LoggerMessage(EventId = 300, Level = LogLevel.Warning, Message = "Falha ao enviar o e-mail '{Categoria}' da conta.")]
+    private static partial void FalhaNoEmail(ILogger logger, string categoria, Exception excecao);
 
     private async Task ConferirSenhaAsync(Usuario usuario, string senha)
     {
