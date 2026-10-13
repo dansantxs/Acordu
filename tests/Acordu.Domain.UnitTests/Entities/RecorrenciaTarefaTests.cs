@@ -16,7 +16,7 @@ public sealed class RecorrenciaTarefaTests
     private static RecorrenciaTarefa Criar(DateOnly? fim = null, int antecedencia = 3) =>
         RecorrenciaTarefa.Criar(
             Guid.NewGuid(), Calendarios.Tenant, Contratos.Cliente, contratoId: null, Modelo(),
-            new RegraRecorrencia(Periodicidade.Mensal, 31, antecedencia, D(2026, 10, 1), fim));
+            new RegraRecorrencia(Periodicidade.Mensal, 31, antecedencia, D(2026, 10, 1), fim), D(2026, 10, 1));
 
     public sealed class CriarRecorrencia
     {
@@ -31,11 +31,22 @@ public sealed class RecorrenciaTarefaTests
         }
 
         [Fact]
+        public void InicioNoPassado_SoAncoraOCiclo()
+        {
+            var recorrencia = RecorrenciaTarefa.Criar(
+                Guid.NewGuid(), Calendarios.Tenant, Contratos.Cliente, null, Modelo(),
+                new RegraRecorrencia(Periodicidade.Trimestral, 10, 0, D(2026, 1, 1)), D(2026, 10, 13));
+
+            recorrencia.ProximaData.Should().Be(D(2027, 1, 10));
+            recorrencia.GerarDevidas(D(2026, 10, 13)).Should().BeEmpty();
+        }
+
+        [Fact]
         public void ContratoVazio_LancaExcecao()
         {
             var acao = () => RecorrenciaTarefa.Criar(
                 Guid.NewGuid(), Calendarios.Tenant, Contratos.Cliente, Guid.Empty, Modelo(),
-                new RegraRecorrencia(Periodicidade.Mensal, 31, 3, D(2026, 10, 1)));
+                new RegraRecorrencia(Periodicidade.Mensal, 31, 3, D(2026, 10, 1)), D(2026, 10, 1));
 
             acao.Should().Throw<ArgumentException>().WithParameterName("contratoId");
         }
@@ -93,7 +104,7 @@ public sealed class RecorrenciaTarefaTests
         {
             var recorrencia = RecorrenciaTarefa.Criar(
                 Guid.NewGuid(), Calendarios.Tenant, Contratos.Cliente, null, Modelo(),
-                new RegraRecorrencia(Periodicidade.Semanal, 1, 0, D(2020, 1, 1)));
+                new RegraRecorrencia(Periodicidade.Semanal, 1, 0, D(2020, 1, 1)), D(2020, 1, 1));
 
             var primeira = recorrencia.GerarDevidas(D(2026, 10, 1));
             var segunda = recorrencia.GerarDevidas(D(2026, 10, 1));
@@ -190,6 +201,7 @@ public sealed class RecorrenciaTarefaTests
             ((Action)recorrencia.Pausar).Should().Throw<TransicaoInvalidaException>();
             ((Action)(() => recorrencia.Retomar(D(2026, 10, 10)))).Should().Throw<TransicaoInvalidaException>();
             ((Action)(() => recorrencia.AlterarModelo(Modelo()))).Should().Throw<TransicaoInvalidaException>();
+            ((Action)(() => recorrencia.AlterarContrato(null))).Should().Throw<TransicaoInvalidaException>();
             recorrencia.GerarDevidas(D(2027, 1, 1)).Should().BeEmpty();
         }
 
@@ -201,6 +213,19 @@ public sealed class RecorrenciaTarefaTests
             recorrencia.AlterarRegra(new RegraRecorrencia(Periodicidade.Semanal, 1, 0, D(2026, 10, 1)), D(2026, 10, 6));
 
             recorrencia.ProximaData.Should().Be(D(2026, 10, 12));
+        }
+
+        [Fact]
+        public void AlterarContrato_TrocaOuRemove()
+        {
+            var recorrencia = Criar();
+            var contrato = Guid.NewGuid();
+
+            recorrencia.AlterarContrato(contrato);
+            recorrencia.ContratoId.Should().Be(contrato);
+            recorrencia.AlterarContrato(null);
+            recorrencia.ContratoId.Should().BeNull();
+            ((Action)(() => recorrencia.AlterarContrato(Guid.Empty))).Should().Throw<ArgumentException>();
         }
 
         [Fact]

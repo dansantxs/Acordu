@@ -58,7 +58,7 @@ internal static class Dados
         RecorrenciaTarefa.Criar(
             Guid.NewGuid(), tenant, cliente, null,
             new ModeloTarefa("Fechamento mensal", null, null, ["Conciliar extratos", "Emitir guias"], Duracao.FromHoras(4), true),
-            new RegraRecorrencia(Periodicidade.Mensal, 31, 3, new DateOnly(2026, 10, 1)));
+            new RegraRecorrencia(Periodicidade.Mensal, 31, 3, new DateOnly(2026, 10, 1)), new DateOnly(2026, 10, 1));
 
     public static AcessoPortalEmitido Acesso(Guid tenant, Guid cliente, Guid solicitacaoId) =>
         AcessoPortal.Emitir(Guid.NewGuid(), tenant, cliente, solicitacaoId, Guid.NewGuid(), Agora, TimeSpan.FromDays(30));
