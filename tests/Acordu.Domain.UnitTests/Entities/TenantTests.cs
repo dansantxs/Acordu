@@ -80,4 +80,15 @@ public sealed class TenantTests
         acao.Should().Throw<ArgumentOutOfRangeException>().WithParameterName("diasFechamentoAutomatico");
         tenant.DiasFechamentoAutomatico.Should().Be(Tenant.DiasFechamentoPadrao);
     }
+
+    [Fact]
+    public void DefinirLogo_TrocaERemove()
+    {
+        var tenant = Tenant.Criar(Guid.NewGuid(), "Estúdio", DateTimeOffset.UnixEpoch);
+
+        tenant.DefinirLogo("t/portal/logo-1.png");
+        tenant.LogoChave.Should().Be("t/portal/logo-1.png");
+        tenant.DefinirLogo(null);
+        tenant.LogoChave.Should().BeNull();
+    }
 }

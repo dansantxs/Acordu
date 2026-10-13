@@ -39,6 +39,11 @@ public sealed class Tenant
     /// <summary>Dias em RESOLVIDA sem manifestação do cliente até o fechamento automático (RF-SOL-09).</summary>
     public int DiasFechamentoAutomatico { get; private set; }
 
+    /// <summary>Chave do logotipo do portal no object storage (RF-POR-09); nulo = sem logotipo.</summary>
+    public string? LogoChave { get; private set; }
+
+    public const int TamanhoLogoChave = 512;
+
     public static Tenant Criar(Guid id, string nome, DateTimeOffset agora) =>
         new(Ids.Obrigatorio(id, nameof(id)), Texto.Obrigatorio(nome, LimitesTexto.Nome, nameof(nome)), agora.ToUniversalTime());
 
@@ -57,4 +62,7 @@ public sealed class Tenant
         NomePortal = Texto.Opcional(nomePortal, LimitesTexto.Nome, nameof(nomePortal));
         DiasFechamentoAutomatico = diasFechamentoAutomatico;
     }
+
+    /// <summary>Troca (ou remove, com nulo) o logotipo; o arquivo já está no storage.</summary>
+    public void DefinirLogo(string? chave) => LogoChave = Texto.Opcional(chave, TamanhoLogoChave, nameof(chave));
 }
