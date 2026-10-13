@@ -1,4 +1,5 @@
 using Acordu.Application.Abstractions;
+using Acordu.Application.Auditoria;
 using Acordu.Application.Common;
 using Acordu.Domain.Acesso;
 using Acordu.Domain.Entities;
@@ -22,6 +23,7 @@ public sealed class ComandosEquipe
     private readonly IVinculos _vinculos;
     private readonly RelogioDoTenant _relogio;
     private readonly IUnitOfWork _unidade;
+    private readonly IAuditoria _auditoria;
 
     public ComandosEquipe(
         ITenantContext contexto,
@@ -31,7 +33,8 @@ public sealed class ComandosEquipe
         IConvitesEquipe pendentes,
         IVinculos vinculos,
         RelogioDoTenant relogio,
-        IUnitOfWork unidade)
+        IUnitOfWork unidade,
+        IAuditoria auditoria)
     {
         ArgumentNullException.ThrowIfNull(contexto);
         ArgumentNullException.ThrowIfNull(papeis);
@@ -41,6 +44,8 @@ public sealed class ComandosEquipe
         ArgumentNullException.ThrowIfNull(vinculos);
         ArgumentNullException.ThrowIfNull(relogio);
         ArgumentNullException.ThrowIfNull(unidade);
+        ArgumentNullException.ThrowIfNull(auditoria);
+        _auditoria = auditoria;
         _contexto = contexto;
         _papeis = papeis;
         _repositorioVinculos = repositorioVinculos;
@@ -68,6 +73,7 @@ public sealed class ComandosEquipe
         foreach (var anterior in await _pendentes.PendentesAsync(convite.Email, cancellationToken))
             anterior.Revogar(agora);
         _convites.Adicionar(convite);
+        _auditoria.Registrar(AcoesAuditoria.EquipeConvite, "convite_equipe", convite.Id, new { convite.Email, papel = papel.Nome });
         await _unidade.SalvarAsync(cancellationToken);
         return convite.Id;
     }
@@ -79,6 +85,7 @@ public sealed class ComandosEquipe
         var convite = await _convites.ObterPorIdAsync(id, cancellationToken)
             ?? throw new NaoEncontradoException("Convite não encontrado.");
         convite.Revogar(_relogio.Agora);
+        _auditoria.Registrar(AcoesAuditoria.EquipeConviteRevogacao, "convite_equipe", convite.Id, new { convite.Email });
         await _unidade.SalvarAsync(cancellationToken);
     }
 
@@ -91,10 +98,12 @@ public sealed class ComandosEquipe
         var novo = await PapelAsync(dados.PapelId, cancellationToken);
         if (novo.Tipo != TipoPapel.Interno)
             throw new EquipeException("Papel de cliente não vale para a equipe: contatos entram pelo portal.");
+        var atual = await _papeis.ObterPorIdAsync(vinculo.PapelId, cancellationToken);
         if (!novo.EhDono)
             await GarantirOutroDonoAsync(vinculo, cancellationToken);
 
         vinculo.TrocarPapel(novo);
+        _auditoria.Registrar(AcoesAuditoria.EquipePapelTroca, "usuario", usuarioId, new { de = atual?.Nome, para = novo.Nome });
         await _unidade.SalvarAsync(cancellationToken);
     }
 
@@ -105,8 +114,10 @@ public sealed class ComandosEquipe
         var vinculo = await DaEquipeAsync(usuarioId, cancellationToken);
         await GarantirOutroDonoAsync(vinculo, cancellationToken);
 
+        var papel = await _papeis.ObterPorIdAsync(vinculo.PapelId, cancellationToken);
         _repositorioVinculos.Remover(vinculo);
         await _vinculos.RevogarSessoesAsync(usuarioId, _relogio.Agora, cancellationToken);
+        _auditoria.Registrar(AcoesAuditoria.EquipeRemocao, "usuario", usuarioId, new { papel = papel?.Nome });
         await _unidade.SalvarAsync(cancellationToken);
     }
 

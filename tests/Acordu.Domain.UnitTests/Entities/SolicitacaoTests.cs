@@ -606,12 +606,14 @@ public sealed class SolicitacaoTests
         [Fact]
         public void Atribuir_Nulo_RemoveResponsavel()
         {
+            var anterior = Guid.NewGuid();
             var solicitacao = Em(StatusSolicitacao.Aberta);
-            solicitacao.Atribuir(Guid.NewGuid());
+            solicitacao.Atribuir(anterior);
 
             solicitacao.Atribuir(null);
 
             solicitacao.ResponsavelId.Should().BeNull();
+            ((SolicitacaoAtribuida)solicitacao.Eventos[^1]).Anterior.Should().Be(anterior);
         }
 
         [Fact]

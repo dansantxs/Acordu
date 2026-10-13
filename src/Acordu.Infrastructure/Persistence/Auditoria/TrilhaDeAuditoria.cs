@@ -1,4 +1,5 @@
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using Acordu.Application.Abstractions;
 
 namespace Acordu.Infrastructure.Persistence.Auditoria;
@@ -9,7 +10,11 @@ namespace Acordu.Infrastructure.Persistence.Auditoria;
 /// </summary>
 public sealed class TrilhaDeAuditoria : IAuditoria
 {
-    internal static readonly JsonSerializerOptions Json = new(JsonSerializerDefaults.Web);
+    /// <summary>Mesmo formato do JSON da API: camelCase e enums como <c>EM_ANDAMENTO</c>.</summary>
+    internal static readonly JsonSerializerOptions Json = new(JsonSerializerDefaults.Web)
+    {
+        Converters = { new JsonStringEnumConverter(JsonNamingPolicy.SnakeCaseUpper) },
+    };
 
     private readonly AcorduDbContext _db;
     private readonly ITenantContext _contexto;

@@ -41,10 +41,12 @@ public sealed record SolicitacaoReaberta(
 
 /// <summary>
 /// Responsável alterado (RF-NOT-02: e-mail interno de atribuição). <see cref="ResponsavelId"/> nulo = sem responsável;
-/// <see cref="AtribuidoPor"/>: quem atribuiu (ninguém é avisado de atribuir a si mesmo).
+/// <see cref="AtribuidoPor"/>: quem atribuiu (ninguém é avisado de atribuir a si mesmo); <see cref="Anterior"/>: o
+/// responsável de antes (auditoria).
 /// </summary>
 public sealed record SolicitacaoAtribuida(
-    Guid SolicitacaoId, Guid TenantId, Guid ClienteId, Guid? ResponsavelId, Guid? AtribuidoPor = null) : IEventoDominio;
+    Guid SolicitacaoId, Guid TenantId, Guid ClienteId, Guid? ResponsavelId, Guid? AtribuidoPor = null, Guid? Anterior = null)
+    : IEventoDominio;
 
 public sealed record PrimeiraRespostaRegistrada(
     Guid SolicitacaoId, Guid TenantId, Guid ClienteId, DateTimeOffset Em) : IEventoDominio;
