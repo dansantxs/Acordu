@@ -57,7 +57,7 @@ saldo(c, ate) = franquia(c)
 Só `consumido(c, p)` e `naoFaturavel(c, p)`; sem saldo nem percentual.
 
 ### 3.4 Limiares (RF-CTR-07)
-Após cada `ApontamentoRegistrado/Alterado/Excluido` e `AjusteSaldo`, o handler recalcula `percentual` do contrato afetado no período da data do apontamento e, se cruzou 80% ou 100% **para cima**, emite a notificação uma única vez por `(contrato, período, limiar)` — marcador persistido para idempotência. Cruzar para baixo (exclusão) não notifica e rearma o limiar.
+Após cada `ApontamentoRegistrado/Alterado/Excluido` e `AjusteSaldo`, o handler recalcula `percentual` do contrato afetado no período da data do apontamento e, se cruzou 80% ou 100% **para cima**, emite a notificação uma única vez por `(contrato, período, limiar)` — marcador persistido para idempotência. Cruzar para baixo (exclusão) não notifica e rearma o limiar. **(Implementado no 7c3:** `AlertasConsumo`, marcador em `marcadores_aviso` com chave `consumo:{yyyy-MM}:{limiar}` no MENSAL_FIXO e `consumo:acumulado:{limiar}` no BANCO_HORAS, cujo saldo é acumulado; limiares fixos 80/100.)
 
 ### 3.5 Índice
 `apontamentos (tenant_id, contrato_id, data) INCLUDE (duracao_minutos, faturavel)` — a soma do mês vira um index-only scan.

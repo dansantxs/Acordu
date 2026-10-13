@@ -529,6 +529,8 @@ Sem rota própria: saem depois do commit quando a solicitação tem contato ativ
 
 O `tick` responde também `alertasSla` (solicitações alertadas) e `falhas` (tenants com erro, logados).
 
+**Consumo de contrato (RF-CTR-07, 7c3):** depois de cada apontamento (registro, edição, exclusão) ou ajuste de saldo, se o contrato cruzar **80%** ou **100%** para cima, quem tem `contrato.gerenciar` recebe "Contrato de {cliente} atingiu N%…", com consumido, franquia e saldo. Um aviso por (contrato, período, limiar); cair abaixo rearma. Período: o mês no MENSAL_FIXO; o contrato inteiro (acumulado até hoje) no BANCO_HORAS; AVULSO e sem franquia não avisam. Limiares fixos no v1 (configuráveis depois).
+
 ## 13. Formato de erro (RFC 9457)
 
 ```json
