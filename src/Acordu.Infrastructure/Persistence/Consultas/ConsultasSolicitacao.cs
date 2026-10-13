@@ -1,5 +1,6 @@
 using System.Globalization;
 using Acordu.Application.Abstractions;
+using Acordu.Application.Anexos;
 using Acordu.Application.Common;
 using Acordu.Application.Solicitacoes;
 using Acordu.Domain.Entities;
@@ -153,8 +154,16 @@ public sealed class ConsultasSolicitacao : IConsultasSolicitacao
             i.AutorEhCliente,
             i.Texto,
             i.Visibilidade,
-            i.RegistradaEm))];
+            i.RegistradaEm,
+            [.. i.Anexos.OrderBy(a => a.NomeArquivo, StringComparer.Ordinal).Select(a => new AnexoDto(a.Id, a.NomeArquivo, a.TipoConteudo, a.TamanhoBytes))]))];
     }
+
+    public async Task<AnexoArmazenado?> AnexoAsync(Guid anexoId, CancellationToken cancellationToken = default) =>
+        await _db.Interacoes.AsNoTracking()
+            .SelectMany(i => i.Anexos)
+            .Where(a => a.Id == anexoId)
+            .Select(a => new AnexoArmazenado(a.ChaveArmazenamento, a.NomeArquivo, a.TipoConteudo))
+            .SingleOrDefaultAsync(cancellationToken);
 
     public async Task<IReadOnlyList<Guid>> ResolvidasAteAsync(DateTimeOffset limite, CancellationToken cancellationToken = default) =>
         await _db.Solicitacoes.AsNoTracking()

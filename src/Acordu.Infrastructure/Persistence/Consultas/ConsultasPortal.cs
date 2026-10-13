@@ -1,4 +1,5 @@
 using Acordu.Application.Abstractions;
+using Acordu.Application.Anexos;
 using Acordu.Application.Common;
 using Acordu.Application.Contratos;
 using Acordu.Application.Portal;
@@ -125,11 +126,26 @@ public sealed class ConsultasPortal : IConsultasPortal
         var interacoes = await _db.Interacoes.AsNoTracking()
             .Where(i => i.SolicitacaoId == solicitacaoId && i.Visibilidade == Visibilidade.Externa)
             .OrderBy(i => i.RegistradaEm).ThenBy(i => i.Id)
-            .Select(i => new { i.Id, i.Texto, i.AutorId, i.AutorEhCliente, i.RegistradaEm })
             .ToListAsync(cancellationToken);
         var nomes = await Nomes.DeAutoresAsync(_db, contato.ClienteId, interacoes.Select(i => i.AutorId), cancellationToken);
         return [.. interacoes.Select(i => new InteracaoPortalDto(
-            i.Id, i.Texto, nomes.GetValueOrDefault(i.AutorId, string.Empty), !i.AutorEhCliente, i.RegistradaEm))];
+            i.Id,
+            i.Texto,
+            nomes.GetValueOrDefault(i.AutorId, string.Empty),
+            !i.AutorEhCliente,
+            i.RegistradaEm,
+            [.. i.Anexos.OrderBy(a => a.NomeArquivo, StringComparer.Ordinal).Select(a => new AnexoPortalDto(a.Id, a.NomeArquivo, a.TipoConteudo, a.TamanhoBytes))]))];
+    }
+
+    public async Task<AnexoArmazenado?> AnexoAsync(ContatoDoPortal contato, Guid anexoId, CancellationToken cancellationToken = default)
+    {
+        var visiveis = Visiveis(contato).Select(s => s.Id);
+        return await _db.Interacoes.AsNoTracking()
+            .Where(i => i.Visibilidade == Visibilidade.Externa && visiveis.Contains(i.SolicitacaoId))
+            .SelectMany(i => i.Anexos)
+            .Where(a => a.Id == anexoId)
+            .Select(a => new AnexoArmazenado(a.ChaveArmazenamento, a.NomeArquivo, a.TipoConteudo))
+            .SingleOrDefaultAsync(cancellationToken);
     }
 
     public async Task<IReadOnlyList<ContratoPortalDto>> ContratosAsync(DateOnly hoje, CancellationToken cancellationToken = default)
