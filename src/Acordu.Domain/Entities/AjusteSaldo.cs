@@ -1,5 +1,6 @@
 using Acordu.Domain.Common;
 using Acordu.Domain.Enums;
+using Acordu.Domain.Events;
 using Acordu.Domain.Exceptions;
 using Acordu.Domain.ValueObjects;
 
@@ -71,6 +72,8 @@ public sealed class AjusteSaldo : RaizComCliente
         if (data < contrato.Vigencia.Inicio)
             throw new ContratoIncoerenteException("A data do ajuste não pode ser anterior ao início do contrato.");
 
-        return new AjusteSaldo(id, contrato.TenantId, contrato.ClienteId, contrato.Id, quantidade, motivoValido, data, autorId);
+        var ajuste = new AjusteSaldo(id, contrato.TenantId, contrato.ClienteId, contrato.Id, quantidade, motivoValido, data, autorId);
+        ajuste.Registrar(new AjusteSaldoRegistrado(ajuste.Id, ajuste.TenantId, ajuste.ClienteId, contrato.Id, data));
+        return ajuste;
     }
 }

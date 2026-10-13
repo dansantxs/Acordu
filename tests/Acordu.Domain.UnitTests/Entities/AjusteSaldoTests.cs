@@ -1,5 +1,6 @@
 using Acordu.Domain.Entities;
 using Acordu.Domain.Enums;
+using Acordu.Domain.Events;
 using Acordu.Domain.Exceptions;
 using Acordu.Domain.ValueObjects;
 
@@ -32,6 +33,8 @@ public sealed class AjusteSaldoTests
         ajuste.Motivo.Should().Be("Recarga de 2h");
         ajuste.Data.Should().Be(Dia10);
         ajuste.AutorId.Should().Be(Autor);
+        ajuste.Eventos.Should().HaveCount(1);
+        ((AjusteSaldoRegistrado)ajuste.Eventos[0]).ContratoId.Should().Be(contrato.Id);
     }
 
     [Fact]
