@@ -261,7 +261,7 @@ Decidido na implementação:
 Decidido na implementação (6c2):
 - `situacaoSla` no filtro aceita `EM_RISCO` e `VIOLADO`, resolvidos no banco pelos instantes persistidos (read side §5); solicitação pausada (AGUARDANDO_CLIENTE) não entra em nenhum dos dois. `ordem`: `abertaEm` (padrão `-abertaEm`), `numero`, `prioridade`, `prazoResolucao`. `busca`: trecho do título ou número (`#1042`).
 - `PATCH` recebe título, descrição, prioridade, categoria e responsável (formulário inteiro); trocar o contrato fica para depois (modelo §4.3). Responsável precisa ser da equipe (`400` no campo).
-- Transições respondem `200` com a solicitação. `POST /interacoes` aceita, por ora, JSON `{ "texto": "...", "visibilidade": "EXTERNA" }`; vira multipart com anexos no marco de anexos. Interação EXTERNA da equipe registra a primeira resposta.
+- Transições respondem `200` com a solicitação. `POST /interacoes` aceita JSON `{ "texto": "...", "visibilidade": "EXTERNA" }` (sem anexos) ou multipart (abaixo). Interação EXTERNA da equipe registra a primeira resposta.
 - O detalhe traz também `descricao`, `categoriaId`, `situacaoSla` (fora do bloco `sla`, para solicitações sem contrato), `resolvidaEm`, `fechadaEm`, `canceladaEm` e `motivoCancelamento`.
 
 **POST `/solicitacoes`** → `201`
@@ -301,7 +301,9 @@ Contrato de outro cliente ou não vigente → `422`. Sem `contratoId`, a API usa
   "texto": "Arte refeita com a data 15/10 e publicada." } }
 ```
 
-**POST `/solicitacoes/{id}/interacoes`** — `multipart/form-data`: `texto`, `visibilidade` (`INTERNA`|`EXTERNA`, padrão `INTERNA`), `anexos[]` (até 5, 20 MB cada). → `201` com a interação.
+**POST `/solicitacoes/{id}/interacoes`** — `multipart/form-data`: `texto`, `visibilidade` (`INTERNA`|`EXTERNA`, padrão `INTERNA`), `anexos` (repetido; até 5, 20 MB cada). → `201` com a interação. Também aceita JSON sem anexos.
+- O tipo do arquivo é detectado pelo conteúdo (PNG, JPEG, GIF, WebP, PDF, ZIP, Office novo e antigo, texto UTF-8/CSV); o declarado pelo navegador é ignorado. Fora da lista → `422 anexo-invalido`; acima de 20 MB → `413 anexo-grande-demais`.
+- Interação (aqui e na linha do tempo) traz `anexos: [{ id, nomeArquivo, tipoConteudo, tamanhoBytes }]`. `GET /anexos/{id}/download` → `302` para URL assinada de 5 minutos, sempre como `attachment`.
 
 **GET `/solicitacoes/{id}/semelhantes`**
 ```json
@@ -522,7 +524,8 @@ Decidido na implementação (6d2):
 - **Escopo PROPRIAS:** solicitações em que o contato é o contato da solicitação (abrir pelo portal grava o contato logado, então "as que abriu" é a mesma regra). Fora do escopo → `404`. `/portal/contratos` e o extrato → `403` (`veContratos` em `/portal/eu` diz se a tela mostra).
 - `GET /portal/eu` → `{ contato: { id, nome, email }, cliente: { id, nome }, prestador: { nome }, escopoPortal, veContratos }`.
 - `GET /portal/solicitacoes` → página de `{ id, numero, titulo, statusExterno, abertaEm, podeAprovar }`, mais recentes primeiro; `statusExterno` aceita lista separada por vírgula.
-- `POST /portal/solicitacoes` (JSON até o marco de anexos) `{ titulo, descricao?, prioridade? }` → `201` com o detalhe. Origem PORTAL, prioridade padrão MEDIA, contrato = o único ATIVO vigente do cliente (senão sem SLA).
+- `POST /portal/solicitacoes/{id}/interacoes` aceita JSON `{ texto }` ou multipart (`texto`, `anexos`), com as mesmas regras de anexo da equipe e rate limit do portal. Interações do portal trazem `anexos`; `GET /portal/anexos/{id}/download` só serve anexo de interação EXTERNA de solicitação visível ao contato (escopo e link), senão 404.
+- `POST /portal/solicitacoes` (JSON até o 10b) `{ titulo, descricao?, prioridade? }` → `201` com o detalhe. Origem PORTAL, prioridade padrão MEDIA, contrato = o único ATIVO vigente do cliente (senão sem SLA).
 - Detalhe: inclui `descricao`; `sla` nulo sem contrato; `podeAprovar` só em RESOLVIDA e com a permissão.
 - `GET .../interacoes` → `[{ id, texto, autorNome, daEquipe, registradaEm }]` (só EXTERNAS). `POST` `{ texto }` → `201` com a interação; em AGUARDANDO_CLIENTE retoma a solicitação.
 - `aprovacao` e `reprovacao` `{ motivo }` → `200` com o detalhe; fora de RESOLVIDA → `422 transicao-invalida`; motivo vazio → `400`.
@@ -568,7 +571,7 @@ O `tick` responde também `alertasSla` (solicitações alertadas), `tarefasRecor
 }
 ```
 
-Tipos (`type`) do v1: `validacao` (com `errors` por campo), `transicao-invalida`, `periodo-fechado`, `contrato-incoerente`, `conflito-versao`, `cronometro-ativo`, `nao-encontrado`, `sem-permissao`, `nao-autenticado` (401), `limite-requisicoes` (429), `erro-interno` (500).
+Tipos (`type`) do v1: `validacao` (com `errors` por campo), `transicao-invalida`, `periodo-fechado`, `contrato-incoerente`, `anexo-invalido` (422: tipo não permitido, vazio, mais de 5), `anexo-grande-demais` (413), `conflito-versao`, `cronometro-ativo`, `nao-encontrado`, `sem-permissao`, `nao-autenticado` (401), `limite-requisicoes` (429), `erro-interno` (500).
 
 ---
 
