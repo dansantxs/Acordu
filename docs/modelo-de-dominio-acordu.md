@@ -399,6 +399,7 @@ Regras:
 - **Fim da regra:** quando não há mais ocorrência (`ProximaData` nula), a recorrência passa sozinha a ENCERRADA.
 - `Criar(..., regra, hoje)`: a primeira ocorrência é a primeira ≥ início e ≥ hoje — início no passado só ancora o ciclo, sem retroativas (mesma regra do `Retomar`).
 - `AlterarRegra(regra, hoje)`: a próxima data vira a primeira ocorrência da nova regra a partir de hoje. `AlterarContrato(contratoId?)` troca o contrato das próximas tarefas (a Application garante o mesmo cliente). Edições não são permitidas em ENCERRADA.
+- Quem chama `GerarDevidas` é a `GeracaoRecorrencias` (Application, no `tick`): cliente inativo consome as datas sem criar tarefas; responsável fora da equipe → tarefa sem responsável (`Atribuir(null)`).
 - `Tarefa.CriarDeRecorrencia(id, recorrencia, dataReferencia)`: copia o modelo (com checklist nova, itens não feitos), herda tenant e cliente, prazo = data de referência.
 - **Idempotência** (RF-REC-03): garantida em duas camadas — `ProximaData` avança no mesmo commit que cria as tarefas, e índice único `(RecorrenciaId, DataReferencia)` em `Tarefa` barra duplicata numa corrida.
 - **Retomar(hoje):** recalcula `ProximaData` para a primeira ocorrência ≥ hoje (sem retroativas — RF-REC-05).

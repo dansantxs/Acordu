@@ -421,6 +421,8 @@ Decidido na implementação (6c3):
 - Detalhe: `{ id, clienteId, clienteNome, contratoId, modelo, regra, proximaData, status, versao }`; listagem paginada com `titulo`, `responsavelId`, `periodicidade`, `proximaData` e `status` (ativas primeiro, pela próxima data).
 - Prévia: ATIVA a partir da próxima data; PAUSADA, as datas que valeriam se retomasse hoje; ENCERRADA, lista vazia.
 
+- **Geração (RF-REC-03):** no job `tick` (a cada 5 min), com o "hoje" no fuso de cada tenant: assim que `data de referência − antecedência ≤ hoje`, a tarefa é criada copiando o modelo (prazo = data de referência, checklist nova). Cada recorrência com suas tarefas num commit; a próxima data avança junto, e o índice único (recorrência, data) barra duplicata. Cliente inativo: as datas passam sem gerar e sem acumular. Responsável que saiu da equipe: a tarefa nasce sem responsável. O contrato não é olhado na geração: o apontamento usa o contrato da recorrência (RF-APT-03).
+
 `GET .../previa` → `["2026-10-31", "2026-11-30", "2026-12-31", "2027-01-31", "2027-02-28", "2027-03-31"]` (clamp de fim de mês visível para o usuário conferir).
 
 ---
@@ -532,7 +534,7 @@ Sem rota própria: saem depois do commit quando a solicitação tem contato ativ
 | Responsável alterado | O novo responsável, se não atribuiu a si mesmo. |
 | SLA em risco (75% do prazo útil) ou violado | Responsável; sem ele, quem tem `solicitacao.editar`. Verificado no `tick`; situação = a pior entre primeira resposta e resolução (read side §5); um alerta por (solicitação, ciclo do SLA, situação); reabrir inicia novo ciclo. |
 
-O `tick` responde também `alertasSla` (solicitações alertadas) e `falhas` (tenants com erro, logados).
+O `tick` responde também `alertasSla` (solicitações alertadas), `tarefasRecorrentes` (tarefas geradas, §10) e `falhas` (tenants com erro em algum dos passos, logados).
 
 **Consumo de contrato (RF-CTR-07, 7c3):** depois de cada apontamento (registro, edição, exclusão) ou ajuste de saldo, se o contrato cruzar **80%** ou **100%** para cima, quem tem `contrato.gerenciar` recebe "Contrato de {cliente} atingiu N%…", com consumido, franquia e saldo. Um aviso por (contrato, período, limiar); cair abaixo rearma. Período: o mês no MENSAL_FIXO; o contrato inteiro (acumulado até hoje) no BANCO_HORAS; AVULSO e sem franquia não avisam. Limiares fixos no v1 (configuráveis depois).
 
