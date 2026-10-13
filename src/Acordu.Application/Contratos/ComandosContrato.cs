@@ -1,4 +1,5 @@
 using Acordu.Application.Abstractions;
+using Acordu.Application.Auditoria;
 using Acordu.Application.Common;
 using Acordu.Domain.Acesso;
 using Acordu.Domain.Entities;
@@ -22,6 +23,7 @@ public sealed class ComandosContrato
     private readonly IUnitOfWork _unidade;
     private readonly IControleVersao _versoes;
     private readonly RelogioDoTenant _relogio;
+    private readonly IAuditoria _auditoria;
 
     public ComandosContrato(
         ITenantContext contexto,
@@ -31,8 +33,11 @@ public sealed class ComandosContrato
         IConsultasContrato consultas,
         IUnitOfWork unidade,
         IControleVersao versoes,
-        RelogioDoTenant relogio)
+        RelogioDoTenant relogio,
+        IAuditoria auditoria)
     {
+        ArgumentNullException.ThrowIfNull(auditoria);
+        _auditoria = auditoria;
         ArgumentNullException.ThrowIfNull(contexto);
         ArgumentNullException.ThrowIfNull(contratos);
         ArgumentNullException.ThrowIfNull(clientes);
@@ -70,6 +75,7 @@ public sealed class ComandosContrato
             Politica(dados.Sla));
         await GarantirUnicoAtivoAsync(contrato, cancellationToken);
         _contratos.Adicionar(contrato);
+        _auditoria.Registrar(AcoesAuditoria.ContratoCriacao, "contrato", contrato.Id, new { clienteId = cliente.Id, tipo = contrato.Tipo, termos = Termos(contrato) });
         await _unidade.SalvarAsync(cancellationToken);
         return contrato.Id;
     }
@@ -78,6 +84,7 @@ public sealed class ComandosContrato
     {
         ArgumentNullException.ThrowIfNull(dados);
         var contrato = await CarregarAsync(id, Permissoes.ContratoGerenciar, versao, cancellationToken);
+        var antes = Termos(contrato);
         contrato.AlterarFranquia(Franquia(dados.FranquiaMinutos));
         contrato.DefinirSla(Politica(dados.Sla));
         if (dados.Fim != contrato.Vigencia.Fim)
@@ -88,6 +95,7 @@ public sealed class ComandosContrato
             await GarantirUnicoAtivoAsync(contrato, cancellationToken);
         }
 
+        _auditoria.Registrar(AcoesAuditoria.ContratoEdicao, "contrato", contrato.Id, new { antes, depois = Termos(contrato) });
         await _unidade.SalvarAsync(cancellationToken);
     }
 
@@ -95,6 +103,7 @@ public sealed class ComandosContrato
     {
         var contrato = await CarregarAsync(id, Permissoes.ContratoGerenciar, versao, cancellationToken);
         contrato.Suspender();
+        _auditoria.Registrar(AcoesAuditoria.ContratoSuspensao, "contrato", contrato.Id);
         await _unidade.SalvarAsync(cancellationToken);
     }
 
@@ -103,6 +112,7 @@ public sealed class ComandosContrato
         var contrato = await CarregarAsync(id, Permissoes.ContratoGerenciar, versao, cancellationToken);
         contrato.Reativar();
         await GarantirUnicoAtivoAsync(contrato, cancellationToken);
+        _auditoria.Registrar(AcoesAuditoria.ContratoReativacao, "contrato", contrato.Id);
         await _unidade.SalvarAsync(cancellationToken);
     }
 
@@ -113,6 +123,7 @@ public sealed class ComandosContrato
         if (fim < contrato.Vigencia.Inicio)
             throw ErroDeCampo.Criar("data", "O encerramento não pode ser anterior ao início da vigência.");
         contrato.Encerrar(fim);
+        _auditoria.Registrar(AcoesAuditoria.ContratoEncerramento, "contrato", contrato.Id, new { fim });
         await _unidade.SalvarAsync(cancellationToken);
     }
 
@@ -128,6 +139,9 @@ public sealed class ComandosContrato
             dados.Data ?? await _relogio.HojeAsync(cancellationToken),
             _contexto.Usuario());
         _ajustes.Adicionar(ajuste);
+        _auditoria.Registrar(
+            AcoesAuditoria.ContratoAjusteSaldo, "contrato", contrato.Id,
+            new { ajusteId = ajuste.Id, quantidadeMinutos = ajuste.Quantidade.Minutos, ajuste.Motivo, ajuste.Data });
         await _unidade.SalvarAsync(cancellationToken);
         return new AjusteSaldoDto(ajuste.Id, contrato.Id, ajuste.Quantidade.Minutos, ajuste.Motivo, ajuste.Data, ajuste.AutorId);
     }
@@ -136,6 +150,7 @@ public sealed class ComandosContrato
     {
         var contrato = await CarregarAsync(id, Permissoes.ContratoFecharPeriodo, null, cancellationToken);
         contrato.FecharPeriodo(periodo, await _relogio.HojeAsync(cancellationToken));
+        _auditoria.Registrar(AcoesAuditoria.ContratoFechamentoPeriodo, "contrato", contrato.Id, new { periodo = periodo.ToString() });
         await _unidade.SalvarAsync(cancellationToken);
     }
 
@@ -157,6 +172,17 @@ public sealed class ComandosContrato
                 "Já existe contrato ativo deste tipo para o cliente com vigência no mesmo período.");
         }
     }
+
+    /// <summary>Termos editáveis do contrato, para o antes/depois da auditoria.</summary>
+    private static object Termos(Contrato contrato) => new
+    {
+        contrato.Vigencia.Inicio,
+        contrato.Vigencia.Fim,
+        franquiaMinutos = contrato.Franquia?.Minutos,
+        sla = contrato.Sla.Prazos
+            .Select(p => new { p.Prioridade, primeiraRespostaMinutos = p.PrimeiraResposta.Minutos, resolucaoMinutos = p.Resolucao.Minutos })
+            .ToArray(),
+    };
 
     private static Periodo Vigencia(DateOnly inicio, DateOnly? fim) =>
         fim is { } f && f < inicio

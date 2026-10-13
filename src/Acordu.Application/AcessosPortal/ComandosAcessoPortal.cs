@@ -1,4 +1,5 @@
 using Acordu.Application.Abstractions;
+using Acordu.Application.Auditoria;
 using Acordu.Application.Common;
 using Acordu.Domain.Acesso;
 using Acordu.Domain.Entities;
@@ -20,6 +21,7 @@ public sealed class ComandosAcessoPortal
     private readonly RevogacaoAcessoPortal _revogacao;
     private readonly RelogioDoTenant _relogio;
     private readonly IUnitOfWork _unidade;
+    private readonly IAuditoria _auditoria;
 
     public ComandosAcessoPortal(
         ITenantContext contexto,
@@ -29,8 +31,11 @@ public sealed class ComandosAcessoPortal
         IVinculos vinculos,
         RevogacaoAcessoPortal revogacao,
         RelogioDoTenant relogio,
-        IUnitOfWork unidade)
+        IUnitOfWork unidade,
+        IAuditoria auditoria)
     {
+        ArgumentNullException.ThrowIfNull(auditoria);
+        _auditoria = auditoria;
         ArgumentNullException.ThrowIfNull(contexto);
         ArgumentNullException.ThrowIfNull(clientes);
         ArgumentNullException.ThrowIfNull(convites);
@@ -71,6 +76,7 @@ public sealed class ComandosAcessoPortal
         foreach (var anterior in await _acessos.ConvitesPendentesAsync(contato.Id, cancellationToken))
             anterior.Revogar(agora);
         _convites.Adicionar(ConvitePortal.Criar(Guid.CreateVersion7(), cliente.TenantId, cliente.Id, contato.Id, escopo, agora));
+        _auditoria.Registrar(AcoesAuditoria.PortalAcessoConcessao, "contato", contato.Id, new { clienteId = cliente.Id, escopo });
         await _unidade.SalvarAsync(cancellationToken);
     }
 
@@ -97,6 +103,7 @@ public sealed class ComandosAcessoPortal
                 convite.AlterarEscopo(escopo);
         }
 
+        _auditoria.Registrar(AcoesAuditoria.PortalAcessoEscopo, "contato", contato.Id, new { clienteId = cliente.Id, escopo });
         await _unidade.SalvarAsync(cancellationToken);
     }
 
@@ -105,6 +112,7 @@ public sealed class ComandosAcessoPortal
     {
         var (cliente, contato) = await CarregarAsync(clienteId, contatoId, cancellationToken);
         await _revogacao.RevogarAsync(cliente, contato.Id, cancellationToken);
+        _auditoria.Registrar(AcoesAuditoria.PortalAcessoRevogacao, "contato", contato.Id, new { clienteId = cliente.Id });
         await _unidade.SalvarAsync(cancellationToken);
     }
 

@@ -1,4 +1,5 @@
 using Acordu.Application.Abstractions;
+using Acordu.Application.Auditoria;
 using Acordu.Application.Common;
 using Acordu.Domain.Acesso;
 using Acordu.Domain.Entities;
@@ -30,6 +31,7 @@ public sealed class ComandosLinkPortal
     private readonly EnderecosPublicos _enderecos;
     private readonly RelogioDoTenant _relogio;
     private readonly IUnitOfWork _unidade;
+    private readonly IAuditoria _auditoria;
 
     public ComandosLinkPortal(
         ITenantContext contexto,
@@ -41,8 +43,11 @@ public sealed class ComandosLinkPortal
         IEnviadorEmail email,
         EnderecosPublicos enderecos,
         RelogioDoTenant relogio,
-        IUnitOfWork unidade)
+        IUnitOfWork unidade,
+        IAuditoria auditoria)
     {
+        ArgumentNullException.ThrowIfNull(auditoria);
+        _auditoria = auditoria;
         ArgumentNullException.ThrowIfNull(contexto);
         ArgumentNullException.ThrowIfNull(solicitacoes);
         ArgumentNullException.ThrowIfNull(clientes);
@@ -90,6 +95,9 @@ public sealed class ComandosLinkPortal
         var (acesso, token) = AcessoPortal.Emitir(
             Guid.CreateVersion7(), solicitacao.TenantId, cliente.Id, solicitacao.Id, contato.Id, agora, TimeSpan.FromDays(dias));
         _acessos.Adicionar(acesso);
+        _auditoria.Registrar(
+            AcoesAuditoria.PortalLinkEmissao, "solicitacao", solicitacao.Id,
+            new { acessoPortalId = acesso.Id, contatoId = contato.Id, validadeDias = dias });
         await _unidade.SalvarAsync(cancellationToken);
 
         var link = _enderecos.LinkPortal(token);
@@ -106,6 +114,8 @@ public sealed class ComandosLinkPortal
         if (acesso is null || acesso.SolicitacaoId != solicitacao.Id)
             throw new NaoEncontradoException("Link não encontrado.");
         acesso.Revogar(_relogio.Agora);
+        _auditoria.Registrar(
+            AcoesAuditoria.PortalLinkRevogacao, "solicitacao", solicitacao.Id, new { acessoPortalId = acesso.Id, acesso.ContatoId });
         await _unidade.SalvarAsync(cancellationToken);
     }
 

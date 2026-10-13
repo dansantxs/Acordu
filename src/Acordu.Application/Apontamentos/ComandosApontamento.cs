@@ -1,4 +1,5 @@
 using Acordu.Application.Abstractions;
+using Acordu.Application.Auditoria;
 using Acordu.Application.Common;
 using Acordu.Domain.Acesso;
 using Acordu.Domain.Entities;
@@ -24,6 +25,7 @@ public sealed class ComandosApontamento
     private readonly RelogioDoTenant _relogio;
     private readonly IUnitOfWork _unidade;
     private readonly IControleVersao _versoes;
+    private readonly IAuditoria _auditoria;
 
     public ComandosApontamento(
         ITenantContext contexto,
@@ -37,8 +39,11 @@ public sealed class ComandosApontamento
         IConsultasApontamento consultas,
         RelogioDoTenant relogio,
         IUnitOfWork unidade,
-        IControleVersao versoes)
+        IControleVersao versoes,
+        IAuditoria auditoria)
     {
+        ArgumentNullException.ThrowIfNull(auditoria);
+        _auditoria = auditoria;
         ArgumentNullException.ThrowIfNull(contexto);
         ArgumentNullException.ThrowIfNull(apontamentos);
         ArgumentNullException.ThrowIfNull(cronometros);
@@ -82,9 +87,11 @@ public sealed class ComandosApontamento
     {
         ArgumentNullException.ThrowIfNull(dados);
         var apontamento = await CarregarDoAutorAsync(id, versao, cancellationToken);
+        var antes = Valores(apontamento);
         apontamento.Editar(
             dados.Data, Duracao(dados.DuracaoMinutos), dados.Descricao, dados.DescricaoExterna, dados.Faturavel, dados.VisivelCliente,
             await FechadosAsync(apontamento.ContratoId, cancellationToken));
+        _auditoria.Registrar(AcoesAuditoria.ApontamentoEdicao, "apontamento", apontamento.Id, new { antes, depois = Valores(apontamento) });
         await _unidade.SalvarAsync(cancellationToken);
     }
 
@@ -93,8 +100,23 @@ public sealed class ComandosApontamento
         var apontamento = await CarregarDoAutorAsync(id, versao, cancellationToken);
         apontamento.Excluir(await FechadosAsync(apontamento.ContratoId, cancellationToken));
         _apontamentos.Remover(apontamento);
+        _auditoria.Registrar(AcoesAuditoria.ApontamentoExclusao, "apontamento", apontamento.Id, new { antes = Valores(apontamento) });
         await _unidade.SalvarAsync(cancellationToken);
     }
+
+    /// <summary>Valor do apontamento para a auditoria (edição e exclusão guardam o anterior).</summary>
+    private static object Valores(Apontamento apontamento) => new
+    {
+        apontamento.TarefaId,
+        apontamento.UsuarioId,
+        apontamento.ContratoId,
+        apontamento.Data,
+        duracaoMinutos = apontamento.Duracao.Minutos,
+        apontamento.Descricao,
+        apontamento.DescricaoExterna,
+        apontamento.Faturavel,
+        apontamento.VisivelCliente,
+    };
 
     public async Task<Guid> IniciarCronometroAsync(InicioCronometroRequest dados, CancellationToken cancellationToken = default)
     {
