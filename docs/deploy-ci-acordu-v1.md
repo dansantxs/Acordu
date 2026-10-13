@@ -109,7 +109,7 @@ Buildx + QEMU `linux/arm64`, tag por SHA + `latest`, push no GHCR. Imagens: `ghc
 
 Os jobs já são endpoints internos idempotentes (`POST /internal/jobs/<nome>`, cabeçalho `X-Job-Token` comparado em tempo constante, 404 sem token válido), o que mantém o mesmo código no nível 0 e no plano B (ADR 0005).
 
-- Na VM, um **timer do systemd** (`acordu-jobs.timer`) chama `POST http://acordu-api:8080/internal/jobs/tick` a cada 5 minutos, a partir de um container efêmero na `infra_net` (`docker run --rm --network infra_net curlimages/curl ...`), com o token lido do `.env`. Jobs diários usam um segundo timer.
+- Na VM, um **timer do systemd** (`acordu-jobs.timer`) chama `POST http://acordu-api:8080/internal/jobs/tick` a cada 5 minutos, a partir de um container efêmero na `infra_net` (`docker run --rm --network infra_net curlimages/curl ...`), com o token lido do `.env`. Jobs diários (`fechamento-automatico` e `expurgo-auditoria`) usam um segundo timer.
 - O tick entrega o que a outbox da requisição não conseguiu entregar e roda os alertas de SLA; os diários cuidam de recorrências e fechamento automático.
 - Implementados: `POST /internal/jobs/tick` (outbox) e `POST /internal/jobs/fechamento-automatico` (diário; responde `{ tenants, fechadas, falhas }`). Jobs por tenant rodam cada tenant num escopo próprio; falha num tenant é logada, não para os demais e entra em `falhas` (o timer só alerta em resposta não-2xx).
 - Resposta não-2xx ou falha do timer → Discord (`OnFailure=` do serviço).
@@ -129,7 +129,7 @@ Os jobs já são endpoints internos idempotentes (`POST /internal/jobs/<nome>`, 
 ## 7. Segredos
 
 - **GitHub Actions (repositório acordu):** token GHCR, chave SSH de deploy do Acordu, host/usuário, webhook do Discord.
-- **VM (`/opt/acordu/.env`, fora do git, `chmod 600`):** connection strings (`acordu_app` e `acordu_migrator`), chave de assinatura do JWT **própria** (nunca compartilhada com outro produto), chave de API do Resend (`Email__ResendChave`; remetente em `Email__Remetente`, padrão `nao-responda@send.acordu.app.br`, e nome padrão em `Email__NomeRemetente`; sem a chave, a API só registra os e-mails em log), endereço público do front (`App__UrlPublica`, base dos links dos e-mails), credenciais do object storage (Customer Secret Key restrita aos buckets do Acordu), DSN do Sentry, webhook do Discord.
+- **VM (`/opt/acordu/.env`, fora do git, `chmod 600`):** connection strings (`acordu_app` e `acordu_migrator`), chave de assinatura do JWT **própria** (nunca compartilhada com outro produto), chave de API do Resend (`Email__ResendChave`; remetente em `Email__Remetente`, padrão `nao-responda@send.acordu.app.br`, e nome padrão em `Email__NomeRemetente`; sem a chave, a API só registra os e-mails em log), endereço público do front (`App__UrlPublica`, base dos links dos e-mails), `Proxy__ConfiarEncaminhamento=true` (IP real do cliente pelo `X-Forwarded-For` do Caddy, para auditoria e rate limit; ADR 0008), credenciais do object storage (Customer Secret Key restrita aos buckets do Acordu), DSN do Sentry, webhook do Discord.
 
 ---
 

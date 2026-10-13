@@ -179,7 +179,8 @@ setweight(to_tsvector('portuguese', unaccent(titulo)), 'A')
 | `solicitacoes` | `(tenant_id, numero)` único; `(tenant_id, status, prazo_resolucao)`; `(tenant_id, status, limite_risco)`; `(tenant_id, cliente_id, status)`; GIN `busca_tsv`; GIN trgm `titulo` |
 | `tarefas` | `(recorrencia_id, data_referencia)` único parcial; `(tenant_id, responsavel_id, status)`; `(tenant_id, solicitacao_id)`; `(tenant_id, projeto_id)` |
 | `interacoes` | `(tenant_id, solicitacao_id, criado_em)` |
-| `recorrencias_tarefa` | `(status, proxima_data)` — varredura do agendador entre tenants |
+| `recorrencias` | `(status, proxima_data)` — varredura do agendador entre tenants |
+| `auditoria` | `(tenant_id, ocorrido_em)` — tela; `(ocorrido_em)` — expurgo de 12 meses |
 | `ajustes_saldo` | `(tenant_id, contrato_id, data)` |
 
 ---
