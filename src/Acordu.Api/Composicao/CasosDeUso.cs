@@ -6,6 +6,7 @@ using Acordu.Application.Auditoria;
 using Acordu.Application.Capacidade;
 using Acordu.Application.Categorias;
 using Acordu.Application.Clientes;
+using Acordu.Application.Colaboracao;
 using Acordu.Application.Common;
 using Acordu.Application.Configuracoes;
 using Acordu.Application.Contratos;
@@ -38,6 +39,7 @@ internal static class CasosDeUso
         services.AddScoped<LeituraDashboard>();
         services.AddScoped<LeituraAgenda>();
         services.AddScoped<AvisoInterno>();
+        services.AddScoped<ValidacaoMencoes>();
         services.AddScoped<ComandosNotificacoes>();
         services.AddScoped<ComandosCliente>();
         services.AddScoped<ComandosContrato>();
@@ -83,6 +85,7 @@ internal static class CasosDeUso
         services.AddScoped<AvisosAEquipe>();
         services.AddScoped<IManipuladorPosCommit<SolicitacaoAberta>>(sp => sp.GetRequiredService<AvisosAEquipe>());
         services.AddScoped<IManipuladorPosCommit<SolicitacaoAtribuida>>(sp => sp.GetRequiredService<AvisosAEquipe>());
+        services.AddScoped<IManipuladorPosCommit<PessoasMencionadas>, AvisosDeMencao>();
         services.AddScoped<AlertasSla>();
 
         // Alertas de consumo de contrato (RF-CTR-07).
