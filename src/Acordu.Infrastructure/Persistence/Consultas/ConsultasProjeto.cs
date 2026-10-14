@@ -61,7 +61,7 @@ public sealed class ConsultasProjeto : IConsultasProjeto
             .ToListAsync(cancellationToken);
         return new ResultadoPaginado<ProjetoResumoDto>(
             [.. linhas.Select(x => new ProjetoResumoDto(
-                x.p.Id, x.p.Nome, new Referencia(x.p.ClienteId, x.ClienteNome), x.p.ContratoId, x.p.Prazo, x.p.Estimativa?.Minutos,
+                x.p.Id, x.p.Nome, new Referencia(x.p.ClienteId, x.ClienteNome), x.p.ContratoId, x.p.Inicio, x.p.Prazo, x.p.Estimativa?.Minutos,
                 x.p.Status))],
             paginacao.Pagina,
             paginacao.TamanhoPagina,
@@ -85,6 +85,7 @@ public sealed class ConsultasProjeto : IConsultasProjeto
             projeto.Nome,
             new Referencia(projeto.ClienteId, linha.ClienteNome),
             projeto.ContratoId,
+            projeto.Inicio,
             projeto.Prazo,
             projeto.Estimativa?.Minutos,
             projeto.Status,
