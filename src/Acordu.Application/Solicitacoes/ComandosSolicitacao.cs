@@ -1,5 +1,6 @@
 using Acordu.Application.Abstractions;
 using Acordu.Application.Anexos;
+using Acordu.Application.Colaboracao;
 using Acordu.Application.Common;
 using Acordu.Application.Contratos;
 using Acordu.Domain.Acesso;
@@ -33,6 +34,7 @@ public sealed class ComandosSolicitacao
     private readonly IUnitOfWork _unidade;
     private readonly IControleVersao _versoes;
     private readonly RecebimentoAnexos _anexos;
+    private readonly ValidacaoMencoes _mencoes;
 
     public ComandosSolicitacao(
         ITenantContext contexto,
@@ -48,10 +50,13 @@ public sealed class ComandosSolicitacao
         RelogioDoTenant relogio,
         IUnitOfWork unidade,
         IControleVersao versoes,
-        RecebimentoAnexos anexos)
+        RecebimentoAnexos anexos,
+        ValidacaoMencoes mencoes)
     {
         ArgumentNullException.ThrowIfNull(anexos);
+        ArgumentNullException.ThrowIfNull(mencoes);
         _anexos = anexos;
+        _mencoes = mencoes;
         ArgumentNullException.ThrowIfNull(contexto);
         ArgumentNullException.ThrowIfNull(solicitacoes);
         ArgumentNullException.ThrowIfNull(clientes);
@@ -202,6 +207,8 @@ public sealed class ComandosSolicitacao
     {
         ArgumentNullException.ThrowIfNull(dados);
         var solicitacao = await CarregarAsync(solicitacaoId, Permissoes.SolicitacaoComentar, null, cancellationToken);
+        if ((dados.Visibilidade ?? Visibilidade.Interna) == Visibilidade.Interna)
+            await _mencoes.GarantirAsync(dados.Texto, _contexto.Usuario(), Permissoes.SolicitacaoVer, cancellationToken);
         var anexos = await _anexos.EnviarAsync(solicitacao.TenantId, solicitacao.Id, arquivos, cancellationToken);
         try
         {
