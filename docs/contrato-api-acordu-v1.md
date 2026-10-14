@@ -435,9 +435,14 @@ Decidido na implementação (6c3):
 | Método | Rota | Descrição | Permissão |
 |---|---|---|---|
 | GET | `/dashboard` | Composição da tela inicial (`?de=&ate=`). | `dashboard.ver` |
-| GET | `/notificacoes` | Notificações do usuário (`?naoLidas=true`). | autenticado |
+| GET | `/notificacoes` | Notificações do usuário (`?naoLidas=true&pagina=&tamanhoPagina=`). | autenticado |
 | POST | `/notificacoes/{id}/leitura` · `/notificacoes/leitura` | Marca uma / todas como lidas. | autenticado |
 | GET/PUT | `/notificacoes/preferencias` | Quais e-mails receber (RF-NOT-04). | autenticado |
+
+**Notificações (11b).** O sino recebe os mesmos avisos internos dos e-mails (§12b): nova solicitação, atribuição, SLA em risco/violado e consumo de contrato. Só a equipe (contato → 403); cada pessoa vê as suas.
+- `GET /notificacoes` → `{ itens: [{ id, categoria, titulo, link, criadaEm, lidaEm }], pagina, tamanhoPagina, total, naoLidas }`, mais recentes primeiro; `categoria`: `NOVA_SOLICITACAO`, `ATRIBUICAO`, `SLA`, `CONSUMO`; `link` aponta para a solicitação ou o contrato no app.
+- `POST /notificacoes/{id}/leitura` e `POST /notificacoes/leitura` (todas) → `204`; de outra pessoa → `404`. Notificações com mais de 90 dias são apagadas pelo job diário.
+- `GET/PUT /notificacoes/preferencias` `{ categorias: [{ categoria, email }] }`: desliga o **e-mail** de uma categoria (no PUT, categoria ausente = ligada); o sino continua. E-mails de conta e os enviados ao contato não entram.
 
 **GET `/dashboard`** (`?de=&ate=`, datas no fuso do tenant; padrão: o mês corrente; até 366 dias, senão `400` em `errors.ate`)
 ```json

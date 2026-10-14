@@ -7,7 +7,7 @@ using Acordu.Domain.Events;
 namespace Acordu.Application.Notificacoes;
 
 /// <summary>
-/// E-mails internos de solicitação (RF-NOT-02), depois do commit: nova solicitação (responsável ou, sem ele, quem tem
+/// Avisos internos de solicitação (RF-NOT-02/03: sino e e-mail, pelo <see cref="AvisoInterno"/>), depois do commit: nova solicitação (responsável ou, sem ele, quem tem
 /// <c>solicitacao.editar</c>; nunca quem abriu) e atribuição (o novo responsável, se não atribuiu a si mesmo).
 /// </summary>
 public sealed class AvisosAEquipe :
@@ -17,25 +17,25 @@ public sealed class AvisosAEquipe :
     private readonly IRepositorio<Solicitacao> _solicitacoes;
     private readonly IRepositorio<Cliente> _clientes;
     private readonly IPessoasDaEquipe _pessoas;
-    private readonly IEnviadorEmail _email;
+    private readonly AvisoInterno _aviso;
     private readonly EnderecosPublicos _enderecos;
 
     public AvisosAEquipe(
         IRepositorio<Solicitacao> solicitacoes,
         IRepositorio<Cliente> clientes,
         IPessoasDaEquipe pessoas,
-        IEnviadorEmail email,
+        AvisoInterno aviso,
         EnderecosPublicos enderecos)
     {
         ArgumentNullException.ThrowIfNull(solicitacoes);
         ArgumentNullException.ThrowIfNull(clientes);
         ArgumentNullException.ThrowIfNull(pessoas);
-        ArgumentNullException.ThrowIfNull(email);
+        ArgumentNullException.ThrowIfNull(aviso);
         ArgumentNullException.ThrowIfNull(enderecos);
         _solicitacoes = solicitacoes;
         _clientes = clientes;
         _pessoas = pessoas;
-        _email = email;
+        _aviso = aviso;
         _enderecos = enderecos;
     }
 
@@ -48,9 +48,16 @@ public sealed class AvisosAEquipe :
 
         var cliente = await _clientes.ObterPorIdAsync(solicitacao.ClienteId, cancellationToken);
         var destinatarios = await DestinatariosAsync(_pessoas, solicitacao, cancellationToken);
+        var titulo = $"Nova solicitação #{solicitacao.Numero}: {solicitacao.Titulo}";
+        var link = _enderecos.SolicitacaoInterna(solicitacao.Id);
         foreach (var pessoa in destinatarios.Where(p => p.UsuarioId != evento.AbertaPor))
         {
-            await _email.EnviarAsync(
+            await _aviso.AvisarAsync(
+                pessoa,
+                CategoriaAviso.NovaSolicitacao,
+                $"solicitacao-aberta:{solicitacao.Id}",
+                titulo,
+                link,
                 new MensagemEmail(
                     pessoa.Email,
                     $"Nova solicitação #{solicitacao.Numero}: {solicitacao.Titulo}",
@@ -79,7 +86,13 @@ public sealed class AvisosAEquipe :
         if (solicitacao is null || pessoa is null || solicitacao.ResponsavelId != responsavelId)
             return;
 
-        await _email.EnviarAsync(
+        // Chave com o responsável anterior: A→B→A→B repetido não avisa de novo no sino (o e-mail sai).
+        await _aviso.AvisarAsync(
+            pessoa,
+            CategoriaAviso.Atribuicao,
+            $"atribuicao:{solicitacao.Id}:{evento.Anterior}:{responsavelId}",
+            $"Solicitação #{solicitacao.Numero} atribuída a você: {solicitacao.Titulo}",
+            _enderecos.SolicitacaoInterna(solicitacao.Id),
             new MensagemEmail(
                 pessoa.Email,
                 $"Solicitação #{solicitacao.Numero} atribuída a você",

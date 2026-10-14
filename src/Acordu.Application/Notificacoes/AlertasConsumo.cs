@@ -33,8 +33,9 @@ public sealed class AlertasConsumo :
     private readonly IRepositorio<Cliente> _clientes;
     private readonly IPessoasDaEquipe _pessoas;
     private readonly IMarcadoresDeAviso _marcadores;
-    private readonly IEnviadorEmail _email;
+    private readonly AvisoInterno _aviso;
     private readonly RelogioDoTenant _relogio;
+    private readonly EnderecosPublicos _enderecos;
 
     public AlertasConsumo(
         IConsultasContrato consultas,
@@ -42,22 +43,25 @@ public sealed class AlertasConsumo :
         IRepositorio<Cliente> clientes,
         IPessoasDaEquipe pessoas,
         IMarcadoresDeAviso marcadores,
-        IEnviadorEmail email,
-        RelogioDoTenant relogio)
+        AvisoInterno aviso,
+        RelogioDoTenant relogio,
+        EnderecosPublicos enderecos)
     {
+        ArgumentNullException.ThrowIfNull(enderecos);
+        _enderecos = enderecos;
         ArgumentNullException.ThrowIfNull(consultas);
         ArgumentNullException.ThrowIfNull(contratos);
         ArgumentNullException.ThrowIfNull(clientes);
         ArgumentNullException.ThrowIfNull(pessoas);
         ArgumentNullException.ThrowIfNull(marcadores);
-        ArgumentNullException.ThrowIfNull(email);
+        ArgumentNullException.ThrowIfNull(aviso);
         ArgumentNullException.ThrowIfNull(relogio);
         _consultas = consultas;
         _contratos = contratos;
         _clientes = clientes;
         _pessoas = pessoas;
         _marcadores = marcadores;
-        _email = email;
+        _aviso = aviso;
         _relogio = relogio;
     }
 
@@ -121,7 +125,7 @@ public sealed class AlertasConsumo :
                 continue;
             try
             {
-                await AvisarAsync(contrato, consumo, limiar, cancellationToken);
+                await AvisarAsync(contrato, consumo, limiar, $"{chave}:{contrato.Id}:{hoje.DayNumber.ToString(CultureInfo.InvariantCulture)}", cancellationToken);
             }
             catch
             {
@@ -131,18 +135,26 @@ public sealed class AlertasConsumo :
         }
     }
 
-    private async Task AvisarAsync(Contrato contrato, ConsumoContratoDto consumo, int limiar, CancellationToken cancellationToken)
+    /// <param name="chave">Do marcador, mais o contrato e o dia: rearmar e cruzar de novo em outro dia gera outra notificação.</param>
+    private async Task AvisarAsync(
+        Contrato contrato, ConsumoContratoDto consumo, int limiar, string chave, CancellationToken cancellationToken)
     {
         var cliente = await _clientes.ObterPorIdAsync(contrato.ClienteId, cancellationToken);
         var banco = contrato.Tipo == TipoContrato.BancoHoras;
         var consumido = banco ? consumo.ConsumidoAcumuladoMinutos ?? consumo.ConsumidoMinutos : consumo.ConsumidoMinutos;
         var descricao = banco ? "do banco de horas" : $"da franquia de {consumo.Periodo}";
+        var titulo = $"Contrato de {cliente?.Nome} atingiu {limiar}% {(banco ? "do banco de horas" : "da franquia")}";
         foreach (var pessoa in await _pessoas.ComPermissaoAsync(Permissoes.ContratoGerenciar, cancellationToken))
         {
-            await _email.EnviarAsync(
+            await _aviso.AvisarAsync(
+                pessoa,
+                CategoriaAviso.Consumo,
+                chave,
+                titulo,
+                _enderecos.ContratoInterno(contrato.Id),
                 new MensagemEmail(
                     pessoa.Email,
-                    $"Contrato de {cliente?.Nome} atingiu {limiar}% {(banco ? "do banco de horas" : "da franquia")}",
+                    titulo,
                     $"""
                     Olá, {pessoa.Nome}!
 

@@ -20,7 +20,7 @@ public sealed class AlertasSla
     private readonly IPessoasDaEquipe _pessoas;
     private readonly IMarcadoresDeAviso _marcadores;
     private readonly ICalendarios _calendarios;
-    private readonly IEnviadorEmail _email;
+    private readonly AvisoInterno _aviso;
     private readonly EnderecosPublicos _enderecos;
     private readonly RelogioDoTenant _relogio;
 
@@ -30,7 +30,7 @@ public sealed class AlertasSla
         IPessoasDaEquipe pessoas,
         IMarcadoresDeAviso marcadores,
         ICalendarios calendarios,
-        IEnviadorEmail email,
+        AvisoInterno aviso,
         EnderecosPublicos enderecos,
         RelogioDoTenant relogio)
     {
@@ -39,7 +39,7 @@ public sealed class AlertasSla
         ArgumentNullException.ThrowIfNull(pessoas);
         ArgumentNullException.ThrowIfNull(marcadores);
         ArgumentNullException.ThrowIfNull(calendarios);
-        ArgumentNullException.ThrowIfNull(email);
+        ArgumentNullException.ThrowIfNull(aviso);
         ArgumentNullException.ThrowIfNull(enderecos);
         ArgumentNullException.ThrowIfNull(relogio);
         _consultas = consultas;
@@ -47,7 +47,7 @@ public sealed class AlertasSla
         _pessoas = pessoas;
         _marcadores = marcadores;
         _calendarios = calendarios;
-        _email = email;
+        _aviso = aviso;
         _enderecos = enderecos;
         _relogio = relogio;
     }
@@ -76,7 +76,7 @@ public sealed class AlertasSla
                 continue;
             try
             {
-                await EnviarAsync(solicitacao, situacao, sla.PrazoResolucao, calendario, cancellationToken);
+                await EnviarAsync(solicitacao, situacao, sla.PrazoResolucao, calendario, $"{chave}:{solicitacao.Id}", cancellationToken);
             }
             catch
             {
@@ -91,13 +91,22 @@ public sealed class AlertasSla
     }
 
     private async Task EnviarAsync(
-        Solicitacao solicitacao, SituacaoSla situacao, DateTimeOffset prazo, CalendarioUtil calendario, CancellationToken cancellationToken)
+        Solicitacao solicitacao, SituacaoSla situacao, DateTimeOffset prazo, CalendarioUtil calendario, string chave,
+        CancellationToken cancellationToken)
     {
         var prazoLocal = TimeZoneInfo.ConvertTime(prazo, calendario.Fuso).ToString("dd/MM/yyyy 'às' HH:mm", CultureInfo.InvariantCulture);
         var violado = situacao == SituacaoSla.Violado;
+        var titulo = violado
+            ? $"SLA violado: solicitação #{solicitacao.Numero}"
+            : $"SLA em risco: solicitação #{solicitacao.Numero}";
         foreach (var pessoa in await AvisosAEquipe.DestinatariosAsync(_pessoas, solicitacao, cancellationToken))
         {
-            await _email.EnviarAsync(
+            await _aviso.AvisarAsync(
+                pessoa,
+                CategoriaAviso.Sla,
+                chave,
+                titulo,
+                _enderecos.SolicitacaoInterna(solicitacao.Id),
                 new MensagemEmail(
                     pessoa.Email,
                     violado
