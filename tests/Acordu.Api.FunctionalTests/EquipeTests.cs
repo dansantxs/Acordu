@@ -204,4 +204,30 @@ public sealed class EquipeTests(ApiFixture api)
     }
 
     private sealed record Sessao(string Token, string Refresh);
+
+    [Fact]
+    public async Task Capacidade_PadraoDefinirAuditarEValidar()
+    {
+        var equipe = await Equipe.CriarAsync(api);
+        var membroToken = await equipe.ComPapelAsync(Papel.NomeMembro);
+        var membro = (await equipe.EsperarAsync(HttpStatusCode.OK, HttpMethod.Get, "/api/v1/auth/eu", token: membroToken))
+            .GetProperty("usuarioId").GetGuid();
+        var rota = $"/api/v1/usuarios/{membro}/capacidade";
+
+        var antes = (await equipe.EsperarAsync(HttpStatusCode.OK, HttpMethod.Get, "/api/v1/usuarios")).EnumerateArray()
+            .Single(u => u.GetProperty("usuarioId").GetGuid() == membro);
+        var definida = await equipe.EsperarAsync(HttpStatusCode.OK, HttpMethod.Put, rota, new { capacidadeSemanalMinutos = 1200 });
+        var acima = await equipe.EsperarAsync(HttpStatusCode.BadRequest, HttpMethod.Put, rota, new { capacidadeSemanalMinutos = 10081 });
+        await equipe.EsperarAsync(HttpStatusCode.Forbidden, HttpMethod.Put, rota, new { capacidadeSemanalMinutos = 600 }, membroToken);
+        await equipe.EsperarAsync(HttpStatusCode.NotFound, HttpMethod.Put, $"/api/v1/usuarios/{Guid.NewGuid()}/capacidade", new { capacidadeSemanalMinutos = 600 });
+        var trilha = (await equipe.EsperarAsync(HttpStatusCode.OK, HttpMethod.Get, "/api/v1/auditoria?acao=equipe.capacidade"))
+            .GetProperty("itens");
+
+        antes.GetProperty("capacidadeSemanalMinutos").GetInt32().Should().Be(2400);
+        definida.GetProperty("capacidadeSemanalMinutos").GetInt32().Should().Be(1200);
+        acima.GetProperty("errors").TryGetProperty("capacidadeSemanalMinutos", out _).Should().BeTrue();
+        trilha.GetArrayLength().Should().Be(1);
+        trilha[0].GetProperty("dados").GetProperty("de").GetInt32().Should().Be(2400);
+        trilha[0].GetProperty("dados").GetProperty("para").GetInt32().Should().Be(1200);
+    }
 }

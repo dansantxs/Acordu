@@ -1,5 +1,6 @@
 using Acordu.Domain.Entities;
 using Acordu.Domain.Enums;
+using Acordu.Domain.ValueObjects;
 
 namespace Acordu.Domain.UnitTests.Entities;
 
@@ -122,5 +123,67 @@ public sealed class VinculoTests
         var acao = () => vinculo.AlterarEscopo(EscopoPortal.TodasDoCliente);
 
         acao.Should().Throw<ArgumentException>().WithParameterName("escopo");
+    }
+
+    [Fact]
+    public void Criar_Interno_NasceComCapacidadePadrao()
+    {
+        var vinculo = Vinculo.Criar(Guid.NewGuid(), Usuario, Padrao(Papel.NomeDono));
+
+        vinculo.CapacidadeSemanal.Should().Be(Duracao.FromHoras(40));
+    }
+
+    [Fact]
+    public void Criar_Cliente_SemCapacidade()
+    {
+        var vinculo = Vinculo.Criar(Guid.NewGuid(), Usuario, Padrao(Papel.NomeCliente), ClienteId, EscopoPortal.Proprias);
+
+        vinculo.CapacidadeSemanal.Should().BeNull();
+    }
+
+    [Theory]
+    [InlineData(0)]
+    [InlineData(1200)]
+    [InlineData(10080)]
+    public void DefinirCapacidade_NaFaixa_Guarda(int minutos)
+    {
+        var vinculo = Vinculo.Criar(Guid.NewGuid(), Usuario, Padrao(Papel.NomeDono));
+
+        vinculo.DefinirCapacidade(Duracao.FromMinutos(minutos));
+
+        vinculo.CapacidadeSemanal.Should().Be(Duracao.FromMinutos(minutos));
+    }
+
+    [Fact]
+    public void DefinirCapacidade_AcimaDe168h_LancaExcecao()
+    {
+        var vinculo = Vinculo.Criar(Guid.NewGuid(), Usuario, Padrao(Papel.NomeDono));
+
+        var acao = () => vinculo.DefinirCapacidade(Duracao.FromMinutos(10081));
+
+        acao.Should().Throw<ArgumentOutOfRangeException>();
+        vinculo.CapacidadeSemanal.Should().Be(Vinculo.CapacidadePadrao);
+    }
+
+    [Fact]
+    public void DefinirCapacidade_DeCliente_LancaExcecao()
+    {
+        var vinculo = Vinculo.Criar(Guid.NewGuid(), Usuario, Padrao(Papel.NomeCliente), ClienteId, EscopoPortal.Proprias);
+
+        var acao = () => vinculo.DefinirCapacidade(Duracao.FromHoras(10));
+
+        acao.Should().Throw<ArgumentException>();
+    }
+
+    [Fact]
+    public void TrocarPapel_EntreInternos_MantemCapacidadeDefinida()
+    {
+        var papeis = Papel.Padroes(Calendarios.Tenant);
+        var vinculo = Vinculo.Criar(Guid.NewGuid(), Usuario, Padrao(Papel.NomeDono));
+        vinculo.DefinirCapacidade(Duracao.FromHoras(20));
+
+        vinculo.TrocarPapel(papeis.First(p => p.Tipo == TipoPapel.Interno && p.Nome != Papel.NomeDono));
+
+        vinculo.CapacidadeSemanal.Should().Be(Duracao.FromHoras(20));
     }
 }

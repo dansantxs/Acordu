@@ -234,6 +234,31 @@ public sealed class TarefaTests
         }
 
         [Fact]
+        public void Planejar_MudaSoODiaPlanejadoENaoOPrazo()
+        {
+            var tarefa = DeSolicitacao();
+
+            tarefa.Planejar(new DateOnly(2026, 10, 7));
+
+            tarefa.PlanejadaPara.Should().Be(new DateOnly(2026, 10, 7));
+            tarefa.Prazo.Should().Be(new DateOnly(2026, 10, 9));
+
+            tarefa.Planejar(null);
+
+            tarefa.PlanejadaPara.Should().BeNull();
+        }
+
+        [Fact]
+        public void Criar_ComDiaPlanejado_Guarda()
+        {
+            var tarefa = Tarefa.Criar(
+                Guid.NewGuid(), Calendarios.Tenant, "Arte", null, null, null, null, null, null, null, false,
+                new DateOnly(2026, 10, 12));
+
+            tarefa.PlanejadaPara.Should().Be(new DateOnly(2026, 10, 12));
+        }
+
+        [Fact]
         public void TornarVisivel_SemCliente_LancaExcecao()
         {
             var tarefa = Criar();
@@ -272,6 +297,7 @@ public sealed class TarefaTests
             ((Action)(() => tarefa.Atribuir(Guid.NewGuid()))).Should().Throw<TransicaoInvalidaException>();
             ((Action)(() => tarefa.DefinirPrazo(null))).Should().Throw<TransicaoInvalidaException>();
             ((Action)(() => tarefa.DefinirEstimativa(null))).Should().Throw<TransicaoInvalidaException>();
+            ((Action)(() => tarefa.Planejar(null))).Should().Throw<TransicaoInvalidaException>();
             ((Action)(() => tarefa.TornarVisivelAoCliente(false))).Should().Throw<TransicaoInvalidaException>();
             ((Action)(() => tarefa.AdicionarItem("Item"))).Should().Throw<TransicaoInvalidaException>();
         }

@@ -127,4 +127,26 @@ public sealed class TarefasTests(ApiFixture api)
         await outra.EsperarAsync(HttpStatusCode.NotFound, HttpMethod.Get, $"/api/v1/tarefas/{id}");
         await outra.EsperarAsync(HttpStatusCode.NotFound, HttpMethod.Post, $"/api/v1/tarefas/{id}/inicio");
     }
+
+    [Fact]
+    public async Task PlanejadaPara_CriarEditarSemMexerNoPrazo()
+    {
+        var equipe = await Equipe.CriarAsync(api);
+
+        var tarefa = await equipe.EsperarAsync(HttpStatusCode.Created, HttpMethod.Post, "/api/v1/tarefas", new
+        {
+            titulo = "Arte do cardápio", prazo = "2026-10-23", planejadaPara = "2026-10-19",
+        });
+        var id = Id(tarefa);
+        var movida = await equipe.EsperarAsync(HttpStatusCode.OK, HttpMethod.Patch, $"/api/v1/tarefas/{id}", new
+        {
+            titulo = "Arte do cardápio", prazo = "2026-10-23", planejadaPara = "2026-10-21",
+        });
+        var lista = await equipe.EsperarAsync(HttpStatusCode.OK, HttpMethod.Get, "/api/v1/tarefas");
+
+        tarefa.GetProperty("planejadaPara").GetString().Should().Be("2026-10-19");
+        movida.GetProperty("planejadaPara").GetString().Should().Be("2026-10-21");
+        movida.GetProperty("prazo").GetString().Should().Be("2026-10-23");
+        lista.GetProperty("itens")[0].GetProperty("planejadaPara").GetString().Should().Be("2026-10-21");
+    }
 }

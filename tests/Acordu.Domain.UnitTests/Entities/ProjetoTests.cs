@@ -98,4 +98,46 @@ public sealed class ProjetoTests
         ((Action)(() => projeto.AlterarContrato(null))).Should().Throw<TransicaoInvalidaException>();
         projeto.Status.Should().Be(status);
     }
+
+    [Fact]
+    public void Criar_ComInicio_Guarda()
+    {
+        var projeto = Projeto.Criar(
+            Guid.NewGuid(), Calendarios.Tenant, Contratos.Cliente, "Site", null, new DateOnly(2026, 12, 15), null,
+            new DateOnly(2026, 11, 2));
+
+        projeto.Inicio.Should().Be(new DateOnly(2026, 11, 2));
+    }
+
+    [Fact]
+    public void Criar_InicioDepoisDoPrazo_LancaExcecao()
+    {
+        var acao = () => Projeto.Criar(
+            Guid.NewGuid(), Calendarios.Tenant, Contratos.Cliente, "Site", null, new DateOnly(2026, 12, 15), null,
+            new DateOnly(2026, 12, 16));
+
+        acao.Should().Throw<ArgumentException>().WithParameterName("inicio");
+    }
+
+    [Fact]
+    public void Editar_InicioSemPrazo_Aceita()
+    {
+        var projeto = Criar();
+
+        projeto.Editar("Site", null, null, new DateOnly(2026, 11, 2));
+
+        projeto.Inicio.Should().Be(new DateOnly(2026, 11, 2));
+        projeto.Prazo.Should().BeNull();
+    }
+
+    [Fact]
+    public void Editar_InicioDepoisDoPrazo_LancaExcecaoEMantem()
+    {
+        var projeto = Criar();
+
+        var acao = () => projeto.Editar("Outro", new DateOnly(2026, 12, 1), null, new DateOnly(2026, 12, 2));
+
+        acao.Should().Throw<ArgumentException>().WithParameterName("inicio");
+        projeto.Nome.Should().Be("Site institucional");
+    }
 }
