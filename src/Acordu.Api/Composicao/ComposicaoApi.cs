@@ -173,6 +173,7 @@ internal static class ComposicaoApi
         grupos.Interno.MapEquipe();
         grupos.Interno.MapPapeis();
         grupos.Interno.MapAuditoria();
+        grupos.Interno.MapDashboard();
         grupos.Portal.MapPortal();
         return grupos;
     }

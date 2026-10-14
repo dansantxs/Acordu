@@ -7,6 +7,7 @@ using Acordu.Application.Clientes;
 using Acordu.Application.Common;
 using Acordu.Application.Configuracoes;
 using Acordu.Application.Contratos;
+using Acordu.Application.Dashboard;
 using Acordu.Application.Equipe;
 using Acordu.Application.Notificacoes;
 using Acordu.Application.Papeis;
@@ -32,6 +33,7 @@ internal static class CasosDeUso
         services.AddScoped<RecebimentoAnexos>();
         services.AddScoped<DownloadAnexos>();
         services.AddScoped<LogotipoPortal>();
+        services.AddScoped<LeituraDashboard>();
         services.AddScoped<ComandosCliente>();
         services.AddScoped<ComandosContrato>();
         services.AddScoped<ComandosSolicitacao>();
