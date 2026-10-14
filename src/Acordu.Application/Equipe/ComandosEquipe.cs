@@ -5,11 +5,13 @@ using Acordu.Domain.Acesso;
 using Acordu.Domain.Entities;
 using Acordu.Domain.Enums;
 using Acordu.Domain.Exceptions;
+using Acordu.Domain.ValueObjects;
 
 namespace Acordu.Application.Equipe;
 
 /// <summary>
-/// Gestão da equipe (contrato §3, segurança §3.3): convidar, revogar convite, trocar papel e remover. Guarda: o tenant
+/// Gestão da equipe (contrato §3, segurança §3.3): convidar, revogar convite, trocar papel, definir a capacidade semanal
+/// e remover. Guarda: o tenant
 /// nunca fica sem Dono (o papel padrão; papel customizado não conta). O aceite do convite é público e fica no serviço
 /// de autenticação.
 /// </summary>
@@ -104,6 +106,24 @@ public sealed class ComandosEquipe
 
         vinculo.TrocarPapel(novo);
         _auditoria.Registrar(AcoesAuditoria.EquipePapelTroca, "usuario", usuarioId, new { de = atual?.Nome, para = novo.Nome });
+        await _unidade.SalvarAsync(cancellationToken);
+    }
+
+    /// <summary>Define as horas semanais da pessoa no planejamento (agenda e capacidade). De 0 a 168h.</summary>
+    public async Task DefinirCapacidadeAsync(Guid usuarioId, CapacidadeRequest dados, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(dados);
+        _contexto.Exigir(Permissoes.PapelGerenciar);
+        if (dados.CapacidadeSemanalMinutos < 0 || dados.CapacidadeSemanalMinutos > Vinculo.CapacidadeMaxima.Minutos)
+            throw ErroDeCampo.Criar("capacidadeSemanalMinutos", "A capacidade semanal vai de 0 a 168h.");
+        var vinculo = await DaEquipeAsync(usuarioId, cancellationToken);
+        var anterior = vinculo.CapacidadeSemanal ?? Vinculo.CapacidadePadrao;
+        var nova = Duracao.FromMinutos(dados.CapacidadeSemanalMinutos);
+        if (nova == anterior && vinculo.CapacidadeSemanal is not null)
+            return;
+
+        vinculo.DefinirCapacidade(nova);
+        _auditoria.Registrar(AcoesAuditoria.EquipeCapacidade, "usuario", usuarioId, new { de = anterior.Minutos, para = nova.Minutos });
         await _unidade.SalvarAsync(cancellationToken);
     }
 

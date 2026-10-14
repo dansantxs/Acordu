@@ -14,7 +14,8 @@ public sealed record TarefaResumoDto(
     Referencia? Responsavel,
     DateOnly? Prazo,
     int? EstimativaMinutos,
-    bool VisivelCliente);
+    bool VisivelCliente,
+    DateOnly? PlanejadaPara);
 
 /// <summary>Detalhe da tarefa com checklist e total apontado (contrato §8.1).</summary>
 public sealed record TarefaDto(
@@ -31,6 +32,7 @@ public sealed record TarefaDto(
     DateOnly? Prazo,
     int? EstimativaMinutos,
     bool VisivelCliente,
+    DateOnly? PlanejadaPara,
     int ApontadoMinutos,
     IReadOnlyList<ItemChecklistDto> Checklist);
 
@@ -49,11 +51,21 @@ public sealed record NovaTarefaRequest(
     Guid? ResponsavelId,
     DateOnly? Prazo,
     int? EstimativaMinutos,
-    bool VisivelCliente);
+    bool VisivelCliente,
+    DateOnly? PlanejadaPara = null);
 
-/// <summary>Corpo do <c>PATCH /tarefas/{id}</c>: o formulário inteiro.</summary>
+/// <summary>
+/// Corpo do <c>PATCH /tarefas/{id}</c>: o formulário inteiro (<see cref="PlanejadaPara"/> ausente limpa o dia planejado,
+/// como os demais opcionais).
+/// </summary>
 public sealed record EdicaoTarefaRequest(
-    string Titulo, string? Descricao, Guid? ResponsavelId, DateOnly? Prazo, int? EstimativaMinutos, bool VisivelCliente);
+    string Titulo,
+    string? Descricao,
+    Guid? ResponsavelId,
+    DateOnly? Prazo,
+    int? EstimativaMinutos,
+    bool VisivelCliente,
+    DateOnly? PlanejadaPara = null);
 
 /// <summary>Corpo do <c>POST</c> e do <c>PATCH</c> de item; <see cref="Feito"/> nulo mantém a marcação.</summary>
 public sealed record ItemChecklistRequest(string Texto, bool? Feito);
