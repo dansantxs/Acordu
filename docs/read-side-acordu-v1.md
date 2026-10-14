@@ -139,6 +139,12 @@ estimativaMinutos  = projeto.estimativa ?? Σ tarefa.estimativa (não canceladas
 
 ---
 
+## 7a. Capacidade da semana (marco 13)
+
+Regras no contrato §11c. `ConsultasCapacidade` busca a equipe com a capacidade, as tarefas em aberto com `coalesce(planejada_para, prazo)` na semana (só responsável, dia e estimativa) e os responsáveis das solicitações em aberto com prazo de solução na semana. `LeituraCapacidade` soma por pessoa e por dia em memória: o volume de uma semana é pequeno.
+
+---
+
 ## 8. Solicitações semelhantes (RF-CON-02)
 
 **Base de busca:** só solicitações do mesmo tenant, `status ∈ {RESOLVIDA, FECHADA}` e com `solucao` preenchida.

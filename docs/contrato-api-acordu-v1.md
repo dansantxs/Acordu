@@ -513,6 +513,36 @@ Decidido na implementação (6c3):
 
 ---
 
+## 11c. Capacidade da semana (marco 13, RF-PLN-04)
+
+| Método | Rota | Descrição | Permissão |
+|---|---|---|---|
+| GET | `/capacidade?semana=` | Horas planejadas × capacidade de cada pessoa da equipe numa semana (segunda a domingo). `semana` aceita qualquer data da semana; sem ela, a semana de hoje. | `tarefa.ver` |
+
+```json
+// GET /capacidade?semana=2026-10-14 → 200
+{ "semana": "2026-10-12", "ate": "2026-10-18",
+  "pessoas": [
+    { "pessoa": { "id": "u1...", "nome": "Ana Lima" }, "capacidadeMinutos": 2400, "percentual": 77,
+      "carga": { "planejadoMinutos": 1860, "tarefas": 6, "tarefasSemEstimativa": 1, "solicitacoes": 2,
+                 "porDia": [ { "data": "2026-10-12", "planejadoMinutos": 0 }, ... ] } } ],
+  "semResponsavel": { "planejadoMinutos": 60, "tarefas": 1, "tarefasSemEstimativa": 0, "solicitacoes": 1, "porDia": [ ... ] } }
+```
+
+Decidido no marco 13 (14/10):
+- **Planejado:** soma das estimativas das tarefas em aberto (A_FAZER e FAZENDO) da pessoa, cada uma no dia planejado ou, sem ele, no prazo dentro da semana.
+- **O que conta só em quantidade:**
+  - tarefa sem estimativa (`tarefasSemEstimativa`);
+  - solicitação, que não tem estimativa: `solicitacoes` conta as em aberto com prazo de solução na semana e vem nulo sem `solicitacao.ver`.
+- **O que não entra:**
+  - tarefas atrasadas de semanas anteriores (a agenda as mostra);
+  - tarefas concluídas;
+  - recorrências ainda não geradas.
+- **`percentual`:** planejado sobre capacidade, nulo com capacidade zero. Acima de 100 indica sobrecarga.
+- **`semResponsavel`:** reúne as tarefas e solicitações sem responsável, ou cujo responsável saiu da equipe.
+
+---
+
 ## 12. Portal do cliente (`/api/v1/portal`)
 
 Todas as rotas aplicam o filtro por `ClienteId` (e `ContatoId` se `escopoPortal = PROPRIAS`). Sessão de **link** acessa só as rotas marcadas com ✓L, e só a sua solicitação.
