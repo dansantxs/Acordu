@@ -396,6 +396,100 @@ public sealed class SolicitacaoTests
         }
     }
 
+    public sealed class TrocarContrato
+    {
+        private static readonly Guid Outro = Guid.Parse("55555555-5555-5555-5555-555555555555");
+
+        /// <summary>1h para a primeira resposta e 8h úteis para resolver, em todas as prioridades.</summary>
+        private static PoliticaSla Curta() =>
+            new(Enum.GetValues<Prioridade>().Select(p => new PrazoSla(p, Duracao.FromHoras(1), Duracao.FromHoras(8))));
+
+        [Fact]
+        public void EntreContratos_RecalculaPeloInicioDoCiclo()
+        {
+            var solicitacao = Em(StatusSolicitacao.EmAndamento);
+
+            solicitacao.TrocarContrato(Outro, Curta(), Brasilia(7, 9), Padrao());
+
+            solicitacao.ContratoId.Should().Be(Outro);
+            solicitacao.Sla!.InicioCiclo.Should().Be(Abertura);
+            solicitacao.Sla.PrazoPrimeiraResposta.Should().Be(Brasilia(6, 11));
+            solicitacao.Sla.PrazoResolucao.Should().Be(Brasilia(6, 18));
+            solicitacao.Eventos.Should().ContainSingle();
+            solicitacao.Eventos[0].Should().Be(new SolicitacaoContratoAlterado(
+                solicitacao.Id, Calendarios.Tenant, Contratos.Cliente, ContratoId, Outro));
+        }
+
+        [Fact]
+        public void SemSlaAntes_ComecaAContarAgora()
+        {
+            var solicitacao = Em(StatusSolicitacao.EmAndamento, comContrato: false);
+
+            solicitacao.TrocarContrato(Outro, Curta(), Brasilia(7, 9), Padrao());
+
+            solicitacao.Sla!.InicioCiclo.Should().Be(Brasilia(7, 9));
+            solicitacao.Sla.PrazoPrimeiraResposta.Should().Be(Brasilia(7, 10));
+            solicitacao.Sla.PausadoDesde.Should().BeNull();
+        }
+
+        [Fact]
+        public void SemSlaAntes_AguardandoCliente_NascePausado()
+        {
+            var solicitacao = Em(StatusSolicitacao.AguardandoCliente, comContrato: false);
+
+            solicitacao.TrocarContrato(Outro, Curta(), Brasilia(7, 9), Padrao());
+
+            solicitacao.Sla!.PausadoDesde.Should().Be(Brasilia(7, 9));
+        }
+
+        [Fact]
+        public void Remover_TiraOSla()
+        {
+            var solicitacao = Em(StatusSolicitacao.Aberta);
+
+            solicitacao.TrocarContrato(null, null, Brasilia(7, 9), Padrao());
+
+            solicitacao.ContratoId.Should().BeNull();
+            solicitacao.Sla.Should().BeNull();
+            solicitacao.SituacaoSla(Brasilia(7, 9), Padrao()).Should().Be(SituacaoSla.SemSla);
+        }
+
+        [Fact]
+        public void MesmoContrato_NaoMudaNada()
+        {
+            var solicitacao = Em(StatusSolicitacao.EmAndamento);
+            var prazo = solicitacao.Sla!.PrazoResolucao;
+
+            solicitacao.TrocarContrato(ContratoId, Curta(), Brasilia(7, 9), Padrao());
+
+            solicitacao.Sla!.PrazoResolucao.Should().Be(prazo);
+            solicitacao.Eventos.Should().BeEmpty();
+        }
+
+        [Theory]
+        [InlineData(StatusSolicitacao.Resolvida)]
+        [InlineData(StatusSolicitacao.Fechada)]
+        [InlineData(StatusSolicitacao.Cancelada)]
+        public void ResolvidaOuFinal_LancaTransicaoInvalida(StatusSolicitacao status)
+        {
+            var solicitacao = Em(status);
+
+            var acao = () => solicitacao.TrocarContrato(Outro, Curta(), Brasilia(7, 9), Padrao());
+
+            acao.Should().Throw<TransicaoInvalidaException>();
+        }
+
+        [Fact]
+        public void ContratoSemPolitica_LancaExcecao()
+        {
+            var solicitacao = Em(StatusSolicitacao.Aberta);
+
+            var acao = () => solicitacao.TrocarContrato(Outro, null, Brasilia(7, 9), Padrao());
+
+            acao.Should().Throw<ArgumentException>();
+        }
+    }
+
     public sealed class Repriorizar
     {
         [Fact]

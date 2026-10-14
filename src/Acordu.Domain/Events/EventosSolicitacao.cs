@@ -50,3 +50,7 @@ public sealed record SolicitacaoAtribuida(
 
 public sealed record PrimeiraRespostaRegistrada(
     Guid SolicitacaoId, Guid TenantId, Guid ClienteId, DateTimeOffset Em) : IEventoDominio;
+
+/// <summary>Contrato da solicitação trocado ou removido (auditoria). O SLA já foi recalculado na própria solicitação.</summary>
+public sealed record SolicitacaoContratoAlterado(
+    Guid SolicitacaoId, Guid TenantId, Guid ClienteId, Guid? Anterior, Guid? ContratoId) : IEventoDominio;

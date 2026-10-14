@@ -186,6 +186,40 @@ public sealed class Solicitacao : RaizComCliente
             Sla = Sla.Repriorizar(politicaSla.PrazosDe(prioridade), PrimeiraRespostaEm is not null, calendario);
     }
 
+    /// <summary>
+    /// Troca (ou remove, com nulo) o contrato da solicitação. Contrato novo com SLA já correndo: recalcula os prazos a
+    /// partir do início do ciclo, mantendo as pausas (como em <see cref="Repriorizar"/>), para a troca não "zerar" um
+    /// prazo vencido. Sem SLA antes: começa a contar agora (pausado, se aguarda o cliente). Sem contrato: sai o SLA.
+    /// Apontamentos já feitos não mudam (contrato congelado neles). Não permitido em RESOLVIDA nem em estado final.
+    /// </summary>
+    public void TrocarContrato(Guid? contratoId, PoliticaSla? politicaSla, DateTimeOffset agora, CalendarioUtil calendario)
+    {
+        ArgumentNullException.ThrowIfNull(calendario);
+        if (EstaFinalizada || Status == StatusSolicitacao.Resolvida)
+            throw Transicao(nameof(TrocarContrato));
+        ValidarVinculoContrato(contratoId, politicaSla);
+        if (contratoId == ContratoId)
+            return;
+
+        var anterior = ContratoId;
+        if (politicaSla is null)
+        {
+            Sla = null;
+        }
+        else if (Sla is null)
+        {
+            var novo = RelogioSla.Iniciar(politicaSla.PrazosDe(Prioridade), agora, calendario);
+            Sla = Status == StatusSolicitacao.AguardandoCliente ? novo.Pausar(agora) : novo;
+        }
+        else
+        {
+            Sla = Sla.Repriorizar(politicaSla.PrazosDe(Prioridade), PrimeiraRespostaEm is not null, calendario);
+        }
+
+        ContratoId = contratoId;
+        Registrar(new SolicitacaoContratoAlterado(Id, TenantId, ClienteId, anterior, contratoId));
+    }
+
     public void Iniciar(DateTimeOffset agora)
     {
         Exigir(nameof(Iniciar), StatusSolicitacao.Aberta);
