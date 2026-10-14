@@ -5,6 +5,7 @@ using Acordu.Infrastructure.MultiTenancy;
 using Acordu.Infrastructure.Persistence.Auditoria;
 using Acordu.Infrastructure.Persistence.Configurations;
 using Acordu.Infrastructure.Persistence.Conversores;
+using Acordu.Infrastructure.Persistence.Notificacoes;
 using Acordu.Infrastructure.Persistence.Outbox;
 using Acordu.Infrastructure.Persistence.Protocolo;
 using Acordu.Infrastructure.Seguranca;
@@ -123,6 +124,8 @@ public sealed class AcorduDbContext : IdentityUserContext<Usuario, Guid>
         builder.ApplyConfiguration(new MensagemOutboxConfiguration());
         builder.ApplyConfiguration(new MarcadorAvisoConfiguration());
         builder.ApplyConfiguration(new RegistroAuditoriaConfiguration());
+        builder.ApplyConfiguration(new NotificacaoConfiguration());
+        builder.ApplyConfiguration(new PreferenciaNotificacaoConfiguration());
         builder.ApplyConfiguration(new ContadorConfiguration());
 
         AplicarFiltros(builder);
@@ -176,6 +179,12 @@ public sealed class AcorduDbContext : IdentityUserContext<Usuario, Guid>
         // Auditoria: só a equipe do tenant lê (sem tenant = login com falha, invisível a todos).
         modelBuilder.Entity<RegistroAuditoria>().HasQueryFilter(FiltrosGlobais.Tenant, e => e.TenantId == _contexto.TenantId);
         modelBuilder.Entity<RegistroAuditoria>().HasQueryFilter(FiltrosGlobais.Cliente, e => !_contexto.EhCliente);
+
+        // Sino e preferências: só a equipe do tenant.
+        modelBuilder.Entity<Notificacao>().HasQueryFilter(FiltrosGlobais.Tenant, e => e.TenantId == _contexto.TenantId);
+        modelBuilder.Entity<Notificacao>().HasQueryFilter(FiltrosGlobais.Cliente, e => !_contexto.EhCliente);
+        modelBuilder.Entity<PreferenciaNotificacao>().HasQueryFilter(FiltrosGlobais.Tenant, e => e.TenantId == _contexto.TenantId);
+        modelBuilder.Entity<PreferenciaNotificacao>().HasQueryFilter(FiltrosGlobais.Cliente, e => !_contexto.EhCliente);
     }
 
     private void FiltrarTenant<T>(ModelBuilder modelBuilder)
