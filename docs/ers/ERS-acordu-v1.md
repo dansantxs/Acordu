@@ -165,6 +165,14 @@ Convenções: **RF** = requisito funcional, **RNF** = não funcional. Verificaç
 | RF-PRJ-01 | Criar projeto para um cliente (nome, contrato, prazo, estimativa total de horas) e agrupar tarefas. | T |
 | RF-PRJ-02 | Exibir progresso do projeto: tarefas concluídas/total e horas apontadas × estimadas. | T |
 
+**Planejamento e agenda** — incluído em 14/10 (marco 13)
+| ID | Requisito | Verif. |
+|---|---|---|
+| RF-PLN-01 | Capacidade semanal por pessoa da equipe (padrão 40h, de 0 a 168h), editável por quem gerencia papéis. | T |
+| RF-PLN-02 | Planejar o dia em que a tarefa será feita, separado do prazo; projeto com início planejado opcional. | T |
+| RF-PLN-03 | Agenda da equipe num período: solicitações pelo prazo de SLA, tarefas, projetos, próximas ocorrências de recorrências e marcos de contrato, com os dias úteis e feriados; cada tipo só para quem pode lê-lo. | T |
+| RF-PLN-04 | Capacidade da semana: horas planejadas × capacidade por pessoa, com a contagem do que está sem estimativa. | T |
+
 **Apontamento de horas**
 | ID | Requisito | Verif. |
 |---|---|---|

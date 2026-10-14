@@ -131,6 +131,7 @@ class Tarefa <<aggregate root>> {
   +Status: StatusTarefa
   +ResponsavelId?, Prazo: DateOnly?
   +Estimativa: Duracao?
+  +PlanejadaPara: DateOnly?
   +SolicitacaoId?, ProjetoId?
   +RecorrenciaId?, DataReferencia?
   +VisivelCliente: bool
@@ -139,6 +140,7 @@ class Tarefa <<aggregate root>> {
   +Criar(...) / CriarDeRecorrencia(...)
   +Editar(titulo, descricao?) / Atribuir(responsavelId?)
   +DefinirPrazo(prazo?) / DefinirEstimativa(estimativa?)
+  +Planejar(dia?)
   +Iniciar() / Concluir() / Reabrir() / Cancelar()
   +AdicionarItem(texto) / EditarItem(id, texto)
   +MarcarItem(id, feito) / RemoverItem(id)
@@ -148,11 +150,11 @@ class Tarefa <<aggregate root>> {
 class Projeto <<aggregate root>> {
   +Id, TenantId, ClienteId
   +ContratoId?, Nome
-  +Prazo: DateOnly?
+  +Inicio?, Prazo: DateOnly?
   +Estimativa: Duracao?
   +Status: StatusProjeto
   --
-  +Criar(...) / Editar(nome, prazo?, estimativa?)
+  +Criar(...) / Editar(nome, prazo?, estimativa?, inicio?)
   +AlterarContrato(contratoId?)
   +Concluir() / Cancelar()
 }
@@ -374,10 +376,12 @@ Regras:
 - `ClienteId` é herdado da solicitação/projeto/recorrência na criação pela Application (desnormalizado para o filtro do portal).
 - Checklist: no máximo 50 itens, texto não vazio (≤ 500). O Id do item é gerado pela tarefa (`Guid.CreateVersion7`).
 - Edições e checklist são permitidas em qualquer estado exceto CANCELADA (final); `Concluir` só a partir de FAZENDO.
+- `PlanejadaPara` (marco 13): dia em que a tarefa está planejada para ser feita, independente do `Prazo`; `Planejar` muda só ele. Tarefa de recorrência nasce sem dia planejado.
 - **Emite:** `TarefaConcluida`.
 
 ### 4.7 Projeto
 - Transições: EM_ANDAMENTO → CONCLUIDO / CANCELADO (finais). Progresso (tarefas concluídas, horas × estimativa) é read model.
+- `Inicio` (marco 13) opcional; com `Prazo`, `Inicio ≤ Prazo`.
 - `Editar` e `AlterarContrato` só em EM_ANDAMENTO. Trocar o contrato não reescreve apontamentos já feitos (contrato congelado no apontamento).
 
 ### 4.8 Apontamento
@@ -440,6 +444,8 @@ Regras:
 
 ### 4.13 Identidade e acesso
 Desenho base do ADR 0001 (`Tenant`, `Usuario` global, `Vinculo` N-N, `Papel`, `Permissao`), com a extensão do ADR 0002: `Vinculo.ClienteId` e `Vinculo.EscopoPortal`, obrigatórios quando o papel é **Cliente** e proibidos nos demais.
+
+`Vinculo.CapacidadeSemanal` (`Duracao?`, marco 13): horas por semana da pessoa no planejamento. Na equipe nasce com 40h e vai de 0 a 168h (zero tira a pessoa do planejamento); com papel Cliente é nula. Trocar entre papéis internos mantém o valor; virar Cliente zera para nulo.
 
 ---
 
