@@ -71,7 +71,7 @@ public sealed class NotificacoesTests(ApiFixture api)
         }, membro);
         await Cenarios.SolicitacaoAsync(equipe, cliente);
 
-        padrao.GetProperty("categorias").GetArrayLength().Should().Be(4);
+        padrao.GetProperty("categorias").GetArrayLength().Should().Be(5);
         padrao.GetProperty("categorias").EnumerateArray().Should().OnlyContain(c => c.GetProperty("email").GetBoolean());
         salvas.GetProperty("categorias").EnumerateArray()
             .Single(c => c.GetProperty("categoria").GetString() == "NOVA_SOLICITACAO").GetProperty("email").GetBoolean().Should().BeFalse();
