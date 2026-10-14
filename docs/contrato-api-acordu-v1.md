@@ -256,7 +256,7 @@ Decidido na implementação:
 | GET | `/solicitacoes/{id}/semelhantes` | Até 5 resolvidas semelhantes (RF-CON-02). | `solicitacao.ver` |
 | POST | `/solicitacoes/{id}/acessos-portal` | Emite link sem senha para um contato. | `portal.gerenciar_acessos` |
 | DELETE | `/solicitacoes/{id}/acessos-portal/{acessoId}` | Revoga link. | `portal.gerenciar_acessos` |
-| GET | `/anexos/{id}/download` | `302` para URL assinada (curta). | `solicitacao.ver` |
+| GET | `/anexos/{id}/download` | `302` para URL assinada (curta). Interação ou comentário de tarefa (§8.1a). | `solicitacao.ver` ou `tarefa.ver` |
 
 **Filtros do GET `/solicitacoes`:** `?status=ABERTA,EM_ANDAMENTO&clienteId=&responsavelId=&prioridade=&categoriaId=&situacaoSla=EM_RISCO&busca=&abertaDe=&abertaAte=&ordem=-abertaEm`.
 
@@ -355,6 +355,16 @@ O quadro (kanban) é o mesmo `GET /tarefas` agrupado no front por `status`.
   "responsavelId": "u2...", "prazo": "2026-10-01", "estimativaMinutos": 120,
   "visivelCliente": true, "planejadaPara": "2026-09-29" }
 ```
+
+### 8.1a Comentários de tarefa (marco 14a, RF-COL-01)
+
+| Método | Rota | Descrição | Permissão |
+|---|---|---|---|
+| GET | `/tarefas/{id}/comentarios` | Do mais antigo: `[{ id, autor: { id, nome }, texto, registradoEm, anexos: [{ id, nomeArquivo, tipoConteudo, tamanhoBytes }] }]`. | `tarefa.ver` |
+| POST | `/tarefas/{id}/comentarios` | JSON `{ texto }` ou multipart (`texto`, `anexos`) → `201` com o comentário. Texto ou ao menos um anexo; anexos com as regras do §7. | `tarefa.editar` |
+| DELETE | `/tarefas/{id}/comentarios/{comentarioId}` | Só o autor → `204` (os demais `403`); os arquivos saem do storage depois. | `tarefa.editar` |
+
+Decidido no marco 14 (14/10): comentário de tarefa é só da equipe (nunca no portal, nem em tarefa visível ao cliente), imutável como as interações, e sem permissão própria: comentar exige `tarefa.editar` (um `tarefa.comentar` mexeria no catálogo e nos papéis já semeados). O download dos anexos é o mesmo `GET /anexos/{id}/download`, que agora aceita `solicitacao.ver` (anexo de interação) ou `tarefa.ver` (anexo de comentário).
 
 ### 8.2 Projetos
 

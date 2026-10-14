@@ -379,6 +379,11 @@ Regras:
 - `PlanejadaPara` (marco 13): dia em que a tarefa está planejada para ser feita, independente do `Prazo`; `Planejar` muda só ele. Tarefa de recorrência nasce sem dia planejado.
 - **Emite:** `TarefaConcluida`.
 
+### 4.6.1 ComentarioTarefa (marco 14a)
+- Agregado próprio (cresce sem limite), só do tenant: sem `ClienteId` e invisível no contexto de Cliente.
+- `Registrar(id, tenantId, tarefaId, autorId, texto?, anexos, politica, agora)`: texto (≤ 10 000) ou ao menos um anexo; anexos validados pela mesma `PoliticaAnexos` da interação (`Anexo.Criar`, compartilhado).
+- Imutável; a exclusão é só do autor, regra na Application (que conhece quem age).
+
 ### 4.7 Projeto
 - Transições: EM_ANDAMENTO → CONCLUIDO / CANCELADO (finais). Progresso (tarefas concluídas, horas × estimativa) é read model.
 - `Inicio` (marco 13) opcional; com `Prazo`, `Inicio ≤ Prazo`.
