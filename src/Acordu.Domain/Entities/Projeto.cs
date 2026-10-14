@@ -28,6 +28,9 @@ public sealed class Projeto : RaizComCliente
 
     public Guid? ContratoId { get; private set; }
 
+    /// <summary>Início planejado (barra na linha do tempo); sem ele o projeto aparece só no prazo.</summary>
+    public DateOnly? Inicio { get; private set; }
+
     public DateOnly? Prazo { get; private set; }
 
     public Duracao? Estimativa { get; private set; }
@@ -42,18 +45,25 @@ public sealed class Projeto : RaizComCliente
         string nome,
         Guid? contratoId,
         DateOnly? prazo,
-        Duracao? estimativa) =>
-        new(id, tenantId, clienteId, Texto.Obrigatorio(nome, LimitesTexto.Titulo, nameof(nome)))
+        Duracao? estimativa,
+        DateOnly? inicio = null)
+    {
+        ValidarPeriodo(inicio, prazo);
+        return new(id, tenantId, clienteId, Texto.Obrigatorio(nome, LimitesTexto.Titulo, nameof(nome)))
         {
             ContratoId = Ids.Opcional(contratoId, nameof(contratoId)),
+            Inicio = inicio,
             Prazo = prazo,
             Estimativa = ValidarEstimativa(estimativa),
         };
+    }
 
-    public void Editar(string nome, DateOnly? prazo, Duracao? estimativa)
+    public void Editar(string nome, DateOnly? prazo, Duracao? estimativa, DateOnly? inicio = null)
     {
         GarantirEmAndamento(nameof(Editar));
+        ValidarPeriodo(inicio, prazo);
         Nome = Texto.Obrigatorio(nome, LimitesTexto.Titulo, nameof(nome));
+        Inicio = inicio;
         Prazo = prazo;
         Estimativa = ValidarEstimativa(estimativa);
     }
@@ -74,6 +84,12 @@ public sealed class Projeto : RaizComCliente
     {
         GarantirEmAndamento(nameof(Cancelar));
         Status = StatusProjeto.Cancelado;
+    }
+
+    private static void ValidarPeriodo(DateOnly? inicio, DateOnly? prazo)
+    {
+        if (inicio is { } i && prazo is { } p && i > p)
+            throw new ArgumentException("O início do projeto não pode ser depois do prazo.", nameof(inicio));
     }
 
     private static Duracao? ValidarEstimativa(Duracao? estimativa) =>

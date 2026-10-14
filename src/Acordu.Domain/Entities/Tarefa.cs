@@ -45,6 +45,12 @@ public sealed class Tarefa : EntidadeBase
 
     public Duracao? Estimativa { get; private set; }
 
+    /// <summary>
+    /// Dia em que a tarefa está planejada para ser feita (plano da semana e linha do tempo). Independe do
+    /// <see cref="Prazo"/>: arrastar no planejamento muda este dia, nunca o prazo combinado.
+    /// </summary>
+    public DateOnly? PlanejadaPara { get; private set; }
+
     public Guid? SolicitacaoId { get; private set; }
 
     public Guid? ProjetoId { get; private set; }
@@ -70,7 +76,8 @@ public sealed class Tarefa : EntidadeBase
         Guid? responsavelId,
         DateOnly? prazo,
         Duracao? estimativa,
-        bool visivelCliente)
+        bool visivelCliente,
+        DateOnly? planejadaPara = null)
     {
         var cliente = Ids.Opcional(clienteId, nameof(clienteId));
         var solicitacao = Ids.Opcional(solicitacaoId, nameof(solicitacaoId));
@@ -87,6 +94,7 @@ public sealed class Tarefa : EntidadeBase
             ResponsavelId = Ids.Opcional(responsavelId, nameof(responsavelId)),
             Prazo = prazo,
             Estimativa = ValidarEstimativa(estimativa),
+            PlanejadaPara = planejadaPara,
         };
         tarefa.TornarVisivelAoCliente(visivelCliente);
         return tarefa;
@@ -133,6 +141,12 @@ public sealed class Tarefa : EntidadeBase
     {
         GarantirNaoCancelada(nameof(DefinirPrazo));
         Prazo = prazo;
+    }
+
+    public void Planejar(DateOnly? dia)
+    {
+        GarantirNaoCancelada(nameof(Planejar));
+        PlanejadaPara = dia;
     }
 
     public void DefinirEstimativa(Duracao? estimativa)
