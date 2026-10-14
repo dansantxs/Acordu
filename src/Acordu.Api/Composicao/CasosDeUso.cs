@@ -34,6 +34,8 @@ internal static class CasosDeUso
         services.AddScoped<DownloadAnexos>();
         services.AddScoped<LogotipoPortal>();
         services.AddScoped<LeituraDashboard>();
+        services.AddScoped<AvisoInterno>();
+        services.AddScoped<ComandosNotificacoes>();
         services.AddScoped<ComandosCliente>();
         services.AddScoped<ComandosContrato>();
         services.AddScoped<ComandosSolicitacao>();
