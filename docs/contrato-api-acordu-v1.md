@@ -439,19 +439,23 @@ Decidido na implementação (6c3):
 | POST | `/notificacoes/{id}/leitura` · `/notificacoes/leitura` | Marca uma / todas como lidas. | autenticado |
 | GET/PUT | `/notificacoes/preferencias` | Quais e-mails receber (RF-NOT-04). | autenticado |
 
-**GET `/dashboard`**
+**GET `/dashboard`** (`?de=&ate=`, datas no fuso do tenant; padrão: o mês corrente; até 366 dias, senão `400` em `errors.ate`)
 ```json
 {
-  "fila": { "abertas": 14, "emAndamento": 9, "aguardandoCliente": 4, "semResponsavel": 2 },
+  "de": "2026-10-01", "ate": "2026-10-31",
+  "fila": { "abertas": 14, "emAndamento": 9, "aguardandoCliente": 4, "aguardandoTerceiro": 1, "semResponsavel": 2 },
   "sla": { "emRisco": 3, "violadas": 1, "cumprimentoPeriodo": 93 },
   "horas": { "faturavelMinutos": 9120, "naoFaturavelMinutos": 1340,
              "porCliente": [ { "clienteId": "c1a...", "nome": "Padaria Bom Grão", "minutos": 1035 } ] },
   "contratos": [ { "contratoId": "k9...", "cliente": "Padaria Bom Grão", "tipo": "MENSAL_FIXO",
                    "franquiaMinutos": 1200, "consumidoMinutos": 1035, "percentual": 86 } ],
-  "tarefas": { "vencidas": 2, "proximasRecorrentes": [ { "titulo": "Fechamento mensal",
+  "tarefas": { "vencidas": 2, "proximasRecorrentes": [ { "recorrenciaId": "r1...", "titulo": "Fechamento mensal",
                "cliente": "Contábil Silva", "data": "2026-10-31" } ] }
 }
 ```
+- **Período** vale para `cumprimentoPeriodo` (resolvidas com SLA cujo `resolvidaEm` cai no período; nulo sem nenhuma) e `horas`. Fila, SLA em aberto (`emRisco`, `violadas`: em aberto, não pausadas), contratos e tarefas são do momento.
+- **Por permissão:** bloco nulo sem a permissão de leitura da área — `fila`/`sla`: `solicitacao.ver`; `horas`: `apontamento.ver`; `contratos`: `contrato.ver`; `tarefas`: `tarefa.ver` (e `proximasRecorrentes` nulo sem `recorrencia.ver`).
+- `horas.porCliente`: os 10 clientes com mais minutos faturáveis. `contratos`: ATIVOS vigentes hoje, consumo do mês corrente (no banco de horas, o acumulado), maior percentual primeiro. `tarefas.vencidas`: A_FAZER/FAZENDO com prazo antes de hoje; `proximasRecorrentes`: as 5 recorrências ATIVAS com a próxima data mais cedo.
 
 ---
 

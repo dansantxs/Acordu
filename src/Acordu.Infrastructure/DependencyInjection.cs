@@ -5,6 +5,7 @@ using Acordu.Application.Autenticacao;
 using Acordu.Application.Categorias;
 using Acordu.Application.Clientes;
 using Acordu.Application.Contratos;
+using Acordu.Application.Dashboard;
 using Acordu.Application.Equipe;
 using Acordu.Application.Papeis;
 using Acordu.Application.AcessosPortal;
@@ -75,6 +76,7 @@ public static class DependencyInjection
         services.AddScoped<IConsultasContrato, ConsultasContrato>();
         services.AddScoped<IConsultasRecorrencia, ConsultasRecorrencia>();
         services.AddScoped<IConsultasAuditoria, ConsultasAuditoria>();
+        services.AddScoped<IConsultasDashboard, ConsultasDashboard>();
         services.AddScoped<IConsultasProjeto, ConsultasProjeto>();
         services.AddScoped<IConsultaExtratoPortal, ConsultaExtratoPortal>();
         services.AddScoped<IConsultasPortal, ConsultasPortal>();
