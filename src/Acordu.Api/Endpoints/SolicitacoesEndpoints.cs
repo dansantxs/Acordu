@@ -160,11 +160,11 @@ internal static class SolicitacoesEndpoints
         })
             .RequirePermissao(Permissoes.PortalGerenciarAcessos);
 
-        // Anexo de interação (interna ou externa): 302 para a URL assinada de 5 minutos (segurança §7).
+        // Anexo de interação (interna ou externa) ou de comentário de tarefa: 302 para a URL assinada de 5 minutos (segurança §7).
         interno.MapGet("/anexos/{id:guid}/download", async (Guid id, DownloadAnexos download, CancellationToken cancellationToken) =>
             Results.Redirect((await download.UrlAsync(id, cancellationToken)).ToString()))
             .WithTags("Solicitações")
-            .RequirePermissao(Permissoes.SolicitacaoVer)
+            .RequireAlgumaPermissao(Permissoes.SolicitacaoVer, Permissoes.TarefaVer)
             .Produces(StatusCodes.Status302Found);
 
         solicitacoes.MapGet("/{id:guid}/semelhantes", async (Guid id, IConsultaSemelhantes consultas, CancellationToken cancellationToken) =>
