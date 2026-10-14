@@ -3,6 +3,7 @@ using Acordu.Application.Agenda;
 using Acordu.Application.Apontamentos;
 using Acordu.Application.Auditoria;
 using Acordu.Application.Autenticacao;
+using Acordu.Application.Capacidade;
 using Acordu.Application.Categorias;
 using Acordu.Application.Clientes;
 using Acordu.Application.Contratos;
@@ -71,6 +72,7 @@ public static class DependencyInjection
         services.AddSingleton<ExpurgoNotificacoes>();
         services.AddScoped<IConvitesEquipe, ConvitesEquipe>();
         services.AddScoped<IConsultasEquipe, ConsultasEquipe>();
+        services.AddScoped<IConsultasCapacidade, ConsultasCapacidade>();
         services.AddScoped<IConsultasPapel, ConsultasPapel>();
         services.AddScoped<IPortalAtual, PortalAtual>();
         services.AddSingleton<ProcessadorOutbox>();
