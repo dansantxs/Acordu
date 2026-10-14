@@ -135,6 +135,34 @@ public sealed class ProcessadorOutboxTests(BancoFixture banco)
         mensagens[1].ProcessadaEm.Should().NotBeNull();
     }
 
+    [Fact]
+    public async Task Processar_MensagemTravadaPorOutroProcessamento_FicaDeFora()
+    {
+        await using var servicos = new Servicos(banco, s =>
+        {
+            s.AddSingleton(_registro);
+            s.AddScoped<IManipuladorPosCommit<ApontamentoRegistrado>, Registra>();
+        });
+        var apontamento = await ApontarAsync(servicos);
+        var mensagem = await MensagemAsync();
+
+        await using (var outro = banco.Contexto(Quem.Sistema()))
+        {
+            await using var transacao = await outro.Database.BeginTransactionAsync();
+            await outro.Database.ExecuteSqlAsync($"SELECT id FROM outbox_mensagens WHERE id = {mensagem.Id} FOR UPDATE");
+
+            await ProcessarTudoAsync(servicos);
+
+            _registro.Entregues.Should().NotContain(e => e.Evento.ApontamentoId == apontamento.Id);
+            await transacao.RollbackAsync();
+        }
+
+        await ProcessarTudoAsync(servicos);
+
+        _registro.Entregues.Should().ContainSingle(e => e.Evento.ApontamentoId == apontamento.Id);
+        (await MensagemAsync()).ProcessadaEm.Should().NotBeNull();
+    }
+
     private sealed record Entrega(ApontamentoRegistrado Evento, Guid? TenantDoContexto);
 
     private sealed class Registro

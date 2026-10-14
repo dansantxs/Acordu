@@ -310,7 +310,7 @@ Sequencial por tenant, gerado na Infrastructure (`IGeradorProtocolo`: tabela `co
 - **Reabrir** descarta `Solucao` e `ResolvidaEm` (a solução reprovada não deve aparecer em "semelhantes"). A janela de N dias (RF-SOL-10) é garantida pela Application e pelo fechamento automático.
 - **Edições** (`Editar`, `DefinirCategoria`, `Atribuir`) são permitidas em qualquer estado não final; `Repriorizar` também não é permitido em RESOLVIDA. Fora disso → `TransicaoInvalidaException`.
 - **`PrimeiraRespostaEm`** fica na própria solicitação (não no relógio): é registrada mesmo sem contrato. `RegistrarPrimeiraResposta` é idempotente.
-- Trocar o contrato de uma solicitação (com recálculo de SLA) fica para um marco posterior.
+- **`TrocarContrato(contratoId?, politica?, agora, calendario)`** (marco 12): contrato e política juntos ou nenhum; não em RESOLVIDA nem em estado final; mesmo contrato não muda nada. Com SLA correndo, recalcula pelo início do ciclo mantendo as pausas (como `Repriorizar`): trocar não "zera" prazo vencido. Sem SLA antes, começa agora (pausado se AGUARDANDO_CLIENTE). Sem contrato, sai o SLA. Emite `SolicitacaoContratoAlterado` (auditoria). A Application garante mesmo cliente e vigência hoje.
 
 **Máquina de estados (RF-SOL-03):**
 
@@ -387,6 +387,7 @@ Regras:
   - Descrição obrigatória (≤ 2.000). `DescricaoExterna` só com `VisivelCliente` (senão `ArgumentException`); `VisivelCliente` exige `ClienteId`.
   - `Excluir` só valida e registra `ApontamentoExcluido`; a remoção é da Application. `ApontamentoAlterado` carrega a data anterior e a nova (o consumo dos dois meses é recalculado).
   - `ContratoId` é resolvido na Application a partir da solicitação/projeto/recorrência da tarefa e **congelado** no registro: mudar o contrato da solicitação depois não reescreve horas já apontadas.
+  - **Vigência (marco 12):** o contrato da origem só vale se a data do apontamento cai na vigência dele e ele não está SUSPENSO; senão o apontamento entra como avulso. Encerrado conta até o fim da vigência.
   - Padrão (RF-APT-04): `VisivelCliente = Faturavel`, ajustável.
 - Autorização (autor ou permissão `apontamento.editar_todos`) é da Application.
 - **Emite:** `ApontamentoRegistrado`, `ApontamentoAlterado`, `ApontamentoExcluido` → recalcular consumo e checar limiares (RF-CTR-07).

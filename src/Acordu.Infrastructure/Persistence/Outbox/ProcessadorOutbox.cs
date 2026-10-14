@@ -11,7 +11,8 @@ namespace Acordu.Infrastructure.Persistence.Outbox;
 /// Entrega as mensagens pendentes da outbox aos <see cref="IManipuladorPosCommit{TEvento}"/>, cada uma num escopo próprio
 /// com o contexto fixado no tenant da mensagem. Entrega "pelo menos uma vez"; falha agenda nova tentativa e, esgotadas
 /// as tentativas, a mensagem sai da fila com o erro guardado. Chamado no fim da requisição (só as mensagens dela) e pelo
-/// job <c>tick</c> (o que sobrou). Sem lock entre instâncias no v1.
+/// job <c>tick</c> (o que sobrou). As mensagens do lote ficam travadas (<c>FOR UPDATE SKIP LOCKED</c>) até o fim dele:
+/// dois processamentos ao mesmo tempo (o fim de uma requisição e o tick, ou duas instâncias) nunca pegam a mesma.
 /// </summary>
 public sealed class ProcessadorOutbox
 {
@@ -58,7 +59,20 @@ public sealed class ProcessadorOutbox
         await using var escopoFila = _escopos.CreateAsyncScope();
         var db = escopoFila.ServiceProvider.GetRequiredService<AcorduDbContext>();
         var pendentes = db.Set<MensagemOutbox>().Where(m => m.ProcessadaEm == null && m.FalhouEm == null);
-        var mensagens = await selecionar(pendentes).ToListAsync(cancellationToken);
+        var candidatas = await selecionar(pendentes).Select(m => m.Id).ToArrayAsync(cancellationToken);
+        if (candidatas.Length == 0)
+            return 0;
+
+        // Trava as candidatas ainda pendentes; as que outro processamento já travou ficam de fora (SKIP LOCKED).
+        await using var transacao = await db.Database.BeginTransactionAsync(cancellationToken);
+        var mensagens = await db.Set<MensagemOutbox>()
+            .FromSql($"""
+                SELECT * FROM outbox_mensagens
+                WHERE id = ANY({candidatas}) AND processada_em IS NULL AND falhou_em IS NULL
+                ORDER BY sequencia
+                FOR UPDATE SKIP LOCKED
+                """)
+            .ToListAsync(cancellationToken);
 
         foreach (var mensagem in mensagens)
         {
@@ -75,6 +89,7 @@ public sealed class ProcessadorOutbox
             await db.SaveChangesAsync(cancellationToken);
         }
 
+        await transacao.CommitAsync(cancellationToken);
         return mensagens.Count;
     }
 

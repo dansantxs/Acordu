@@ -261,7 +261,8 @@ Decidido na implementação:
 
 Decidido na implementação (6c2):
 - `situacaoSla` no filtro aceita `EM_RISCO` e `VIOLADO`, resolvidos no banco pelos instantes persistidos (read side §5); solicitação pausada (AGUARDANDO_CLIENTE) não entra em nenhum dos dois. `ordem`: `abertaEm` (padrão `-abertaEm`), `numero`, `prioridade`, `prazoResolucao`. `busca`: trecho do título ou número (`#1042`).
-- `PATCH` recebe título, descrição, prioridade, categoria e responsável (formulário inteiro); trocar o contrato fica para depois (modelo §4.3). Responsável precisa ser da equipe (`400` no campo).
+- `PATCH` recebe título, descrição, prioridade, categoria e responsável (formulário inteiro). Responsável precisa ser da equipe (`400` no campo).
+- `PUT /solicitacoes/{id}/contrato` `{ "contratoId": "k9..." | null }` (`solicitacao.editar`, `If-Match` opcional) → `200` com a solicitação. O contrato precisa ser do mesmo cliente e vigente hoje (`422 contrato-incoerente`); resolvida ou final → `422 transicao-invalida`. SLA: com prazo correndo, recalcula pelo início do ciclo com os prazos do novo contrato (mantém pausas); sem SLA antes, começa agora; `null` remove contrato e SLA. Apontamentos já feitos não mudam. Fora do `PATCH` de propósito: o formulário inteiro sem o campo removeria o contrato.
 - Transições respondem `200` com a solicitação. `POST /interacoes` aceita JSON `{ "texto": "...", "visibilidade": "EXTERNA" }` (sem anexos) ou multipart (abaixo). Interação EXTERNA da equipe registra a primeira resposta.
 - O detalhe traz também `descricao`, `categoriaId`, `situacaoSla` (fora do bloco `sla`, para solicitações sem contrato), `resolvidaEm`, `fechadaEm`, `canceladaEm` e `motivoCancelamento`.
 
@@ -386,6 +387,8 @@ Decidido na implementação (6c3):
 | POST | `/cronometro/parada` | Para e cria o apontamento (corpo opcional: descrição, faturável). | `apontamento.criar` |
 | DELETE | `/cronometro` | Descarta sem apontar. | `apontamento.criar` |
 
+> **Contrato do apontamento (marco 12):** o da origem da tarefa (solicitação, projeto ou recorrência), só se a data cai na vigência dele e ele não está SUSPENSO; senão `contratoId: null` (avulso). Fica congelado no registro.
+
 **POST `/apontamentos`** → `201`
 ```json
 { "tarefaId": "t1...", "data": "2026-09-30", "duracaoMinutos": 90,
@@ -497,8 +500,9 @@ Decidido na implementação (6c3):
 | | `apontamento.exclusao` | apontamento | `antes` |
 | Solicitações | `solicitacao.status` | solicitação | `de`, `para` (status interno) |
 | | `solicitacao.responsavel` | solicitação | `de`, `para` (ids) |
+| | `solicitacao.contrato` | solicitação | `de`, `para` (ids dos contratos) |
 
-- Status e responsável são auditados por qualquer caminho (equipe, portal, retomada pela resposta do contato, fechamento automático); `usuario` nulo no job e na sessão de link. Links emitidos automaticamente nos e-mails ao contato (§12a) não são auditados: é o sistema agindo. Troca de contrato da solicitação entra com o marco 12.
+- Status e responsável são auditados por qualquer caminho (equipe, portal, retomada pela resposta do contato, fechamento automático); `usuario` nulo no job e na sessão de link. Links emitidos automaticamente nos e-mails ao contato (§12a) não são auditados: é o sistema agindo.
 - Registros com mais de 12 meses são expurgados (segurança §8).
 
 ---

@@ -61,6 +61,7 @@ internal static class CasosDeUso
         services.AddScoped<AuditoriaDeSolicitacoes>();
         services.AddScoped<IManipuladorEvento<SolicitacaoStatusAlterado>>(sp => sp.GetRequiredService<AuditoriaDeSolicitacoes>());
         services.AddScoped<IManipuladorEvento<SolicitacaoAtribuida>>(sp => sp.GetRequiredService<AuditoriaDeSolicitacoes>());
+        services.AddScoped<IManipuladorEvento<SolicitacaoContratoAlterado>>(sp => sp.GetRequiredService<AuditoriaDeSolicitacoes>());
 
         // Efeitos externos depois do commit, pela outbox.
         services.AddScoped<IManipuladorPosCommit<ConvitePortalCriado>, EnvioConvitePortal>();
