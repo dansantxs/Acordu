@@ -370,6 +370,12 @@ Regras:
 - Anexo guarda metadados + `ChaveArmazenamento`; o binário vive no object storage (ADR 0001 — serviços complementares).
 - **Emite:** `InteracaoRegistrada` (com `Visibilidade` e `AutorEhCliente`) — gatilho das regras do §3.1 e das notificações.
 
+#### 4.5.1 Menções (marco 14b, RF-COL-02)
+- O texto guarda `@{usuarioId}`; o front mostra o nome. `Mencoes.Extrair(texto, autorId)` (Domain/Services) devolve os Ids sem repetição e sem o autor; no máximo 20 por texto.
+- Na interação da equipe, menção só vale em INTERNA (em EXTERNA → `ArgumentException` em `texto`: o cliente veria o nome da equipe). No texto do cliente os tokens não são lidos.
+- Interação interna e `ComentarioTarefa` com menções emitem `PessoasMencionadas(TenantId, Alvo, AlvoId, OrigemId, AutorId, Mencionados)`, com `Alvo` = SOLICITACAO ou TAREFA.
+- Quem pode ser mencionado (pessoa da equipe com permissão de ver o alvo) é regra da Application (`ValidacaoMencoes`), checada antes de enviar anexos.
+
 ### 4.6 Tarefa
 - **Transições:** A_FAZER → FAZENDO → CONCLUIDA; A_FAZER/FAZENDO → CANCELADA; CONCLUIDA → FAZENDO (`Reabrir`).
 - **Invariantes:** título obrigatório; tarefa de solicitação ou projeto exige `ClienteId`; `VisivelCliente` só pode ser verdadeiro se houver `ClienteId` (vale também para tarefa de recorrência, que aparece no extrato — read side §4); estimativa > 0 se informada; `(RecorrenciaId, DataReferencia)` preenchidos juntos ou nenhum.
@@ -497,6 +503,7 @@ Puros e determinísticos — principal alvo dos testes unitários.
 | `SolicitacaoReaberta` | `Reabrir` | Notificar responsável (motivo no evento). |
 | `SolicitacaoResolvida` | `Resolver` | E-mail ao contato com link de aprovação; agenda fechamento automático (RF-SOL-09). |
 | `InteracaoRegistrada` | `Interacao.Registrar` | Primeira resposta (§3.1); retomar se cliente respondeu; notificar a outra parte. |
+| `PessoasMencionadas` | `Interacao.Registrar` (INTERNA), `ComentarioTarefa.Registrar` | Aviso de menção no sino e por e-mail (`AvisosDeMencao`, RF-COL-02). |
 | `ApontamentoRegistrado/Alterado/Excluido` | `Apontamento` | Checar limiares de consumo (RF-CTR-07). |
 | `TarefaConcluida` | `Tarefa.Concluir` | (v1) nada obrigatório; (v2) sugerir resolver a solicitação se todas as tarefas concluíram. |
 | `ConvitePortalCriado` | `ConvitePortal.Criar` | Gera o token e envia o e-mail de aceite (§4.10.1). |
