@@ -27,6 +27,16 @@ internal static class EquipeEndpoints
             .RequirePermissao(Permissoes.PapelGerenciar)
             .Produces<UsuarioEquipeDto>();
 
+        usuarios.MapPut("/{id:guid}/capacidade", async (
+            Guid id, CapacidadeRequest corpo, ComandosEquipe comandos, IConsultasEquipe consultas, CancellationToken cancellationToken) =>
+        {
+            await comandos.DefinirCapacidadeAsync(id, corpo, cancellationToken);
+            return Results.Ok(await consultas.UsuarioAsync(id, cancellationToken)
+                ?? throw new NaoEncontradoException("Pessoa não encontrada na equipe."));
+        })
+            .RequirePermissao(Permissoes.PapelGerenciar)
+            .Produces<UsuarioEquipeDto>();
+
         usuarios.MapDelete("/{id:guid}", async (Guid id, ComandosEquipe comandos, CancellationToken cancellationToken) =>
         {
             await comandos.RemoverAsync(id, cancellationToken);
