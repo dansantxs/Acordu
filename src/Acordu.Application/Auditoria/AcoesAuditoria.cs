@@ -34,4 +34,5 @@ public static class AcoesAuditoria
 
     public const string SolicitacaoStatus = "solicitacao.status";
     public const string SolicitacaoResponsavel = "solicitacao.responsavel";
+    public const string SolicitacaoContrato = "solicitacao.contrato";
 }

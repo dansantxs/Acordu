@@ -97,6 +97,9 @@ public sealed record MotivoRequest(string Motivo);
 /// </summary>
 public sealed record InteracaoRequest(string? Texto, Visibilidade? Visibilidade);
 
+/// <summary>Corpo do <c>PUT /solicitacoes/{id}/contrato</c>; nulo remove o contrato (e o SLA).</summary>
+public sealed record TrocaContratoRequest(Guid? ContratoId);
+
 /// <summary>Filtros do <c>GET /solicitacoes</c> (contrato §7).</summary>
 public sealed record FiltroSolicitacoes(
     IReadOnlyList<StatusSolicitacao>? Status = null,

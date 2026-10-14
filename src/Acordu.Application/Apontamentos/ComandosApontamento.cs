@@ -3,6 +3,7 @@ using Acordu.Application.Auditoria;
 using Acordu.Application.Common;
 using Acordu.Domain.Acesso;
 using Acordu.Domain.Entities;
+using Acordu.Domain.Enums;
 using Acordu.Domain.ValueObjects;
 
 namespace Acordu.Application.Apontamentos;
@@ -172,7 +173,7 @@ public sealed class ComandosApontamento
         bool? visivelCliente,
         CancellationToken cancellationToken)
     {
-        var contratoId = await ContratoDaTarefaAsync(tarefa, cancellationToken);
+        var contratoId = await ContratoValidoNaDataAsync(await ContratoDaTarefaAsync(tarefa, cancellationToken), data, cancellationToken);
         var apontamento = Apontamento.Registrar(
             Guid.CreateVersion7(),
             tarefa.TenantId,
@@ -208,6 +209,18 @@ public sealed class ComandosApontamento
             throw new AcessoNegadoException("Só o autor ou quem pode editar todos os apontamentos altera este registro.");
         _versoes.Esperar(apontamento, versao);
         return apontamento;
+    }
+
+    /// <summary>
+    /// RF-APT-03 com vigência: o apontamento consome o contrato da origem só se a data cai na vigência dele e ele não está
+    /// SUSPENSO; fora disso entra como avulso. Encerrado conta para datas até o fim da vigência (horas lançadas depois do
+    /// encerramento, mas referentes ao período do contrato).
+    /// </summary>
+    private async Task<Guid?> ContratoValidoNaDataAsync(Guid? contratoId, DateOnly data, CancellationToken cancellationToken)
+    {
+        if (contratoId is not { } id || await _contratos.ObterPorIdAsync(id, cancellationToken) is not { } contrato)
+            return null;
+        return contrato.Status != StatusContrato.Suspenso && contrato.Vigencia.Contem(data) ? id : null;
     }
 
     /// <summary>Contrato da origem da tarefa: solicitação, senão projeto, senão recorrência.</summary>

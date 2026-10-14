@@ -124,6 +124,25 @@ public sealed class ComandosSolicitacao
         return solicitacao.Id;
     }
 
+    /// <summary>
+    /// Troca ou remove o contrato (contrato §7, modelo §4.3): o novo precisa ser do mesmo cliente e vigente hoje; o SLA é
+    /// recalculado pelo domínio. Rota própria, fora do PATCH: o formulário inteiro sem o campo removeria o contrato.
+    /// </summary>
+    public async Task TrocarContratoAsync(Guid id, TrocaContratoRequest dados, string? versao, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(dados);
+        var solicitacao = await CarregarAsync(id, Permissoes.SolicitacaoEditar, versao, cancellationToken);
+        Contrato? contrato = null;
+        if (dados.ContratoId is { } contratoId)
+        {
+            contrato = await ContratoDaSolicitacaoAsync(
+                solicitacao.ClienteId, contratoId, await _relogio.HojeAsync(cancellationToken), cancellationToken);
+        }
+
+        solicitacao.TrocarContrato(contrato?.Id, contrato?.Sla, _relogio.Agora, await _calendarios.DoTenantAsync(cancellationToken));
+        await _unidade.SalvarAsync(cancellationToken);
+    }
+
     public async Task EditarAsync(Guid id, EdicaoSolicitacaoRequest dados, string? versao, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(dados);

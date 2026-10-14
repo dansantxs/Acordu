@@ -9,7 +9,10 @@ namespace Acordu.Application.Auditoria;
 /// por vários caminhos (equipe, portal, retomada pela resposta do contato, fechamento automático) e todos passam aqui.
 /// Quem agiu vem do contexto: nulo no job e na sessão de link.
 /// </summary>
-public sealed class AuditoriaDeSolicitacoes : IManipuladorEvento<SolicitacaoStatusAlterado>, IManipuladorEvento<SolicitacaoAtribuida>
+public sealed class AuditoriaDeSolicitacoes :
+    IManipuladorEvento<SolicitacaoStatusAlterado>,
+    IManipuladorEvento<SolicitacaoAtribuida>,
+    IManipuladorEvento<SolicitacaoContratoAlterado>
 {
     private readonly IAuditoria _auditoria;
 
@@ -31,6 +34,14 @@ public sealed class AuditoriaDeSolicitacoes : IManipuladorEvento<SolicitacaoStat
         ArgumentNullException.ThrowIfNull(evento);
         _auditoria.Registrar(
             AcoesAuditoria.SolicitacaoResponsavel, "solicitacao", evento.SolicitacaoId, new { de = evento.Anterior, para = evento.ResponsavelId });
+        return Task.CompletedTask;
+    }
+
+    public Task TratarAsync(SolicitacaoContratoAlterado evento, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(evento);
+        _auditoria.Registrar(
+            AcoesAuditoria.SolicitacaoContrato, "solicitacao", evento.SolicitacaoId, new { de = evento.Anterior, para = evento.ContratoId });
         return Task.CompletedTask;
     }
 }
