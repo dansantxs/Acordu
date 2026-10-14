@@ -72,6 +72,7 @@ public static class DependencyInjection
         services.AddSingleton<ExpurgoNotificacoes>();
         services.AddScoped<IConvitesEquipe, ConvitesEquipe>();
         services.AddScoped<IConsultasEquipe, ConsultasEquipe>();
+        services.AddScoped<IConsultasComentariosTarefa, ConsultasComentariosTarefa>();
         services.AddScoped<IConsultasCapacidade, ConsultasCapacidade>();
         services.AddScoped<IConsultasPapel, ConsultasPapel>();
         services.AddScoped<IPortalAtual, PortalAtual>();

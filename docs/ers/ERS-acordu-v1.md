@@ -173,6 +173,15 @@ Convenções: **RF** = requisito funcional, **RNF** = não funcional. Verificaç
 | RF-PLN-03 | Agenda da equipe num período: solicitações pelo prazo de SLA, tarefas, projetos, próximas ocorrências de recorrências e marcos de contrato, com os dias úteis e feriados; cada tipo só para quem pode lê-lo. | T |
 | RF-PLN-04 | Capacidade da semana: horas planejadas × capacidade por pessoa, com a contagem do que está sem estimativa. | T |
 
+**Colaboração da equipe** — incluído em 14/10 (marcos 14 a 16)
+| ID | Requisito | Verif. |
+|---|---|---|
+| RF-COL-01 | Comentários internos em tarefas, com anexos; imutáveis, excluídos só pelo autor; nunca aparecem no portal. | T |
+| RF-COL-02 | Mencionar pessoas da equipe em interações internas e comentários de tarefa, com aviso no sino e por e-mail. | T |
+| RF-COL-03 | Seguir solicitações e tarefas (automático para criador, responsável, quem comenta e quem é mencionado; manual para os demais) e receber avisos de novas interações, comentários e mudanças de status. | T |
+| RF-COL-04 | Agenda assinável (ICS) por pessoa e atualização em tempo real da agenda e do quadro. | T |
+| RF-COL-05 | Feed de atividade da equipe e aba de arquivos do cliente com todos os anexos. | T |
+
 **Apontamento de horas**
 | ID | Requisito | Verif. |
 |---|---|---|

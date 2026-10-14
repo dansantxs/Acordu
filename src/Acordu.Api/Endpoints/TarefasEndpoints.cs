@@ -89,6 +89,38 @@ internal static class TarefasEndpoints
             return Results.NoContent();
         })
             .RequirePermissao(Permissoes.TarefaEditar);
+
+        // Comentários internos (contrato §8.1a): nunca vão ao portal.
+        tarefas.MapGet("/{id:guid}/comentarios", async (Guid id, IConsultasComentariosTarefa consultas, CancellationToken cancellationToken) =>
+            Results.Ok(await consultas.DaTarefaAsync(id, cancellationToken) ?? throw new NaoEncontradoException("Tarefa não encontrada.")))
+            .RequirePermissao(Permissoes.TarefaVer)
+            .Produces<IReadOnlyList<ComentarioTarefaDto>>();
+
+        // JSON { texto } ou multipart (texto, anexos[]).
+        tarefas.MapPost("/{id:guid}/comentarios", async (
+            Guid id, HttpRequest requisicao, ComandosComentarioTarefa comandos, IConsultasComentariosTarefa consultas,
+            CancellationToken cancellationToken) =>
+        {
+            var formulario = await FormularioComAnexos.LerAsync(requisicao, cancellationToken);
+            var corpo = formulario is null
+                ? await CorpoOpcional.LerAsync<ComentarioTarefaRequest>(requisicao, cancellationToken)
+                    ?? throw new BadHttpRequestException("Envie o comentário em JSON ou multipart/form-data.")
+                : new ComentarioTarefaRequest(formulario.Campo("texto"));
+            var comentarioId = await comandos.ComentarAsync(id, corpo, formulario?.Arquivos, cancellationToken);
+            var lista = await consultas.DaTarefaAsync(id, cancellationToken);
+            return Results.Created($"/api/v1/tarefas/{id}/comentarios", lista!.Single(c => c.Id == comentarioId));
+        })
+            .RequirePermissao(Permissoes.TarefaEditar)
+            .Accepts<ComentarioTarefaRequest>("application/json", "multipart/form-data")
+            .Produces<ComentarioTarefaDto>(StatusCodes.Status201Created);
+
+        tarefas.MapDelete("/{id:guid}/comentarios/{comentarioId:guid}", async (
+            Guid id, Guid comentarioId, ComandosComentarioTarefa comandos, CancellationToken cancellationToken) =>
+        {
+            await comandos.ExcluirAsync(id, comentarioId, cancellationToken);
+            return Results.NoContent();
+        })
+            .RequirePermissao(Permissoes.TarefaEditar);
     }
 
     private static void MapTransicao(

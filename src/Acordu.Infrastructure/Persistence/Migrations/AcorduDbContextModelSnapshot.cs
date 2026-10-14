@@ -340,6 +340,47 @@ namespace Acordu.Infrastructure.Persistence.Migrations
                     b.ToTable("clientes", (string)null);
                 });
 
+            modelBuilder.Entity("Acordu.Domain.Entities.ComentarioTarefa", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<Guid>("AutorId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("autor_id");
+
+                    b.Property<DateTimeOffset>("RegistradoEm")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("registrado_em");
+
+                    b.Property<Guid>("TarefaId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tarefa_id");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
+                    b.Property<string>("Texto")
+                        .HasColumnType("text")
+                        .HasColumnName("texto");
+
+                    b.Property<uint>("Versao")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("xid")
+                        .HasColumnName("xmin");
+
+                    b.HasKey("Id")
+                        .HasName("pk_comentarios_tarefa");
+
+                    b.HasIndex("TenantId", "TarefaId", "RegistradoEm")
+                        .HasDatabaseName("ix_comentarios_tarefa_tenant_id_tarefa_id_registrado_em");
+
+                    b.ToTable("comentarios_tarefa", (string)null);
+                });
+
             modelBuilder.Entity("Acordu.Domain.Entities.Contrato", b =>
                 {
                     b.Property<Guid>("Id")
@@ -1729,6 +1770,56 @@ namespace Acordu.Infrastructure.Persistence.Migrations
                     b.Navigation("Contatos");
                 });
 
+            modelBuilder.Entity("Acordu.Domain.Entities.ComentarioTarefa", b =>
+                {
+                    b.OwnsMany("Acordu.Domain.Entities.Anexo", "Anexos", b1 =>
+                        {
+                            b1.Property<Guid>("Id")
+                                .HasColumnType("uuid")
+                                .HasColumnName("id");
+
+                            b1.Property<string>("ChaveArmazenamento")
+                                .IsRequired()
+                                .HasMaxLength(512)
+                                .HasColumnType("character varying(512)")
+                                .HasColumnName("chave_armazenamento");
+
+                            b1.Property<Guid>("ComentarioId")
+                                .HasColumnType("uuid")
+                                .HasColumnName("comentario_id");
+
+                            b1.Property<string>("NomeArquivo")
+                                .IsRequired()
+                                .HasMaxLength(255)
+                                .HasColumnType("character varying(255)")
+                                .HasColumnName("nome_arquivo");
+
+                            b1.Property<long>("TamanhoBytes")
+                                .HasColumnType("bigint")
+                                .HasColumnName("tamanho_bytes");
+
+                            b1.Property<string>("TipoConteudo")
+                                .IsRequired()
+                                .HasMaxLength(255)
+                                .HasColumnType("character varying(255)")
+                                .HasColumnName("tipo_conteudo");
+
+                            b1.HasKey("Id")
+                                .HasName("pk_anexos_comentario_tarefa");
+
+                            b1.HasIndex("ComentarioId")
+                                .HasDatabaseName("ix_anexos_comentario_tarefa_comentario_id");
+
+                            b1.ToTable("anexos_comentario_tarefa", (string)null);
+
+                            b1.WithOwner()
+                                .HasForeignKey("ComentarioId")
+                                .HasConstraintName("fk_anexos_comentario_tarefa_comentarios_tarefa_comentario_id");
+                        });
+
+                    b.Navigation("Anexos");
+                });
+
             modelBuilder.Entity("Acordu.Domain.Entities.Contrato", b =>
                 {
                     b.OwnsOne("Acordu.Domain.ValueObjects.Periodo", "Vigencia", b1 =>
@@ -1792,8 +1883,7 @@ namespace Acordu.Infrastructure.Persistence.Migrations
                                 .HasColumnType("character varying(255)")
                                 .HasColumnName("tipo_conteudo");
 
-                            b1.HasKey("Id")
-                                .HasName("pk_anexos");
+                            b1.HasKey("Id");
 
                             b1.HasIndex("InteracaoId")
                                 .HasDatabaseName("ix_anexos_interacao_id");

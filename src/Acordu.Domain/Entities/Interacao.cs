@@ -78,29 +78,11 @@ public sealed class Interacao : RaizComCliente
             RegistradaEm = agora.ToUniversalTime(),
         };
         foreach (var anexo in anexos)
-            interacao._anexos.Add(CriarAnexo(anexo, politica));
+            interacao._anexos.Add(Anexo.Criar(anexo, politica));
 
         interacao.Registrar(new InteracaoRegistrada(
             id, tenantId, clienteId, interacao.SolicitacaoId, interacao.AutorId, autorEhCliente, visibilidade,
             interacao.RegistradaEm));
         return interacao;
-    }
-
-    private static Anexo CriarAnexo(NovoAnexo anexo, PoliticaAnexos politica)
-    {
-        ArgumentNullException.ThrowIfNull(anexo);
-        var nome = Common.Texto.Obrigatorio(anexo.NomeArquivo, LimitesTexto.NomeArquivo, nameof(anexo));
-        if (nome.IndexOfAny(['/', '\\']) >= 0 || nome is "." or "..")
-            throw new AnexoInvalidoException($"Nome de arquivo inválido: {nome}.");
-        if (string.IsNullOrWhiteSpace(anexo.ChaveArmazenamento))
-            throw new ArgumentException("A chave de armazenamento é obrigatória.", nameof(anexo));
-        if (anexo.TamanhoBytes <= 0 || anexo.TamanhoBytes > politica.TamanhoMaximoBytes)
-            throw new AnexoInvalidoException($"O arquivo {nome} excede o tamanho permitido ou está vazio.");
-        if (string.IsNullOrWhiteSpace(anexo.TipoConteudo) || !politica.Permite(anexo.TipoConteudo))
-            throw new AnexoInvalidoException($"O tipo do arquivo {nome} não é permitido.");
-
-        return new Anexo(
-            anexo.Id ?? Guid.CreateVersion7(), nome, anexo.TipoConteudo.Trim().ToLowerInvariant(), anexo.TamanhoBytes,
-            anexo.ChaveArmazenamento);
     }
 }

@@ -60,6 +60,8 @@ public sealed class AcorduDbContext : IdentityUserContext<Usuario, Guid>
 
     public DbSet<Tarefa> Tarefas => Set<Tarefa>();
 
+    public DbSet<ComentarioTarefa> ComentariosTarefa => Set<ComentarioTarefa>();
+
     public DbSet<Apontamento> Apontamentos => Set<Apontamento>();
 
     public DbSet<Cronometro> Cronometros => Set<Cronometro>();
@@ -118,6 +120,7 @@ public sealed class AcorduDbContext : IdentityUserContext<Usuario, Guid>
         builder.ApplyConfiguration(new ConviteEquipeConfiguration());
         builder.ApplyConfiguration(new ProjetoConfiguration());
         builder.ApplyConfiguration(new TarefaConfiguration());
+        builder.ApplyConfiguration(new ComentarioTarefaConfiguration());
         builder.ApplyConfiguration(new ApontamentoConfiguration());
         builder.ApplyConfiguration(new CronometroConfiguration());
         builder.ApplyConfiguration(new RecorrenciaTarefaConfiguration());
@@ -134,7 +137,7 @@ public sealed class AcorduDbContext : IdentityUserContext<Usuario, Guid>
     /// <summary>
     /// Filtro "tenant" em toda raiz (em <see cref="Tenant"/>, pelo próprio Id). Filtro "cliente" no contexto de Cliente:
     /// raízes com ClienteId filtram por ele; a tabela de clientes, pelo próprio Id; vínculos, pelo cliente (o contato só
-    /// vê o próprio vínculo e os de colegas do mesmo cliente); Cronometro (só interno) some; Categoria, CalendarioUtil e
+    /// vê o próprio vínculo e os de colegas do mesmo cliente); Cronometro e ComentarioTarefa (só internos) somem; Categoria, CalendarioUtil e
     /// Papel continuam visíveis.
     /// </summary>
     private void AplicarFiltros(ModelBuilder modelBuilder)
@@ -175,6 +178,10 @@ public sealed class AcorduDbContext : IdentityUserContext<Usuario, Guid>
 
         FiltrarTenant<Cronometro>(modelBuilder);
         modelBuilder.Entity<Cronometro>().HasQueryFilter(FiltrosGlobais.Cliente, e => !_contexto.EhCliente);
+
+        // Comentário de tarefa: só interno, nem em tarefa visível ao cliente.
+        FiltrarTenant<ComentarioTarefa>(modelBuilder);
+        modelBuilder.Entity<ComentarioTarefa>().HasQueryFilter(FiltrosGlobais.Cliente, e => !_contexto.EhCliente);
 
         // Auditoria: só a equipe do tenant lê (sem tenant = login com falha, invisível a todos).
         modelBuilder.Entity<RegistroAuditoria>().HasQueryFilter(FiltrosGlobais.Tenant, e => e.TenantId == _contexto.TenantId);
