@@ -1171,6 +1171,88 @@ namespace Acordu.Infrastructure.Persistence.Migrations
                     b.ToTable("marcadores_aviso", (string)null);
                 });
 
+            modelBuilder.Entity("Acordu.Infrastructure.Persistence.Notificacoes.Notificacao", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<string>("Categoria")
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .HasColumnType("character varying(40)")
+                        .HasColumnName("categoria");
+
+                    b.Property<string>("Chave")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("chave");
+
+                    b.Property<DateTimeOffset>("CriadaEm")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("criada_em");
+
+                    b.Property<DateTimeOffset?>("LidaEm")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("lida_em");
+
+                    b.Property<string>("Link")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)")
+                        .HasColumnName("link");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
+                    b.Property<string>("Titulo")
+                        .IsRequired()
+                        .HasMaxLength(300)
+                        .HasColumnType("character varying(300)")
+                        .HasColumnName("titulo");
+
+                    b.Property<Guid>("UsuarioId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("usuario_id");
+
+                    b.HasKey("Id")
+                        .HasName("pk_notificacoes");
+
+                    b.HasIndex("CriadaEm")
+                        .HasDatabaseName("ix_notificacoes_criada_em");
+
+                    b.HasIndex("TenantId", "UsuarioId", "Chave")
+                        .IsUnique()
+                        .HasDatabaseName("ix_notificacoes_tenant_id_usuario_id_chave");
+
+                    b.HasIndex("TenantId", "UsuarioId", "CriadaEm")
+                        .HasDatabaseName("ix_notificacoes_tenant_id_usuario_id_criada_em");
+
+                    b.ToTable("notificacoes", (string)null);
+                });
+
+            modelBuilder.Entity("Acordu.Infrastructure.Persistence.Notificacoes.PreferenciaNotificacao", b =>
+                {
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
+                    b.Property<Guid>("UsuarioId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("usuario_id");
+
+                    b.PrimitiveCollection<List<string>>("EmailDesligado")
+                        .IsRequired()
+                        .HasColumnType("text[]")
+                        .HasColumnName("email_desligado");
+
+                    b.HasKey("TenantId", "UsuarioId")
+                        .HasName("pk_preferencias_notificacao");
+
+                    b.ToTable("preferencias_notificacao", (string)null);
+                });
+
             modelBuilder.Entity("Acordu.Infrastructure.Persistence.Outbox.MensagemOutbox", b =>
                 {
                     b.Property<Guid>("Id")
