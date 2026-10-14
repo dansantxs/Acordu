@@ -48,7 +48,7 @@ public sealed class ConsultasTarefa : IConsultasTarefa
         return new ResultadoPaginado<TarefaResumoDto>(
             [.. pagina.Select(t => new TarefaResumoDto(
                 t.Id, t.Titulo, t.Status, t.ClienteId, t.SolicitacaoId, t.ProjetoId, Nomes.Pessoa(t.ResponsavelId, pessoas), t.Prazo,
-                t.Estimativa?.Minutos, t.VisivelCliente))],
+                t.Estimativa?.Minutos, t.VisivelCliente, t.PlanejadaPara))],
             paginacao.Pagina,
             paginacao.TamanhoPagina,
             total);
@@ -86,6 +86,7 @@ public sealed class ConsultasTarefa : IConsultasTarefa
             t.Prazo,
             t.Estimativa?.Minutos,
             t.VisivelCliente,
+            t.PlanejadaPara,
             apontado,
             [.. t.Checklist.Select(i => new ItemChecklistDto(i.Id, i.Ordem, i.Texto, i.Feito))]);
     }

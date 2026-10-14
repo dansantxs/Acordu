@@ -700,6 +700,10 @@ namespace Acordu.Infrastructure.Persistence.Migrations
                         .HasColumnType("integer")
                         .HasColumnName("estimativa_minutos");
 
+                    b.Property<DateOnly?>("Inicio")
+                        .HasColumnType("date")
+                        .HasColumnName("inicio");
+
                     b.Property<string>("Nome")
                         .IsRequired()
                         .HasMaxLength(200)
@@ -931,6 +935,10 @@ namespace Acordu.Infrastructure.Persistence.Migrations
                         .HasColumnType("integer")
                         .HasColumnName("estimativa_minutos");
 
+                    b.Property<DateOnly?>("PlanejadaPara")
+                        .HasColumnType("date")
+                        .HasColumnName("planejada_para");
+
                     b.Property<DateOnly?>("Prazo")
                         .HasColumnType("date")
                         .HasColumnName("prazo");
@@ -1047,6 +1055,10 @@ namespace Acordu.Infrastructure.Persistence.Migrations
                     b.Property<Guid>("Id")
                         .HasColumnType("uuid")
                         .HasColumnName("id");
+
+                    b.Property<int?>("CapacidadeSemanal")
+                        .HasColumnType("integer")
+                        .HasColumnName("capacidade_semanal_minutos");
 
                     b.Property<Guid?>("ClienteId")
                         .HasColumnType("uuid")

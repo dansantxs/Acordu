@@ -36,6 +36,7 @@ class Vinculo <<membership>> {
   +PapelId
   +ClienteId: Guid?
   +EscopoPortal: EscopoPortal?
+  +CapacidadeSemanal: Duracao?  // só equipe (planejamento)
 }
 class Papel <<aggregate root>> {
   +TenantId, Nome, Padrao
@@ -187,7 +188,7 @@ Quem, tenant, ação, alvo, quando (IP opcional). Não audita leituras. Mecanism
 
 
 - Login: sucesso e falha; troca de link por sessão.
-- Usuários: convite, remoção, troca de papel.
+- Usuários: convite, remoção, troca de papel, capacidade semanal.
 - Portal: concessão/revogação de acesso de contato, emissão/revogação de link, alteração de escopo.
 - Contratos: criação, edição, suspensão/encerramento, ajuste de saldo, fechamento de período.
 - Apontamentos: edição e exclusão (com valor anterior).

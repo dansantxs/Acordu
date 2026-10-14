@@ -84,8 +84,9 @@ Superfície de equipe (`/usuarios`, `/convites`, `/papeis`), com o aceite do con
 
 | Método | Rota | Descrição | Permissão |
 |---|---|---|---|
-| GET | `/usuarios` | Equipe do tenant (contatos ficam nos clientes): `[{ usuarioId, nome, email, papel: { id, nome }, dono }]`. | `usuario.convidar` ou `usuario.remover` |
+| GET | `/usuarios` | Equipe do tenant (contatos ficam nos clientes): `[{ usuarioId, nome, email, papel: { id, nome }, dono, capacidadeSemanalMinutos }]`. | `usuario.convidar` ou `usuario.remover` |
 | PATCH | `/usuarios/{id}/papel` | `{ papelId }` → `200` com a pessoa. Vale no próximo refresh dela. | `papel.gerenciar` |
+| PUT | `/usuarios/{id}/capacidade` | `{ capacidadeSemanalMinutos }` (0 a 10080; padrão 2400 = 40h para quem entra na equipe) → `200` com a pessoa. Base do planejamento (agenda e capacidade, marco 13). Fora da faixa → `400`. | `papel.gerenciar` |
 | DELETE | `/usuarios/{id}` | Remove do tenant e revoga as sessões dela aqui → `204`. A conta global continua. | `usuario.remover` |
 | GET | `/convites` | Pendentes: `[{ id, email, papel, criadoEm, expiraEm }]` (`expiraEm` nulo até o e-mail sair). | `usuario.convidar` |
 | POST | `/convites` | `{ email, papelId }` → `202` com o convite; e-mail com link de aceite. | `usuario.convidar` |
@@ -339,18 +340,20 @@ Decidido na implementação (6d3):
 | GET | `/tarefas` | Lista (`?status=&responsavelId=&solicitacaoId=&projetoId=&clienteId=&prazoAte=&minhas=true`). | `tarefa.ver` |
 | POST | `/tarefas` | Cria (avulsa, de solicitação e/ou projeto). | `tarefa.criar` |
 | GET | `/tarefas/{id}` | Detalha, com checklist e total apontado. | `tarefa.ver` |
-| PATCH | `/tarefas/{id}` | Título, descrição, responsável, prazo, estimativa, `visivelCliente`. | `tarefa.editar` |
+| PATCH | `/tarefas/{id}` | Título, descrição, responsável, prazo, estimativa, `visivelCliente`, `planejadaPara`. | `tarefa.editar` |
 | POST | `/tarefas/{id}/inicio` · `/conclusao` · `/reabertura` · `/cancelamento` | Transições. | `tarefa.editar` |
 | POST | `/tarefas/{id}/itens` | Adiciona item de checklist. | `tarefa.editar` |
 | PATCH/DELETE | `/tarefas/{id}/itens/{itemId}` | Marca/edita/remove item. | `tarefa.editar` |
 
 O quadro (kanban) é o mesmo `GET /tarefas` agrupado no front por `status`.
 
+`planejadaPara` (opcional, decidido em 14/10, marco 13) é o dia em que a tarefa está planejada para ser feita: o plano da semana e a linha do tempo arrastam este dia, nunca o `prazo` combinado. Como o `PATCH` é o formulário inteiro, omitir o campo limpa o dia planejado. Volta em `GET /tarefas` e no detalhe.
+
 ```json
 // POST /tarefas → 201
 { "titulo": "Refazer arte", "solicitacaoId": "s1...", "projetoId": null,
   "responsavelId": "u2...", "prazo": "2026-10-01", "estimativaMinutos": 120,
-  "visivelCliente": true }
+  "visivelCliente": true, "planejadaPara": "2026-09-29" }
 ```
 
 ### 8.2 Projetos
@@ -360,6 +363,8 @@ O quadro (kanban) é o mesmo `GET /tarefas` agrupado no front por `status`.
 | GET/POST | `/projetos` | Lista (`?clienteId=&status=`) / cria. | `projeto.ver` / `projeto.gerenciar` |
 | GET/PATCH | `/projetos/{id}` | Detalha (com progresso) / edita. | `projeto.ver` / `projeto.gerenciar` |
 | POST | `/projetos/{id}/conclusao` · `/cancelamento` | Transições. | `projeto.gerenciar` |
+
+`inicio` (opcional, decidido em 14/10, marco 13) é o início planejado: com ele o projeto vira uma barra `inicio`–`prazo` na linha do tempo; sem ele aparece só no prazo. Não pode ser depois do prazo (`400` em `errors.inicio`). Está no corpo do `POST`/`PATCH`, na lista e no detalhe.
 
 ```json
 // progresso em GET /projetos/{id}
@@ -489,6 +494,7 @@ Decidido na implementação (6c3):
 | Equipe | `equipe.convite`, `equipe.convite.revogacao` | convite | `email`, `papel` |
 | | `equipe.papel.troca` | usuário | `de`, `para` (nomes dos papéis) |
 | | `equipe.remocao` | usuário | `papel` |
+| | `equipe.capacidade` | usuário | `de`, `para` (minutos por semana) |
 | Portal | `portal.acesso.concessao`, `portal.acesso.escopo`, `portal.acesso.revogacao` | contato | `clienteId`, `escopo` |
 | | `portal.link.emissao`, `portal.link.revogacao` | solicitação | `acessoPortalId`, `contatoId` (emissão: `validadeDias`) |
 | Contratos | `contrato.criacao` | contrato | `clienteId`, `tipo`, `termos` (vigência, franquia, SLA) |

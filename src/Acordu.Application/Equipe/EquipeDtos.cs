@@ -3,7 +3,9 @@ using Acordu.Application.Common;
 namespace Acordu.Application.Equipe;
 
 /// <summary>Pessoa da equipe no tenant (contrato §3). Contatos do portal ficam nos clientes, não aqui.</summary>
-public sealed record UsuarioEquipeDto(Guid UsuarioId, string Nome, string Email, Referencia Papel, bool Dono);
+/// <remarks><see cref="CapacidadeSemanalMinutos"/>: horas por semana para o planejamento (padrão 40h).</remarks>
+public sealed record UsuarioEquipeDto(
+    Guid UsuarioId, string Nome, string Email, Referencia Papel, bool Dono, int CapacidadeSemanalMinutos);
 
 /// <summary>Convite pendente; <see cref="ExpiraEm"/> é nulo até o e-mail sair.</summary>
 public sealed record ConviteEquipeDto(Guid Id, string Email, Referencia Papel, DateTimeOffset CriadoEm, DateTimeOffset? ExpiraEm);
@@ -13,6 +15,9 @@ public sealed record ConviteEquipeRequest(string Email, Guid? PapelId);
 
 /// <summary>Corpo do <c>PATCH /usuarios/{id}/papel</c>.</summary>
 public sealed record TrocaPapelRequest(Guid? PapelId);
+
+/// <summary>Corpo do <c>PUT /usuarios/{id}/capacidade</c>: de 0 a 10080 minutos (168h).</summary>
+public sealed record CapacidadeRequest(int CapacidadeSemanalMinutos);
 
 /// <summary>Leituras da gestão da equipe, pelos filtros do contexto.</summary>
 public interface IConsultasEquipe

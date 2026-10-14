@@ -66,7 +66,8 @@ public sealed class ComandosTarefa
             dados.ResponsavelId,
             dados.Prazo,
             Estimativa(dados.EstimativaMinutos),
-            dados.VisivelCliente);
+            dados.VisivelCliente,
+            dados.PlanejadaPara);
         _tarefas.Adicionar(tarefa);
         await _unidade.SalvarAsync(cancellationToken);
         return tarefa.Id;
@@ -83,6 +84,7 @@ public sealed class ComandosTarefa
         tarefa.Editar(dados.Titulo, dados.Descricao);
         tarefa.Atribuir(dados.ResponsavelId);
         tarefa.DefinirPrazo(dados.Prazo);
+        tarefa.Planejar(dados.PlanejadaPara);
         tarefa.DefinirEstimativa(Estimativa(dados.EstimativaMinutos));
         tarefa.TornarVisivelAoCliente(dados.VisivelCliente);
         await _unidade.SalvarAsync(cancellationToken);

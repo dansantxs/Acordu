@@ -51,7 +51,7 @@ public sealed class ComandosProjeto
 
         var projeto = Projeto.Criar(
             Guid.CreateVersion7(), _contexto.TenantId!.Value, cliente.Id, dados.Nome, dados.ContratoId, dados.Prazo,
-            Estimativa(dados.EstimativaMinutos));
+            Estimativa(dados.EstimativaMinutos), dados.Inicio);
         _projetos.Adicionar(projeto);
         await _unidade.SalvarAsync(cancellationToken);
         return projeto.Id;
@@ -61,7 +61,7 @@ public sealed class ComandosProjeto
     {
         ArgumentNullException.ThrowIfNull(dados);
         var projeto = await CarregarAsync(id, versao, cancellationToken);
-        projeto.Editar(dados.Nome, dados.Prazo, Estimativa(dados.EstimativaMinutos));
+        projeto.Editar(dados.Nome, dados.Prazo, Estimativa(dados.EstimativaMinutos), dados.Inicio);
         if (dados.ContratoId != projeto.ContratoId)
         {
             await ValidarContratoAsync(dados.ContratoId, projeto.ClienteId, cancellationToken);
