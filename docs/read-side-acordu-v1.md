@@ -122,6 +122,8 @@ Uma query por bloco, todas com `tenant_id` na frente:
 | Contratos | §3 para cada contrato ATIVO, período corrente, ordenado por `percentual` desc. |
 | Tarefas | `vencidas` = não finais com `prazo < hoje (fuso do tenant)`; próximas recorrentes = `RecorrenciaTarefa` ATIVA ordenada por `proxima_data`, limite 5. |
 
+**(Implementado no 11a:** `ConsultasDashboard`; fila, SLA, tarefas e recorrências em LINQ com contagens no banco; horas em SQL cru pelo `ConsultaSql`; contratos reaproveitam o consumo do §3, um contrato por vez — candidato a SQL único se o número de contratos ativos crescer.)
+
 Meta RNF-DES-01: p95 < 800 ms com ~50 mil solicitações e ~200 mil apontamentos por tenant. Se algum bloco estourar, é o candidato a cache, não o dashboard inteiro.
 
 ---
