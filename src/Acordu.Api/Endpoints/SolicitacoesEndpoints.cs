@@ -65,6 +65,17 @@ internal static class SolicitacoesEndpoints
             .RequirePermissao(Permissoes.SolicitacaoEditar)
             .Produces<SolicitacaoDto>();
 
+        // Troca ou remove o contrato, com recálculo do SLA (modelo §4.3). Fora do PATCH de propósito.
+        solicitacoes.MapPut("/{id:guid}/contrato", async (
+            Guid id, TrocaContratoRequest corpo, HttpRequest requisicao, ComandosSolicitacao comandos,
+            IConsultasSolicitacao consultas, CancellationToken cancellationToken) =>
+        {
+            await comandos.TrocarContratoAsync(id, corpo, Versoes.IfMatch(requisicao), cancellationToken);
+            return Results.Ok(await DetalheAsync(consultas, id, cancellationToken));
+        })
+            .RequirePermissao(Permissoes.SolicitacaoEditar)
+            .Produces<SolicitacaoDto>();
+
         MapTransicao(solicitacoes, "/inicio", (c, id, versao, ct) => c.IniciarAsync(id, versao, ct));
         MapTransicao(solicitacoes, "/aguardando-cliente", (c, id, versao, ct) => c.AguardarClienteAsync(id, versao, ct));
         MapTransicao(solicitacoes, "/aguardando-terceiro", (c, id, versao, ct) => c.AguardarTerceiroAsync(id, versao, ct));
