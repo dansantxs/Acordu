@@ -2,6 +2,7 @@ using Acordu.Application.Abstractions.Eventos;
 using Acordu.Application.Anexos;
 using Acordu.Application.Apontamentos;
 using Acordu.Application.Auditoria;
+using Acordu.Application.Capacidade;
 using Acordu.Application.Categorias;
 using Acordu.Application.Clientes;
 using Acordu.Application.Common;
@@ -50,6 +51,7 @@ internal static class CasosDeUso
         services.AddScoped<RevogacaoAcessoPortal>();
         services.AddScoped<ComandosLinkPortal>();
         services.AddScoped<ComandosEquipe>();
+        services.AddScoped<LeituraCapacidade>();
         services.AddScoped<ComandosPapel>();
         services.AddScoped<FechamentoAutomatico>();
         services.AddScoped<ComandosPortal>();
