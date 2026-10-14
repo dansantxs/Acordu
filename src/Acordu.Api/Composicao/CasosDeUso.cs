@@ -1,4 +1,5 @@
 using Acordu.Application.Abstractions.Eventos;
+using Acordu.Application.Agenda;
 using Acordu.Application.Anexos;
 using Acordu.Application.Apontamentos;
 using Acordu.Application.Auditoria;
@@ -34,6 +35,7 @@ internal static class CasosDeUso
         services.AddScoped<DownloadAnexos>();
         services.AddScoped<LogotipoPortal>();
         services.AddScoped<LeituraDashboard>();
+        services.AddScoped<LeituraAgenda>();
         services.AddScoped<AvisoInterno>();
         services.AddScoped<ComandosNotificacoes>();
         services.AddScoped<ComandosCliente>();
