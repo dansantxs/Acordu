@@ -128,6 +128,22 @@ Meta RNF-DES-01: p95 < 800 ms com ~50 mil solicitações e ~200 mil apontamentos
 
 ---
 
+## 6a. Agenda (marco 13)
+
+Regras no contrato §11b. `LeituraAgenda` (Application) valida o período, decide a situação de cada item e expande as recorrências pelo `GeradorDeDatas`. `ConsultasAgenda` (Infrastructure) só filtra e resolve nomes, com uma consulta por tipo e todas pelos filtros globais:
+
+| Tipo | Filtro no banco |
+|---|---|
+| Solicitação | não final, com SLA, `prazo_resolucao < início do dia seguinte ao fim` (índice `(tenant_id, status, prazo_resolucao)`) |
+| Tarefa | não cancelada, `coalesce(planejada_para, prazo)` no período, ou antes dele se em aberto e o período inclui hoje |
+| Projeto | EM_ANDAMENTO, `coalesce(inicio, prazo) ≤ fim` e `coalesce(prazo, inicio) ≥ início` (ou atrasado) |
+| Recorrência | ATIVA com `proxima_data ≤ fim` |
+| Contrato | ATIVO cruzando o período; consumo do §3 só para os vigentes hoje, um por vez |
+
+Volume esperado: dezenas a centenas de itens por período. Se a tarefa pesar, o candidato é um índice `(tenant_id, coalesce(planejada_para, prazo))`.
+
+---
+
 ## 7. Progresso de projeto
 
 ```

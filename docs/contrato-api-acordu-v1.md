@@ -470,6 +470,44 @@ Decidido na implementação (6c3):
 - **Por permissão:** bloco nulo sem a permissão de leitura da área — `fila`/`sla`: `solicitacao.ver`; `horas`: `apontamento.ver`; `contratos`: `contrato.ver`; `tarefas`: `tarefa.ver` (e `proximasRecorrentes` nulo sem `recorrencia.ver`).
 - `horas.porCliente`: os 10 clientes com mais minutos faturáveis. `contratos`: ATIVOS vigentes hoje, consumo do mês corrente (no banco de horas, o acumulado), maior percentual primeiro. `tarefas.vencidas`: A_FAZER/FAZENDO com prazo antes de hoje; `proximasRecorrentes`: as 5 recorrências ATIVAS com a próxima data mais cedo.
 
+## 11b. Agenda da equipe (marco 13, RF-PLN-03)
+
+| Método | Rota | Descrição | Permissão |
+|---|---|---|---|
+| GET | `/agenda?de=&ate=&clienteId=&responsavelId=` | Dias do período, equipe e itens com data. Padrão: da segunda-feira desta semana ao domingo da seguinte; até 62 dias (`400 errors.ate`). | qualquer uma de `solicitacao.ver`, `tarefa.ver`, `projeto.ver`, `recorrencia.ver`, `contrato.ver` |
+
+```json
+// GET /agenda → 200
+{ "de": "2026-10-12", "ate": "2026-10-25", "hoje": "2026-10-14",
+  "dias": [ { "data": "2026-10-12", "util": false, "feriado": true }, ... ],
+  "equipe": [ { "id": "u1...", "nome": "Ana Lima" } ],
+  "itens": [
+    { "tipo": "SOLICITACAO", "id": "s1...", "titulo": "Banner", "numero": 128, "inicio": "2026-10-14", "fim": "2026-10-14",
+      "situacao": "EM_RISCO", "responsavel": { "id": "u1...", "nome": "Ana Lima" }, "cliente": { "id": "c1...", "nome": "Padaria Bom Grão" } },
+    { "tipo": "TAREFA", "id": "t1...", "titulo": "Arte do cardápio", "inicio": "2026-10-15", "fim": "2026-10-15", "prazo": "2026-10-16",
+      "situacao": "NO_PRAZO", "estimativaMinutos": 120, "solicitacaoId": "s2...", ... },
+    { "tipo": "PROJETO", "inicio": "2026-10-15", "fim": "2026-10-23", ... },
+    { "tipo": "RECORRENCIA", "id": "r1...", "inicio": "2026-10-16", "situacao": "PREVISTO", ... },
+    { "tipo": "CONTRATO", "id": "k1...", "marco": "CONSUMO_ALTO", "percentual": 86, "situacao": "EM_RISCO", ... } ] }
+```
+
+Decidido no marco 13 (14/10):
+- Lista única de itens; o agrupamento por pessoa ou por cliente é do front. Cada tipo só vem com a sua permissão de leitura (como os blocos do dashboard).
+- **Tipos e datas:**
+  - solicitação em aberto com SLA, no dia do prazo de solução (fuso do tenant);
+  - tarefa não cancelada no dia planejado ou, sem ele, no prazo (sem os dois fica fora);
+  - projeto EM_ANDAMENTO de `inicio` a `prazo` (sem início, só no prazo);
+  - recorrência ATIVA, com as próximas ocorrências calculadas pela regra a partir da próxima data;
+  - contrato ATIVO, com o marco `FIM_VIGENCIA` no último dia da vigência e, hoje, `CONSUMO_ALTO` (≥ 80%) ou `CONSUMO_ESGOTADO` (≥ 100%) do período corrente.
+- **Situação:**
+  - solicitação: `NO_PRAZO`, `EM_RISCO` ou `VIOLADO`, pelas regras da lista (read side §5), ou `PAUSADO`;
+  - tarefa e projeto: `NO_PRAZO`, `VENCIDO` (prazo antes de hoje) ou `CONCLUIDO`;
+  - recorrência e fim de vigência: `PREVISTO`;
+  - consumo: `EM_RISCO` (alto) ou `VIOLADO` (esgotado).
+- **Atrasados:** se o período inclui hoje, as solicitações violadas e as tarefas e projetos em aberto com data anterior vêm junto, com a data real (o front os mostra na borda esquerda).
+- `responsavelId` restringe a solicitações, tarefas e recorrências da pessoa; projetos e contratos, que não têm responsável, ficam de fora. `clienteId` vale para todos.
+- Sem paginação: o período curto é o limite.
+
 ---
 
 ## 11a. Auditoria
