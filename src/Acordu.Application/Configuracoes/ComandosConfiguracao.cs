@@ -17,9 +17,13 @@ public sealed class ComandosConfiguracao
     private readonly ICalendarios _calendarios;
     private readonly ITenantAtual _tenant;
     private readonly IUnitOfWork _unidade;
+    private readonly LogotipoPortal _logotipo;
 
-    public ComandosConfiguracao(ITenantContext contexto, ICalendarios calendarios, ITenantAtual tenant, IUnitOfWork unidade)
+    public ComandosConfiguracao(
+        ITenantContext contexto, ICalendarios calendarios, ITenantAtual tenant, IUnitOfWork unidade, LogotipoPortal logotipo)
     {
+        ArgumentNullException.ThrowIfNull(logotipo);
+        _logotipo = logotipo;
         ArgumentNullException.ThrowIfNull(contexto);
         ArgumentNullException.ThrowIfNull(calendarios);
         ArgumentNullException.ThrowIfNull(tenant);
@@ -39,10 +43,10 @@ public sealed class ComandosConfiguracao
             [.. calendario.Feriados]);
     }
 
-    public static ConfiguracaoPortalDto Portal(Tenant tenant)
+    public ConfiguracaoPortalDto Portal(Tenant tenant)
     {
         ArgumentNullException.ThrowIfNull(tenant);
-        return new ConfiguracaoPortalDto(tenant.Nome, tenant.NomePortal, tenant.DiasFechamentoAutomatico);
+        return new ConfiguracaoPortalDto(tenant.Nome, tenant.NomePortal, tenant.DiasFechamentoAutomatico, _logotipo.Url(tenant.LogoChave));
     }
 
     public async Task<CalendarioDto> AtualizarCalendarioAsync(CalendarioRequest dados, CancellationToken cancellationToken = default)

@@ -1014,6 +1014,11 @@ namespace Acordu.Infrastructure.Persistence.Migrations
                         .HasColumnType("integer")
                         .HasColumnName("dias_fechamento_automatico");
 
+                    b.Property<string>("LogoChave")
+                        .HasMaxLength(512)
+                        .HasColumnType("character varying(512)")
+                        .HasColumnName("logo_chave");
+
                     b.Property<string>("Nome")
                         .IsRequired()
                         .HasMaxLength(200)

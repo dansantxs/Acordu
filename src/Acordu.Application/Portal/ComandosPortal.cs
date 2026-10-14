@@ -74,7 +74,12 @@ public sealed class ComandosPortal
     /// Origem PORTAL, com o contato logado como contato da solicitação (é o que o escopo PROPRIAS usa). Contrato: o único
     /// ATIVO vigente do cliente, se houver exatamente um; senão fica sem SLA, como na abertura interna sem contrato.
     /// </summary>
-    public async Task<Guid> AbrirSolicitacaoAsync(NovaSolicitacaoPortalRequest dados, CancellationToken cancellationToken = default)
+    /// <remarks>
+    /// Anexos (RF-POR-01) viram a primeira interação EXTERNA, do contato, sem texto (a descrição já está na solicitação).
+    /// São enviados ao storage antes do commit, com a chave da solicitação nova, e descartados se a gravação falhar.
+    /// </remarks>
+    public async Task<Guid> AbrirSolicitacaoAsync(
+        NovaSolicitacaoPortalRequest dados, IReadOnlyList<ArquivoRecebido>? arquivos = null, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(dados);
         _contexto.Exigir(Permissoes.PortalSolicitacaoCriar);
@@ -87,10 +92,32 @@ public sealed class ComandosPortal
         var vigentes = await _consultasContrato.VigentesDoClienteAsync(cliente.Id, hoje, cancellationToken);
         var contrato = vigentes.Count == 1 ? await _contratos.ObterPorIdAsync(vigentes[0], cancellationToken) : null;
         var calendario = await _calendarios.DoTenantAsync(cancellationToken);
-        var numero = await _protocolo.ProximoNumeroSolicitacaoAsync(cancellationToken);
+        var solicitacaoId = Guid.CreateVersion7();
+        var anexos = await _anexos.EnviarAsync(cliente.TenantId, solicitacaoId, arquivos, cancellationToken);
+        try
+        {
+            return await GravarAberturaAsync(solicitacaoId, cliente, contato, dados, contrato, calendario, anexos, cancellationToken);
+        }
+        catch
+        {
+            await _anexos.DescartarAsync(anexos);
+            throw;
+        }
+    }
 
+    private async Task<Guid> GravarAberturaAsync(
+        Guid solicitacaoId,
+        Cliente cliente,
+        ContatoDoPortal contato,
+        NovaSolicitacaoPortalRequest dados,
+        Contrato? contrato,
+        CalendarioUtil calendario,
+        IReadOnlyList<NovoAnexo> anexos,
+        CancellationToken cancellationToken)
+    {
+        var numero = await _protocolo.ProximoNumeroSolicitacaoAsync(cancellationToken);
         var solicitacao = Solicitacao.Abrir(
-            Guid.CreateVersion7(),
+            solicitacaoId,
             cliente.TenantId,
             cliente.Id,
             numero,
@@ -106,6 +133,22 @@ public sealed class ComandosPortal
             _relogio.Agora,
             calendario);
         _solicitacoes.Adicionar(solicitacao);
+        if (anexos.Count > 0)
+        {
+            _interacoes.Adicionar(Interacao.Registrar(
+                Guid.CreateVersion7(),
+                solicitacao.TenantId,
+                solicitacao.ClienteId,
+                solicitacao.Id,
+                _contexto.UsuarioId ?? contato.ContatoId,
+                autorEhCliente: true,
+                null,
+                Visibilidade.Externa,
+                anexos,
+                ComandosSolicitacao.PoliticaPadrao,
+                _relogio.Agora));
+        }
+
         await _unidade.SalvarAsync(cancellationToken);
         return solicitacao.Id;
     }

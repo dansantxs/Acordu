@@ -233,7 +233,8 @@ Decidido na implementação:
 - `GET /configuracoes/calendario` e `GET /categorias` liberados a qualquer pessoa da equipe; escrita e `/configuracoes/portal` exigem `configuracao.gerenciar`.
 - Erros de calendário vêm no campo (`fusoHorario`, `expediente`: horário fora de `HH:mm`, fim antes do início, dia repetido, semana sem dia útil).
 - **Mudar o calendário não recalcula prazos de solicitações já abertas**: eles foram fixados com o calendário da época; só o que vier depois usa o novo.
-- `PUT /configuracoes/portal` `{ "nomeExibido": "...", "diasFechamentoAutomatico": 5 }` (1 a 60; guardados no próprio tenant); a resposta traz também `nomeTenant`. Logotipo no marco de anexos.
+- `PUT /configuracoes/portal` `{ "nomeExibido": "...", "diasFechamentoAutomatico": 5 }` (1 a 60; guardados no próprio tenant); a resposta traz também `nomeTenant` e `logoUrl`.
+- `PUT /configuracoes/portal/logo` — multipart, campo `logo`: PNG, JPEG ou WebP (pelo conteúdo) até 512 KB → `200` com a configuração. Tipo errado → `400` em `errors.logo`; acima do limite → `413`. `DELETE /configuracoes/portal/logo` remove (→ `200`). `logoUrl` é uma URL assinada de 1 hora (o bucket é privado); o portal recebe a mesma em `/portal/eu` (`prestador.logoUrl`). Cada envio usa um arquivo novo e o anterior é apagado.
 - Categorias: `POST`/`PATCH` `{ "nome": "...", "ativa": true }` (`ativa` nulo mantém; PATCH reativa), `DELETE` inativa; nome repetido no tenant (sem diferenciar maiúsculas) → `400` em `nome`; categoria inativa não entra em nova solicitação (`400` em `categoriaId`).
 
 ---
@@ -546,7 +547,7 @@ Decidido na implementação (6d2):
 - `GET /portal/eu` → `{ contato: { id, nome, email }, cliente: { id, nome }, prestador: { nome }, escopoPortal, veContratos }`.
 - `GET /portal/solicitacoes` → página de `{ id, numero, titulo, statusExterno, abertaEm, podeAprovar }`, mais recentes primeiro; `statusExterno` aceita lista separada por vírgula.
 - `POST /portal/solicitacoes/{id}/interacoes` aceita JSON `{ texto }` ou multipart (`texto`, `anexos`), com as mesmas regras de anexo da equipe e rate limit do portal. Interações do portal trazem `anexos`; `GET /portal/anexos/{id}/download` só serve anexo de interação EXTERNA de solicitação visível ao contato (escopo e link), senão 404.
-- `POST /portal/solicitacoes` (JSON até o 10b) `{ titulo, descricao?, prioridade? }` → `201` com o detalhe. Origem PORTAL, prioridade padrão MEDIA, contrato = o único ATIVO vigente do cliente (senão sem SLA).
+- `POST /portal/solicitacoes` `{ titulo, descricao?, prioridade? }` em JSON, ou multipart com os mesmos campos e `anexos` → `201` com o detalhe. Os anexos viram a primeira interação EXTERNA, do contato, sem texto; anexo inválido → nada é criado. Origem PORTAL, prioridade padrão MEDIA, contrato = o único ATIVO vigente do cliente (senão sem SLA).
 - Detalhe: inclui `descricao`; `sla` nulo sem contrato; `podeAprovar` só em RESOLVIDA e com a permissão.
 - `GET .../interacoes` → `[{ id, texto, autorNome, daEquipe, registradaEm }]` (só EXTERNAS). `POST` `{ texto }` → `201` com a interação; em AGUARDANDO_CLIENTE retoma a solicitação.
 - `aprovacao` e `reprovacao` `{ motivo }` → `200` com o detalhe; fora de RESOLVIDA → `422 transicao-invalida`; motivo vazio → `400`.

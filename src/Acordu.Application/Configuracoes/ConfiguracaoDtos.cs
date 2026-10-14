@@ -21,6 +21,6 @@ public sealed record JanelaDto(DiaDaSemana DiaSemana, string Inicio, string Fim)
 public sealed record CalendarioRequest(string FusoHorario, IReadOnlyList<JanelaDto>? Expediente, IReadOnlyList<DateOnly>? Feriados);
 
 /// <summary>Configurações do portal (contrato §6). O logotipo entra no marco de anexos.</summary>
-public sealed record ConfiguracaoPortalDto(string NomeTenant, string? NomeExibido, int DiasFechamentoAutomatico);
+public sealed record ConfiguracaoPortalDto(string NomeTenant, string? NomeExibido, int DiasFechamentoAutomatico, Uri? LogoUrl);
 
 public sealed record ConfiguracaoPortalRequest(string? NomeExibido, int DiasFechamentoAutomatico);

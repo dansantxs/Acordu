@@ -23,7 +23,8 @@ public sealed record ContatoPortalDto(Guid Id, string Nome, string Email);
 public sealed record ClientePortalDto(Guid Id, string Nome);
 
 /// <summary>Identidade do prestador (logotipo no marco de anexos).</summary>
-public sealed record PrestadorPortalDto(string Nome);
+/// <summary>Quem presta o serviço; <see cref="LogoUrl"/>: URL assinada (1 h) do logotipo, ou nula.</summary>
+public sealed record PrestadorPortalDto(string Nome, Uri? LogoUrl = null);
 
 public sealed record SolicitacaoPortalResumoDto(
     Guid Id, int Numero, string Titulo, StatusExterno StatusExterno, DateTimeOffset AbertaEm, bool PodeAprovar);

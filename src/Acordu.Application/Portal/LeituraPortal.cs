@@ -1,6 +1,7 @@
 using Acordu.Application.Abstractions;
 using Acordu.Application.Anexos;
 using Acordu.Application.Common;
+using Acordu.Application.Configuracoes;
 using Acordu.Application.Portal.Extrato;
 using Acordu.Domain.Acesso;
 using Acordu.Domain.Enums;
@@ -21,6 +22,7 @@ public sealed class LeituraPortal
     private readonly RelogioDoTenant _relogio;
 
     private readonly RecebimentoAnexos _anexos;
+    private readonly LogotipoPortal _logotipo;
 
     public LeituraPortal(
         ITenantContext contexto,
@@ -28,8 +30,11 @@ public sealed class LeituraPortal
         IConsultasPortal consultas,
         IConsultaExtratoPortal extrato,
         RelogioDoTenant relogio,
-        RecebimentoAnexos anexos)
+        RecebimentoAnexos anexos,
+        LogotipoPortal logotipo)
     {
+        ArgumentNullException.ThrowIfNull(logotipo);
+        _logotipo = logotipo;
         ArgumentNullException.ThrowIfNull(anexos);
         _anexos = anexos;
         ArgumentNullException.ThrowIfNull(contexto);
@@ -47,7 +52,8 @@ public sealed class LeituraPortal
     public async Task<PortalEuDto> EuAsync(CancellationToken cancellationToken = default)
     {
         var contato = await _portal.ContatoAsync(cancellationToken);
-        return await _consultas.EuAsync(contato, cancellationToken) ?? throw new AcessoNegadoException("Acesso ao portal removido.");
+        var eu = await _consultas.EuAsync(contato, cancellationToken) ?? throw new AcessoNegadoException("Acesso ao portal removido.");
+        return eu with { Prestador = eu.Prestador with { LogoUrl = await _logotipo.UrlAsync(cancellationToken) } };
     }
 
     public async Task<ResultadoPaginado<SolicitacaoPortalResumoDto>> ListarAsync(

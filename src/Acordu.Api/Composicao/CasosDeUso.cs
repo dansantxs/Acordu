@@ -31,6 +31,7 @@ internal static class CasosDeUso
         services.AddScoped<RelogioDoTenant>();
         services.AddScoped<RecebimentoAnexos>();
         services.AddScoped<DownloadAnexos>();
+        services.AddScoped<LogotipoPortal>();
         services.AddScoped<ComandosCliente>();
         services.AddScoped<ComandosContrato>();
         services.AddScoped<ComandosSolicitacao>();
