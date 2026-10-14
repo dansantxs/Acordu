@@ -2,6 +2,7 @@ using Acordu.Domain.Common;
 using Acordu.Domain.Enums;
 using Acordu.Domain.Events;
 using Acordu.Domain.Exceptions;
+using Acordu.Domain.Services;
 using Acordu.Domain.ValueObjects;
 
 namespace Acordu.Domain.Entities;
@@ -40,7 +41,8 @@ public sealed class Interacao : RaizComCliente
 
     /// <summary>
     /// Registra a interação. Exige texto ou ao menos um anexo; autor cliente só registra EXTERNA. Anexos são
-    /// validados contra a <paramref name="politica"/> (<see cref="AnexoInvalidoException"/>).
+    /// validados contra a <paramref name="politica"/> (<see cref="AnexoInvalidoException"/>). Menções (<c>@{id}</c>) só
+    /// valem em interação INTERNA da equipe e emitem <see cref="PessoasMencionadas"/>; no texto do cliente não são lidas.
     /// </summary>
     public static Interacao Registrar(
         Guid id,
@@ -67,6 +69,9 @@ public sealed class Interacao : RaizComCliente
             throw new ArgumentException("A interação precisa de texto ou de ao menos um anexo.", nameof(texto));
         if (anexos.Count > politica.MaximoPorInteracao)
             throw new AnexoInvalidoException($"No máximo {politica.MaximoPorInteracao} anexos por interação.");
+        IReadOnlyList<Guid> mencionados = autorEhCliente ? [] : Mencoes.Extrair(textoValido, autorId);
+        if (mencionados.Count > 0 && visibilidade != Visibilidade.Interna)
+            throw new ArgumentException("Menção só vale em interação interna: o cliente veria o nome da equipe.", nameof(texto));
 
         var interacao = new Interacao(id, tenantId, clienteId)
         {
@@ -83,6 +88,12 @@ public sealed class Interacao : RaizComCliente
         interacao.Registrar(new InteracaoRegistrada(
             id, tenantId, clienteId, interacao.SolicitacaoId, interacao.AutorId, autorEhCliente, visibilidade,
             interacao.RegistradaEm));
+        if (mencionados.Count > 0)
+        {
+            interacao.Registrar(new PessoasMencionadas(
+                tenantId, AlvoColaboracao.Solicitacao, interacao.SolicitacaoId, id, interacao.AutorId, mencionados));
+        }
+
         return interacao;
     }
 }
