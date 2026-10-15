@@ -7,5 +7,14 @@ public sealed class OrigemDoEvento : IOrigemDoEvento
 {
     public Guid? AutorId { get; private set; }
 
-    public void Definir(Guid? autorId) => AutorId = autorId;
+    public Guid? MensagemId { get; private set; }
+
+    public DateTimeOffset? OcorridoEm { get; private set; }
+
+    public void Definir(Guid? autorId, Guid mensagemId, DateTimeOffset ocorridoEm)
+    {
+        AutorId = autorId;
+        MensagemId = mensagemId;
+        OcorridoEm = ocorridoEm;
+    }
 }

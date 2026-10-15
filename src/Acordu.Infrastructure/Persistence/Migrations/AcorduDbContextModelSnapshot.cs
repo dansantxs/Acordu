@@ -1179,6 +1179,91 @@ namespace Acordu.Infrastructure.Persistence.Migrations
                     b.ToTable("assinaturas_agenda", (string)null);
                 });
 
+            modelBuilder.Entity("Acordu.Infrastructure.Persistence.Atividades.Atividade", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<int>("Alvo")
+                        .HasMaxLength(40)
+                        .HasColumnType("integer")
+                        .HasColumnName("alvo");
+
+                    b.Property<Guid>("AlvoId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("alvo_id");
+
+                    b.Property<bool>("AutorEhCliente")
+                        .HasColumnType("boolean")
+                        .HasColumnName("autor_eh_cliente");
+
+                    b.Property<Guid?>("AutorId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("autor_id");
+
+                    b.Property<Guid>("Chave")
+                        .HasColumnType("uuid")
+                        .HasColumnName("chave");
+
+                    b.Property<Guid?>("ClienteId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("cliente_id");
+
+                    b.Property<DateTimeOffset>("OcorridaEm")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("ocorrida_em");
+
+                    b.Property<Guid?>("ResponsavelId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("responsavel_id");
+
+                    b.Property<long>("Sequencia")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint")
+                        .HasColumnName("sequencia");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityAlwaysColumn(b.Property<long>("Sequencia"));
+
+                    b.Property<string>("StatusDe")
+                        .HasMaxLength(40)
+                        .HasColumnType("character varying(40)")
+                        .HasColumnName("status_de");
+
+                    b.Property<string>("StatusPara")
+                        .HasMaxLength(40)
+                        .HasColumnType("character varying(40)")
+                        .HasColumnName("status_para");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
+                    b.Property<string>("Tipo")
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .HasColumnType("character varying(40)")
+                        .HasColumnName("tipo");
+
+                    b.HasKey("Id")
+                        .HasName("pk_atividades");
+
+                    b.HasIndex("OcorridaEm")
+                        .HasDatabaseName("ix_atividades_ocorrida_em");
+
+                    b.HasIndex("TenantId", "Chave")
+                        .IsUnique()
+                        .HasDatabaseName("ix_atividades_tenant_id_chave");
+
+                    b.HasIndex("TenantId", "Sequencia")
+                        .HasDatabaseName("ix_atividades_tenant_id_sequencia");
+
+                    b.HasIndex("TenantId", "ClienteId", "Sequencia")
+                        .HasDatabaseName("ix_atividades_tenant_id_cliente_id_sequencia");
+
+                    b.ToTable("atividades", (string)null);
+                });
+
             modelBuilder.Entity("Acordu.Infrastructure.Persistence.Auditoria.RegistroAuditoria", b =>
                 {
                     b.Property<Guid>("Id")
