@@ -29,6 +29,9 @@ export const perfil = {
     tenants: [{ id: 't1', nome: 'Prado Consultoria', papel: 'Dono' }],
 }
 
+/** Tempo real sem sinais: a conexão fecha e a casca tenta de novo mais tarde (sem afetar o teste). */
+const semEventos = () => new Response(null, { status: 204 })
+
 export type Rotas = Record<string, (corpo: unknown) => Response>
 
 /** Registra as chamadas (caminho e corpo JSON) e responde pela função do caminho. */
@@ -41,7 +44,7 @@ export function servidor(rotas: Rotas) {
             const texto = await requisicao.text()
             const corpo: unknown = texto ? JSON.parse(texto) : null
             chamadas.push({ caminho, corpo })
-            const resposta = rotas[caminho]
+            const resposta = rotas[caminho] ?? (caminho === '/api/v1/eventos' ? semEventos : undefined)
             if (!resposta) throw new Error(`Sem resposta para ${caminho}`)
             return resposta(corpo)
         }),

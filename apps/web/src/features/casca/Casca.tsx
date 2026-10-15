@@ -2,17 +2,21 @@ import { Outlet } from '@tanstack/react-router'
 import { useState } from 'react'
 import { Button, Dialog, Modal, ModalOverlay } from 'react-aria-components'
 import type { Perfil } from '@/shared/sessao/perfil'
+import { useTempoReal } from '@/shared/tempoReal/useTempoReal'
+import { FaixaConexao } from '@/shared/ui/FaixaConexao'
 import { Icone } from '@/shared/ui/Icone'
 import { CapaLateral } from './CapaLateral'
 import { PaletaComandos, useAtalhoPaleta } from './PaletaComandos'
 
 /**
  * Moldura do app da equipe: capa lateral fixa a partir de `md`; abaixo disso, faixa de couro no topo com o botão que
- * abre a capa como gaveta. A paleta (Ctrl+K) vale em qualquer tela.
+ * abre a capa como gaveta. A paleta (Ctrl+K) vale em qualquer tela, e o tempo real (ADR 0009) fica ligado enquanto a
+ * casca está montada.
  */
 export function Casca({ perfil }: { perfil: Perfil }) {
     const [paletaAberta, setPaletaAberta] = useAtalhoPaleta()
     const [gaveta, setGaveta] = useState(false)
+    useTempoReal(perfil.tenant.id)
     const abrirBusca = () => {
         setGaveta(false)
         setPaletaAberta(true)
@@ -25,6 +29,7 @@ export function Casca({ perfil }: { perfil: Perfil }) {
             </div>
 
             <div className="flex min-w-0 flex-1 flex-col">
+                <FaixaConexao />
                 <div className="flex items-center gap-3 bg-lateral px-4 py-2.5 text-lateral-tinta md:hidden">
                     <Button
                         aria-label="Abrir menu"

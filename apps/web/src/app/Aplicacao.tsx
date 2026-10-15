@@ -1,7 +1,9 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { createRouter, RouterProvider } from '@tanstack/react-router'
 import { routeTree } from '../routeTree.gen'
+import { RegiaoAvisos } from '../shared/avisos/RegiaoAvisos'
 import { assinar, estadoSessao, iniciarSessao } from '../shared/sessao/sessao'
+import { ErroTela } from '../shared/ui/ErroTela'
 // Registra o renovador da sessão no cliente HTTP antes da primeira renovação.
 import '../shared/api/cliente'
 
@@ -17,6 +19,7 @@ export const roteador = createRouter({
     context: { consultas },
     defaultPreload: 'intent',
     defaultPendingMs: 300,
+    defaultErrorComponent: ErroTela,
 })
 
 declare module '@tanstack/react-router' {
@@ -39,6 +42,7 @@ export function Aplicacao() {
     return (
         <QueryClientProvider client={consultas}>
             <RouterProvider router={roteador} />
+            <RegiaoAvisos />
         </QueryClientProvider>
     )
 }
