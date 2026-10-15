@@ -1,0 +1,1019 @@
+{
+  "openapi": "3.1.1",
+  "info": {
+    "title": "Acordu — portal",
+    "version": "v1"
+  },
+  "paths": {
+    "/api/v1/portal/eu": {
+      "get": {
+        "tags": [
+          "Portal"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PortalEuDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/portal/anexos/{id}/download": {
+      "get": {
+        "tags": [
+          "Portal"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "302": {
+            "description": "Found"
+          }
+        }
+      }
+    },
+    "/api/v1/portal/solicitacoes": {
+      "get": {
+        "tags": [
+          "Portal"
+        ],
+        "parameters": [
+          {
+            "name": "statusExterno",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "pagina",
+            "in": "query",
+            "schema": {
+              "pattern": "^-?(?:0|[1-9]\\d*)$",
+              "type": [
+                "integer",
+                "string"
+              ],
+              "format": "int32"
+            }
+          },
+          {
+            "name": "tamanhoPagina",
+            "in": "query",
+            "schema": {
+              "pattern": "^-?(?:0|[1-9]\\d*)$",
+              "type": [
+                "integer",
+                "string"
+              ],
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultadoPaginadoOfSolicitacaoPortalResumoDto"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Portal"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/NovaSolicitacaoPortalRequest"
+              }
+            },
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/NovaSolicitacaoPortalRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SolicitacaoPortalDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/portal/solicitacoes/{id}": {
+      "get": {
+        "tags": [
+          "Portal"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SolicitacaoPortalDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/portal/solicitacoes/{id}/interacoes": {
+      "get": {
+        "tags": [
+          "Portal"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/InteracaoPortalDto"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Portal"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RespostaPortalRequest"
+              }
+            },
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/RespostaPortalRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InteracaoPortalDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/portal/solicitacoes/{id}/aprovacao": {
+      "post": {
+        "tags": [
+          "Portal"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SolicitacaoPortalDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/portal/solicitacoes/{id}/reprovacao": {
+      "post": {
+        "tags": [
+          "Portal"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReprovacaoPortalRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SolicitacaoPortalDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/portal/contratos": {
+      "get": {
+        "tags": [
+          "Portal"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ContratoPortalDto"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/portal/contratos/{id}/extrato": {
+      "get": {
+        "tags": [
+          "Portal"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "periodo",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ExtratoPortalDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "AnexoPortalDto": {
+        "required": [
+          "id",
+          "nomeArquivo",
+          "tipoConteudo",
+          "tamanhoBytes"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "nomeArquivo": {
+            "type": "string"
+          },
+          "tipoConteudo": {
+            "type": "string"
+          },
+          "tamanhoBytes": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int64"
+          }
+        }
+      },
+      "ClientePortalDto": {
+        "required": [
+          "id",
+          "nome"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "nome": {
+            "type": "string"
+          }
+        }
+      },
+      "ContatoPortalDto": {
+        "required": [
+          "id",
+          "nome",
+          "email"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "nome": {
+            "type": "string"
+          },
+          "email": {
+            "type": "string"
+          }
+        }
+      },
+      "ContratoExtratoPortalDto": {
+        "required": [
+          "tipo",
+          "franquiaMinutos"
+        ],
+        "type": "object",
+        "properties": {
+          "tipo": {
+            "$ref": "#/components/schemas/TipoContrato"
+          },
+          "franquiaMinutos": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "null",
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          }
+        }
+      },
+      "ContratoPortalDto": {
+        "required": [
+          "id",
+          "tipo",
+          "inicio",
+          "fim",
+          "franquiaMinutos"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "tipo": {
+            "$ref": "#/components/schemas/TipoContrato"
+          },
+          "inicio": {
+            "type": "string",
+            "format": "date"
+          },
+          "fim": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date"
+          },
+          "franquiaMinutos": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "null",
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          }
+        }
+      },
+      "EscopoPortal": {
+        "enum": [
+          "PROPRIAS",
+          "TODAS_DO_CLIENTE"
+        ]
+      },
+      "ExtratoPortalDto": {
+        "required": [
+          "contrato",
+          "periodo",
+          "consumidoMinutos",
+          "saldoMinutos",
+          "percentual",
+          "itens"
+        ],
+        "type": "object",
+        "properties": {
+          "contrato": {
+            "$ref": "#/components/schemas/ContratoExtratoPortalDto"
+          },
+          "periodo": {
+            "$ref": "#/components/schemas/MesReferencia"
+          },
+          "consumidoMinutos": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "saldoMinutos": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "null",
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "percentual": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "null",
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "itens": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ItemExtratoPortalDto"
+            }
+          }
+        }
+      },
+      "InteracaoPortalDto": {
+        "required": [
+          "id",
+          "texto",
+          "autorNome",
+          "daEquipe",
+          "registradaEm",
+          "anexos"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "texto": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "autorNome": {
+            "type": "string"
+          },
+          "daEquipe": {
+            "type": "boolean"
+          },
+          "registradaEm": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "anexos": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AnexoPortalDto"
+            }
+          }
+        }
+      },
+      "ItemExtratoPortalDto": {
+        "required": [
+          "data",
+          "solicitacaoNumero",
+          "solicitacaoTitulo",
+          "descricao",
+          "duracaoMinutos"
+        ],
+        "type": "object",
+        "properties": {
+          "data": {
+            "type": "string",
+            "format": "date"
+          },
+          "solicitacaoNumero": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "null",
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "solicitacaoTitulo": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "descricao": {
+            "type": "string"
+          },
+          "duracaoMinutos": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          }
+        }
+      },
+      "MesReferencia": {},
+      "NovaSolicitacaoPortalRequest": {
+        "required": [
+          "titulo",
+          "descricao",
+          "prioridade"
+        ],
+        "type": "object",
+        "properties": {
+          "titulo": {
+            "type": "string"
+          },
+          "descricao": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "prioridade": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/Prioridade"
+              }
+            ]
+          }
+        }
+      },
+      "PortalEuDto": {
+        "required": [
+          "contato",
+          "cliente",
+          "prestador",
+          "escopoPortal",
+          "veContratos",
+          "solicitacaoId"
+        ],
+        "type": "object",
+        "properties": {
+          "contato": {
+            "$ref": "#/components/schemas/ContatoPortalDto"
+          },
+          "cliente": {
+            "$ref": "#/components/schemas/ClientePortalDto"
+          },
+          "prestador": {
+            "$ref": "#/components/schemas/PrestadorPortalDto"
+          },
+          "escopoPortal": {
+            "$ref": "#/components/schemas/EscopoPortal"
+          },
+          "veContratos": {
+            "type": "boolean"
+          },
+          "solicitacaoId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          }
+        }
+      },
+      "PrestadorPortalDto": {
+        "required": [
+          "nome"
+        ],
+        "type": "object",
+        "properties": {
+          "nome": {
+            "type": "string"
+          },
+          "logoUrl": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uri"
+          }
+        }
+      },
+      "Prioridade": {
+        "enum": [
+          "BAIXA",
+          "MEDIA",
+          "ALTA",
+          "URGENTE",
+          null
+        ]
+      },
+      "ReprovacaoPortalRequest": {
+        "required": [
+          "motivo"
+        ],
+        "type": "object",
+        "properties": {
+          "motivo": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "ResponsavelPortalDto": {
+        "required": [
+          "nome"
+        ],
+        "type": "object",
+        "properties": {
+          "nome": {
+            "type": "string"
+          }
+        }
+      },
+      "RespostaPortalRequest": {
+        "required": [
+          "texto"
+        ],
+        "type": "object",
+        "properties": {
+          "texto": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "ResultadoPaginadoOfSolicitacaoPortalResumoDto": {
+        "required": [
+          "itens",
+          "pagina",
+          "tamanhoPagina",
+          "total"
+        ],
+        "type": "object",
+        "properties": {
+          "itens": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SolicitacaoPortalResumoDto"
+            }
+          },
+          "pagina": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "tamanhoPagina": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "total": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          }
+        }
+      },
+      "SituacaoSla": {
+        "enum": [
+          "SEM_SLA",
+          "NO_PRAZO",
+          "EM_RISCO",
+          "VIOLADO",
+          "CUMPRIDO"
+        ]
+      },
+      "SlaPortalDto": {
+        "required": [
+          "prazoResolucao",
+          "situacao",
+          "pausado"
+        ],
+        "type": "object",
+        "properties": {
+          "prazoResolucao": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "situacao": {
+            "$ref": "#/components/schemas/SituacaoSla"
+          },
+          "pausado": {
+            "type": "boolean"
+          }
+        }
+      },
+      "SolicitacaoPortalDto": {
+        "required": [
+          "id",
+          "numero",
+          "titulo",
+          "descricao",
+          "statusExterno",
+          "abertaEm",
+          "responsavel",
+          "sla",
+          "tarefasVisiveis",
+          "tempoVisivelMinutos",
+          "podeAprovar"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "numero": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "titulo": {
+            "type": "string"
+          },
+          "descricao": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "statusExterno": {
+            "$ref": "#/components/schemas/StatusExterno"
+          },
+          "abertaEm": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "responsavel": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/ResponsavelPortalDto"
+              }
+            ]
+          },
+          "sla": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/SlaPortalDto"
+              }
+            ]
+          },
+          "tarefasVisiveis": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TarefaPortalDto"
+            }
+          },
+          "tempoVisivelMinutos": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "podeAprovar": {
+            "type": "boolean"
+          }
+        }
+      },
+      "SolicitacaoPortalResumoDto": {
+        "required": [
+          "id",
+          "numero",
+          "titulo",
+          "statusExterno",
+          "abertaEm",
+          "podeAprovar"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "numero": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "titulo": {
+            "type": "string"
+          },
+          "statusExterno": {
+            "$ref": "#/components/schemas/StatusExterno"
+          },
+          "abertaEm": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "podeAprovar": {
+            "type": "boolean"
+          }
+        }
+      },
+      "StatusExterno": {
+        "enum": [
+          "RECEBIDA",
+          "EM_ANDAMENTO",
+          "AGUARDANDO_VOCE",
+          "CONCLUIDA",
+          "CANCELADA"
+        ]
+      },
+      "StatusTarefa": {
+        "enum": [
+          "A_FAZER",
+          "FAZENDO",
+          "CONCLUIDA",
+          "CANCELADA"
+        ]
+      },
+      "TarefaPortalDto": {
+        "required": [
+          "titulo",
+          "status"
+        ],
+        "type": "object",
+        "properties": {
+          "titulo": {
+            "type": "string"
+          },
+          "status": {
+            "$ref": "#/components/schemas/StatusTarefa"
+          }
+        }
+      },
+      "TipoContrato": {
+        "enum": [
+          "MENSAL_FIXO",
+          "BANCO_HORAS",
+          "AVULSO"
+        ]
+      }
+    },
+    "securitySchemes": {
+      "Bearer": {
+        "type": "http",
+        "description": "Access token de /api/v1/auth/login ou /auth/registro.",
+        "scheme": "bearer",
+        "bearerFormat": "JWT"
+      }
+    }
+  },
+  "security": [
+    {
+      "Bearer": []
+    }
+  ],
+  "tags": [
+    {
+      "name": "testhost"
+    },
+    {
+      "name": "Portal"
+    }
+  ]
+}
