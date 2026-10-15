@@ -15,9 +15,13 @@ public sealed class UnitOfWork : IUnitOfWork
     private readonly DespachanteEventos _despachante;
     private readonly TimeProvider _relogio;
     private readonly MensagensDaRequisicao _mensagens;
+    private readonly ITenantContext _contexto;
 
-    public UnitOfWork(AcorduDbContext db, DespachanteEventos despachante, TimeProvider relogio, MensagensDaRequisicao mensagens)
+    public UnitOfWork(
+        AcorduDbContext db, DespachanteEventos despachante, TimeProvider relogio, MensagensDaRequisicao mensagens, ITenantContext contexto)
     {
+        ArgumentNullException.ThrowIfNull(contexto);
+        _contexto = contexto;
         ArgumentNullException.ThrowIfNull(db);
         ArgumentNullException.ThrowIfNull(despachante);
         ArgumentNullException.ThrowIfNull(relogio);
@@ -39,7 +43,8 @@ public sealed class UnitOfWork : IUnitOfWork
             foreach (var (evento, tenantId) in eventos)
             {
                 var mensagem = new MensagemOutbox(
-                    Guid.CreateVersion7(), tenantId, SerializadorEventos.Tipo(evento), SerializadorEventos.Serializar(evento), agora);
+                    Guid.CreateVersion7(), tenantId, SerializadorEventos.Tipo(evento), SerializadorEventos.Serializar(evento), agora,
+                    _contexto.UsuarioId);
                 _db.Add(mensagem);
                 gravadas.Add(mensagem.Id);
             }

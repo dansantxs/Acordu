@@ -1,4 +1,5 @@
 using Acordu.Application.Abstractions;
+using Acordu.Application.Abstractions.Eventos;
 using Acordu.Application.Agenda;
 using Acordu.Application.Apontamentos;
 using Acordu.Application.Auditoria;
@@ -22,6 +23,7 @@ using Acordu.Infrastructure.Agendamento;
 using Acordu.Infrastructure.MultiTenancy;
 using Acordu.Infrastructure.Persistence;
 using Acordu.Infrastructure.Persistence.Auditoria;
+using Acordu.Infrastructure.Persistence.Colaboracao;
 using Acordu.Infrastructure.Persistence.Consultas;
 using Acordu.Infrastructure.Persistence.Eventos;
 using Acordu.Infrastructure.Persistence.Notificacoes;
@@ -53,6 +55,8 @@ public static class DependencyInjection
 
         services.AddScoped<DespachanteEventos>();
         services.AddScoped<MensagensDaRequisicao>();
+        services.AddScoped<OrigemDoEvento>();
+        services.AddScoped<IOrigemDoEvento>(sp => sp.GetRequiredService<OrigemDoEvento>());
         services.AddScoped<IUnitOfWork, UnitOfWork>();
         services.AddScoped(typeof(IRepositorio<>), typeof(Repositorio<>));
         services.AddScoped<IGeradorProtocolo, GeradorProtocolo>();
@@ -69,6 +73,7 @@ public static class DependencyInjection
         services.AddSingleton<ExpurgoAuditoria>();
         services.AddScoped<INotificacoes, RegistroNotificacoes>();
         services.AddScoped<IPreferenciasNotificacao, PreferenciasNotificacao>();
+        services.AddScoped<ISeguidores, RegistroSeguidores>();
         services.AddSingleton<ExpurgoNotificacoes>();
         services.AddScoped<IConvitesEquipe, ConvitesEquipe>();
         services.AddScoped<IConsultasEquipe, ConsultasEquipe>();

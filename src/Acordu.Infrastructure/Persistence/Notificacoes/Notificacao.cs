@@ -45,7 +45,10 @@ public sealed class Notificacao
         Enum.GetValues<CategoriaAviso>().First(c => Texto(c) == texto);
 }
 
-/// <summary>Categorias de e-mail desligadas por pessoa e tenant (RF-NOT-04). Ausente = tudo ligado.</summary>
+/// <summary>
+/// Categorias de e-mail fora do padrão por pessoa e tenant (RF-NOT-04): desligadas, nas ligadas por padrão; ligadas, nas
+/// desligadas por padrão. Ausente = padrão.
+/// </summary>
 public sealed class PreferenciaNotificacao
 {
     public PreferenciaNotificacao(Guid tenantId, Guid usuarioId)

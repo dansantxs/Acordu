@@ -8,9 +8,10 @@ public sealed class MensagemOutbox
 {
     public const int MaximoTentativas = 5;
 
-    public MensagemOutbox(Guid id, Guid tenantId, string tipo, string conteudo, DateTimeOffset ocorridaEm)
+    public MensagemOutbox(Guid id, Guid tenantId, string tipo, string conteudo, DateTimeOffset ocorridaEm, Guid? autorId = null)
     {
         Id = id;
+        AutorId = autorId;
         TenantId = tenantId;
         Tipo = tipo;
         Conteudo = conteudo;
@@ -32,6 +33,9 @@ public sealed class MensagemOutbox
     public string Conteudo { get; private set; }
 
     public DateTimeOffset OcorridaEm { get; private set; }
+
+    /// <summary>Usuário da requisição que gravou o evento (nulo em job); chega aos manipuladores pelo <c>IOrigemDoEvento</c>.</summary>
+    public Guid? AutorId { get; private set; }
 
     public DateTimeOffset? ProcessadaEm { get; private set; }
 
