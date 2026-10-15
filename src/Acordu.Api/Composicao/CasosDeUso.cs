@@ -2,6 +2,7 @@ using Acordu.Application.Abstractions.Eventos;
 using Acordu.Application.Agenda;
 using Acordu.Application.Anexos;
 using Acordu.Application.Apontamentos;
+using Acordu.Application.Atividades;
 using Acordu.Application.Auditoria;
 using Acordu.Application.Capacidade;
 using Acordu.Application.Categorias;
@@ -104,6 +105,18 @@ internal static class CasosDeUso
         services.AddScoped<IManipuladorPosCommit<ComentarioTarefaRegistrado>>(sp => sp.GetRequiredService<AvisosAosSeguidores>());
         services.AddScoped<IManipuladorPosCommit<SolicitacaoStatusAlterado>>(sp => sp.GetRequiredService<AvisosAosSeguidores>());
         services.AddScoped<IManipuladorPosCommit<TarefaStatusAlterada>>(sp => sp.GetRequiredService<AvisosAosSeguidores>());
+
+        // Feed de atividade (RF-COL-05).
+        services.AddScoped<LeituraAtividades>();
+        services.AddScoped<RegistroDeAtividades>();
+        services.AddScoped<IManipuladorPosCommit<SolicitacaoAberta>>(sp => sp.GetRequiredService<RegistroDeAtividades>());
+        services.AddScoped<IManipuladorPosCommit<SolicitacaoAtribuida>>(sp => sp.GetRequiredService<RegistroDeAtividades>());
+        services.AddScoped<IManipuladorPosCommit<SolicitacaoStatusAlterado>>(sp => sp.GetRequiredService<RegistroDeAtividades>());
+        services.AddScoped<IManipuladorPosCommit<InteracaoRegistrada>>(sp => sp.GetRequiredService<RegistroDeAtividades>());
+        services.AddScoped<IManipuladorPosCommit<TarefaCriada>>(sp => sp.GetRequiredService<RegistroDeAtividades>());
+        services.AddScoped<IManipuladorPosCommit<TarefaAtribuida>>(sp => sp.GetRequiredService<RegistroDeAtividades>());
+        services.AddScoped<IManipuladorPosCommit<TarefaStatusAlterada>>(sp => sp.GetRequiredService<RegistroDeAtividades>());
+        services.AddScoped<IManipuladorPosCommit<ComentarioTarefaRegistrado>>(sp => sp.GetRequiredService<RegistroDeAtividades>());
         services.AddScoped<AlertasSla>();
 
         // Alertas de consumo de contrato (RF-CTR-07).
