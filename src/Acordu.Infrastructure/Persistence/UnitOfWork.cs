@@ -1,6 +1,7 @@
 using Acordu.Application.Abstractions;
 using Acordu.Infrastructure.Persistence.Eventos;
 using Acordu.Infrastructure.Persistence.Outbox;
+using Acordu.Infrastructure.TempoReal;
 using Microsoft.EntityFrameworkCore;
 
 namespace Acordu.Infrastructure.Persistence;
@@ -8,6 +9,7 @@ namespace Acordu.Infrastructure.Persistence;
 /// <summary>
 /// Transação do caso de uso: despacha os eventos para os manipuladores internos, grava a outbox com todos eles,
 /// salva e faz o commit (inclusive de uma transação já aberta pelo <c>GeradorProtocolo</c>). Qualquer falha desfaz tudo.
+/// Depois do commit, publica os sinais de mudança para o tempo real (ADR 0009).
 /// </summary>
 public sealed class UnitOfWork : IUnitOfWork
 {
@@ -16,10 +18,18 @@ public sealed class UnitOfWork : IUnitOfWork
     private readonly TimeProvider _relogio;
     private readonly MensagensDaRequisicao _mensagens;
     private readonly ITenantContext _contexto;
+    private readonly DifusorSinais _difusor;
 
     public UnitOfWork(
-        AcorduDbContext db, DespachanteEventos despachante, TimeProvider relogio, MensagensDaRequisicao mensagens, ITenantContext contexto)
+        AcorduDbContext db,
+        DespachanteEventos despachante,
+        TimeProvider relogio,
+        MensagensDaRequisicao mensagens,
+        ITenantContext contexto,
+        DifusorSinais difusor)
     {
+        ArgumentNullException.ThrowIfNull(difusor);
+        _difusor = difusor;
         ArgumentNullException.ThrowIfNull(contexto);
         _contexto = contexto;
         ArgumentNullException.ThrowIfNull(db);
@@ -49,9 +59,12 @@ public sealed class UnitOfWork : IUnitOfWork
                 gravadas.Add(mensagem.Id);
             }
 
+            var sinais = ColetorSinais.Coletar(_db.ChangeTracker);
             await _db.SaveChangesAsync(cancellationToken);
             await transacao.CommitAsync(cancellationToken);
             _mensagens.Adicionar(gravadas);
+            foreach (var porTenant in sinais.GroupBy(s => s.TenantId))
+                _difusor.Publicar(porTenant.Key, porTenant.Select(s => s.Sinal));
         }
         catch
         {

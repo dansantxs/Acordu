@@ -30,6 +30,7 @@ using Acordu.Infrastructure.Persistence.Notificacoes;
 using Acordu.Infrastructure.Persistence.Outbox;
 using Acordu.Infrastructure.Persistence.Protocolo;
 using Acordu.Infrastructure.Seguranca;
+using Acordu.Infrastructure.TempoReal;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
@@ -55,6 +56,7 @@ public static class DependencyInjection
 
         services.AddScoped<DespachanteEventos>();
         services.AddScoped<MensagensDaRequisicao>();
+        services.AddSingleton<DifusorSinais>();
         services.AddScoped<OrigemDoEvento>();
         services.AddScoped<IOrigemDoEvento>(sp => sp.GetRequiredService<OrigemDoEvento>());
         services.AddScoped<IUnitOfWork, UnitOfWork>();
