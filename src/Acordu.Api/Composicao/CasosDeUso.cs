@@ -86,6 +86,22 @@ internal static class CasosDeUso
         services.AddScoped<IManipuladorPosCommit<SolicitacaoAberta>>(sp => sp.GetRequiredService<AvisosAEquipe>());
         services.AddScoped<IManipuladorPosCommit<SolicitacaoAtribuida>>(sp => sp.GetRequiredService<AvisosAEquipe>());
         services.AddScoped<IManipuladorPosCommit<PessoasMencionadas>, AvisosDeMencao>();
+
+        // Seguidores (RF-COL-03): seguimento automático e avisos SEGUIDAS.
+        services.AddScoped<ComandosSeguimento>();
+        services.AddScoped<SeguimentoAutomatico>();
+        services.AddScoped<IManipuladorPosCommit<SolicitacaoAberta>>(sp => sp.GetRequiredService<SeguimentoAutomatico>());
+        services.AddScoped<IManipuladorPosCommit<SolicitacaoAtribuida>>(sp => sp.GetRequiredService<SeguimentoAutomatico>());
+        services.AddScoped<IManipuladorPosCommit<InteracaoRegistrada>>(sp => sp.GetRequiredService<SeguimentoAutomatico>());
+        services.AddScoped<IManipuladorPosCommit<PessoasMencionadas>>(sp => sp.GetRequiredService<SeguimentoAutomatico>());
+        services.AddScoped<IManipuladorPosCommit<TarefaCriada>>(sp => sp.GetRequiredService<SeguimentoAutomatico>());
+        services.AddScoped<IManipuladorPosCommit<TarefaAtribuida>>(sp => sp.GetRequiredService<SeguimentoAutomatico>());
+        services.AddScoped<IManipuladorPosCommit<ComentarioTarefaRegistrado>>(sp => sp.GetRequiredService<SeguimentoAutomatico>());
+        services.AddScoped<AvisosAosSeguidores>();
+        services.AddScoped<IManipuladorPosCommit<InteracaoRegistrada>>(sp => sp.GetRequiredService<AvisosAosSeguidores>());
+        services.AddScoped<IManipuladorPosCommit<ComentarioTarefaRegistrado>>(sp => sp.GetRequiredService<AvisosAosSeguidores>());
+        services.AddScoped<IManipuladorPosCommit<SolicitacaoStatusAlterado>>(sp => sp.GetRequiredService<AvisosAosSeguidores>());
+        services.AddScoped<IManipuladorPosCommit<TarefaStatusAlterada>>(sp => sp.GetRequiredService<AvisosAosSeguidores>());
         services.AddScoped<AlertasSla>();
 
         // Alertas de consumo de contrato (RF-CTR-07).
