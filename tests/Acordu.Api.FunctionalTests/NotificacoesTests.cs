@@ -71,12 +71,18 @@ public sealed class NotificacoesTests(ApiFixture api)
         }, membro);
         await Cenarios.SolicitacaoAsync(equipe, cliente);
 
-        padrao.GetProperty("categorias").GetArrayLength().Should().Be(5);
-        padrao.GetProperty("categorias").EnumerateArray().Should().OnlyContain(c => c.GetProperty("email").GetBoolean());
+        padrao.GetProperty("categorias").GetArrayLength().Should().Be(6);
+        padrao.GetProperty("categorias").EnumerateArray()
+            .Where(c => c.GetProperty("categoria").GetString() != "SEGUIDAS")
+            .Should().OnlyContain(c => c.GetProperty("email").GetBoolean());
+        padrao.GetProperty("categorias").EnumerateArray()
+            .Single(c => c.GetProperty("categoria").GetString() == "SEGUIDAS").GetProperty("email").GetBoolean().Should().BeFalse();
         salvas.GetProperty("categorias").EnumerateArray()
             .Single(c => c.GetProperty("categoria").GetString() == "NOVA_SOLICITACAO").GetProperty("email").GetBoolean().Should().BeFalse();
         salvas.GetProperty("categorias").EnumerateArray()
             .Single(c => c.GetProperty("categoria").GetString() == "SLA").GetProperty("email").GetBoolean().Should().BeTrue();
+        salvas.GetProperty("categorias").EnumerateArray()
+            .Single(c => c.GetProperty("categoria").GetString() == "SEGUIDAS").GetProperty("email").GetBoolean().Should().BeFalse("ausente volta ao padrão");
         api.Emails.Para(email).Should().NotContain(m => m.Categoria == "aviso-nova-solicitacao");
         (await equipe.EsperarAsync(HttpStatusCode.OK, HttpMethod.Get, "/api/v1/notificacoes", token: membro))
             .GetProperty("naoLidas").GetInt32().Should().Be(1);

@@ -182,8 +182,49 @@ public sealed class TarefaTests
 
             tarefa.Concluir();
 
-            tarefa.Eventos.Should().ContainSingle();
-            tarefa.Eventos[0].Should().Be(new TarefaConcluida(tarefa.Id, Calendarios.Tenant, Contratos.Cliente, Solicitacao, null));
+            tarefa.Eventos.Should().HaveCount(2);
+            var status = (TarefaStatusAlterada)tarefa.Eventos[0];
+            (status.De, status.Para).Should().Be((StatusTarefa.Fazendo, StatusTarefa.Concluida));
+            tarefa.Eventos[1].Should().Be(new TarefaConcluida(tarefa.Id, Calendarios.Tenant, Contratos.Cliente, Solicitacao, null));
+        }
+
+        [Fact]
+        public void Transicoes_TemOcorrenciasDistintas()
+        {
+            var tarefa = Em(StatusTarefa.Fazendo);
+
+            tarefa.Concluir();
+            tarefa.Reabrir();
+            tarefa.Concluir();
+
+            var ocorrencias = tarefa.Eventos.OfType<TarefaStatusAlterada>().Select(e => e.Ocorrencia).ToList();
+            ocorrencias.Should().HaveCount(3);
+            ocorrencias.Distinct().Count().Should().Be(3);
+        }
+
+        [Fact]
+        public void Criar_EmiteTarefaCriadaComResponsavel()
+        {
+            var responsavel = Guid.NewGuid();
+
+            var tarefa = Tarefa.Criar(
+                Guid.NewGuid(), Calendarios.Tenant, "Arte", null, null, null, null, responsavel, null, null, false);
+
+            tarefa.Eventos.Should().HaveCount(1);
+            tarefa.Eventos[0].Should().Be(new TarefaCriada(tarefa.Id, Calendarios.Tenant, responsavel));
+        }
+
+        [Fact]
+        public void Atribuir_SoEmiteQuandoMuda()
+        {
+            var tarefa = Em(StatusTarefa.AFazer);
+            var nova = Guid.NewGuid();
+
+            tarefa.Atribuir(nova);
+            tarefa.Atribuir(nova);
+
+            tarefa.Eventos.Should().HaveCount(1);
+            tarefa.Eventos[0].Should().Be(new TarefaAtribuida(tarefa.Id, Calendarios.Tenant, nova, null));
         }
 
         private static IEnumerable<(StatusTarefa Origem, string Operacao)> CelulasInvalidas() =>

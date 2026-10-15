@@ -14,7 +14,7 @@ public sealed class ProcessadorOutboxTests(BancoFixture banco)
     private readonly Guid _tenant = Guid.NewGuid();
     private readonly Registro _registro = new();
 
-    /// <summary>Grava uma tarefa e um apontamento pela unidade de trabalho (gera ApontamentoRegistrado na outbox).</summary>
+    /// <summary>Grava uma tarefa e um apontamento pela unidade de trabalho (gera TarefaCriada e ApontamentoRegistrado na outbox; os testes olham só o segundo).</summary>
     private async Task<Apontamento> ApontarAsync(Servicos servicos)
     {
         await using var escopo = servicos.DaEquipe(_tenant);
@@ -29,7 +29,7 @@ public sealed class ProcessadorOutboxTests(BancoFixture banco)
     private async Task<MensagemOutbox> MensagemAsync()
     {
         await using var db = banco.DaEquipe(_tenant);
-        return await db.Set<MensagemOutbox>().SingleAsync(m => m.TenantId == _tenant);
+        return await db.Set<MensagemOutbox>().SingleAsync(m => m.TenantId == _tenant && m.Tipo == nameof(ApontamentoRegistrado));
     }
 
     /// <summary>Processa até esvaziar o que está vencido (a outbox é compartilhada pelos testes da coleção).</summary>
@@ -129,7 +129,7 @@ public sealed class ProcessadorOutboxTests(BancoFixture banco)
         await ProcessarTudoAsync(servicos);
 
         await using var db = banco.DaEquipe(_tenant);
-        var mensagens = await db.Set<MensagemOutbox>().Where(m => m.TenantId == _tenant).OrderBy(m => m.Sequencia).ToListAsync();
+        var mensagens = await db.Set<MensagemOutbox>().Where(m => m.TenantId == _tenant && m.Tipo == nameof(ApontamentoRegistrado)).OrderBy(m => m.Sequencia).ToListAsync();
         mensagens.Should().HaveCount(2);
         mensagens[0].Tentativas.Should().Be(1);
         mensagens[1].ProcessadaEm.Should().NotBeNull();
