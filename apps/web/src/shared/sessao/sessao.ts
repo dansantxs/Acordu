@@ -14,7 +14,11 @@ export interface TokenDeAcesso {
     expiraEm: string
 }
 
-export type Situacao = 'carregando' | 'anonima' | 'ativa'
+/**
+ * `indisponivel`: a primeira renovação não teve resposta conclusiva (sem rede, 429, erro do servidor). A sessão pode
+ * continuar valendo, então o app oferece tentar de novo em vez de mandar para o login.
+ */
+export type Situacao = 'carregando' | 'anonima' | 'ativa' | 'indisponivel'
 
 /** Por que a sessão mudou: `troca` é outra empresa ou outro usuário (o cache inteiro deixa de valer). */
 export type Motivo = 'inicio' | 'renovacao' | 'troca' | 'encerramento'
@@ -141,9 +145,18 @@ export async function iniciarSessao(): Promise<void> {
     try {
         await renovar()
     } catch {
-        // Sem rede na primeira carga: trata como anônima; o login mostra o erro se continuar assim.
-        if (estado.situacao === 'carregando') mudar({ situacao: 'anonima', motivo: 'inicio' })
+        // Só um 401 diz que não há sessão; qualquer outra falha deixa a dúvida.
+        if (estado.situacao === 'carregando') mudar({ situacao: 'indisponivel', motivo: 'inicio' })
     }
+}
+
+/** Nova tentativa depois de `indisponivel` (botão "Tentar de novo"). Resolve com o estado ao fim. */
+export async function tentarDeNovo(): Promise<EstadoSessao> {
+    if (estado.situacao === 'indisponivel') {
+        mudar({ situacao: 'carregando', motivo: 'inicio' })
+        await iniciarSessao()
+    }
+    return estado
 }
 
 /** Resolve quando a sessão deixa de estar carregando. */

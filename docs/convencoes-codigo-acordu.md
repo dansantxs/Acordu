@@ -87,7 +87,7 @@
   - ESLint (typescript-eslint) e Prettier (sem ponto e vírgula, aspas simples, 120 colunas).
 - **(Acordu, F1) Sessão** (`shared/sessao`, ADR 0007):
   - o access token fica só na memória do módulo `sessao.ts`; o cliente HTTP o pede a cada requisição;
-  - renovar é serializado: na aba, uma promessa compartilhada; entre abas, o Web Lock `acordu-refresh`, e quem renova anuncia o token novo no `BroadcastChannel` `acordu-sessao`. Falha de rede não é repetida; só um 401 do refresh encerra a sessão;
+  - renovar é serializado: na aba, uma promessa compartilhada; entre abas, o Web Lock `acordu-refresh`, e quem renova anuncia o token novo no `BroadcastChannel` `acordu-sessao`. Falha de rede não é repetida; só um 401 do refresh encerra a sessão. Na primeira carga, falha sem 401 (sem rede, 429, 5xx) deixa a sessão `indisponivel`: as guardas mostram "Não deu para conectar" com "Tentar de novo", e não o login, porque a sessão pode estar valendo;
   - o cliente renova antes de enviar quando faltam menos de 60 s e repete uma vez depois de um 401. As rotas de `/auth` que abrem ou dispensam sessão ficam fora disso;
   - login, cadastro, aceite de convite e troca de empresa chamam `abrirSessao`; logout e refresh recusado, `encerrarSessao`. As duas valem para todas as abas e limpam o cache do TanStack Query;
   - guarda das rotas no layout `_app` (sem sessão → `/entrar?voltar=`, contato de cliente → `/portal`); o perfil (`GET /auth/eu`) vai para o contexto das rotas. `?voltar=` só aceita caminho interno;
