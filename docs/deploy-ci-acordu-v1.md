@@ -45,14 +45,21 @@ Internet ── 80/443
 ### 2.1 Roteamento (bloco `docker/Caddyfile.acordu`, importado pelo Caddy de infra)
 ```
 acordu.app.br {
-    encode zstd gzip
+    # Tempo real (ADR 0009): sem compressão e sem buffer.
+    handle /api/v1/eventos {
+        reverse_proxy acordu-api:8080 {
+            flush_interval -1
+        }
+    }
     handle /api/* {
+        encode zstd gzip
         reverse_proxy acordu-api:8080
     }
     handle /internal/* {
         respond 404
     }
     handle {
+        encode zstd gzip
         reverse_proxy acordu-web:80
     }
     header {

@@ -179,6 +179,7 @@ internal static class ComposicaoApi
         grupos.Interno.MapSeguidores();
         grupos.Interno.MapAgenda();
         grupos.Interno.MapNotificacoes();
+        grupos.Interno.MapEventos();
         grupos.Portal.MapPortal();
         return grupos;
     }

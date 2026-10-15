@@ -628,6 +628,30 @@ Decidido no marco 13 (14/10):
 
 ---
 
+## 11e. Tempo real — SSE (marco 15b, RF-COL-04, ADR 0009)
+
+| Método | Rota | Descrição | Permissão |
+|---|---|---|---|
+| GET | `/eventos` | `text/event-stream` com os sinais de mudança do tenant. | equipe (qualquer papel interno; contato `403`) |
+
+```
+retry: 5000
+
+event: mudanca
+data: {"tipo":"tarefa","id":"t1..."}
+
+: vivo
+```
+
+Decidido no marco 15 (14/10):
+- O front lê com `fetch` (que envia o `Authorization`), não com `EventSource`.
+- **Só sinais:** `tipo` ∈ `solicitacao`, `tarefa`, `projeto`, `recorrencia`, `contrato`, `cliente`, mais o `id`. O front invalida as consultas daquele item (e as listas e agenda que o contêm) e busca de novo pela API.
+- **Origem:** toda gravação de caso de uso, depois do commit. Interação e comentário chegam como o item onde aparecem, e apontamento chega como a tarefa.
+- **Não sinalizam:** sino, seguidores e preferências.
+- **Comentário `: vivo` a cada 25 s.** Conexão lenta pode perder sinal; o front revalida ao focar a janela.
+
+---
+
 ## 12. Portal do cliente (`/api/v1/portal`)
 
 Todas as rotas aplicam o filtro por `ClienteId` (e `ContatoId` se `escopoPortal = PROPRIAS`). Sessão de **link** acessa só as rotas marcadas com ✓L, e só a sua solicitação.
