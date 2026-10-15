@@ -18,6 +18,7 @@
     "format:check": "prettier --check .",
     "test": "vitest run",
     "test:watch": "vitest",
+    "e2e": "playwright test",
     "api:tipos": "openapi-typescript ../../openapi/interno.json -o src/shared/api/interno.d.ts && openapi-typescript ../../openapi/portal.json -o src/shared/api/portal.d.ts && prettier --write src/shared/api/*.d.ts"
   },
   "dependencies": {
@@ -32,6 +33,7 @@
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
+    "@playwright/test": "1.56.0",
     "@tailwindcss/vite": "^4.3.3",
     "@tanstack/router-cli": "^1.167.44",
     "@tanstack/router-plugin": "^1.168.46",
