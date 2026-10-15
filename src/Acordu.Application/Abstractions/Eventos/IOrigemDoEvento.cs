@@ -7,4 +7,10 @@ namespace Acordu.Application.Abstractions.Eventos;
 public interface IOrigemDoEvento
 {
     Guid? AutorId { get; }
+
+    /// <summary>Id da mensagem da outbox: identifica a ocorrência do evento (idempotência de quem grava por evento).</summary>
+    Guid? MensagemId { get; }
+
+    /// <summary>Quando o evento foi gravado (commit do caso de uso).</summary>
+    DateTimeOffset? OcorridoEm { get; }
 }
