@@ -368,6 +368,22 @@ Decidido no marco 14 (14/10): comentário de tarefa é só da equipe (nunca no p
 
 **Menções (14b, RF-COL-02):** em comentário de tarefa e em interação **interna** da solicitação, o texto pode citar pessoas como `@{usuarioId}` (o front troca pelo nome na exibição e monta o token na digitação, a partir de `GET /usuarios` ou da equipe da agenda). Só vale mencionar quem é da equipe e pode ver o alvo (`tarefa.ver` ou `solicitacao.ver`); fora disso, menção em interação EXTERNA ou mais de 20 pessoas → `400` em `errors.texto`. O texto volta como foi gravado, com os tokens.
 
+### 8.1b Seguidores (marco 14c, RF-COL-03)
+
+| Método | Rota | Descrição | Permissão |
+|---|---|---|---|
+| GET | `/solicitacoes/{id}/seguidores` · `/tarefas/{id}/seguidores` | Quem segue: `[{ id, nome }]`, por nome. | `solicitacao.ver` · `tarefa.ver` |
+| PUT | `…/seguidores/eu` | Passa a seguir → `204` (idempotente). | idem |
+| DELETE | `…/seguidores/eu` | Deixa de seguir → `204`. | idem |
+
+Decidido no marco 14 (14/10):
+- **Quem segue automaticamente:**
+  - na solicitação: quem abriu pela equipe, o responsável (e cada novo responsável), quem registra interação e quem é mencionado;
+  - na tarefa: quem criou (nenhum, se veio de recorrência), o responsável, quem comenta e quem é mencionado.
+  - Só pessoas da equipe; o contato do cliente nunca segue.
+- **Deixar de seguir** vale até o próximo gatilho: comentar de novo, ser mencionado ou virar responsável faz seguir outra vez.
+- **Avisos:** são os da categoria `SEGUIDAS` (§12b). Os seguidores ficam fora dos agregados, numa tabela própria (`seguidores`), como o sino.
+
 ### 8.2 Projetos
 
 | Método | Rota | Descrição | Permissão |
@@ -460,9 +476,9 @@ Decidido na implementação (6c3):
 | GET/PUT | `/notificacoes/preferencias` | Quais e-mails receber (RF-NOT-04). | autenticado |
 
 **Notificações (11b).** O sino recebe os mesmos avisos internos dos e-mails (§12b): nova solicitação, atribuição, SLA em risco/violado e consumo de contrato. Só a equipe (contato → 403); cada pessoa vê as suas.
-- `GET /notificacoes` → `{ itens: [{ id, categoria, titulo, link, criadaEm, lidaEm }], pagina, tamanhoPagina, total, naoLidas }`, mais recentes primeiro; `categoria`: `NOVA_SOLICITACAO`, `ATRIBUICAO`, `SLA`, `CONSUMO`, `MENCAO`; `link` aponta para a solicitação, a tarefa ou o contrato no app.
+- `GET /notificacoes` → `{ itens: [{ id, categoria, titulo, link, criadaEm, lidaEm }], pagina, tamanhoPagina, total, naoLidas }`, mais recentes primeiro; `categoria`: `NOVA_SOLICITACAO`, `ATRIBUICAO`, `SLA`, `CONSUMO`, `MENCAO`, `SEGUIDAS`; `link` aponta para a solicitação, a tarefa ou o contrato no app.
 - `POST /notificacoes/{id}/leitura` e `POST /notificacoes/leitura` (todas) → `204`; de outra pessoa → `404`. Notificações com mais de 90 dias são apagadas pelo job diário.
-- `GET/PUT /notificacoes/preferencias` `{ categorias: [{ categoria, email }] }`: desliga o **e-mail** de uma categoria (no PUT, categoria ausente = ligada); o sino continua. E-mails de conta e os enviados ao contato não entram.
+- `GET/PUT /notificacoes/preferencias` `{ categorias: [{ categoria, email }] }`: liga ou desliga o **e-mail** de uma categoria (no PUT, categoria ausente volta ao padrão: ligada, exceto `SEGUIDAS`, que nasce desligada); o sino continua. E-mails de conta e os enviados ao contato não entram.
 
 **GET `/dashboard`** (`?de=&ate=`, datas no fuso do tenant; padrão: o mês corrente; até 366 dias, senão `400` em `errors.ate`)
 ```json
@@ -675,6 +691,7 @@ Sem rota própria: saem depois do commit quando a solicitação tem contato ativ
 | Solicitação aberta (equipe ou portal) | Responsável; sem ele, quem tem `solicitacao.editar`. Nunca quem abriu. |
 | Responsável alterado | O novo responsável, se não atribuiu a si mesmo. |
 | Menção (`MENCAO`, 14b) em interação interna ou comentário de tarefa | Cada pessoa mencionada que ainda é da equipe (nunca o autor). Sino com "{autor} mencionou você na solicitação #N …" ou "na tarefa …"; e-mail com um trecho de até 280 caracteres em que as menções viram `@Nome`. Um aviso por (interação ou comentário, pessoa). |
+| Novidade no que a pessoa segue (`SEGUIDAS`, 14c): interação na solicitação, comentário na tarefa, mudança de status | Quem segue o item e ainda pode vê-lo, menos quem causou o evento e quem foi mencionado no mesmo texto (recebe a `MENCAO`). E-mail desligado por padrão; o sino sempre. |
 | SLA em risco (75% do prazo útil) ou violado | Responsável; sem ele, quem tem `solicitacao.editar`. Verificado no `tick`; situação = a pior entre primeira resposta e resolução (read side §5); um alerta por (solicitação, ciclo do SLA, situação); reabrir inicia novo ciclo. |
 
 O `tick` responde também `alertasSla` (solicitações alertadas), `tarefasRecorrentes` (tarefas geradas, §10) e `falhas` (tenants com erro em algum dos passos, logados).
