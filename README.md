@@ -149,7 +149,7 @@ Regra de higiene: **decisão de arquitetura vira ADR**; **convenção de código
 
 > Os passos se ativam conforme o código nasce.
 
-**Pré-requisitos:** .NET 10 SDK, Node LTS, Docker.
+**Pré-requisitos:** .NET 10 SDK, Node 22 com pnpm (`corepack enable`), Docker.
 
 ```
 # Postgres local (porta 5434)
@@ -159,8 +159,8 @@ docker compose -f docker-compose.dev.yml up -d
 dotnet build
 dotnet run --project src/Acordu.Api
 
-# frontend
-cd apps/web && npm install && npm run dev
+# frontend (http://localhost:5173, com /api encaminhado para a API em http://localhost:5080)
+cd apps/web && pnpm install && pnpm dev
 ```
 
 Configuração sensível em variáveis de ambiente / `.env` (nunca commitado).
@@ -171,8 +171,10 @@ Configuração sensível em variáveis de ambiente / `.env` (nunca commitado).
 
 ```
 dotnet test                 # unit, integração (Testcontainers), funcional e arquitetura
-cd apps/web && npm test     # Vitest
+cd apps/web && pnpm test    # Vitest
 ```
+
+O contrato OpenAPI fica versionado em `openapi/`. Mudou a API: `ACORDU_ATUALIZAR_OPENAPI=1 dotnet test --filter ContratoOpenApiTests` e `cd apps/web && pnpm api:tipos` (ou o workflow **OpenAPI**).
 
 Obrigatórios: isolamento **entre tenants** e **entre clientes** do mesmo tenant, e nenhum dado interno nas respostas do portal.
 
