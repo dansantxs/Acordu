@@ -155,6 +155,18 @@ Decidido na implementação:
 - `PATCH` `{ escopoPortal }` → `200` com o contato: altera o acesso (vale no próximo refresh do contato) ou o convite pendente; sem nenhum dos dois → `422`.
 - `DELETE` → `204`, idempotente: revoga convites pendentes, links por solicitação, o vínculo e os refresh tokens do contato no tenant. A conta global dele continua existindo e ele pode ser convidado de novo. Inativar o contato faz o mesmo; inativar o cliente, para todos os contatos.
 
+### 4.3 Arquivos do cliente (marco 16b, RF-COL-05)
+
+| Método | Rota | Descrição | Permissão |
+|---|---|---|---|
+| GET | `/clientes/{id}/arquivos?pagina=&tamanhoPagina=` | Todos os anexos do cliente, do mais novo: `{ itens: [{ id, nomeArquivo, tipoConteudo, tamanhoBytes, enviadoEm, autor, autorEhCliente, interno, origem: { tipo, id, titulo, numero } }], pagina, tamanhoPagina, total }`. | `solicitacao.ver` ou `tarefa.ver` |
+
+Decidido no marco 16 (14/10):
+- **Somente leitura, uma lista só.** Junta os anexos das interações das solicitações do cliente (exige `solicitacao.ver`) e dos comentários das tarefas dele (exige `tarefa.ver`); quem tem só uma das permissões vê só aquela origem.
+- **`interno`:** verdadeiro para nota interna e para comentário de tarefa, que o cliente não vê.
+- **Download:** o mesmo `GET /anexos/{id}/download`.
+- **Portal:** sem aba de arquivos no v1; o cliente vê os anexos dentro de cada solicitação.
+
 ---
 
 ## 5. Contratos
