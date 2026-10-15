@@ -91,6 +91,7 @@
   - o cliente renova antes de enviar quando faltam menos de 60 s e repete uma vez depois de um 401. As rotas de `/auth` que abrem ou dispensam sessão ficam fora disso;
   - login, cadastro, aceite de convite e troca de empresa chamam `abrirSessao`; logout e refresh recusado, `encerrarSessao`. As duas valem para todas as abas e limpam o cache do TanStack Query;
   - guarda das rotas no layout `_app` (sem sessão → `/entrar?voltar=`, contato de cliente → `/portal`); o perfil (`GET /auth/eu`) vai para o contexto das rotas. `?voltar=` só aceita caminho interno;
+  - tokens de link (convite, senha, confirmação) saem da URL na primeira carga (segurança §9): a rota `…/$token` guarda o token na `sessionStorage` da aba (`shared/sessao/tokenDaUrl.ts`) e troca a URL, com `replace`, pela versão sem ele. O token é apagado quando usado. Ação que gasta o token ao abrir a página (confirmação de e-mail) é consulta do TanStack Query, e não mutação, para o StrictMode não chamar duas vezes;
   - formulários com o `Form` do React Aria: o `name` do campo é o do corpo da API, e `validationErrors` recebe os erros do Problem Details.
 - **(Acordu, F1) Tema:**
   - agenda de couro; tokens em `shared/tema/tokens.css`, com o papel por `data-tema` (claro/escuro) e a capa por `data-couro` (Café padrão; Conhaque e Bordô prontos, sem seletor no v1);
