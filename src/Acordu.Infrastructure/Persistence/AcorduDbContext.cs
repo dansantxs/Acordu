@@ -2,6 +2,7 @@ using Acordu.Application.Abstractions;
 using Acordu.Domain.Common;
 using Acordu.Domain.Entities;
 using Acordu.Infrastructure.MultiTenancy;
+using Acordu.Infrastructure.Persistence.Agenda;
 using Acordu.Infrastructure.Persistence.Auditoria;
 using Acordu.Infrastructure.Persistence.Colaboracao;
 using Acordu.Infrastructure.Persistence.Configurations;
@@ -131,6 +132,7 @@ public sealed class AcorduDbContext : IdentityUserContext<Usuario, Guid>
         builder.ApplyConfiguration(new NotificacaoConfiguration());
         builder.ApplyConfiguration(new PreferenciaNotificacaoConfiguration());
         builder.ApplyConfiguration(new SeguidorConfiguration());
+        builder.ApplyConfiguration(new AssinaturaAgendaConfiguration());
         builder.ApplyConfiguration(new ContadorConfiguration());
 
         AplicarFiltros(builder);
@@ -198,6 +200,10 @@ public sealed class AcorduDbContext : IdentityUserContext<Usuario, Guid>
         // Seguidores: só a equipe do tenant.
         modelBuilder.Entity<Seguidor>().HasQueryFilter(FiltrosGlobais.Tenant, e => e.TenantId == _contexto.TenantId);
         modelBuilder.Entity<Seguidor>().HasQueryFilter(FiltrosGlobais.Cliente, e => !_contexto.EhCliente);
+
+        // Link da agenda assinável: só a equipe do tenant (o feed resolve o token ignorando os filtros).
+        modelBuilder.Entity<AssinaturaAgendaRegistro>().HasQueryFilter(FiltrosGlobais.Tenant, e => e.TenantId == _contexto.TenantId);
+        modelBuilder.Entity<AssinaturaAgendaRegistro>().HasQueryFilter(FiltrosGlobais.Cliente, e => !_contexto.EhCliente);
     }
 
     private void FiltrarTenant<T>(ModelBuilder modelBuilder)
