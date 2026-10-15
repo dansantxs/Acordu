@@ -5,6 +5,7 @@ using Acordu.Application.Recorrencias;
 using Acordu.Application.Solicitacoes;
 using Acordu.Infrastructure.Agendamento;
 using Acordu.Infrastructure.Persistence.Auditoria;
+using Acordu.Infrastructure.Persistence.Atividades;
 using Acordu.Infrastructure.Persistence.Notificacoes;
 using Acordu.Infrastructure.Persistence.Outbox;
 
@@ -81,10 +82,15 @@ internal static class JobsEndpoints
         jobs.MapPost("/expurgo-auditoria", async (ExpurgoAuditoria expurgo, CancellationToken cancellationToken) =>
             Results.Ok(new { removidos = await expurgo.ExecutarAsync(cancellationToken) }));
 
-    /// <summary>Remove notificações do sino com mais de 90 dias. Diário, no mesmo timer.</summary>
+    /// <summary>Remove notificações do sino e atividades do feed com mais de 90 dias. Diário, no mesmo timer.</summary>
     private static void MapExpurgoNotificacoes(RouteGroupBuilder jobs) =>
-        jobs.MapPost("/expurgo-notificacoes", async (ExpurgoNotificacoes expurgo, CancellationToken cancellationToken) =>
-            Results.Ok(new { removidas = await expurgo.ExecutarAsync(cancellationToken) }));
+        jobs.MapPost("/expurgo-notificacoes", async (
+            ExpurgoNotificacoes notificacoes, ExpurgoAtividades atividades, CancellationToken cancellationToken) =>
+            Results.Ok(new
+            {
+                removidas = await notificacoes.ExecutarAsync(cancellationToken),
+                atividadesRemovidas = await atividades.ExecutarAsync(cancellationToken),
+            }));
 
     private static bool TokenValido(HttpContext http, string? esperado)
     {
