@@ -77,12 +77,14 @@ internal static class ComposicaoApi
                 && rota.StartsWith(PrefixoNegocio, StringComparison.Ordinal)
                 && !rota.StartsWith(PrefixoPortal, StringComparison.Ordinal);
             opcoes.AddDocumentTransformer(DeclararBearer);
+            opcoes.AddDocumentTransformer(Identificar("Acordu — interno"));
         });
         services.AddOpenApi(DocumentoPortal, opcoes =>
         {
             opcoes.ShouldInclude = descricao =>
                 descricao.RelativePath is { } rota && rota.StartsWith(PrefixoPortal, StringComparison.Ordinal);
             opcoes.AddDocumentTransformer(DeclararBearer);
+            opcoes.AddDocumentTransformer(Identificar("Acordu — portal"));
         });
         return services;
     }
@@ -195,6 +197,20 @@ internal static class ComposicaoApi
             problema.Title = tipo.Titulo;
         }
     }
+
+    /// <summary>
+    /// Título e versão fixos e sem <c>servers</c>: o documento não depende do host que o gerou (o contrato versionado em
+    /// <c>openapi/</c> é o mesmo no teste, no desenvolvimento e em produção; o front usa caminhos relativos).
+    /// </summary>
+    private static Func<OpenApiDocument, OpenApiDocumentTransformerContext, CancellationToken, Task> Identificar(string titulo) =>
+        (documento, _, _) =>
+        {
+            documento.Info ??= new OpenApiInfo();
+            documento.Info.Title = titulo;
+            documento.Info.Version = "v1";
+            documento.Servers = [];
+            return Task.CompletedTask;
+        };
 
     /// <summary>Esquema Bearer nos documentos: o Scalar mostra o campo do token e o envia nas chamadas.</summary>
     private static Task DeclararBearer(OpenApiDocument documento, OpenApiDocumentTransformerContext contexto, CancellationToken cancellationToken)
