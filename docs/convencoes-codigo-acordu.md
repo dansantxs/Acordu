@@ -83,7 +83,7 @@
   - **React Aria Components** (comportamento e acessibilidade, sem estilo), com o visual nosso via tokens CSS e Tailwind 4 só para aplicar os tokens. Substitui a ideia de shadcn/Mantine;
   - TanStack Router com rotas por arquivo (`src/routes`, `routeTree.gen.ts` gerado e fora do Git: o plugin do Vite o cria no `dev`/`test`, e `typecheck`/`build` rodam `tsr generate` antes) e TanStack Query;
   - `openapi-fetch` no cliente central (`shared/api/cliente.ts`);
-  - Vitest com Testing Library e Playwright (fumaça);
+  - Vitest com Testing Library e Playwright (fumaça). A fumaça (`apps/web/e2e/*.e2e.ts`) roda o SPA compilado contra a API real com Postgres, no job `E2E (Playwright)` da CI; cobre cadastro, sessão recuperada pelo cookie, Ctrl+K, saída, login e renovação simultânea em duas abas. Cada execução cria a própria conta;
   - ESLint (typescript-eslint) e Prettier (sem ponto e vírgula, aspas simples, 120 colunas).
 - **(Acordu, F1) Sessão** (`shared/sessao`, ADR 0007):
   - o access token fica só na memória do módulo `sessao.ts`; o cliente HTTP o pede a cada requisição;

@@ -178,6 +178,7 @@ Configuração sensível em variáveis de ambiente / `.env` (nunca commitado).
 ```
 dotnet test                 # unit, integração (Testcontainers), funcional e arquitetura
 cd apps/web && pnpm test    # Vitest
+cd apps/web && pnpm e2e     # Playwright (fumaça): precisa do Postgres e da API rodando, como acima
 ```
 
 O contrato OpenAPI fica versionado em `openapi/`. Mudou a API: `ACORDU_ATUALIZAR_OPENAPI=1 dotnet test --filter ContratoOpenApiTests` e `cd apps/web && pnpm api:tipos` (ou o workflow **OpenAPI**).
