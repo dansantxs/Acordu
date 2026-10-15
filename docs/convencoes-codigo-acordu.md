@@ -93,6 +93,12 @@
   - guarda das rotas no layout `_app` (sem sessão → `/entrar?voltar=`, contato de cliente → `/portal`); o perfil (`GET /auth/eu`) vai para o contexto das rotas. `?voltar=` só aceita caminho interno;
   - tokens de link (convite, senha, confirmação) saem da URL na primeira carga (segurança §9): a rota `…/$token` guarda o token na `sessionStorage` da aba (`shared/sessao/tokenDaUrl.ts`) e troca a URL, com `replace`, pela versão sem ele. O token é apagado quando usado. Ação que gasta o token ao abrir a página (confirmação de e-mail) é consulta do TanStack Query, e não mutação, para o StrictMode não chamar duas vezes;
   - formulários com o `Form` do React Aria: o `name` do campo é o do corpo da API, e `validationErrors` recebe os erros do Problem Details.
+- **(Acordu, F1) Casca e telas:**
+  - o layout `_app` envolve as rotas da equipe com `features/casca/Casca` (capa lateral fixa a partir de `md`, gaveta abaixo disso, paleta Ctrl+K);
+  - a navegação fica em `features/casca/navegacao.ts`, e cada item lista as permissões de leitura (basta uma). Item sem permissão não aparece, para não levar a um 403;
+  - toda tela começa com `shared/ui/Pagina` (contexto, título, ações; também dá nome à aba), e lista ou tela vazia usa `shared/ui/EstadoVazio`;
+  - datas exibidas usam o fuso do tenant (`shared/format/quando`, `saudacao`); comparação de texto sem acento por `shared/format/texto`;
+  - ícones de traço em `shared/ui/Icone`, sem biblioteca; decorativos (`aria-hidden`), com o nome no texto ou no `aria-label` do botão.
 - **(Acordu, F1) Tema:**
   - agenda de couro; tokens em `shared/tema/tokens.css`, com o papel por `data-tema` (claro/escuro) e a capa por `data-couro` (Café padrão; Conhaque e Bordô prontos, sem seletor no v1);
   - a escolha fica no navegador e, sem ela, vale a do sistema, aplicada antes da primeira pintura;

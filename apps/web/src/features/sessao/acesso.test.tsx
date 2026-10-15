@@ -21,7 +21,7 @@ describe('acesso', () => {
             '/api/v1/auth/eu': () => json(perfil),
         })
         await abrir('/')
-        expect(await screen.findByText('Olá, Ana Prado')).toBeInTheDocument()
+        expect(await screen.findByRole('heading', { level: 1, name: /, Ana$/ })).toBeInTheDocument()
         expect(screen.getByText('Prado Consultoria')).toBeInTheDocument()
     })
 
@@ -46,7 +46,7 @@ describe('acesso', () => {
         expect(await screen.findByRole('alert')).toHaveTextContent('E-mail ou senha inválidos')
 
         await usuario.click(screen.getByRole('button', { name: 'Entrar' }))
-        expect(await screen.findByText('Olá, Ana Prado')).toBeInTheDocument()
+        expect(await screen.findByRole('heading', { level: 1, name: /, Ana$/ })).toBeInTheDocument()
     })
 
     it('mostra no campo o erro de validação do cadastro', async () => {

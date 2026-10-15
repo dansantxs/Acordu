@@ -27,7 +27,7 @@ describe('telas de conta', () => {
         await usuario.type(screen.getByLabelText('Seu nome'), 'Bia')
         await usuario.type(screen.getByLabelText('Crie uma senha'), 'umasenhaboa')
         await usuario.click(screen.getByRole('button', { name: 'Entrar na equipe' }))
-        expect(await screen.findByText('Olá, Ana Prado')).toBeInTheDocument()
+        expect(await screen.findByRole('heading', { level: 1, name: /, Ana$/ })).toBeInTheDocument()
         expect(chamadas.find((c) => c.caminho === '/api/v1/auth/convite')?.corpo).toEqual({
             token: 'tok-convite',
             nome: 'Bia',
