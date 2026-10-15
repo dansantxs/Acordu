@@ -139,4 +139,36 @@ public sealed class InteracaoTests
 
         interacao.Anexos[0].Id.Should().Be(id);
     }
+
+    [Fact]
+    public void Registrar_InternaComMencao_EmitePessoasMencionadas()
+    {
+        var ana = Guid.NewGuid();
+
+        var interacao = Registrar($"@{{{ana}}} pode revisar?", Visibilidade.Interna);
+
+        interacao.Eventos.Should().HaveCount(2);
+        var mencao = (PessoasMencionadas)interacao.Eventos[1];
+        mencao.Alvo.Should().Be(AlvoColaboracao.Solicitacao);
+        mencao.AlvoId.Should().Be(Solicitacao);
+        mencao.OrigemId.Should().Be(interacao.Id);
+        mencao.AutorId.Should().Be(Autor);
+        mencao.Mencionados.Should().Equal(ana);
+    }
+
+    [Fact]
+    public void Registrar_ExternaDaEquipeComMencao_LancaExcecao()
+    {
+        var acao = () => Registrar($"@{{{Guid.NewGuid()}}} veja", Visibilidade.Externa);
+
+        acao.Should().Throw<ArgumentException>().WithParameterName("texto");
+    }
+
+    [Fact]
+    public void Registrar_DoClienteComToken_NaoLeMencao()
+    {
+        var interacao = Registrar($"@{{{Guid.NewGuid()}}} oi", Visibilidade.Externa, autorEhCliente: true);
+
+        interacao.Eventos.Should().HaveCount(1);
+    }
 }

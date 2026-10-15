@@ -22,6 +22,9 @@ public sealed class EnderecosPublicos
     /// <summary>Contrato no app da equipe.</summary>
     public Uri ContratoInterno(Guid contratoId) => new(_base, $"contratos/{contratoId}");
 
+    /// <summary>Tarefa no app da equipe.</summary>
+    public Uri TarefaInterna(Guid tarefaId) => new(_base, $"tarefas/{tarefaId}");
+
     /// <summary>Solicitação no portal, para o contato com conta.</summary>
     public Uri SolicitacaoNoPortal(Guid solicitacaoId) => new(_base, $"portal/solicitacoes/{solicitacaoId}");
 

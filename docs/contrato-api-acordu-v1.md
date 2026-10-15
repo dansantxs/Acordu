@@ -366,6 +366,8 @@ O quadro (kanban) é o mesmo `GET /tarefas` agrupado no front por `status`.
 
 Decidido no marco 14 (14/10): comentário de tarefa é só da equipe (nunca no portal, nem em tarefa visível ao cliente), imutável como as interações, e sem permissão própria: comentar exige `tarefa.editar` (um `tarefa.comentar` mexeria no catálogo e nos papéis já semeados). O download dos anexos é o mesmo `GET /anexos/{id}/download`, que agora aceita `solicitacao.ver` (anexo de interação) ou `tarefa.ver` (anexo de comentário).
 
+**Menções (14b, RF-COL-02):** em comentário de tarefa e em interação **interna** da solicitação, o texto pode citar pessoas como `@{usuarioId}` (o front troca pelo nome na exibição e monta o token na digitação, a partir de `GET /usuarios` ou da equipe da agenda). Só vale mencionar quem é da equipe e pode ver o alvo (`tarefa.ver` ou `solicitacao.ver`); fora disso, menção em interação EXTERNA ou mais de 20 pessoas → `400` em `errors.texto`. O texto volta como foi gravado, com os tokens.
+
 ### 8.2 Projetos
 
 | Método | Rota | Descrição | Permissão |
@@ -458,7 +460,7 @@ Decidido na implementação (6c3):
 | GET/PUT | `/notificacoes/preferencias` | Quais e-mails receber (RF-NOT-04). | autenticado |
 
 **Notificações (11b).** O sino recebe os mesmos avisos internos dos e-mails (§12b): nova solicitação, atribuição, SLA em risco/violado e consumo de contrato. Só a equipe (contato → 403); cada pessoa vê as suas.
-- `GET /notificacoes` → `{ itens: [{ id, categoria, titulo, link, criadaEm, lidaEm }], pagina, tamanhoPagina, total, naoLidas }`, mais recentes primeiro; `categoria`: `NOVA_SOLICITACAO`, `ATRIBUICAO`, `SLA`, `CONSUMO`; `link` aponta para a solicitação ou o contrato no app.
+- `GET /notificacoes` → `{ itens: [{ id, categoria, titulo, link, criadaEm, lidaEm }], pagina, tamanhoPagina, total, naoLidas }`, mais recentes primeiro; `categoria`: `NOVA_SOLICITACAO`, `ATRIBUICAO`, `SLA`, `CONSUMO`, `MENCAO`; `link` aponta para a solicitação, a tarefa ou o contrato no app.
 - `POST /notificacoes/{id}/leitura` e `POST /notificacoes/leitura` (todas) → `204`; de outra pessoa → `404`. Notificações com mais de 90 dias são apagadas pelo job diário.
 - `GET/PUT /notificacoes/preferencias` `{ categorias: [{ categoria, email }] }`: desliga o **e-mail** de uma categoria (no PUT, categoria ausente = ligada); o sino continua. E-mails de conta e os enviados ao contato não entram.
 
@@ -672,6 +674,7 @@ Sem rota própria: saem depois do commit quando a solicitação tem contato ativ
 |---|---|
 | Solicitação aberta (equipe ou portal) | Responsável; sem ele, quem tem `solicitacao.editar`. Nunca quem abriu. |
 | Responsável alterado | O novo responsável, se não atribuiu a si mesmo. |
+| Menção (`MENCAO`, 14b) em interação interna ou comentário de tarefa | Cada pessoa mencionada que ainda é da equipe (nunca o autor). Sino com "{autor} mencionou você na solicitação #N …" ou "na tarefa …"; e-mail com um trecho de até 280 caracteres em que as menções viram `@Nome`. Um aviso por (interação ou comentário, pessoa). |
 | SLA em risco (75% do prazo útil) ou violado | Responsável; sem ele, quem tem `solicitacao.editar`. Verificado no `tick`; situação = a pior entre primeira resposta e resolução (read side §5); um alerta por (solicitação, ciclo do SLA, situação); reabrir inicia novo ciclo. |
 
 O `tick` responde também `alertasSla` (solicitações alertadas), `tarefasRecorrentes` (tarefas geradas, §10) e `falhas` (tenants com erro em algum dos passos, logados).

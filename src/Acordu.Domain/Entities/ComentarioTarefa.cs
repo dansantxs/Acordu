@@ -1,5 +1,8 @@
 using Acordu.Domain.Common;
+using Acordu.Domain.Enums;
+using Acordu.Domain.Events;
 using Acordu.Domain.Exceptions;
+using Acordu.Domain.Services;
 using Acordu.Domain.ValueObjects;
 
 namespace Acordu.Domain.Entities;
@@ -33,7 +36,10 @@ public sealed class ComentarioTarefa : EntidadeBase
 
     public IReadOnlyList<Anexo> Anexos => _anexos;
 
-    /// <summary>Exige texto ou ao menos um anexo; anexos validados contra a <paramref name="politica"/>.</summary>
+    /// <summary>
+    /// Exige texto ou ao menos um anexo; anexos validados contra a <paramref name="politica"/>. Menções no texto emitem
+    /// <see cref="PessoasMencionadas"/>.
+    /// </summary>
     public static ComentarioTarefa Registrar(
         Guid id,
         Guid tenantId,
@@ -61,6 +67,14 @@ public sealed class ComentarioTarefa : EntidadeBase
         };
         foreach (var anexo in anexos)
             comentario._anexos.Add(Anexo.Criar(anexo, politica));
+
+        var mencionados = Mencoes.Extrair(textoValido, comentario.AutorId);
+        if (mencionados.Count > 0)
+        {
+            comentario.Registrar(new PessoasMencionadas(
+                tenantId, AlvoColaboracao.Tarefa, comentario.TarefaId, id, comentario.AutorId, mencionados));
+        }
+
         return comentario;
     }
 }

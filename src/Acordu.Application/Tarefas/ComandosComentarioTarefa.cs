@@ -1,5 +1,6 @@
 using Acordu.Application.Abstractions;
 using Acordu.Application.Anexos;
+using Acordu.Application.Colaboracao;
 using Acordu.Application.Common;
 using Acordu.Domain.Acesso;
 using Acordu.Domain.Entities;
@@ -19,6 +20,7 @@ public sealed class ComandosComentarioTarefa
     private readonly RecebimentoAnexos _anexos;
     private readonly RelogioDoTenant _relogio;
     private readonly IUnitOfWork _unidade;
+    private readonly ValidacaoMencoes _mencoes;
 
     public ComandosComentarioTarefa(
         ITenantContext contexto,
@@ -26,8 +28,11 @@ public sealed class ComandosComentarioTarefa
         IRepositorio<ComentarioTarefa> comentarios,
         RecebimentoAnexos anexos,
         RelogioDoTenant relogio,
-        IUnitOfWork unidade)
+        IUnitOfWork unidade,
+        ValidacaoMencoes mencoes)
     {
+        ArgumentNullException.ThrowIfNull(mencoes);
+        _mencoes = mencoes;
         ArgumentNullException.ThrowIfNull(contexto);
         ArgumentNullException.ThrowIfNull(tarefas);
         ArgumentNullException.ThrowIfNull(comentarios);
@@ -50,6 +55,7 @@ public sealed class ComandosComentarioTarefa
         _contexto.Exigir(Permissoes.TarefaEditar);
         var tarefa = await _tarefas.ObterPorIdAsync(tarefaId, cancellationToken)
             ?? throw new NaoEncontradoException("Tarefa não encontrada.");
+        await _mencoes.GarantirAsync(dados.Texto, _contexto.Usuario(), Permissoes.TarefaVer, cancellationToken);
         var anexos = await _anexos.EnviarAsync(tarefa.TenantId, tarefa.Id, arquivos, cancellationToken);
         try
         {

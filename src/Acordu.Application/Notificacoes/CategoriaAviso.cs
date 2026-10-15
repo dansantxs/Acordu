@@ -7,4 +7,7 @@ public enum CategoriaAviso
     Atribuicao = 2,
     Sla = 3,
     Consumo = 4,
+
+    /// <summary>Alguém mencionou a pessoa numa interação interna ou num comentário de tarefa (RF-COL-02).</summary>
+    Mencao = 5,
 }

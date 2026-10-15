@@ -1,4 +1,6 @@
 using Acordu.Domain.Entities;
+using Acordu.Domain.Enums;
+using Acordu.Domain.Events;
 using Acordu.Domain.Exceptions;
 using Acordu.Domain.ValueObjects;
 using static Acordu.Domain.UnitTests.Calendarios;
@@ -61,5 +63,25 @@ public sealed class ComentarioTarefaTests
         var acao = () => Registrar("x", [new NovoAnexo("a.exe", "application/x-msdownload", 10, "chave")]);
 
         acao.Should().Throw<AnexoInvalidoException>();
+    }
+
+    [Fact]
+    public void Registrar_ComMencao_EmitePessoasMencionadas()
+    {
+        var ana = Guid.NewGuid();
+
+        var comentario = Registrar($"@{{{ana}}} conferi a arte");
+
+        comentario.Eventos.Should().HaveCount(1);
+        var mencao = (PessoasMencionadas)comentario.Eventos[0];
+        mencao.Alvo.Should().Be(AlvoColaboracao.Tarefa);
+        mencao.AlvoId.Should().Be(Tarefa);
+        mencao.Mencionados.Should().Equal(ana);
+    }
+
+    [Fact]
+    public void Registrar_SemMencao_SemEvento()
+    {
+        Registrar().Eventos.Should().BeEmpty();
     }
 }
