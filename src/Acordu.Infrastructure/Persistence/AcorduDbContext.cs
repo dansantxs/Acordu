@@ -3,6 +3,7 @@ using Acordu.Domain.Common;
 using Acordu.Domain.Entities;
 using Acordu.Infrastructure.MultiTenancy;
 using Acordu.Infrastructure.Persistence.Auditoria;
+using Acordu.Infrastructure.Persistence.Colaboracao;
 using Acordu.Infrastructure.Persistence.Configurations;
 using Acordu.Infrastructure.Persistence.Conversores;
 using Acordu.Infrastructure.Persistence.Notificacoes;
@@ -129,6 +130,7 @@ public sealed class AcorduDbContext : IdentityUserContext<Usuario, Guid>
         builder.ApplyConfiguration(new RegistroAuditoriaConfiguration());
         builder.ApplyConfiguration(new NotificacaoConfiguration());
         builder.ApplyConfiguration(new PreferenciaNotificacaoConfiguration());
+        builder.ApplyConfiguration(new SeguidorConfiguration());
         builder.ApplyConfiguration(new ContadorConfiguration());
 
         AplicarFiltros(builder);
@@ -192,6 +194,10 @@ public sealed class AcorduDbContext : IdentityUserContext<Usuario, Guid>
         modelBuilder.Entity<Notificacao>().HasQueryFilter(FiltrosGlobais.Cliente, e => !_contexto.EhCliente);
         modelBuilder.Entity<PreferenciaNotificacao>().HasQueryFilter(FiltrosGlobais.Tenant, e => e.TenantId == _contexto.TenantId);
         modelBuilder.Entity<PreferenciaNotificacao>().HasQueryFilter(FiltrosGlobais.Cliente, e => !_contexto.EhCliente);
+
+        // Seguidores: só a equipe do tenant.
+        modelBuilder.Entity<Seguidor>().HasQueryFilter(FiltrosGlobais.Tenant, e => e.TenantId == _contexto.TenantId);
+        modelBuilder.Entity<Seguidor>().HasQueryFilter(FiltrosGlobais.Cliente, e => !_contexto.EhCliente);
     }
 
     private void FiltrarTenant<T>(ModelBuilder modelBuilder)

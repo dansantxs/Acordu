@@ -45,7 +45,11 @@ public sealed class RegistroNotificacoes : INotificacoes
     private static string Cortar(string texto, int tamanho) => texto.Length <= tamanho ? texto : texto[..tamanho];
 }
 
-/// <summary>Preferências de e-mail por pessoa no tenant do contexto (linha só quando algo foi desligado).</summary>
+/// <summary>
+/// Preferências de e-mail por pessoa no tenant do contexto. A coluna guarda as categorias que a pessoa tirou do padrão
+/// (<see cref="PadroesDeAviso"/>): numa categoria ligada por padrão, estar na lista é ter desligado; numa desligada por
+/// padrão (SEGUIDAS), é ter ligado. Sem linha, vale o padrão.
+/// </summary>
 public sealed class PreferenciasNotificacao : IPreferenciasNotificacao
 {
     private readonly AcorduDbContext _db;
@@ -65,7 +69,10 @@ public sealed class PreferenciasNotificacao : IPreferenciasNotificacao
             .Where(p => p.UsuarioId == usuarioId)
             .Select(p => p.EmailDesligado)
             .SingleOrDefaultAsync(cancellationToken);
-        return linha is null ? new HashSet<CategoriaAviso>() : linha.Select(Notificacao.DeTexto).ToHashSet();
+        HashSet<CategoriaAviso> foraDoPadrao = linha is null ? [] : linha.Select(Notificacao.DeTexto).ToHashSet();
+        return Enum.GetValues<CategoriaAviso>()
+            .Where(c => PadroesDeAviso.EmailDesligadoPorPadrao.Contains(c) != foraDoPadrao.Contains(c))
+            .ToHashSet();
     }
 
     public async Task SalvarAsync(Guid usuarioId, IReadOnlySet<CategoriaAviso> emailDesligado, CancellationToken cancellationToken = default)
@@ -79,7 +86,9 @@ public sealed class PreferenciasNotificacao : IPreferenciasNotificacao
             _db.Add(linha);
         }
 
-        linha.Definir(emailDesligado.Select(Notificacao.Texto));
+        var foraDoPadrao = Enum.GetValues<CategoriaAviso>()
+            .Where(c => PadroesDeAviso.EmailDesligadoPorPadrao.Contains(c) != emailDesligado.Contains(c));
+        linha.Definir(foraDoPadrao.Select(Notificacao.Texto));
         await _db.SaveChangesAsync(cancellationToken);
     }
 }

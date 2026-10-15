@@ -383,7 +383,7 @@ Regras:
 - Checklist: no máximo 50 itens, texto não vazio (≤ 500). O Id do item é gerado pela tarefa (`Guid.CreateVersion7`).
 - Edições e checklist são permitidas em qualquer estado exceto CANCELADA (final); `Concluir` só a partir de FAZENDO.
 - `PlanejadaPara` (marco 13): dia em que a tarefa está planejada para ser feita, independente do `Prazo`; `Planejar` muda só ele. Tarefa de recorrência nasce sem dia planejado.
-- **Emite:** `TarefaConcluida`.
+- **Emite:** `TarefaCriada` (com o responsável; também na recorrência), `TarefaAtribuida` (só quando o responsável muda), `TarefaStatusAlterada` (toda transição, com uma `Ocorrencia` própria) e `TarefaConcluida`. `ComentarioTarefa.Registrar` emite `ComentarioTarefaRegistrado`.
 
 ### 4.6.1 ComentarioTarefa (marco 14a)
 - Agregado próprio (cresce sem limite), só do tenant: sem `ClienteId` e invisível no contexto de Cliente.
@@ -503,6 +503,8 @@ Puros e determinísticos — principal alvo dos testes unitários.
 | `SolicitacaoReaberta` | `Reabrir` | Notificar responsável (motivo no evento). |
 | `SolicitacaoResolvida` | `Resolver` | E-mail ao contato com link de aprovação; agenda fechamento automático (RF-SOL-09). |
 | `InteracaoRegistrada` | `Interacao.Registrar` | Primeira resposta (§3.1); retomar se cliente respondeu; notificar a outra parte. |
+| `TarefaCriada`, `TarefaAtribuida`, `ComentarioTarefaRegistrado` | `Tarefa`, `ComentarioTarefa` | Seguimento automático (`SeguimentoAutomatico`, RF-COL-03); o comentário avisa quem segue. |
+| `TarefaStatusAlterada` | toda transição da tarefa | Aviso SEGUIDAS a quem segue (`AvisosAosSeguidores`). |
 | `PessoasMencionadas` | `Interacao.Registrar` (INTERNA), `ComentarioTarefa.Registrar` | Aviso de menção no sino e por e-mail (`AvisosDeMencao`, RF-COL-02). |
 | `ApontamentoRegistrado/Alterado/Excluido` | `Apontamento` | Checar limiares de consumo (RF-CTR-07). |
 | `TarefaConcluida` | `Tarefa.Concluir` | (v1) nada obrigatório; (v2) sugerir resolver a solicitação se todas as tarefas concluíram. |

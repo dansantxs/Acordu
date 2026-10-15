@@ -98,6 +98,7 @@ public sealed class ProcessadorOutbox
         var evento = SerializadorEventos.Desserializar(mensagem.Tipo, mensagem.Conteudo);
         await using var escopo = _escopos.CreateAsyncScope();
         escopo.ServiceProvider.GetRequiredService<ContextoTenant>().DefinirEquipe(mensagem.TenantId);
+        escopo.ServiceProvider.GetRequiredService<OrigemDoEvento>().Definir(mensagem.AutorId);
 
         var tarefa = (Task)Entregar.MakeGenericMethod(evento.GetType())
             .Invoke(null, [escopo.ServiceProvider, evento, cancellationToken])!;

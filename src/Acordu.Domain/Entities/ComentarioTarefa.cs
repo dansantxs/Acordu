@@ -68,6 +68,7 @@ public sealed class ComentarioTarefa : EntidadeBase
         foreach (var anexo in anexos)
             comentario._anexos.Add(Anexo.Criar(anexo, politica));
 
+        comentario.Registrar(new ComentarioTarefaRegistrado(id, tenantId, comentario.TarefaId, comentario.AutorId));
         var mencionados = Mencoes.Extrair(textoValido, comentario.AutorId);
         if (mencionados.Count > 0)
         {

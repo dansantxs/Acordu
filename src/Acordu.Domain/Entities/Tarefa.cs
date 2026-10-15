@@ -97,6 +97,7 @@ public sealed class Tarefa : EntidadeBase
             PlanejadaPara = planejadaPara,
         };
         tarefa.TornarVisivelAoCliente(visivelCliente);
+        tarefa.Registrar(new TarefaCriada(tarefa.Id, tenantId, tarefa.ResponsavelId));
         return tarefa;
     }
 
@@ -121,6 +122,7 @@ public sealed class Tarefa : EntidadeBase
         };
         foreach (var item in modelo.Checklist)
             tarefa._checklist.Add(new ItemChecklist(Guid.CreateVersion7(), tarefa.ProximaOrdem(), item));
+        tarefa.Registrar(new TarefaCriada(tarefa.Id, tarefa.TenantId, tarefa.ResponsavelId));
         return tarefa;
     }
 
@@ -134,7 +136,12 @@ public sealed class Tarefa : EntidadeBase
     public void Atribuir(Guid? responsavelId)
     {
         GarantirNaoCancelada(nameof(Atribuir));
-        ResponsavelId = Ids.Opcional(responsavelId, nameof(responsavelId));
+        var novo = Ids.Opcional(responsavelId, nameof(responsavelId));
+        if (novo == ResponsavelId)
+            return;
+        var anterior = ResponsavelId;
+        ResponsavelId = novo;
+        Registrar(new TarefaAtribuida(Id, TenantId, novo, anterior));
     }
 
     public void DefinirPrazo(DateOnly? prazo)
@@ -167,26 +174,26 @@ public sealed class Tarefa : EntidadeBase
     public void Iniciar()
     {
         Exigir(nameof(Iniciar), StatusTarefa.AFazer);
-        Status = StatusTarefa.Fazendo;
+        MudarStatus(StatusTarefa.Fazendo);
     }
 
     public void Concluir()
     {
         Exigir(nameof(Concluir), StatusTarefa.Fazendo);
-        Status = StatusTarefa.Concluida;
+        MudarStatus(StatusTarefa.Concluida);
         Registrar(new TarefaConcluida(Id, TenantId, ClienteId, SolicitacaoId, ProjetoId));
     }
 
     public void Reabrir()
     {
         Exigir(nameof(Reabrir), StatusTarefa.Concluida);
-        Status = StatusTarefa.Fazendo;
+        MudarStatus(StatusTarefa.Fazendo);
     }
 
     public void Cancelar()
     {
         Exigir(nameof(Cancelar), StatusTarefa.AFazer, StatusTarefa.Fazendo);
-        Status = StatusTarefa.Cancelada;
+        MudarStatus(StatusTarefa.Cancelada);
     }
 
     /// <summary>Adiciona um item ao fim da checklist. O Id do item é gerado aqui (entidade filha).</summary>
@@ -230,6 +237,13 @@ public sealed class Tarefa : EntidadeBase
         estimativa is { EhZero: true }
             ? throw new ArgumentException("A estimativa, se informada, deve ser maior que zero.", nameof(estimativa))
             : estimativa;
+
+    private void MudarStatus(StatusTarefa para)
+    {
+        var de = Status;
+        Status = para;
+        Registrar(new TarefaStatusAlterada(Id, TenantId, de, para, Guid.CreateVersion7()));
+    }
 
     private void Exigir(string operacao, params StatusTarefa[] permitidos)
     {

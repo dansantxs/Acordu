@@ -1,4 +1,5 @@
 using Acordu.Domain.Common;
+using Acordu.Domain.Enums;
 using Acordu.Domain.ValueObjects;
 
 namespace Acordu.Domain.Events;
@@ -6,6 +7,22 @@ namespace Acordu.Domain.Events;
 /// <summary>Tarefa concluída. (v1) nada obrigatório; (v2) sugerir resolver a solicitação.</summary>
 public sealed record TarefaConcluida(
     Guid TarefaId, Guid TenantId, Guid? ClienteId, Guid? SolicitacaoId, Guid? ProjetoId) : IEventoDominio;
+
+/// <summary>Tarefa criada (pela equipe ou por recorrência). Reação: seguimento automático do responsável (RF-COL-03).</summary>
+public sealed record TarefaCriada(Guid TarefaId, Guid TenantId, Guid? ResponsavelId) : IEventoDominio;
+
+/// <summary>Responsável trocado. Reação: o novo responsável passa a seguir a tarefa (RF-COL-03).</summary>
+public sealed record TarefaAtribuida(Guid TarefaId, Guid TenantId, Guid? ResponsavelId, Guid? Anterior) : IEventoDominio;
+
+/// <summary>
+/// Toda transição de status. <see cref="Ocorrencia"/> distingue transições repetidas (concluir, reabrir, concluir) na
+/// idempotência do aviso aos seguidores (RF-COL-03).
+/// </summary>
+public sealed record TarefaStatusAlterada(Guid TarefaId, Guid TenantId, StatusTarefa De, StatusTarefa Para, Guid Ocorrencia)
+    : IEventoDominio;
+
+/// <summary>Comentário registrado numa tarefa. Reação: seguir (o autor) e avisar quem segue (RF-COL-03).</summary>
+public sealed record ComentarioTarefaRegistrado(Guid ComentarioId, Guid TenantId, Guid TarefaId, Guid AutorId) : IEventoDominio;
 
 /// <summary>Reação: recalcular o consumo do contrato no mês de <see cref="Data"/> e checar limiares (RF-CTR-07).</summary>
 public sealed record ApontamentoRegistrado(

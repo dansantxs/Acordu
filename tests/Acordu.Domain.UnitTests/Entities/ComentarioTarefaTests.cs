@@ -72,16 +72,17 @@ public sealed class ComentarioTarefaTests
 
         var comentario = Registrar($"@{{{ana}}} conferi a arte");
 
-        comentario.Eventos.Should().HaveCount(1);
-        var mencao = (PessoasMencionadas)comentario.Eventos[0];
+        comentario.Eventos.Should().HaveCount(2);
+        comentario.Eventos[0].Should().Be(new ComentarioTarefaRegistrado(comentario.Id, Calendarios.Tenant, Tarefa, Autor));
+        var mencao = (PessoasMencionadas)comentario.Eventos[1];
         mencao.Alvo.Should().Be(AlvoColaboracao.Tarefa);
         mencao.AlvoId.Should().Be(Tarefa);
         mencao.Mencionados.Should().Equal(ana);
     }
 
     [Fact]
-    public void Registrar_SemMencao_SemEvento()
+    public void Registrar_SemMencao_SoComentarioRegistrado()
     {
-        Registrar().Eventos.Should().BeEmpty();
+        Registrar().Eventos.Should().HaveCount(1);
     }
 }

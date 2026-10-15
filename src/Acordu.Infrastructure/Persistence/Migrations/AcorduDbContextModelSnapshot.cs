@@ -1199,6 +1199,35 @@ namespace Acordu.Infrastructure.Persistence.Migrations
                     b.ToTable("auditoria", (string)null);
                 });
 
+            modelBuilder.Entity("Acordu.Infrastructure.Persistence.Colaboracao.Seguidor", b =>
+                {
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
+                    b.Property<int>("Alvo")
+                        .HasMaxLength(40)
+                        .HasColumnType("integer")
+                        .HasColumnName("alvo");
+
+                    b.Property<Guid>("AlvoId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("alvo_id");
+
+                    b.Property<Guid>("UsuarioId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("usuario_id");
+
+                    b.Property<DateTimeOffset>("Desde")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("desde");
+
+                    b.HasKey("TenantId", "Alvo", "AlvoId", "UsuarioId")
+                        .HasName("pk_seguidores");
+
+                    b.ToTable("seguidores", (string)null);
+                });
+
             modelBuilder.Entity("Acordu.Infrastructure.Persistence.MarcadorAviso", b =>
                 {
                     b.Property<Guid>("TenantId")
@@ -1311,6 +1340,10 @@ namespace Acordu.Infrastructure.Persistence.Migrations
                     b.Property<Guid>("Id")
                         .HasColumnType("uuid")
                         .HasColumnName("id");
+
+                    b.Property<Guid?>("AutorId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("autor_id");
 
                     b.Property<string>("Conteudo")
                         .IsRequired()

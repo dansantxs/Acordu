@@ -10,4 +10,10 @@ public enum CategoriaAviso
 
     /// <summary>Alguém mencionou a pessoa numa interação interna ou num comentário de tarefa (RF-COL-02).</summary>
     Mencao = 5,
+
+    /// <summary>
+    /// Novidade no que a pessoa segue: interação, comentário ou mudança de status (RF-COL-03). E-mail desligado por padrão
+    /// (<see cref="PadroesDeAviso.EmailDesligadoPorPadrao"/>).
+    /// </summary>
+    Seguidas = 6,
 }

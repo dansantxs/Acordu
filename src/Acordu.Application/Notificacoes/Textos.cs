@@ -13,4 +13,25 @@ internal static class Textos
         Domain.Enums.Prioridade.Baixa => "baixa",
         _ => prioridade.ToString(),
     };
+
+    public static string Status(StatusSolicitacao status) => status switch
+    {
+        StatusSolicitacao.Aberta => "aberta",
+        StatusSolicitacao.EmAndamento => "em andamento",
+        StatusSolicitacao.AguardandoCliente => "aguardando o cliente",
+        StatusSolicitacao.AguardandoTerceiro => "aguardando terceiro",
+        StatusSolicitacao.Resolvida => "resolvida",
+        StatusSolicitacao.Fechada => "fechada",
+        StatusSolicitacao.Cancelada => "cancelada",
+        _ => status.ToString(),
+    };
+
+    public static string Status(StatusTarefa status) => status switch
+    {
+        StatusTarefa.AFazer => "a fazer",
+        StatusTarefa.Fazendo => "em andamento",
+        StatusTarefa.Concluida => "concluída",
+        StatusTarefa.Cancelada => "cancelada",
+        _ => status.ToString(),
+    };
 }
