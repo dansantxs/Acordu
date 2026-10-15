@@ -85,6 +85,13 @@
   - `openapi-fetch` no cliente central (`shared/api/cliente.ts`);
   - Vitest com Testing Library e Playwright (fumaça);
   - ESLint (typescript-eslint) e Prettier (sem ponto e vírgula, aspas simples, 120 colunas).
+- **(Acordu, F1) Sessão** (`shared/sessao`, ADR 0007):
+  - o access token fica só na memória do módulo `sessao.ts`; o cliente HTTP o pede a cada requisição;
+  - renovar é serializado: na aba, uma promessa compartilhada; entre abas, o Web Lock `acordu-refresh`, e quem renova anuncia o token novo no `BroadcastChannel` `acordu-sessao`. Falha de rede não é repetida; só um 401 do refresh encerra a sessão;
+  - o cliente renova antes de enviar quando faltam menos de 60 s e repete uma vez depois de um 401. As rotas de `/auth` que abrem ou dispensam sessão ficam fora disso;
+  - login, cadastro, aceite de convite e troca de empresa chamam `abrirSessao`; logout e refresh recusado, `encerrarSessao`. As duas valem para todas as abas e limpam o cache do TanStack Query;
+  - guarda das rotas no layout `_app` (sem sessão → `/entrar?voltar=`, contato de cliente → `/portal`); o perfil (`GET /auth/eu`) vai para o contexto das rotas. `?voltar=` só aceita caminho interno;
+  - formulários com o `Form` do React Aria: o `name` do campo é o do corpo da API, e `validationErrors` recebe os erros do Problem Details.
 - **(Acordu, F1) Tema:**
   - agenda de couro; tokens em `shared/tema/tokens.css`, com o papel por `data-tema` (claro/escuro) e a capa por `data-couro` (Café padrão; Conhaque e Bordô prontos, sem seletor no v1);
   - a escolha fica no navegador e, sem ela, vale a do sistema, aplicada antes da primeira pintura;

@@ -163,6 +163,8 @@ dotnet run --project src/Acordu.Api
 cd apps/web && pnpm install && pnpm dev
 ```
 
+Abra o SPA por `http://localhost:5173` (não por IP nem outro nome): o cookie de refresh é `Secure` (ADR 0007), e Chrome, Edge e Firefox só o aceitam sem HTTPS quando o endereço é `localhost`.
+
 Configuração sensível em variáveis de ambiente / `.env` (nunca commitado).
 
 ---
