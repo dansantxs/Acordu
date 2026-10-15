@@ -19,6 +19,13 @@ internal static class ClientesEndpoints
             .RequirePermissao(Permissoes.ClienteVer)
             .Produces<ResultadoPaginado<ClienteResumoDto>>();
 
+        // Aba de arquivos (contrato §4.3): anexos de interações e de comentários de tarefa do cliente.
+        clientes.MapGet("/{id:guid}/arquivos", async (
+            Guid id, int? pagina, int? tamanhoPagina, LeituraArquivosCliente leitura, CancellationToken cancellationToken) =>
+            Results.Ok(await leitura.ListarAsync(id, new Paginacao(pagina, tamanhoPagina), cancellationToken)))
+            .RequireAlgumaPermissao(Permissoes.SolicitacaoVer, Permissoes.TarefaVer)
+            .Produces<ResultadoPaginado<ArquivoClienteDto>>();
+
         clientes.MapGet("/{id:guid}", async (Guid id, IConsultasCliente consultas, CancellationToken cancellationToken) =>
             Results.Ok(await DetalheAsync(consultas, id, cancellationToken)))
             .RequirePermissao(Permissoes.ClienteVer)

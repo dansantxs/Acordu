@@ -86,6 +86,7 @@ public static class DependencyInjection
         services.AddScoped<IConvitesEquipe, ConvitesEquipe>();
         services.AddScoped<IConsultasEquipe, ConsultasEquipe>();
         services.AddScoped<IConsultasComentariosTarefa, ConsultasComentariosTarefa>();
+        services.AddScoped<IConsultasArquivosCliente, ConsultasArquivosCliente>();
         services.AddScoped<IConsultasCapacidade, ConsultasCapacidade>();
         services.AddScoped<IConsultasPapel, ConsultasPapel>();
         services.AddScoped<IPortalAtual, PortalAtual>();

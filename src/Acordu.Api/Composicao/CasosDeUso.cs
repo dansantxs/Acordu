@@ -59,6 +59,7 @@ internal static class CasosDeUso
         services.AddScoped<ComandosLinkPortal>();
         services.AddScoped<ComandosEquipe>();
         services.AddScoped<ComandosComentarioTarefa>();
+        services.AddScoped<LeituraArquivosCliente>();
         services.AddScoped<LeituraCapacidade>();
         services.AddScoped<ComandosPapel>();
         services.AddScoped<FechamentoAutomatico>();
