@@ -155,6 +155,10 @@ Regra de higiene: **decisão de arquitetura vira ADR**; **convenção de código
 # Postgres local (porta 5434)
 docker compose -f docker-compose.dev.yml up -d
 
+# schema do banco (na primeira vez e a cada migration nova que chegar na main)
+dotnet tool restore
+dotnet ef database update --project src/Acordu.Infrastructure --startup-project src/Acordu.Api
+
 # backend
 dotnet build
 dotnet run --project src/Acordu.Api
