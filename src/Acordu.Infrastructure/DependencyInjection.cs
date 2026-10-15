@@ -22,6 +22,7 @@ using Acordu.Application.Tarefas;
 using Acordu.Infrastructure.Agendamento;
 using Acordu.Infrastructure.MultiTenancy;
 using Acordu.Infrastructure.Persistence;
+using Acordu.Infrastructure.Persistence.Agenda;
 using Acordu.Infrastructure.Persistence.Auditoria;
 using Acordu.Infrastructure.Persistence.Colaboracao;
 using Acordu.Infrastructure.Persistence.Consultas;
@@ -74,6 +75,7 @@ public static class DependencyInjection
         services.AddScoped<INotificacoes, RegistroNotificacoes>();
         services.AddScoped<IPreferenciasNotificacao, PreferenciasNotificacao>();
         services.AddScoped<ISeguidores, RegistroSeguidores>();
+        services.AddScoped<IAssinaturasAgenda, AssinaturasAgenda>();
         services.AddSingleton<ExpurgoNotificacoes>();
         services.AddScoped<IConvitesEquipe, ConvitesEquipe>();
         services.AddScoped<IConsultasEquipe, ConsultasEquipe>();

@@ -22,6 +22,12 @@ public sealed class EnderecosPublicos
     /// <summary>Contrato no app da equipe.</summary>
     public Uri ContratoInterno(Guid contratoId) => new(_base, $"contratos/{contratoId}");
 
+    /// <summary>Recorrência no app da equipe.</summary>
+    public Uri RecorrenciaInterna(Guid recorrenciaId) => new(_base, $"recorrencias/{recorrenciaId}");
+
+    /// <summary>Feed ICS da agenda assinável, servido pela API no mesmo endereço (Caddy encaminha <c>/api</c>).</summary>
+    public Uri AgendaIcs(string token) => new(_base, $"api/v1/agenda/{token}.ics");
+
     /// <summary>Tarefa no app da equipe.</summary>
     public Uri TarefaInterna(Guid tarefaId) => new(_base, $"tarefas/{tarefaId}");
 

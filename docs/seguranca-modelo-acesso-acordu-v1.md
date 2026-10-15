@@ -153,6 +153,18 @@ Um usuário Cliente em um tenant e Membro em outro troca de tenant e recebe toke
 - Se o contato ganhar conta depois, o link continua funcionando até expirar.
 - **(Implementação)** A conferência por requisição lê o `AcessoPortal` (não revogado, não expirado) e o contato dele (ativo, de cliente ativo). Sem `sub` no token: interação registrada pelo link tem como autor o Id do contato. O e-mail do link sai logo após o commit, na requisição (o link também volta na resposta da emissão), nunca pela outbox.
 
+### 5.4 Link da agenda assinável (RF-COL-04, marco 15a)
+- **O que é:** um link secreto por pessoa da equipe e tenant, para Google, Outlook e afins, que buscam a URL sem login: `GET /api/v1/agenda/{token}.ics`.
+- **Token:** gerado como o da sessão de link (32 bytes de CSPRNG em base64url), com só o SHA-256 no banco (`assinaturas_agenda`).
+  - Emitir de novo troca o token e o anterior para de funcionar.
+  - A pessoa pode revogar, e emissão e revogação vão para a auditoria (`agenda.link.emissao`, `agenda.link.revogacao`).
+- **Somente leitura:** o feed não abre sessão nem dá acesso a nenhuma outra rota.
+  - Mostra só os itens da própria pessoa e só os tipos que o papel atual dela pode ver; a checagem é refeita a cada busca, e quem saiu da equipe recebe `404`.
+  - Token desconhecido ou revogado também dá `404`, sem distinguir.
+  - Limite de 30 buscas por minuto por IP (`RateLimit__Agenda__PorMinuto`).
+- **Risco aceito:** o conteúdo vai para um calendário de terceiro. O padrão leva título e cliente, e na descrição só o prazo e o link para o Acordu, nunca o texto de interações.
+- **Modo discreto:** opcional, com títulos genéricos ("Tarefa", "Prazo de solicitação"), sem cliente e sem descrição. Pode ser trocado sem trocar o link.
+
 ---
 
 ## 6. Proteção de dados

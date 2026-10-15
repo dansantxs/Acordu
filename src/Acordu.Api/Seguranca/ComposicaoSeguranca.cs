@@ -16,6 +16,9 @@ internal static class ComposicaoSeguranca
     /// <summary>Abertura de solicitação pelo portal (segurança §9): por usuário, ou por IP sem usuário.</summary>
     public const string LimitePortal = "portal";
 
+    /// <summary>Feed ICS da agenda assinável, por IP (os calendários buscam de tempos em tempos).</summary>
+    public const string LimiteAgenda = "agenda";
+
     public static IServiceCollection AddSegurancaApi(this IServiceCollection services, IConfiguration configuracao)
     {
         var jwt = ConfiguracaoJwt.De(configuracao);
@@ -63,12 +66,16 @@ internal static class ComposicaoSeguranca
 
         var limite = configuracao.GetValue("RateLimit:Auth:PorMinuto", 10);
         var limitePortal = configuracao.GetValue("RateLimit:Portal:PorMinuto", 10);
+        var limiteAgenda = configuracao.GetValue("RateLimit:Agenda:PorMinuto", 30);
         services.AddRateLimiter(opcoes =>
         {
             opcoes.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
             opcoes.AddPolicy(LimitePortal, http => RateLimitPartition.GetFixedWindowLimiter(
                 http.User.FindFirst(ClaimsAcordu.Usuario)?.Value ?? http.Connection.RemoteIpAddress?.ToString() ?? "desconhecido",
                 _ => new FixedWindowRateLimiterOptions { PermitLimit = limitePortal, Window = TimeSpan.FromMinutes(1), QueueLimit = 0 }));
+            opcoes.AddPolicy(LimiteAgenda, http => RateLimitPartition.GetFixedWindowLimiter(
+                http.Connection.RemoteIpAddress?.ToString() ?? "desconhecido",
+                _ => new FixedWindowRateLimiterOptions { PermitLimit = limiteAgenda, Window = TimeSpan.FromMinutes(1), QueueLimit = 0 }));
             opcoes.AddPolicy(LimiteAuth, http => RateLimitPartition.GetFixedWindowLimiter(
                 http.Connection.RemoteIpAddress?.ToString() ?? "desconhecido",
                 _ => new FixedWindowRateLimiterOptions { PermitLimit = limite, Window = TimeSpan.FromMinutes(1), QueueLimit = 0 }));

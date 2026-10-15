@@ -536,6 +536,24 @@ Decidido no marco 13 (14/10):
 - `responsavelId` restringe a solicitações, tarefas e recorrências da pessoa; projetos e contratos, que não têm responsável, ficam de fora. `clienteId` vale para todos.
 - Sem paginação: o período curto é o limite.
 
+## 11d. Agenda assinável — ICS (marco 15a, RF-COL-04)
+
+| Método | Rota | Descrição | Permissão |
+|---|---|---|---|
+| GET | `/agenda/assinatura` | `{ ativa, discreta, criadaEm }` do link da própria pessoa (sem a URL). | qualquer permissão de leitura da agenda (§11b) |
+| POST | `/agenda/assinatura` | `{ discreta }` → `201 { url, discreta }`. Gera o link e substitui o anterior; é a **única** vez em que a URL com o token aparece. | idem |
+| PATCH | `/agenda/assinatura` | `{ discreta }` → `200` com a situação; troca o modo sem trocar o link (`404` sem link). | idem |
+| DELETE | `/agenda/assinatura` | Revoga → `204` (`404` sem link). | idem |
+| GET | `/agenda/{token}.ics` | Feed `text/calendar` **sem sessão** (segurança §5.4). `404` para token desconhecido ou revogado, ou para quem saiu da equipe. `Cache-Control: private, max-age=900`. | pelo token |
+
+Decidido no marco 15 (14/10):
+- O feed traz só o que é da pessoa, de 30 dias atrás a 90 à frente, e só os tipos que o papel dela vê:
+  - tarefas em aberto no dia planejado (ou no prazo), como dia inteiro;
+  - solicitações em aberto no instante do prazo de solução, como evento de 30 minutos;
+  - próximas ocorrências das recorrências dela, como dia inteiro e "(prevista)".
+- Título padrão `{título} · {cliente}`; no modo discreto, "Tarefa", "Prazo de solicitação" ou "Tarefa recorrente", sem descrição. Cada evento leva o link do item no app (`URL`).
+- `UID` estável por item (`tarefa-{id}@acordu`, `solicitacao-{id}@acordu`, `recorrencia-{id}-{aaaammdd}@acordu`): o calendário atualiza o evento em vez de duplicar.
+
 ---
 
 ## 11a. Auditoria
@@ -561,6 +579,7 @@ Decidido no marco 13 (14/10):
 | | `equipe.papel.troca` | usuário | `de`, `para` (nomes dos papéis) |
 | | `equipe.remocao` | usuário | `papel` |
 | | `equipe.capacidade` | usuário | `de`, `para` (minutos por semana) |
+| Agenda | `agenda.link.emissao` · `agenda.link.revogacao` | usuário | `discreta` (emissão) |
 | Portal | `portal.acesso.concessao`, `portal.acesso.escopo`, `portal.acesso.revogacao` | contato | `clienteId`, `escopo` |
 | | `portal.link.emissao`, `portal.link.revogacao` | solicitação | `acessoPortalId`, `contatoId` (emissão: `validadeDias`) |
 | Contratos | `contrato.criacao` | contrato | `clienteId`, `tipo`, `termos` (vigência, franquia, SLA) |

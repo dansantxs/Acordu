@@ -1145,6 +1145,40 @@ namespace Acordu.Infrastructure.Persistence.Migrations
                     b.ToTable("vinculos", (string)null);
                 });
 
+            modelBuilder.Entity("Acordu.Infrastructure.Persistence.Agenda.AssinaturaAgendaRegistro", b =>
+                {
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
+                    b.Property<Guid>("UsuarioId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("usuario_id");
+
+                    b.Property<DateTimeOffset>("CriadaEm")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("criada_em");
+
+                    b.Property<bool>("Discreta")
+                        .HasColumnType("boolean")
+                        .HasColumnName("discreta");
+
+                    b.Property<string>("TokenHash")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)")
+                        .HasColumnName("token_hash");
+
+                    b.HasKey("TenantId", "UsuarioId")
+                        .HasName("pk_assinaturas_agenda");
+
+                    b.HasIndex("TokenHash")
+                        .IsUnique()
+                        .HasDatabaseName("ix_assinaturas_agenda_token_hash");
+
+                    b.ToTable("assinaturas_agenda", (string)null);
+                });
+
             modelBuilder.Entity("Acordu.Infrastructure.Persistence.Auditoria.RegistroAuditoria", b =>
                 {
                     b.Property<Guid>("Id")
