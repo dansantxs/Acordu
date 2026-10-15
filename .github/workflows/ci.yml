@@ -169,7 +169,7 @@ jobs:
       - name: Subir a API
         env:
           ASPNETCORE_ENVIRONMENT: Development
-          # A fumaça faz mais de 10 chamadas de /auth por minuto do mesmo IP (cada carga de página renova a sessão).
+          # Login, cadastro e afins passam de 10 por minuto do mesmo IP na fumaça (a renovação já tem limite próprio).
           RateLimit__Auth__PorMinuto: "1000"
         run: |
           nohup dotnet run --project src/Acordu.Api --configuration Release --no-build --no-launch-profile \

@@ -61,6 +61,7 @@ public sealed class ApiFixture : IAsyncLifetime
             ["Jobs:Token"] = TokenJobs,
             ["Jwt:ChaveAssinatura"] = "chave-dos-testes-funcionais-com-mais-de-32-bytes",
             ["RateLimit:Auth:PorMinuto"] = "100000",
+            ["RateLimit:Refresh:PorMinuto"] = "100000",
             ["RateLimit:Portal:PorMinuto"] = "100000",
         });
         builder.Services.AddSingleton<TimeProvider>(Relogio);

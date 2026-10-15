@@ -1,3 +1,5 @@
+using System.Security.Cryptography;
+using System.Text;
 using System.Threading.RateLimiting;
 using Acordu.Application.Abstractions;
 using Acordu.Infrastructure;
@@ -11,7 +13,14 @@ namespace Acordu.Api.Seguranca;
 /// <summary>Autenticação JWT, autorização por superfície e permissão, rate limit das rotas de auth e CORS.</summary>
 internal static class ComposicaoSeguranca
 {
+    /// <summary>Login, cadastro, convites, recuperação de senha e reenvio: por IP, contra força bruta.</summary>
     public const string LimiteAuth = "auth";
+
+    /// <summary>
+    /// Renovação da sessão: por refresh token (cookie), não por IP. Cada carga de página renova, e um escritório atrás
+    /// de um IP só esgotaria o limite do login em uso normal (achado da fumaça, F1c3; decidido em 15/10).
+    /// </summary>
+    public const string LimiteRenovacao = "renovacao";
 
     /// <summary>Abertura de solicitação pelo portal (segurança §9): por usuário, ou por IP sem usuário.</summary>
     public const string LimitePortal = "portal";
@@ -65,6 +74,7 @@ internal static class ComposicaoSeguranca
         }
 
         var limite = configuracao.GetValue("RateLimit:Auth:PorMinuto", 10);
+        var limiteRenovacao = configuracao.GetValue("RateLimit:Refresh:PorMinuto", 30);
         var limitePortal = configuracao.GetValue("RateLimit:Portal:PorMinuto", 10);
         var limiteAgenda = configuracao.GetValue("RateLimit:Agenda:PorMinuto", 30);
         services.AddRateLimiter(opcoes =>
@@ -76,6 +86,9 @@ internal static class ComposicaoSeguranca
             opcoes.AddPolicy(LimiteAgenda, http => RateLimitPartition.GetFixedWindowLimiter(
                 http.Connection.RemoteIpAddress?.ToString() ?? "desconhecido",
                 _ => new FixedWindowRateLimiterOptions { PermitLimit = limiteAgenda, Window = TimeSpan.FromMinutes(1), QueueLimit = 0 }));
+            opcoes.AddPolicy(LimiteRenovacao, http => RateLimitPartition.GetFixedWindowLimiter(
+                ChaveDaRenovacao(http),
+                _ => new FixedWindowRateLimiterOptions { PermitLimit = limiteRenovacao, Window = TimeSpan.FromMinutes(1), QueueLimit = 0 }));
             opcoes.AddPolicy(LimiteAuth, http => RateLimitPartition.GetFixedWindowLimiter(
                 http.Connection.RemoteIpAddress?.ToString() ?? "desconhecido",
                 _ => new FixedWindowRateLimiterOptions { PermitLimit = limite, Window = TimeSpan.FromMinutes(1), QueueLimit = 0 }));
@@ -88,6 +101,18 @@ internal static class ComposicaoSeguranca
                 opcoes.AddDefaultPolicy(p => p.WithOrigins(origem).AllowCredentials().AllowAnyHeader().AllowAnyMethod());
         });
         return services;
+    }
+
+    /// <summary>
+    /// Partição do limite de renovação: o hash do refresh token do cookie (o token em si não fica na memória do
+    /// limitador); sem cookie, o IP, já que a resposta vai ser 401 de qualquer jeito.
+    /// </summary>
+    internal static string ChaveDaRenovacao(HttpContext http)
+    {
+        var token = CookieRefresh.Ler(http.Request);
+        if (string.IsNullOrEmpty(token))
+            return "ip:" + (http.Connection.RemoteIpAddress?.ToString() ?? "desconhecido");
+        return "refresh:" + Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(token)));
     }
 
     /// <summary>Cabeçalhos do proxy, CORS, autenticação, contexto de tenant, rate limit e autorização, nessa ordem.</summary>

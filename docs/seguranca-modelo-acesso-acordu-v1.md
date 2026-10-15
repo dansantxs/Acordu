@@ -211,6 +211,8 @@ Quem, tenant, ação, alvo, quando (IP opcional). Não audita leituras. Mecanism
 ## 9. Requisitos adicionais
 
 - **Rate limiting:** login, `/auth/portal/link` (por IP e por token), abertura de solicitação pelo portal, upload de anexos.
+  - As rotas públicas de `/auth` (login, cadastro, convites, recuperação de senha) e o reenvio da confirmação: 10 por minuto por IP (`RateLimit__Auth__PorMinuto`).
+  - **Renovação da sessão (`/auth/refresh`): limite próprio, 30 por minuto por refresh token** (`RateLimit__Refresh__PorMinuto`; a partição é o hash do cookie, e sem cookie o IP). Fica fora do limite por IP porque cada carga de página renova: um escritório atrás de um IP só, ou alguém com várias abas, esgotava o limite do login e caía na tela de entrar com a sessão ainda válida (achado da fumaça do F1c3; decidido em 15/10). O risco de abuso é baixo: sem um refresh válido a resposta é 401, e reapresentar um token já trocado revoga as sessões (ADR 0007).
 - **Headers de segurança:** HSTS, CSP (sem `unsafe-inline` no portal), `X-Content-Type-Options`, `Referrer-Policy: same-origin` (o token do link não pode vazar por Referer — a SPA troca o token e remove-o da URL na primeira carga).
 - **Testes obrigatórios:**
   - cross-tenant (ADR 0001) e **cross-cliente** (ADR 0002), em integração e API;
