@@ -81,7 +81,7 @@
 - **(Acordu, F1) Stack do front:**
   - React 19, Vite e TypeScript estrito, com pnpm (`apps/web`, Node 22);
   - **React Aria Components** (comportamento e acessibilidade, sem estilo), com o visual nosso via tokens CSS e Tailwind 4 só para aplicar os tokens. Substitui a ideia de shadcn/Mantine;
-  - TanStack Router com rotas por arquivo (`src/routes`, `routeTree.gen.ts` versionado) e TanStack Query;
+  - TanStack Router com rotas por arquivo (`src/routes`, `routeTree.gen.ts` gerado e fora do Git: o plugin do Vite o cria no `dev`/`test`, e `typecheck`/`build` rodam `tsr generate` antes) e TanStack Query;
   - `openapi-fetch` no cliente central (`shared/api/cliente.ts`);
   - Vitest com Testing Library e Playwright (fumaça);
   - ESLint (typescript-eslint) e Prettier (sem ponto e vírgula, aspas simples, 120 colunas).
