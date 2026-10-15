@@ -116,7 +116,7 @@ Buildx + QEMU `linux/arm64`, tag por SHA + `latest`, push no GHCR. Imagens: `ghc
 
 Os jobs já são endpoints internos idempotentes (`POST /internal/jobs/<nome>`, cabeçalho `X-Job-Token` comparado em tempo constante, 404 sem token válido), o que mantém o mesmo código no nível 0 e no plano B (ADR 0005).
 
-- Na VM, um **timer do systemd** (`acordu-jobs.timer`) chama `POST http://acordu-api:8080/internal/jobs/tick` a cada 5 minutos, a partir de um container efêmero na `infra_net` (`docker run --rm --network infra_net curlimages/curl ...`), com o token lido do `.env`. Jobs diários (`fechamento-automatico`, `expurgo-auditoria` e `expurgo-notificacoes`) usam um segundo timer.
+- Na VM, um **timer do systemd** (`acordu-jobs.timer`) chama `POST http://acordu-api:8080/internal/jobs/tick` a cada 5 minutos, a partir de um container efêmero na `infra_net` (`docker run --rm --network infra_net curlimages/curl ...`), com o token lido do `.env`. Jobs diários (`fechamento-automatico`, `expurgo-auditoria` e `expurgo-notificacoes`, que apaga também o feed de atividade com mais de 90 dias) usam um segundo timer.
 - O tick entrega o que a outbox da requisição não conseguiu entregar e roda os alertas de SLA; os diários cuidam de recorrências e fechamento automático.
 - Implementados: `POST /internal/jobs/tick` (geração das tarefas recorrentes, outbox e alertas de SLA; responde `{ tarefasRecorrentes, outboxProcessadas, alertasSla, falhas }`) e `POST /internal/jobs/fechamento-automatico` (diário; responde `{ tenants, fechadas, falhas }`). Jobs por tenant rodam cada tenant num escopo próprio; falha num tenant é logada, não para os demais e entra em `falhas` (o timer só alerta em resposta não-2xx).
 - Resposta não-2xx ou falha do timer → Discord (`OnFailure=` do serviço).
