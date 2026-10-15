@@ -28,7 +28,10 @@ export function FormularioEntrar({ voltar }: { voltar?: string }) {
             {mensagem && <Alerta>{mensagem}</Alerta>}
             <CampoTexto name="email" type="email" rotulo="E-mail" autoComplete="username" isRequired autoFocus />
             <CampoTexto name="senha" type="password" rotulo="Senha" autoComplete="current-password" isRequired />
-            <div className="flex items-center justify-end gap-4">
+            <div className="flex items-center justify-between gap-4">
+                <Link to="/conta/senha" className="text-sm text-acento-texto underline-offset-4 hover:underline">
+                    Esqueci a senha
+                </Link>
                 <Botao type="submit" isPending={envio.isPending}>
                     Entrar
                 </Botao>
