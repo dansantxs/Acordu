@@ -52,7 +52,7 @@ internal static class AuthEndpoints
 
             return Results.Ok(Responder(sessao, jwt, relogio, resposta));
         })
-            .RequireRateLimiting(ComposicaoSeguranca.LimiteAuth)
+            .RequireRateLimiting(ComposicaoSeguranca.LimiteRenovacao)
             .Produces<TokenDeAcesso>();
 
         publicas.MapPost("/logout", async (
