@@ -16,6 +16,9 @@ public static class AcoesAuditoria
     public const string EquipeRemocao = "equipe.remocao";
     public const string EquipeCapacidade = "equipe.capacidade";
 
+    public const string AgendaLinkEmissao = "agenda.link.emissao";
+    public const string AgendaLinkRevogacao = "agenda.link.revogacao";
+
     public const string PortalAcessoConcessao = "portal.acesso.concessao";
     public const string PortalAcessoEscopo = "portal.acesso.escopo";
     public const string PortalAcessoRevogacao = "portal.acesso.revogacao";
