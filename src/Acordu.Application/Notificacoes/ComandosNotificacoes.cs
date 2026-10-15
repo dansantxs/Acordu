@@ -42,9 +42,14 @@ public sealed class ComandosNotificacoes
     public async Task<PreferenciasDto> SalvarPreferenciasAsync(PreferenciasDto dados, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(dados);
-        var desligadas = (dados.Categorias ?? []).Where(c => !c.Email).Select(c => c.Categoria).ToHashSet();
-        if (desligadas.Any(c => !Enum.IsDefined(c)))
+        var informadas = dados.Categorias ?? [];
+        if (informadas.Any(c => !Enum.IsDefined(c.Categoria)))
             throw ErroDeCampo.Criar("categorias", "Categoria desconhecida.");
+
+        // Categoria ausente no corpo volta ao padrão (SEGUIDAS nasce desligada).
+        var desligadas = informadas.Where(c => !c.Email).Select(c => c.Categoria)
+            .Concat(PadroesDeAviso.EmailDesligadoPorPadrao.Where(p => informadas.All(c => c.Categoria != p)))
+            .ToHashSet();
         await _preferencias.SalvarAsync(_contexto.Usuario(), desligadas, cancellationToken);
         return Dto(desligadas);
     }
