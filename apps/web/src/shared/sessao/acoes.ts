@@ -1,5 +1,5 @@
 import { api } from '../api/cliente'
-import { abrirSessao, encerrarSessao } from './sessao'
+import { abrirSessao, encerrarSessao, estadoSessao, type TokenDeAcesso } from './sessao'
 
 /** Ações que abrem, trocam ou encerram a sessão. Erros chegam como `ErroApi` (campos em `campos`). */
 export async function entrar(email: string, senha: string): Promise<void> {
@@ -25,6 +25,21 @@ export async function sair(): Promise<void> {
     } finally {
         encerrarSessao()
     }
+}
+
+/** Aceite do convite da equipe: conta nova manda `nome`; conta existente, só a senha dela. */
+export async function aceitarConvite(corpo: { token: string; nome: string | null; senha: string }): Promise<void> {
+    const { data } = await api.POST('/api/v1/auth/convite', { body: corpo })
+    abrirSessao(data as unknown as TokenDeAcesso)
+}
+
+/**
+ * Nova senha pelo link do e-mail. A API revoga todas as sessões da pessoa e apaga o cookie, então aqui a sessão
+ * (se houver) também acaba, em todas as abas.
+ */
+export async function redefinirSenha(token: string, novaSenha: string): Promise<void> {
+    await api.POST('/api/v1/auth/senha/redefinir', { body: { token, novaSenha } })
+    if (estadoSessao().situacao === 'ativa') encerrarSessao()
 }
 
 /** Destino depois de entrar: só caminhos internos (evita redirecionamento aberto por `?voltar=`). */
