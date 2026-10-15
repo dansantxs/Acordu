@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="pt-BR">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <meta name="color-scheme" content="light dark" />
+        <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+        <title>Acordu</title>
+        <script>
+            // Tema antes da primeira pintura (sem piscar): escolha guardada ou a do sistema. Ver src/shared/tema/tema.ts.
+            ;(function () {
+                var tema = null
+                try {
+                    tema = localStorage.getItem('acordu.tema')
+                } catch (e) {}
+                if (tema !== 'claro' && tema !== 'escuro') {
+                    tema = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'escuro' : 'claro'
+                }
+                document.documentElement.dataset.tema = tema
+            })()
+        </script>
+    </head>
+    <body>
+        <div id="raiz"></div>
+        <script type="module" src="/src/main.tsx"></script>
+    </body>
+</html>
