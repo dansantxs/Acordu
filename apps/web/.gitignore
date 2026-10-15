@@ -3,3 +3,7 @@ dist
 *.local
 playwright-report
 test-results
+
+# Gerados: a árvore de rotas sai do plugin do Vite (dev/test) ou de `pnpm rotas` (typecheck/build)
+src/routeTree.gen.ts
+.tanstack
