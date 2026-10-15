@@ -38,6 +38,8 @@ internal static class CasosDeUso
         services.AddScoped<LogotipoPortal>();
         services.AddScoped<LeituraDashboard>();
         services.AddScoped<LeituraAgenda>();
+        services.AddScoped<ComandosAssinaturaAgenda>();
+        services.AddScoped<FeedAgenda>();
         services.AddScoped<AvisoInterno>();
         services.AddScoped<ValidacaoMencoes>();
         services.AddScoped<ComandosNotificacoes>();

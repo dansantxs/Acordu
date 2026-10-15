@@ -158,6 +158,7 @@ internal static class ComposicaoApi
 
         var api = app.MapGroup("/api/v1").AddEndpointFilter(DespachoOutbox.FiltrarAsync);
         api.MapAuth();
+        api.MapAgendaIcs();
         var grupos = new GruposApi(
             api,
             api.MapGroup(string.Empty).RequireAuthorization(Politicas.Equipe),
