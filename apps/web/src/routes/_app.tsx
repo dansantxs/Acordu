@@ -1,6 +1,7 @@
 import { createFileRoute, redirect } from '@tanstack/react-router'
 import { Casca } from '@/features/casca/Casca'
 import { ErroApi } from '@/shared/api/problema'
+import { NaoEncontrada } from '@/shared/ui/ErroTela'
 import { consultaPerfil, ehContato } from '@/shared/sessao/perfil'
 import { aguardarSessao } from '@/shared/sessao/sessao'
 
@@ -24,6 +25,7 @@ export const Route = createFileRoute('/_app')({
         }
     },
     component: AppDaEquipe,
+    notFoundComponent: NaoEncontrada,
 })
 
 function AppDaEquipe() {

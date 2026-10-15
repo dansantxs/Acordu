@@ -1,6 +1,7 @@
 import { useMutation } from '@tanstack/react-query'
 import { useState } from 'react'
 import { Button, Header, Menu, MenuItem, MenuSection, MenuTrigger, Popover, Separator } from 'react-aria-components'
+import { avisarErro } from '@/shared/avisos/avisos'
 import { sair, trocarEmpresa } from '@/shared/sessao/acoes'
 import type { Perfil } from '@/shared/sessao/perfil'
 import { escolherTema, temaAtual, type Tema } from '@/shared/tema/tema'
@@ -11,7 +12,7 @@ const item =
 /** Pé da capa: quem está usando e em qual empresa; troca de empresa, tema e saída. */
 export function MenuUsuario({ perfil }: { perfil: Perfil }) {
     const [tema, setTema] = useState<Tema>(temaAtual)
-    const troca = useMutation({ mutationFn: trocarEmpresa })
+    const troca = useMutation({ mutationFn: trocarEmpresa, onError: avisarErro })
     const outras = perfil.tenants.filter((t) => t.id !== perfil.tenant.id)
 
     return (

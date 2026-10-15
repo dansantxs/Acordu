@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useRouter } from '@tanstack/react-router'
 import { Button, Dialog, DialogTrigger, Heading, Popover } from 'react-aria-components'
 import { api } from '@/shared/api/cliente'
+import { avisarErro } from '@/shared/avisos/avisos'
 import type { components } from '@/shared/api/interno'
 import { quando } from '@/shared/format/quando'
 import { Icone } from '@/shared/ui/Icone'
@@ -35,7 +36,11 @@ export function Sino({ fuso }: { fuso: string }) {
         mutationFn: (id: string) => api.POST('/api/v1/notificacoes/{id}/leitura', { params: { path: { id } } }),
         onSettled: atualizar,
     })
-    const lerTodos = useMutation({ mutationFn: () => api.POST('/api/v1/notificacoes/leitura'), onSettled: atualizar })
+    const lerTodos = useMutation({
+        mutationFn: () => api.POST('/api/v1/notificacoes/leitura'),
+        onError: avisarErro,
+        onSettled: atualizar,
+    })
 
     const naoLidas = Number(sino.data?.naoLidas ?? 0)
     const rotulo = naoLidas > 0 ? `Avisos, ${naoLidas} não lidos` : 'Avisos'

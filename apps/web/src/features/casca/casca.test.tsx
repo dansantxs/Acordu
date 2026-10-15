@@ -115,4 +115,10 @@ describe('casca do app', () => {
         await vi.waitFor(() => expect(roteador.state.location.pathname).toBe('/solicitacoes/s1'))
         expect(chamadas.some((c) => c.caminho === '/api/v1/notificacoes/n1/leitura')).toBe(true)
     })
+    it('endereço inexistente mostra a página não encontrada dentro da casca', async () => {
+        app([])
+        await abrir('/nao-existe')
+        expect(await screen.findByText('Página não encontrada')).toBeInTheDocument()
+        expect(screen.getByRole('navigation', { name: 'Principal' })).toBeInTheDocument()
+    })
 })
