@@ -140,6 +140,17 @@ Implicação arquitetural (ADR 0002):
 - Projeção do contrato (§7.4).
 - Relatório mensal de prestação de contas (PDF) por cliente.
 - Integração WhatsApp (API oficial via provedor).
+- **Colaboração entre autônomos e equipes informais** (estudantes, freelancers parceiros):
+  - "modo equipe" escolhido no cadastro, que esconde clientes, contratos e SLA e troca "empresa" por "espaço";
+  - projeto sem cliente;
+  - convidado restrito a um projeto, sem ver o resto do espaço (mexe no modelo de segurança: pede ADR).
+  - Hoje já funciona criando um espaço e convidando, com as fricções de vocabulário e do projeto que exige cliente.
+- **Integrações com ferramentas de colaboração que o outro lado já usa**, para quem colabora sem usar o Acordu:
+  - **GitHub:** vincular issue ou PR a tarefa e solicitação, com o status do PR na tarefa via webhook;
+  - **Notion:** vincular página e espelhar tarefas num database;
+  - **Slack, Discord e Teams:** avisos do sino num canal;
+  - **Google Agenda e Outlook:** o v1 já publica a agenda em ICS (somente leitura); no v2, criar e atualizar eventos pela API, nos dois sentidos.
+  - **Princípio:** o Acordu é a fonte da verdade do trabalho e das horas, e as integrações levam e trazem sinais sem exigir conta do outro lado.
 
 **v3+:**
 - Faturamento/cobrança (gateway, NFS-e) — ou integração com sistemas financeiros.
@@ -212,3 +223,4 @@ Implicação arquitetural (ADR 0002):
 | 05/10/2026 | Conta Oracle Cloud inacessível: hospedagem serverless gratuita (Cloud Run + Neon + Cloudflare Pages), projeto e banco próprios por produto, plano de escala até VM no Brasil (ADR 0005) | Revogado em 06/10 |
 | 06/10/2026 | Conta Oracle recuperada: volta à VM Ampere compartilhada com outros produtos; níveis 1 (Magalu Cloud SP) e 2; serverless como plano B (ADR 0006) | Decidido |
 | 10/10/2026 | Empresa: **Nebrys** (`nebrys.com.br` livre em 10/10/2026; INPI a verificar) | Decidido |
+| 15/10/2026 | Colaboração de autônomos/estudantes ("modo equipe", projeto sem cliente, convidado por projeto) e integrações com GitHub, Notion, Slack/Discord/Teams e agendas: **v2**, fora do v1 para não diluir o foco em prestadores | Hipótese |
