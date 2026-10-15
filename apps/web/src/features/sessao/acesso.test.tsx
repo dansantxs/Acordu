@@ -1,54 +1,8 @@
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { createMemoryHistory, createRouter, RouterProvider } from '@tanstack/react-router'
-import { render, screen } from '@testing-library/react'
+import { screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { routeTree } from '@/routeTree.gen'
-import '@/shared/api/cliente'
-import { iniciarSessao, reiniciarParaTestes } from '@/shared/sessao/sessao'
-
-const daquiA = (ms: number) => new Date(Date.now() + ms).toISOString()
-const json = (corpo: unknown, status = 200) =>
-    new Response(JSON.stringify(corpo), { status, headers: { 'content-type': 'application/json' } })
-
-const perfil = {
-    usuarioId: 'u1',
-    nome: 'Ana Prado',
-    email: 'ana@exemplo.com',
-    emailConfirmado: true,
-    tenant: { id: 't1', nome: 'Prado Consultoria', fusoHorario: 'America/Sao_Paulo' },
-    papel: 'Dono',
-    permissoes: [],
-    clienteId: null,
-    escopoPortal: null,
-    tenants: [{ id: 't1', nome: 'Prado Consultoria', papel: 'Dono' }],
-}
-
-function servidor(rotas: Record<string, () => Response>) {
-    vi.stubGlobal(
-        'fetch',
-        vi.fn(async (requisicao: Request) => {
-            const resposta = rotas[new URL(requisicao.url).pathname]
-            if (!resposta) throw new Error(`Sem resposta para ${requisicao.url}`)
-            return resposta()
-        }),
-    )
-}
-
-async function abrir(caminho: string) {
-    const roteador = createRouter({
-        routeTree,
-        context: { consultas: new QueryClient({ defaultOptions: { queries: { retry: false } } }) },
-        history: createMemoryHistory({ initialEntries: [caminho] }),
-    })
-    await iniciarSessao()
-    render(
-        <QueryClientProvider client={roteador.options.context.consultas}>
-            <RouterProvider router={roteador} />
-        </QueryClientProvider>,
-    )
-    return roteador
-}
+import { reiniciarParaTestes } from '@/shared/sessao/sessao'
+import { abrir, daquiA, json, perfil, servidor } from '@/testes/app'
 
 describe('acesso', () => {
     beforeEach(() => reiniciarParaTestes())

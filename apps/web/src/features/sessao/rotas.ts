@@ -1,4 +1,5 @@
 import { redirect } from '@tanstack/react-router'
+import { guardarTokenDeLink, type TipoDeLink } from '@/shared/sessao/tokenDaUrl'
 import { destinoSeguro } from '@/shared/sessao/acoes'
 import { aguardarSessao } from '@/shared/sessao/sessao'
 
@@ -11,4 +12,14 @@ export function validarVoltar(busca: Record<string, unknown>): { voltar?: string
 export async function seguirSeJaEntrou(voltar?: string): Promise<void> {
     const estado = await aguardarSessao()
     if (estado.situacao === 'ativa') throw redirect({ to: destinoSeguro(voltar) })
+}
+
+/** Guarda o token do link e troca a URL pela versão sem ele, sem deixar a com token no histórico. */
+export function retirarTokenDaUrl(
+    tipo: TipoDeLink,
+    token: string,
+    destino: '/convite' | '/conta/senha/nova' | '/conta/confirmacao',
+) {
+    guardarTokenDeLink(tipo, token)
+    return redirect({ to: destino, replace: true })
 }

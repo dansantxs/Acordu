@@ -1,4 +1,5 @@
 import { createFileRoute } from '@tanstack/react-router'
+import { AvisoConfirmacao } from '@/features/sessao/AvisoConfirmacao'
 import { SeletorEmpresa } from '@/features/sessao/SeletorEmpresa'
 import { formatarDuracao } from '@/shared/format/duracao'
 import { sair } from '@/shared/sessao/acoes'
@@ -33,6 +34,7 @@ function Inicio() {
                         </Botao>
                     </div>
                 </header>
+                <AvisoConfirmacao perfil={perfil} />
                 <section className="flex flex-wrap gap-3" aria-label="Situações">
                     <span className="rounded-couro bg-verde-suave px-3 py-1 text-verde">No prazo</span>
                     <span className="rounded-couro bg-ambar-suave px-3 py-1 text-ambar-texto">Em risco</span>
