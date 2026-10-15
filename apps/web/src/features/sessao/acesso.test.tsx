@@ -81,4 +81,21 @@ describe('acesso', () => {
         await abrir('/')
         expect(await screen.findByRole('heading', { name: 'Portal do cliente' })).toBeInTheDocument()
     })
+    it('se a sessão não pôde ser conferida (429), oferece tentar de novo em vez do login', async () => {
+        let tentativas = 0
+        servidor({
+            '/api/v1/auth/refresh': () =>
+                ++tentativas === 1
+                    ? json({ status: 429 }, 429)
+                    : json({ accessToken: 'a', expiraEm: daquiA(3_600_000) }),
+            '/api/v1/auth/eu': () => json(perfil),
+            '/api/v1/notificacoes': () => json({ itens: [], pagina: 1, tamanhoPagina: 10, total: 0, naoLidas: 0 }),
+        })
+        await abrir('/')
+        expect(await screen.findByRole('heading', { name: 'Não deu para conectar' })).toBeInTheDocument()
+        expect(screen.queryByRole('heading', { name: 'Entrar' })).not.toBeInTheDocument()
+
+        await userEvent.setup().click(screen.getByRole('button', { name: 'Tentar de novo' }))
+        expect(await screen.findByRole('heading', { level: 1, name: /, Ana$/ })).toBeInTheDocument()
+    })
 })

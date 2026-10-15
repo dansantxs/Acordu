@@ -9,6 +9,7 @@ import {
     reiniciarParaTestes,
     renovar,
     tokenAtual,
+    tentarDeNovo,
     tokenVencendo,
 } from './sessao'
 
@@ -33,12 +34,18 @@ describe('sessão', () => {
         expect(tokenAtual()).toBeNull()
     })
 
-    it('fica anônima sem rede na primeira carga, sem tentar de novo', async () => {
-        const renovador = vi.fn().mockRejectedValue(new TypeError('Failed to fetch'))
+    it('sem rede na primeira carga fica indisponível (não anônima) e só tenta de novo quando pedem', async () => {
+        const renovador = vi
+            .fn()
+            .mockRejectedValueOnce(new TypeError('Failed to fetch'))
+            .mockResolvedValueOnce({ accessToken: 'a6', expiraEm: daquiA(3_600_000) })
         definirRenovador(renovador)
         await iniciarSessao()
-        expect(estadoSessao().situacao).toBe('anonima')
+        expect(estadoSessao().situacao).toBe('indisponivel')
         expect(renovador).toHaveBeenCalledTimes(1)
+
+        expect((await tentarDeNovo()).situacao).toBe('ativa')
+        expect(tokenAtual()).toBe('a6')
     })
 
     it('renovações simultâneas na aba fazem uma chamada só', async () => {
