@@ -177,7 +177,8 @@ Testes obrigatórios nos níveis de integração **e** API: cross-tenant (RNF-SE
 ## 6. Frontend
 
 - `apps/web`: uma SPA com **duas áreas**: app interno (`features/`) e portal (`portal/`, rota `/portal`, layout mobile-first).
-- Tipos gerados do OpenAPI em `shared/api/types.ts`; o portal consome só os tipos das rotas `/portal`.
+- Tipos gerados do OpenAPI em `shared/api/interno.d.ts` e `shared/api/portal.d.ts`, a partir de `openapi/*.json` na raiz (contrato versionado, convenções §4); o portal consome só os tipos das rotas `/portal`.
+- **(F1)** pnpm, `pnpm dev` (proxy de `/api` para a API em `http://localhost:5080`), `pnpm test`, `pnpm build`. Rotas por arquivo em `src/routes`.
 - Separar em dois apps só se o bundle do portal ficar pesado para o cliente final — medir antes.
 
 ---

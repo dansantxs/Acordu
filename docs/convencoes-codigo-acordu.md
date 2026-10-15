@@ -73,12 +73,22 @@
 
 ## 4. Frontend
 
-- **Tipos TS gerados do OpenAPI** (`openapi-typescript`), nunca escritos à mão.
+- **Tipos TS gerados do OpenAPI** (`openapi-typescript`), nunca escritos à mão. **(Acordu, F1)** O contrato fica versionado em `openapi/interno.json` e `openapi/portal.json`, conferido por um teste funcional (`ContratoOpenApiTests`, sem as rotas de teste do fixture). Quando a API muda, regera-se com `ACORDU_ATUALIZAR_OPENAPI=1` ou pelo workflow **OpenAPI** (commitar `.github/openapi-request`), que também roda `pnpm api:tipos`; a CI falha se o contrato ou os tipos estiverem desatualizados.
 - **Cliente HTTP centralizado** em `shared/api` (base URL, Bearer, parsing de Problem Details, `If-Match`).
 - Organização **por feature**.
 - **(Acordu) Duas áreas:** `features/*` (app interno) e `portal/*` (layout, rotas e cliente de API próprios). O portal não importa nada de `features/`; o que for comum vai para `shared/`.
 - **(Acordu) Tempo:** formatador único em `shared/format` (`formatarDuracao(90) → "1h30"`); instantes exibidos no fuso do tenant (vem em `/auth/eu`), não no fuso do navegador.
-- Component library (shadcn/ui ou Mantine — decidir no marco do front) para formulários e listas.
+- **(Acordu, F1) Stack do front:**
+  - React 19, Vite e TypeScript estrito, com pnpm (`apps/web`, Node 22);
+  - **React Aria Components** (comportamento e acessibilidade, sem estilo), com o visual nosso via tokens CSS e Tailwind 4 só para aplicar os tokens. Substitui a ideia de shadcn/Mantine;
+  - TanStack Router com rotas por arquivo (`src/routes`, `routeTree.gen.ts` versionado) e TanStack Query;
+  - `openapi-fetch` no cliente central (`shared/api/cliente.ts`);
+  - Vitest com Testing Library e Playwright (fumaça);
+  - ESLint (typescript-eslint) e Prettier (sem ponto e vírgula, aspas simples, 120 colunas).
+- **(Acordu, F1) Tema:**
+  - agenda de couro; tokens em `shared/tema/tokens.css`, com o papel por `data-tema` (claro/escuro) e a capa por `data-couro` (Café padrão; Conhaque e Bordô prontos, sem seletor no v1);
+  - a escolha fica no navegador e, sem ela, vale a do sistema, aplicada antes da primeira pintura;
+  - fontes Fraunces (títulos) e Source Sans 3 (texto), hospedadas com o app (`@fontsource`), nunca do Google.
 
 ---
 

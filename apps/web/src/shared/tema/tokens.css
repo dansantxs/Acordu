@@ -1,0 +1,91 @@
+/*
+ * Tokens do Acordu: agenda física de couro (decidido em 14/10). O papel muda com o tema (claro/escuro); a capa (barra
+ * lateral, acento) muda com o couro. Padrão: claro + Café. Conhaque e Bordô ficam prontos, sem seletor no v1.
+ * Os nomes seguem o protótipo; o Tailwind só os expõe como utilitários (@theme abaixo).
+ */
+:root,
+:root[data-tema='claro'] {
+    --fundo: #efe8da;
+    --superficie: #fbf8f1;
+    --trilho: #e5dcc9;
+    --linha: #dacfba;
+    --tinta: #2a211a;
+    --suave: #6e6153;
+    --feriado: #e9e1d1;
+    --veu: rgb(42 33 26 / 0.3);
+    --verde: #4e7a3a;
+    --verde-suave: #e6eedc;
+    --ambar: #b07a12;
+    --ambar-texto: #82580a;
+    --ambar-suave: #f5eacb;
+    --vermelho: #a8322d;
+    --vermelho-suave: #f6e1dc;
+
+    --lateral: #3b2a20;
+    --lateral-linha: #523b2e;
+    --lateral-cartao: #2f2119;
+    --lateral-ativo: #5a4031;
+    --costura: #c9a877;
+    --acento: #8a6a1f;
+    --acento-suave: #f2e8cc;
+    --acento-texto: #6e5410;
+    --botao-tinta: #fff8ee;
+
+    --lateral-tinta: #f3e9da;
+    --lateral-suave: #cdb89d;
+    --dourado: #e2c48f;
+    --raio: 6px;
+    color-scheme: light;
+}
+
+:root[data-tema='escuro'] {
+    --fundo: #1a1511;
+    --superficie: #241d17;
+    --trilho: #2f261f;
+    --linha: #3a3027;
+    --tinta: #efe6d6;
+    --suave: #a89884;
+    --feriado: #211a15;
+    --veu: rgb(0 0 0 / 0.5);
+    --verde: #8db872;
+    --verde-suave: #263020;
+    --ambar: #d9a441;
+    --ambar-texto: #e5b95e;
+    --ambar-suave: #352a17;
+    --vermelho: #e07a6e;
+    --vermelho-suave: #3a211d;
+
+    --lateral: #241a14;
+    --lateral-linha: #33261d;
+    --lateral-cartao: #1c140f;
+    --lateral-ativo: #3a2b21;
+    --costura: #7e6447;
+    --acento: #d6b25e;
+    --acento-suave: #342b19;
+    --acento-texto: #e3c47a;
+    --botao-tinta: #1e170b;
+    color-scheme: dark;
+}
+
+/* Couros alternativos (sem seletor no v1). */
+:root[data-couro='conhaque'] {
+    --lateral: #6b3f22;
+    --lateral-linha: #835234;
+    --lateral-cartao: #5a341c;
+    --lateral-ativo: #84502c;
+    --costura: #d9b98c;
+    --acento: #8a4b22;
+    --acento-suave: #f1e2d1;
+    --acento-texto: #7a4019;
+}
+
+:root[data-couro='bordo'] {
+    --lateral: #5a1e27;
+    --lateral-linha: #722c36;
+    --lateral-cartao: #4a1820;
+    --lateral-ativo: #7a3440;
+    --costura: #d8b08a;
+    --acento: #2f4f7f;
+    --acento-suave: #e1e7f0;
+    --acento-texto: #2a4670;
+}

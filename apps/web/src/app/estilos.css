@@ -1,0 +1,57 @@
+@import 'tailwindcss';
+@import '../shared/tema/tokens.css';
+
+@theme inline {
+    --font-sans: 'Source Sans 3 Variable', system-ui, sans-serif;
+    --font-titulo: 'Fraunces Variable', Georgia, serif;
+    --color-fundo: var(--fundo);
+    --color-superficie: var(--superficie);
+    --color-trilho: var(--trilho);
+    --color-linha: var(--linha);
+    --color-tinta: var(--tinta);
+    --color-suave: var(--suave);
+    --color-feriado: var(--feriado);
+    --color-verde: var(--verde);
+    --color-verde-suave: var(--verde-suave);
+    --color-ambar: var(--ambar);
+    --color-ambar-texto: var(--ambar-texto);
+    --color-ambar-suave: var(--ambar-suave);
+    --color-vermelho: var(--vermelho);
+    --color-vermelho-suave: var(--vermelho-suave);
+    --color-lateral: var(--lateral);
+    --color-lateral-linha: var(--lateral-linha);
+    --color-lateral-cartao: var(--lateral-cartao);
+    --color-lateral-ativo: var(--lateral-ativo);
+    --color-lateral-tinta: var(--lateral-tinta);
+    --color-lateral-suave: var(--lateral-suave);
+    --color-costura: var(--costura);
+    --color-dourado: var(--dourado);
+    --color-acento: var(--acento);
+    --color-acento-suave: var(--acento-suave);
+    --color-acento-texto: var(--acento-texto);
+    --color-botao-tinta: var(--botao-tinta);
+    --radius-couro: var(--raio);
+}
+
+@layer base {
+    html {
+        font-family: var(--font-sans);
+        font-variant-numeric: tabular-nums;
+        background: var(--fundo);
+        color: var(--tinta);
+    }
+
+    :focus-visible {
+        outline: 2px solid var(--acento);
+        outline-offset: 2px;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+        *,
+        *::before,
+        *::after {
+            transition: none !important;
+            animation: none !important;
+        }
+    }
+}

@@ -1,0 +1,86 @@
+name: OpenAPI
+
+# Regenera o contrato versionado (openapi/*.json) e os tipos do front (apps/web/src/shared/api/*.d.ts) e faz commit na
+# branch de feature (convenções §4). Disparos:
+#   1. Pedido por arquivo: commitar `.github/openapi-request` (conteúdo livre) numa branch de feature. O workflow roda o
+#      teste de contrato com ACORDU_ATUALIZAR_OPENAPI=1, gera os tipos, apaga o pedido e faz o commit.
+#   2. Manual: Actions → OpenAPI → Run workflow.
+# Commits feitos com o GITHUB_TOKEN não disparam o CI: depois, um push qualquer na branch roda os testes.
+
+on:
+  workflow_dispatch:
+  push:
+    branches-ignore: [main]
+    paths: [".github/openapi-request"]
+
+permissions:
+  contents: write
+
+concurrency:
+  group: openapi-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  gerar:
+    name: Gerar contrato e tipos
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - name: Recusar a main
+        if: github.ref == 'refs/heads/main'
+        run: |
+          echo "Gere o contrato numa branch de feature, nunca direto na main."
+          exit 1
+
+      - uses: actions/checkout@v4
+
+      - name: Pedido removido?
+        id: pedido
+        if: github.event_name == 'push'
+        run: |
+          if [[ ! -f .github/openapi-request ]]; then
+            echo "Pedido removido neste push; nada a gerar."
+            echo "pular=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - uses: actions/setup-dotnet@v4
+        if: steps.pedido.outputs.pular != 'true'
+        with:
+          global-json-file: global.json
+
+      - name: Gerar o contrato pelo teste
+        if: steps.pedido.outputs.pular != 'true'
+        env:
+          ACORDU_ATUALIZAR_OPENAPI: "1"
+        run: >
+          dotnet test tests/Acordu.Api.FunctionalTests --configuration Release
+          --filter "FullyQualifiedName~ContratoOpenApiTests"
+
+      - uses: pnpm/action-setup@v4
+        if: steps.pedido.outputs.pular != 'true'
+        with:
+          package_json_file: apps/web/package.json
+
+      - uses: actions/setup-node@v4
+        if: steps.pedido.outputs.pular != 'true'
+        with:
+          node-version: 22
+          cache: pnpm
+          cache-dependency-path: apps/web/pnpm-lock.yaml
+
+      - name: Gerar os tipos do front
+        if: steps.pedido.outputs.pular != 'true'
+        working-directory: apps/web
+        run: |
+          pnpm install --frozen-lockfile
+          pnpm api:tipos
+
+      - name: Commit na branch
+        if: steps.pedido.outputs.pular != 'true'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git rm -q --ignore-unmatch .github/openapi-request
+          git add openapi apps/web/src/shared/api
+          git commit -m "build: atualiza o contrato OpenAPI e os tipos do front"
+          git push

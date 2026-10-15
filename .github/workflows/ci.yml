@@ -79,3 +79,46 @@ jobs:
           name: resultados-testes
           path: TestResults
           if-no-files-found: ignore
+
+  web:
+    name: Web (React)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: apps/web
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          package_json_file: apps/web/package.json
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+          cache-dependency-path: apps/web/pnpm-lock.yaml
+
+      - name: Instalar
+        run: pnpm install --frozen-lockfile
+
+      - name: Tipos do OpenAPI atualizados
+        run: |
+          pnpm api:tipos
+          git diff --exit-code -- src/shared/api || (echo "::error::Tipos desatualizados: rode pnpm api:tipos (ou peça pelo workflow OpenAPI)." && exit 1)
+
+      - name: Formato
+        run: pnpm format:check
+
+      - name: Lint
+        run: pnpm lint
+
+      - name: Tipos
+        run: pnpm typecheck
+
+      - name: Testes
+        run: pnpm test
+
+      - name: Build
+        run: pnpm build
