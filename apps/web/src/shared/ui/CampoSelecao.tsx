@@ -23,6 +23,7 @@ export function CampoSelecao({
     valor,
     aoMudar,
     vazio,
+    dica,
     descricao,
     name,
     isRequired = false,
@@ -34,6 +35,8 @@ export function CampoSelecao({
     valor: string | null
     aoMudar: (valor: string | null) => void
     vazio?: string
+    /** Dica no campo vazio, quando o rótulo da opção vazia é longo demais para caber (padrão: o próprio `vazio`). */
+    dica?: string
     descricao?: string
     name?: string
     isRequired?: boolean
@@ -60,7 +63,7 @@ export function CampoSelecao({
             <Rotulo texto={rotulo} obrigatorio={isRequired} oculto={rotuloOculto} />
             <div className="flex items-center rounded-couro border border-linha bg-superficie focus-within:outline-2 focus-within:outline-acento">
                 <Input
-                    placeholder={vazio}
+                    placeholder={dica ?? vazio}
                     // Focar seleciona o texto: digitar já substitui a escolha atual pela busca.
                     onFocus={(e) => e.currentTarget.select()}
                     className="w-full min-w-0 bg-transparent px-3 py-2 text-tinta outline-none placeholder:text-suave"
