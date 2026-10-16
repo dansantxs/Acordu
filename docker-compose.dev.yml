@@ -23,5 +23,15 @@ services:
     ports:
       - "9090:9090"
 
+  # Caixa de e-mail falsa (decidido em 16/10): a API manda por SMTP para cá no desenvolvimento
+  # (Email__Smtp__Host=localhost, já no appsettings.Development) e os e-mails aparecem em http://localhost:8025, com os
+  # links clicáveis. Nada sai para a internet. Sem persistência.
+  mailpit:
+    image: axllent/mailpit:v1.31.5
+    container_name: acordu-mailpit
+    ports:
+      - "1025:1025"
+      - "8025:8025"
+
 volumes:
   pgdata:
