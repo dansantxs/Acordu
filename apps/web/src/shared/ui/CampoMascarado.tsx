@@ -1,5 +1,6 @@
 import { useLayoutEffect, useRef, useState, type ChangeEvent } from 'react'
-import { FieldError, Input, Label, Text, TextField, type TextFieldProps } from 'react-aria-components'
+import { FieldError, Input, Text, TextField, type TextFieldProps } from 'react-aria-components'
+import { Rotulo } from './Rotulo'
 import { digitos, posicaoDoCursor, type Mascara } from '../format/mascaras'
 
 interface Props extends Omit<TextFieldProps, 'children' | 'value' | 'onChange' | 'defaultValue'> {
@@ -53,7 +54,7 @@ export function CampoMascarado({
             value={valor}
             className={`flex flex-col gap-1 ${typeof className === 'string' ? className : ''}`}
         >
-            <Label className="text-sm font-semibold text-tinta">{rotulo}</Label>
+            <Rotulo texto={rotulo} obrigatorio={props.isRequired} />
             <Input
                 ref={entrada}
                 inputMode="numeric"
