@@ -4,6 +4,7 @@ import { render } from '@testing-library/react'
 import { vi } from 'vitest'
 import { routeTree } from '@/routeTree.gen'
 import '@/shared/api/cliente'
+import { RegiaoAvisos } from '@/shared/avisos/RegiaoAvisos'
 import { iniciarSessao } from '@/shared/sessao/sessao'
 
 /** Apoio dos testes de tela: o app inteiro (rotas reais) com a API simulada por caminho. */
@@ -32,24 +33,55 @@ export const perfil = {
 /** Tempo real sem sinais: a conexão fecha e a casca tenta de novo mais tarde (sem afetar o teste). */
 const semEventos = () => new Response(null, { status: 204 })
 
-export type Rotas = Record<string, (corpo: unknown) => Response>
+export type Rotas = Record<string, (corpo: unknown, url: URL) => Response>
 
-/** Registra as chamadas (caminho e corpo JSON) e responde pela função do caminho. */
+export interface Chamada {
+    metodo: string
+    caminho: string
+    consulta: URLSearchParams
+    corpo: unknown
+    ifMatch: string | null
+}
+
+/**
+ * Registra as chamadas e responde pela função da rota: primeiro `'MÉTODO /caminho'`, depois só `'/caminho'`
+ * (qualquer método).
+ */
 export function servidor(rotas: Rotas) {
-    const chamadas: { caminho: string; corpo: unknown }[] = []
+    const chamadas: Chamada[] = []
     vi.stubGlobal(
         'fetch',
         vi.fn(async (requisicao: Request) => {
-            const caminho = new URL(requisicao.url).pathname
+            const url = new URL(requisicao.url)
+            const caminho = url.pathname
             const texto = await requisicao.text()
             const corpo: unknown = texto ? JSON.parse(texto) : null
-            chamadas.push({ caminho, corpo })
-            const resposta = rotas[caminho] ?? (caminho === '/api/v1/eventos' ? semEventos : undefined)
-            if (!resposta) throw new Error(`Sem resposta para ${caminho}`)
-            return resposta(corpo)
+            chamadas.push({
+                metodo: requisicao.method,
+                caminho,
+                consulta: url.searchParams,
+                corpo,
+                ifMatch: requisicao.headers.get('If-Match'),
+            })
+            const resposta =
+                rotas[`${requisicao.method} ${caminho}`] ??
+                rotas[caminho] ??
+                (caminho === '/api/v1/eventos' ? semEventos : undefined)
+            if (!resposta) throw new Error(`Sem resposta para ${requisicao.method} ${caminho}`)
+            return resposta(corpo, url)
         }),
     )
     return chamadas
+}
+
+/** Sessão da Ana com as permissões dadas, sem avisos no sino. */
+export function comPerfil(permissoes: string[], rotas: Rotas = {}) {
+    return servidor({
+        '/api/v1/auth/refresh': comSessao,
+        '/api/v1/auth/eu': () => json({ ...perfil, permissoes }),
+        '/api/v1/notificacoes': () => json({ itens: [], pagina: 1, tamanhoPagina: 10, total: 0, naoLidas: 0 }),
+        ...rotas,
+    })
 }
 
 export async function abrir(caminho: string) {
@@ -62,6 +94,7 @@ export async function abrir(caminho: string) {
     render(
         <QueryClientProvider client={roteador.options.context.consultas}>
             <RouterProvider router={roteador} />
+            <RegiaoAvisos />
         </QueryClientProvider>,
     )
     return roteador
