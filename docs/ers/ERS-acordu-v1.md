@@ -122,11 +122,13 @@ Convenções: **RF** = requisito funcional, **RNF** = não funcional. Verificaç
 **Clientes e contatos**
 | ID | Requisito | Verif. |
 |---|---|---|
-| RF-CLI-01 | Criar, editar e inativar clientes (razão social/nome, documento opcional CPF/CNPJ, observações). | T |
+| RF-CLI-01 | Criar, editar e inativar clientes: nome (como a equipe chama o cliente), razão social, CPF/CNPJ, inscrição estadual (número ou ISENTO), e-mail e telefone gerais, endereço (CEP, logradouro, número, complemento, bairro, cidade, UF) e observações; só o nome é obrigatório. Ampliado em 16/10. | T |
 | RF-CLI-02 | Criar, editar e inativar contatos de um cliente (nome, e-mail, telefone, cargo). | T |
 | RF-CLI-03 | Conceder acesso ao portal a um contato (convite por e-mail), criando `Usuario` + `Vinculo` com papel Cliente e escopo no `ClienteId`. | T |
 | RF-CLI-04 | Definir, por contato, se ele vê **só as próprias solicitações** ou **todas as do seu cliente**. | T |
 | RF-CLI-05 | Revogar o acesso de um contato ao portal sem apagar seu histórico. | T |
+| RF-CLI-06 | Definir o **responsável interno** do cliente (alguém da equipe), sugerido como responsável das solicitações novas dele, e filtrar a lista por responsável. Decidido em 16/10. | T |
+| RF-CLI-07 | Marcar clientes com até 10 **etiquetas** livres (ex.: "condomínio", "varejo") e filtrar a lista por etiqueta, com as etiquetas em uso sugeridas. Decidido em 16/10. | T |
 
 **Contratos e SLA**
 | ID | Requisito | Verif. |

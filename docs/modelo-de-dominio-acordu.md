@@ -38,10 +38,17 @@ class Cliente <<aggregate root>> {
   +Documento: string? (CPF/CNPJ, só dígitos)
   +Observacoes: string?
   +Ativo: bool
+  +RazaoSocial, InscricaoEstadual, Email, Telefone: string?
+  +Endereco: Endereco? (VO: Cep, Logradouro, Numero?, Complemento?, Bairro?, Cidade, Uf)
+  +ResponsavelId: Guid? (equipe; conferido na Application)
+  +Etiquetas: string[] (até 10)
   +Contatos: Contato[]
   --
   +Criar(id, tenantId, nome, documento?, observacoes?): Cliente
   +Editar(nome, documento?, observacoes?)
+  +DefinirCadastro(razaoSocial?, inscricaoEstadual?, email?, telefone?, endereco?)
+  +DefinirResponsavel(responsavelId?)
+  +DefinirEtiquetas(etiquetas)
   +AdicionarContato(nome, email, telefone?, cargo?): Contato
   +AtualizarContato(contatoId, ...)
   +InativarContato(contatoId)
