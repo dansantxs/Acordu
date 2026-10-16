@@ -10,6 +10,7 @@ export function Janela({
     aberta,
     aoMudar,
     ocupada = false,
+    larga = false,
     children,
 }: {
     titulo: string
@@ -17,6 +18,8 @@ export function Janela({
     aoMudar: (aberta: boolean) => void
     /** Durante o envio não fecha por Esc nem clique fora. */
     ocupada?: boolean
+    /** Formulário com várias seções (cadastro de cliente). */
+    larga?: boolean
     children: ReactNode
 }) {
     return (
@@ -27,7 +30,9 @@ export function Janela({
             isKeyboardDismissDisabled={ocupada}
             className="fixed inset-0 z-50 grid place-items-center overflow-y-auto bg-[var(--veu)] p-4"
         >
-            <Modal className="w-full max-w-lg rounded-couro border border-linha bg-superficie text-tinta shadow-2xl">
+            <Modal
+                className={`w-full ${larga ? 'max-w-3xl' : 'max-w-lg'} rounded-couro border border-linha bg-superficie text-tinta shadow-2xl`}
+            >
                 <Dialog className="flex flex-col gap-5 p-6 outline-none">
                     <Heading slot="title" className="font-titulo text-2xl font-semibold tracking-tight">
                         {titulo}

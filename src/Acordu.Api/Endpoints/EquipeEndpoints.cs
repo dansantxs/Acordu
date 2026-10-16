@@ -10,6 +10,13 @@ internal static class EquipeEndpoints
 {
     public static void MapEquipe(this RouteGroupBuilder interno)
     {
+        // Para escolher responsável e mencionar (16/10): só Id e nome, para qualquer papel interno. O `/usuarios`, com
+        // e-mail, papel e capacidade, continua restrito a quem administra a equipe.
+        interno.MapGet("/equipe", async (IConsultasEquipe consultas, CancellationToken cancellationToken) =>
+            Results.Ok(await consultas.PessoasAsync(cancellationToken)))
+            .WithTags("Equipe")
+            .Produces<IReadOnlyList<Referencia>>();
+
         var usuarios = interno.MapGroup("/usuarios").WithTags("Equipe");
 
         usuarios.MapGet(string.Empty, async (IConsultasEquipe consultas, CancellationToken cancellationToken) =>

@@ -1991,6 +1991,28 @@
         }
       }
     },
+    "/api/v1/equipe": {
+      "get": {
+        "tags": [
+          "Equipe"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Referencia"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/capacidade": {
       "get": {
         "tags": [
@@ -9596,6 +9618,9 @@
       "name": "Solicitações"
     },
     {
+      "name": "Equipe"
+    },
+    {
       "name": "Auditoria"
     },
     {
@@ -9624,9 +9649,6 @@
     },
     {
       "name": "Configurações"
-    },
-    {
-      "name": "Equipe"
     },
     {
       "name": "Notificações"

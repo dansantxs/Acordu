@@ -25,6 +25,9 @@ public interface IConsultasEquipe
     /// <summary>Equipe (vínculos sem cliente), por nome.</summary>
     Task<IReadOnlyList<UsuarioEquipeDto>> UsuariosAsync(CancellationToken cancellationToken = default);
 
+    /// <summary>Só Id e nome da equipe, por nome: para escolher responsável e mencionar (qualquer papel interno).</summary>
+    Task<IReadOnlyList<Referencia>> PessoasAsync(CancellationToken cancellationToken = default);
+
     /// <summary>Uma pessoa da equipe; nula se não é da equipe deste tenant.</summary>
     Task<UsuarioEquipeDto?> UsuarioAsync(Guid usuarioId, CancellationToken cancellationToken = default);
 

@@ -8,11 +8,18 @@ export type Contato = components['schemas']['ContatoDto']
 export type DadosCliente = components['schemas']['ClienteRequest']
 export type DadosContato = components['schemas']['ContatoRequest']
 
+export type Endereco = components['schemas']['EnderecoDto']
+
 export interface FiltrosClientes {
     busca?: string
     inativos?: boolean
+    etiqueta?: string
+    responsavel?: string
     pagina?: number
 }
+
+/** Mesmo limite do domínio (`Cliente.MaximoEtiquetas`). */
+export const MAXIMO_ETIQUETAS = 10
 
 export const TAMANHO_PAGINA = 50
 
@@ -28,6 +35,8 @@ export function consultaClientes(filtros: FiltrosClientes) {
                             busca: filtros.busca || undefined,
                             // Sem "mostrar inativos", só os ativos; com ele, todos.
                             ativo: filtros.inativos ? undefined : true,
+                            etiqueta: filtros.etiqueta,
+                            responsavelId: filtros.responsavel,
                             pagina: filtros.pagina ?? 1,
                             tamanhoPagina: TAMANHO_PAGINA,
                         },
@@ -37,6 +46,12 @@ export function consultaClientes(filtros: FiltrosClientes) {
         placeholderData: keepPreviousData,
     })
 }
+
+/** Etiquetas em uso, para sugerir no formulário e montar o filtro. */
+export const consultaEtiquetas = queryOptions({
+    queryKey: ['clientes', 'etiquetas'],
+    queryFn: async () => (await api.GET('/api/v1/clientes/etiquetas')).data!,
+})
 
 export function consultaCliente(id: string) {
     return queryOptions({

@@ -18,6 +18,9 @@ public sealed class ConsultasEquipe : IConsultasEquipe
     public async Task<IReadOnlyList<UsuarioEquipeDto>> UsuariosAsync(CancellationToken cancellationToken = default) =>
         [.. (await Equipe(null).ToListAsync(cancellationToken)).Select(Dto)];
 
+    public async Task<IReadOnlyList<Referencia>> PessoasAsync(CancellationToken cancellationToken = default) =>
+        await Equipe(null).Select(l => new Referencia(l.UsuarioId, l.Nome)).ToListAsync(cancellationToken);
+
     public async Task<UsuarioEquipeDto?> UsuarioAsync(Guid usuarioId, CancellationToken cancellationToken = default) =>
         await Equipe(usuarioId).SingleOrDefaultAsync(cancellationToken) is { } linha ? Dto(linha) : null;
 

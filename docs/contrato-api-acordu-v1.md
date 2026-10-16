@@ -84,6 +84,7 @@ Superfície de equipe (`/usuarios`, `/convites`, `/papeis`), com o aceite do con
 
 | Método | Rota | Descrição | Permissão |
 |---|---|---|---|
+| GET | `/equipe` | Pessoas da equipe só com `[{ id, nome }]`, por nome: para escolher responsável e mencionar (decidido em 16/10). | qualquer papel interno |
 | GET | `/usuarios` | Equipe do tenant (contatos ficam nos clientes): `[{ usuarioId, nome, email, papel: { id, nome }, dono, capacidadeSemanalMinutos }]`. | `usuario.convidar` ou `usuario.remover` |
 | PATCH | `/usuarios/{id}/papel` | `{ papelId }` → `200` com a pessoa. Vale no próximo refresh dela. | `papel.gerenciar` |
 | PUT | `/usuarios/{id}/capacidade` | `{ capacidadeSemanalMinutos }` (0 a 10080; padrão 2400 = 40h para quem entra na equipe) → `200` com a pessoa. Base do planejamento (agenda e capacidade, marco 13). Fora da faixa → `400`. | `papel.gerenciar` |
@@ -394,7 +395,7 @@ O quadro (kanban) é o mesmo `GET /tarefas` agrupado no front por `status`.
 
 Decidido no marco 14 (14/10): comentário de tarefa é só da equipe (nunca no portal, nem em tarefa visível ao cliente), imutável como as interações, e sem permissão própria: comentar exige `tarefa.editar` (um `tarefa.comentar` mexeria no catálogo e nos papéis já semeados). O download dos anexos é o mesmo `GET /anexos/{id}/download`, que agora aceita `solicitacao.ver` (anexo de interação) ou `tarefa.ver` (anexo de comentário).
 
-**Menções (14b, RF-COL-02):** em comentário de tarefa e em interação **interna** da solicitação, o texto pode citar pessoas como `@{usuarioId}` (o front troca pelo nome na exibição e monta o token na digitação, a partir de `GET /usuarios` ou da equipe da agenda). Só vale mencionar quem é da equipe e pode ver o alvo (`tarefa.ver` ou `solicitacao.ver`); fora disso, menção em interação EXTERNA ou mais de 20 pessoas → `400` em `errors.texto`. O texto volta como foi gravado, com os tokens.
+**Menções (14b, RF-COL-02):** em comentário de tarefa e em interação **interna** da solicitação, o texto pode citar pessoas como `@{usuarioId}` (o front troca pelo nome na exibição e monta o token na digitação, a partir de `GET /equipe`). Só vale mencionar quem é da equipe e pode ver o alvo (`tarefa.ver` ou `solicitacao.ver`); fora disso, menção em interação EXTERNA ou mais de 20 pessoas → `400` em `errors.texto`. O texto volta como foi gravado, com os tokens.
 
 ### 8.1b Seguidores (marco 14c, RF-COL-03)
 
