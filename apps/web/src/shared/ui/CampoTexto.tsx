@@ -1,5 +1,6 @@
 import type { Ref } from 'react'
-import { FieldError, Input, Label, Text, TextArea, TextField, type TextFieldProps } from 'react-aria-components'
+import { FieldError, Input, Text, TextArea, TextField, type TextFieldProps } from 'react-aria-components'
+import { Rotulo } from './Rotulo'
 
 interface Props extends Omit<TextFieldProps, 'children'> {
     rotulo: string
@@ -20,7 +21,7 @@ const estiloEntrada =
 export function CampoTexto({ rotulo, descricao, multilinha, refEntrada, className, ...props }: Props) {
     return (
         <TextField {...props} className={`flex flex-col gap-1 ${typeof className === 'string' ? className : ''}`}>
-            <Label className="text-sm font-semibold text-tinta">{rotulo}</Label>
+            <Rotulo texto={rotulo} obrigatorio={props.isRequired} />
             {multilinha ? (
                 <TextArea rows={4} className={`${estiloEntrada} resize-y`} />
             ) : (
