@@ -3,6 +3,7 @@ using Acordu.Application.Common;
 using Acordu.Application.AcessosPortal;
 using Acordu.Domain.Acesso;
 using Acordu.Domain.Entities;
+using Acordu.Domain.ValueObjects;
 
 namespace Acordu.Application.Clientes;
 
@@ -14,14 +15,18 @@ public sealed class ComandosCliente
     private readonly IUnitOfWork _unidade;
     private readonly IControleVersao _versoes;
     private readonly RevogacaoAcessoPortal _revogacao;
+    private readonly IMembrosDaEquipe _equipe;
 
     public ComandosCliente(
         ITenantContext contexto,
         IRepositorio<Cliente> clientes,
         IUnitOfWork unidade,
         IControleVersao versoes,
-        RevogacaoAcessoPortal revogacao)
+        RevogacaoAcessoPortal revogacao,
+        IMembrosDaEquipe equipe)
     {
+        ArgumentNullException.ThrowIfNull(equipe);
+        _equipe = equipe;
         ArgumentNullException.ThrowIfNull(contexto);
         ArgumentNullException.ThrowIfNull(clientes);
         ArgumentNullException.ThrowIfNull(unidade);
@@ -39,6 +44,7 @@ public sealed class ComandosCliente
         ArgumentNullException.ThrowIfNull(dados);
         _contexto.Exigir(Permissoes.ClienteGerenciar);
         var cliente = Cliente.Criar(Guid.CreateVersion7(), _contexto.TenantId!.Value, dados.Nome, dados.Documento, dados.Observacoes);
+        await AplicarCadastroAsync(cliente, dados, cancellationToken);
         _clientes.Adicionar(cliente);
         await _unidade.SalvarAsync(cancellationToken);
         return cliente.Id;
@@ -49,6 +55,7 @@ public sealed class ComandosCliente
         ArgumentNullException.ThrowIfNull(dados);
         var cliente = await CarregarAsync(id, versao, cancellationToken);
         cliente.Editar(dados.Nome, dados.Documento, dados.Observacoes);
+        await AplicarCadastroAsync(cliente, dados, cancellationToken);
         await _unidade.SalvarAsync(cancellationToken);
     }
 
@@ -102,5 +109,38 @@ public sealed class ComandosCliente
         if (!cliente.Contatos.Any(c => c.Id == contatoId))
             throw new NaoEncontradoException("Contato não encontrado.");
         return cliente;
+    }
+
+    /// <summary>
+    /// Campos do cadastro ampliado (16/10). O responsável só é conferido quando muda: quem saiu da equipe continua
+    /// aparecendo até alguém trocar, sem travar a edição dos outros campos.
+    /// </summary>
+    private async Task AplicarCadastroAsync(Cliente cliente, ClienteRequest dados, CancellationToken cancellationToken)
+    {
+        var endereco = dados.Endereco is { } e
+            ? NoCampo("endereco", () => new Endereco(e.Cep, e.Logradouro, e.Numero, e.Complemento, e.Bairro, e.Cidade, e.Uf))
+            : null;
+        cliente.DefinirCadastro(dados.RazaoSocial, dados.InscricaoEstadual, dados.Email, dados.Telefone, endereco);
+        cliente.DefinirEtiquetas(dados.Etiquetas);
+        if (dados.ResponsavelId != cliente.ResponsavelId)
+        {
+            if (dados.ResponsavelId is { } id && !await _equipe.EhDaEquipeAsync(id, cancellationToken))
+                throw ErroDeCampo.Criar("responsavelId", "O responsável precisa ser da equipe.");
+            cliente.DefinirResponsavel(dados.ResponsavelId);
+        }
+    }
+
+    /// <summary>Erro de validação do VO com o caminho do campo no JSON (<c>endereco.cep</c>), sem o sufixo do .NET.</summary>
+    private static T NoCampo<T>(string objeto, Func<T> criar)
+    {
+        try
+        {
+            return criar();
+        }
+        catch (ArgumentException e) when (e.ParamName is not null)
+        {
+            var mensagem = e.Message.Split('\n')[0].Replace($" (Parameter '{e.ParamName}')", "", StringComparison.Ordinal).Trim();
+            throw ErroDeCampo.Criar($"{objeto}.{e.ParamName}", mensagem);
+        }
     }
 }
