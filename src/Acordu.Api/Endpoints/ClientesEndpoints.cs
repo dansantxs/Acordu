@@ -14,10 +14,18 @@ internal static class ClientesEndpoints
         var clientes = interno.MapGroup("/clientes").WithTags("Clientes");
 
         clientes.MapGet(string.Empty, async (
-            string? busca, bool? ativo, int? pagina, int? tamanhoPagina, IConsultasCliente consultas, CancellationToken cancellationToken) =>
-            Results.Ok(await consultas.ListarAsync(busca, ativo, new Paginacao(pagina, tamanhoPagina), cancellationToken)))
+            string? busca, bool? ativo, string? etiqueta, Guid? responsavelId, int? pagina, int? tamanhoPagina,
+            IConsultasCliente consultas, CancellationToken cancellationToken) =>
+            Results.Ok(await consultas.ListarAsync(
+                busca, ativo, etiqueta, responsavelId, new Paginacao(pagina, tamanhoPagina), cancellationToken)))
             .RequirePermissao(Permissoes.ClienteVer)
             .Produces<ResultadoPaginado<ClienteResumoDto>>();
+
+        // Etiquetas em uso (16/10): sugestões no formulário e opções do filtro da lista.
+        clientes.MapGet("/etiquetas", async (IConsultasCliente consultas, CancellationToken cancellationToken) =>
+            Results.Ok(await consultas.EtiquetasAsync(cancellationToken)))
+            .RequirePermissao(Permissoes.ClienteVer)
+            .Produces<IReadOnlyList<string>>();
 
         // Aba de arquivos (contrato §4.3): anexos de interações e de comentários de tarefa do cliente.
         clientes.MapGet("/{id:guid}/arquivos", async (
