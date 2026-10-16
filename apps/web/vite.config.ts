@@ -20,5 +20,7 @@ export default defineConfig({
         globals: true,
         setupFiles: ['./src/testes/preparar.ts'],
         css: false,
+        // Acima do tempo de espera do Testing Library (5 s, testes/preparar.ts), para a falha mostrar o que faltou.
+        testTimeout: 15_000,
     },
 })
