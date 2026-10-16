@@ -29,7 +29,7 @@ export function ListaClientes({ perfil, filtros }: { perfil: Perfil; filtros: Fi
     const etiquetas = useQuery(consultaEtiquetas)
     const equipe = useQuery(consultaEquipe)
     const filtrar = (mudanca: Partial<FiltrosClientes>) =>
-        void navegar({ to: '/clientes', search: { ...filtros, ...mudanca, pagina: undefined } })
+        void navegar({ to: '/clientes', search: (atual) => ({ ...atual, ...mudanca, pagina: undefined }) })
     const podeGerenciar = pode(perfil, 'cliente.gerenciar')
 
     // A busca digitada vai para o endereço (sem empilhar no histórico) e volta para a primeira página.
