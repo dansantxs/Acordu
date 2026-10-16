@@ -1,3 +1,4 @@
+import type { Ref } from 'react'
 import { FieldError, Input, Label, Text, TextArea, TextField, type TextFieldProps } from 'react-aria-components'
 
 interface Props extends Omit<TextFieldProps, 'children'> {
@@ -5,6 +6,8 @@ interface Props extends Omit<TextFieldProps, 'children'> {
     descricao?: string
     /** Várias linhas (observações, mensagens). */
     multilinha?: boolean
+    /** Para levar o foco ao campo (ex.: o número, depois que o CEP preenche o endereço). */
+    refEntrada?: Ref<HTMLInputElement>
 }
 
 const estiloEntrada =
@@ -14,14 +17,14 @@ const estiloEntrada =
  * Campo de texto com rótulo, descrição e erro. O `name` é o do corpo da API (camelCase): dentro de um `Form` com
  * `validationErrors`, os erros de campo do Problem Details aparecem sozinhos no campo certo.
  */
-export function CampoTexto({ rotulo, descricao, multilinha, className, ...props }: Props) {
+export function CampoTexto({ rotulo, descricao, multilinha, refEntrada, className, ...props }: Props) {
     return (
         <TextField {...props} className={`flex flex-col gap-1 ${typeof className === 'string' ? className : ''}`}>
             <Label className="text-sm font-semibold text-tinta">{rotulo}</Label>
             {multilinha ? (
                 <TextArea rows={4} className={`${estiloEntrada} resize-y`} />
             ) : (
-                <Input className={estiloEntrada} />
+                <Input ref={refEntrada} className={estiloEntrada} />
             )}
             {descricao && (
                 <Text slot="description" className="text-xs text-suave">
