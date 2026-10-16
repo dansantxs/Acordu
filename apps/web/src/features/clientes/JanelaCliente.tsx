@@ -12,6 +12,7 @@ import { CampoMascarado } from '@/shared/ui/CampoMascarado'
 import { CampoSelecao } from '@/shared/ui/CampoSelecao'
 import { CampoTexto } from '@/shared/ui/CampoTexto'
 import { Janela } from '@/shared/ui/Janela'
+import { LegendaObrigatorios } from '@/shared/ui/Rotulo'
 import {
     consultaEtiquetas,
     criarCliente,
@@ -67,10 +68,11 @@ function enderecoParaEnvio(campos: CamposEndereco): Endereco | null {
     }
 }
 
-function Secao({ titulo, children }: { titulo: string; children: ReactNode }) {
+function Secao({ titulo, nota, children }: { titulo: string; nota?: string; children: ReactNode }) {
     return (
         <fieldset className="grid gap-4 border-t border-linha pt-4 sm:grid-cols-2">
             <legend className="pr-2 text-xs font-semibold tracking-wide text-suave uppercase">{titulo}</legend>
+            {nota && <p className="-mt-2 text-xs text-suave sm:col-span-2">{nota}</p>}
             {children}
         </fieldset>
     )
@@ -156,6 +158,8 @@ function JanelaClienteAberta({
         numero.current?.focus()
     }
 
+    // Endereço é opcional; começou a preencher, o mínimo (CEP, logradouro, cidade, UF) passa a ser obrigatório.
+    const enderecoIniciado = Object.values(endereco).some((v) => v.trim() !== '')
     const pessoas = (equipe.data ?? []).map((p) => ({ id: p.id, rotulo: p.nome }))
     // Quem saiu da equipe continua aparecendo como responsável até alguém trocar.
     if (cliente?.responsavel && !pessoas.some((p) => p.id === cliente.responsavel!.id)) {
@@ -193,6 +197,7 @@ function JanelaClienteAberta({
                     })
                 }}
             >
+                <LegendaObrigatorios />
                 {mensagem && <Alerta>{mensagem}</Alerta>}
 
                 <div className="grid gap-4 sm:grid-cols-2">
@@ -230,11 +235,12 @@ function JanelaClienteAberta({
                     />
                 </Secao>
 
-                <Secao titulo="Endereço">
+                <Secao titulo="Endereço" nota="Opcional. Se preencher, CEP, logradouro, cidade e UF são obrigatórios.">
                     <CampoMascarado
                         name="endereco.cep"
                         rotulo="CEP"
                         mascara={formatarCep}
+                        isRequired={enderecoIniciado}
                         value={endereco.cep}
                         onChange={(v) => void mudarCep(v)}
                         descricao={
@@ -248,6 +254,7 @@ function JanelaClienteAberta({
                     <div className="hidden sm:block" />
                     <CampoTexto
                         name="endereco.logradouro"
+                        isRequired={enderecoIniciado}
                         rotulo="Logradouro"
                         value={endereco.logradouro}
                         onChange={mudarEndereco('logradouro')}
@@ -276,6 +283,7 @@ function JanelaClienteAberta({
                     />
                     <CampoTexto
                         name="endereco.cidade"
+                        isRequired={enderecoIniciado}
                         rotulo="Cidade"
                         value={endereco.cidade}
                         onChange={mudarEndereco('cidade')}
@@ -285,6 +293,7 @@ function JanelaClienteAberta({
                         rotulo="UF"
                         opcoes={UFS.map((uf) => ({ id: uf, rotulo: uf }))}
                         valor={endereco.uf || null}
+                        isRequired={enderecoIniciado}
                         aoMudar={(uf) => mudarEndereco('uf')(uf ?? '')}
                         vazio="—"
                     />

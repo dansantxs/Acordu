@@ -7,6 +7,7 @@ import { formatarTelefone } from '@/shared/format/mascaras'
 import { CampoMascarado } from '@/shared/ui/CampoMascarado'
 import { CampoTexto } from '@/shared/ui/CampoTexto'
 import { Janela } from '@/shared/ui/Janela'
+import { LegendaObrigatorios } from '@/shared/ui/Rotulo'
 import { adicionarContato, editarContato, opcional, type Cliente, type Contato, type DadosContato } from './consultas'
 
 /** Adicionar (sem `contato`) ou editar um contato do cliente. */
@@ -57,6 +58,7 @@ export function JanelaContato({
                     })
                 }}
             >
+                <LegendaObrigatorios />
                 {mensagem && <Alerta>{mensagem}</Alerta>}
                 <CampoTexto name="nome" rotulo="Nome" defaultValue={contato?.nome} isRequired autoFocus />
                 <CampoTexto
