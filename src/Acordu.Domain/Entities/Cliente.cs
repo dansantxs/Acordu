@@ -123,6 +123,7 @@ public sealed class Cliente : EntidadeBase
 
     public void Inativar() => Ativo = false;
 
+    /// <summary>Cliente que voltou: o histórico continua o mesmo; os acessos ao portal revogados na inativação não voltam.</summary>
     public void Reativar() => Ativo = true;
 
     public Contato AdicionarContato(string nome, string email, string? telefone, string? cargo)
@@ -142,6 +143,22 @@ public sealed class Cliente : EntidadeBase
 
     /// <summary>Inativa o contato. Revogar o acesso ao portal (Vinculo, links) é da Application.</summary>
     public void InativarContato(Guid contatoId) => BuscarContato(contatoId).Inativar();
+
+    /// <summary>
+    /// Contato que voltou (decidido em 16/10). Só em cliente ativo, e sem outro contato ativo com o mesmo e-mail. O acesso
+    /// ao portal não volta junto: se for o caso, convida-se de novo.
+    /// </summary>
+    public void ReativarContato(Guid contatoId)
+    {
+        var contato = BuscarContato(contatoId);
+        if (contato.Ativo)
+            return;
+        if (!Ativo)
+            throw new TransicaoInvalidaException("Reative o cliente antes de reativar um contato dele.");
+        if (_contatos.Exists(c => c.Ativo && c.Email == contato.Email))
+            throw new EmailDuplicadoException($"Já existe contato ativo deste cliente com o e-mail {contato.Email}.");
+        contato.Reativar();
+    }
 
     /// <summary>Chamado quando o contato aceita o convite do portal (RF-CLI-03).</summary>
     public void VincularUsuarioAoContato(Guid contatoId, Guid usuarioId)
