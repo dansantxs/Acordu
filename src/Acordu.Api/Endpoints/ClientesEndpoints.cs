@@ -66,6 +66,27 @@ internal static class ClientesEndpoints
         })
             .RequirePermissao(Permissoes.ClienteGerenciar);
 
+        // Reativação (16/10): POST de ação, como as transições da solicitação.
+        clientes.MapPost("/{id:guid}/reativacao", async (
+            Guid id, HttpRequest requisicao, ComandosCliente comandos, IConsultasCliente consultas, CancellationToken cancellationToken) =>
+        {
+            await comandos.ReativarAsync(id, Versoes.IfMatch(requisicao), cancellationToken);
+            return Results.Ok(await DetalheAsync(consultas, id, cancellationToken));
+        })
+            .RequirePermissao(Permissoes.ClienteGerenciar)
+            .Produces<ClienteDto>();
+
+        clientes.MapPost("/{id:guid}/contatos/{contatoId:guid}/reativacao", async (
+            Guid id, Guid contatoId, HttpRequest requisicao, ComandosCliente comandos, IConsultasCliente consultas,
+            CancellationToken cancellationToken) =>
+        {
+            await comandos.ReativarContatoAsync(id, contatoId, Versoes.IfMatch(requisicao), cancellationToken);
+            var cliente = await DetalheAsync(consultas, id, cancellationToken);
+            return Results.Ok(cliente.Contatos.Single(c => c.Id == contatoId));
+        })
+            .RequirePermissao(Permissoes.ClienteGerenciar)
+            .Produces<ContatoDto>();
+
         clientes.MapPost("/{id:guid}/contatos", async (
             Guid id, ContatoRequest corpo, ComandosCliente comandos, IConsultasCliente consultas, CancellationToken cancellationToken) =>
         {
