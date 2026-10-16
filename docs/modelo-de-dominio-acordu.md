@@ -51,7 +51,7 @@ class Cliente <<aggregate root>> {
   +DefinirEtiquetas(etiquetas)
   +AdicionarContato(nome, email, telefone?, cargo?): Contato
   +AtualizarContato(contatoId, ...)
-  +InativarContato(contatoId)
+  +InativarContato(contatoId) / ReativarContato(contatoId)
   +VincularUsuarioAoContato(contatoId, usuarioId)
   +Inativar() / Reativar()
 }
