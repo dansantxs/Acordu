@@ -1,5 +1,6 @@
 using Acordu.Domain.Common;
 using Acordu.Domain.Exceptions;
+using Acordu.Domain.ValueObjects;
 
 namespace Acordu.Domain.Entities;
 
@@ -9,7 +10,11 @@ namespace Acordu.Domain.Entities;
 /// </summary>
 public sealed class Cliente : EntidadeBase
 {
+    /// <summary>Etiquetas por cliente (decidido em 16/10): servem para filtrar a lista, não para classificar a fundo.</summary>
+    public const int MaximoEtiquetas = 10;
+
     private readonly List<Contato> _contatos = [];
+    private List<string> _etiquetas = [];
 
     private Cliente(Guid id, Guid tenantId, string nome)
         : base(id, tenantId)
@@ -33,6 +38,28 @@ public sealed class Cliente : EntidadeBase
 
     public bool Ativo { get; private set; }
 
+    /// <summary>Nome jurídico, quando difere do nome pelo qual a equipe chama o cliente.</summary>
+    public string? RazaoSocial { get; private set; }
+
+    /// <summary>Número da inscrição estadual ou <c>ISENTO</c>, em maiúsculas.</summary>
+    public string? InscricaoEstadual { get; private set; }
+
+    /// <summary>E-mail geral da empresa (os contatos têm o seu).</summary>
+    public string? Email { get; private set; }
+
+    /// <summary>Telefone geral da empresa.</summary>
+    public string? Telefone { get; private set; }
+
+    public Endereco? Endereco { get; private set; }
+
+    /// <summary>
+    /// Quem da equipe cuida do cliente; sugerido como responsável das solicitações novas dele. Que é membro da equipe é
+    /// conferido pela Application (outro agregado).
+    /// </summary>
+    public Guid? ResponsavelId { get; private set; }
+
+    public IReadOnlyList<string> Etiquetas => _etiquetas;
+
     public IReadOnlyList<Contato> Contatos => _contatos;
 
     public static Cliente Criar(Guid id, Guid tenantId, string nome, string? documento, string? observacoes) =>
@@ -49,6 +76,49 @@ public sealed class Cliente : EntidadeBase
         Observacoes = Texto.Opcional(observacoes, LimitesTexto.Observacoes, nameof(observacoes));
         Nome = nomeValido;
         Documento = documentoValido;
+    }
+
+    /// <summary>Dados de cadastro além de nome, documento e observações (decidido em 16/10). Nulo apaga.</summary>
+    public void DefinirCadastro(string? razaoSocial, string? inscricaoEstadual, string? email, string? telefone, Endereco? endereco)
+    {
+        var razao = Texto.Opcional(razaoSocial, LimitesTexto.Nome, nameof(razaoSocial));
+        var inscricao = NormalizarInscricao(inscricaoEstadual);
+        var emailValido = string.IsNullOrWhiteSpace(email) ? null : Common.Email.Normalizar(email, nameof(email));
+        Telefone = Texto.Opcional(telefone, LimitesTexto.Telefone, nameof(telefone));
+        RazaoSocial = razao;
+        InscricaoEstadual = inscricao;
+        Email = emailValido;
+        Endereco = endereco;
+    }
+
+    public void DefinirResponsavel(Guid? responsavelId)
+    {
+        if (responsavelId is { } id)
+            Ids.Obrigatorio(id, nameof(responsavelId));
+        ResponsavelId = responsavelId;
+    }
+
+    /// <summary>
+    /// Até <see cref="MaximoEtiquetas"/>, aparadas e com espaços internos simples; repetidas (sem diferenciar maiúsculas)
+    /// ficam uma vez só, com a grafia da primeira.
+    /// </summary>
+    public void DefinirEtiquetas(IEnumerable<string>? etiquetas)
+    {
+        var lista = new List<string>();
+        foreach (var bruta in etiquetas ?? [])
+        {
+            var etiqueta = string.Join(' ', (bruta ?? "").Split(' ', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries));
+            if (etiqueta.Length == 0)
+                continue;
+            if (etiqueta.Length > LimitesTexto.Etiqueta)
+                throw new ArgumentException($"Cada etiqueta tem no máximo {LimitesTexto.Etiqueta} caracteres.", nameof(etiquetas));
+            if (!lista.Exists(e => string.Equals(e, etiqueta, StringComparison.OrdinalIgnoreCase)))
+                lista.Add(etiqueta);
+        }
+
+        if (lista.Count > MaximoEtiquetas)
+            throw new ArgumentException($"No máximo {MaximoEtiquetas} etiquetas por cliente.", nameof(etiquetas));
+        _etiquetas = lista;
     }
 
     public void Inativar() => Ativo = false;
@@ -102,6 +172,16 @@ public sealed class Cliente : EntidadeBase
             throw new EmailDuplicadoException($"Já existe contato ativo deste cliente com o e-mail {dados.Item2}.");
 
         return dados;
+    }
+
+    private static string? NormalizarInscricao(string? inscricaoEstadual)
+    {
+        var valor = Texto.Opcional(inscricaoEstadual, LimitesTexto.InscricaoEstadual, nameof(inscricaoEstadual))?.ToUpperInvariant();
+        if (valor is null || valor == "ISENTO")
+            return valor;
+        return valor.All(c => char.IsAsciiDigit(c) || c is '.' or '-' or '/') && valor.Any(char.IsAsciiDigit)
+            ? valor
+            : throw new ArgumentException("Inscrição estadual inválida: use os números ou ISENTO.", nameof(inscricaoEstadual));
     }
 
     private static string NormalizarEmail(string email) => Common.Email.Normalizar(email, nameof(email));

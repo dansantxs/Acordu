@@ -15,6 +15,13 @@ public static class LimitesTexto
     public const int Observacoes = 2_000;
     public const int TextoInteracao = 10_000;
     public const int NomeArquivo = 255;
+    public const int InscricaoEstadual = 20;
+    public const int Logradouro = 200;
+    public const int NumeroEndereco = 20;
+    public const int ComplementoEndereco = 100;
+    public const int Bairro = 100;
+    public const int Cidade = 100;
+    public const int Etiqueta = 30;
 
     public const int Titulo = 200;
     public const int Descricao = 10_000;

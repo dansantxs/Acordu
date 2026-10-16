@@ -1,5 +1,6 @@
 using Acordu.Domain.Entities;
 using Acordu.Domain.Exceptions;
+using Acordu.Domain.ValueObjects;
 
 namespace Acordu.Domain.UnitTests.Entities;
 
@@ -237,6 +238,114 @@ public sealed class ClienteTests
             cliente.VincularUsuarioAoContato(contato.Id, outro);
 
             contato.UsuarioId.Should().Be(outro);
+        }
+    }
+
+    public sealed class CadastroAmpliado
+    {
+        private static Endereco Endereco(string cep = "19700-000", string uf = "sp") =>
+            new(cep, "Rua das Flores", "120", null, "Centro", "Bastos", uf);
+
+        [Fact]
+        public void DefinirCadastro_NormalizaEApagaComNulo()
+        {
+            var cliente = Criar();
+
+            cliente.DefinirCadastro(" Bom Grão Panificadora Ltda ", "123.456.789.110", "Contato@BomGrao.com", " (18) 3333-0000 ", Endereco());
+
+            cliente.RazaoSocial.Should().Be("Bom Grão Panificadora Ltda");
+            cliente.InscricaoEstadual.Should().Be("123.456.789.110");
+            cliente.Email.Should().Be("contato@bomgrao.com");
+            cliente.Telefone.Should().Be("(18) 3333-0000");
+            cliente.Endereco!.Cep.Should().Be("19700000");
+            cliente.Endereco.Uf.Should().Be("SP");
+
+            cliente.DefinirCadastro(null, " ", null, null, null);
+
+            cliente.RazaoSocial.Should().BeNull();
+            cliente.InscricaoEstadual.Should().BeNull();
+            cliente.Email.Should().BeNull();
+            cliente.Endereco.Should().BeNull();
+        }
+
+        [Theory]
+        [InlineData("isento", "ISENTO")]
+        [InlineData("110.042.490.114", "110.042.490.114")]
+        public void InscricaoEstadual_AceitaNumeroOuIsento(string informada, string esperada)
+        {
+            var cliente = Criar();
+
+            cliente.DefinirCadastro(null, informada, null, null, null);
+
+            cliente.InscricaoEstadual.Should().Be(esperada);
+        }
+
+        [Theory]
+        [InlineData("isenta")]
+        [InlineData("---")]
+        public void InscricaoEstadual_Invalida_LancaNoCampo(string informada)
+        {
+            var acao = () => Criar().DefinirCadastro(null, informada, null, null, null);
+
+            acao.Should().Throw<ArgumentException>().WithParameterName("inscricaoEstadual");
+        }
+
+        [Fact]
+        public void EmailInvalido_LancaNoCampo()
+        {
+            var acao = () => Criar().DefinirCadastro(null, null, "sem-arroba", null, null);
+
+            acao.Should().Throw<ArgumentException>().WithParameterName("email");
+        }
+
+        [Theory]
+        [InlineData("1970-000", "SP", "cep")]
+        [InlineData("19700-00A", "SP", "cep")]
+        [InlineData("19700-000", "XX", "uf")]
+        public void Endereco_Invalido_LancaNoCampo(string cep, string uf, string campo)
+        {
+            var acao = () => Endereco(cep, uf);
+
+            acao.Should().Throw<ArgumentException>().WithParameterName(campo);
+        }
+
+        [Fact]
+        public void Etiquetas_AparaDeduplicaEMantemAPrimeiraGrafia()
+        {
+            var cliente = Criar();
+
+            cliente.DefinirEtiquetas(["  Varejo ", "varejo", "Condomínio   residencial", "", "VAREJO"]);
+
+            cliente.Etiquetas.Should().Equal("Varejo", "Condomínio residencial");
+        }
+
+        [Fact]
+        public void Etiquetas_AcimaDoLimite_LancaNoCampo()
+        {
+            var acao = () => Criar().DefinirEtiquetas(Enumerable.Range(1, Cliente.MaximoEtiquetas + 1).Select(i => $"e{i}"));
+
+            acao.Should().Throw<ArgumentException>().WithParameterName("etiquetas");
+        }
+
+        [Fact]
+        public void Etiqueta_Longa_LancaNoCampo()
+        {
+            var acao = () => Criar().DefinirEtiquetas([new string('a', 31)]);
+
+            acao.Should().Throw<ArgumentException>().WithParameterName("etiquetas");
+        }
+
+        [Fact]
+        public void Responsavel_DefineEApaga()
+        {
+            var cliente = Criar();
+            var pessoa = Guid.NewGuid();
+
+            cliente.DefinirResponsavel(pessoa);
+            cliente.ResponsavelId.Should().Be(pessoa);
+
+            cliente.DefinirResponsavel(null);
+            cliente.ResponsavelId.Should().BeNull();
         }
     }
 }
