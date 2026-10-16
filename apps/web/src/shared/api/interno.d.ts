@@ -828,6 +828,81 @@ export interface paths {
         }
         trace?: never
     }
+    '/api/v1/clientes/{id}/reativacao': {
+        parameters: {
+            query?: never
+            header?: never
+            path?: never
+            cookie?: never
+        }
+        get?: never
+        put?: never
+        post: {
+            parameters: {
+                query?: never
+                header?: never
+                path: {
+                    id: string
+                }
+                cookie?: never
+            }
+            requestBody?: never
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown
+                    }
+                    content: {
+                        'application/json': components['schemas']['ClienteDto']
+                    }
+                }
+            }
+        }
+        delete?: never
+        options?: never
+        head?: never
+        patch?: never
+        trace?: never
+    }
+    '/api/v1/clientes/{id}/contatos/{contatoId}/reativacao': {
+        parameters: {
+            query?: never
+            header?: never
+            path?: never
+            cookie?: never
+        }
+        get?: never
+        put?: never
+        post: {
+            parameters: {
+                query?: never
+                header?: never
+                path: {
+                    id: string
+                    contatoId: string
+                }
+                cookie?: never
+            }
+            requestBody?: never
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown
+                    }
+                    content: {
+                        'application/json': components['schemas']['ContatoDto']
+                    }
+                }
+            }
+        }
+        delete?: never
+        options?: never
+        head?: never
+        patch?: never
+        trace?: never
+    }
     '/api/v1/clientes/{id}/contatos': {
         parameters: {
             query?: never
