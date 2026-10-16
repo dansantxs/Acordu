@@ -230,4 +230,17 @@ public sealed class EquipeTests(ApiFixture api)
         trilha[0].GetProperty("dados").GetProperty("de").GetInt32().Should().Be(2400);
         trilha[0].GetProperty("dados").GetProperty("para").GetInt32().Should().Be(1200);
     }
+
+    [Fact]
+    public async Task Pessoas_QualquerPapelInternoLeSoIdENome()
+    {
+        var equipe = await Equipe.CriarAsync(api);
+        var leitor = await equipe.ComPapelAsync(Papel.NomeLeitor);
+
+        var pessoas = await equipe.EsperarAsync(HttpStatusCode.OK, HttpMethod.Get, "/api/v1/equipe", token: leitor);
+        await equipe.EsperarAsync(HttpStatusCode.Forbidden, HttpMethod.Get, "/api/v1/usuarios", token: leitor);
+
+        pessoas.GetArrayLength().Should().Be(2);
+        pessoas[0].EnumerateObject().Select(p => p.Name).Should().BeEquivalentTo("id", "nome");
+    }
 }
