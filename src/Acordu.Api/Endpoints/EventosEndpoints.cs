@@ -22,11 +22,14 @@ internal static class EventosEndpoints
             resposta.Headers.CacheControl = "no-cache";
             resposta.Headers["X-Accel-Buffering"] = "no";
             using var assinatura = difusor.Assinar(contexto.TenantId!.Value);
-            await resposta.WriteAsync("retry: 5000\n\n", cancellationToken);
-            await resposta.Body.FlushAsync(cancellationToken);
 
+            // Tudo dentro do try, inclusive a primeira escrita: a aba que recarrega ou fecha logo depois de conectar
+            // cancela a requisição já no `retry`, e isso é fim normal da conexão, não erro.
             try
             {
+                await resposta.WriteAsync("retry: 5000\n\n", cancellationToken);
+                await resposta.Body.FlushAsync(cancellationToken);
+
                 while (!cancellationToken.IsCancellationRequested)
                 {
                     using var espera = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
