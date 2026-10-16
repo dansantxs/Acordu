@@ -121,16 +121,32 @@ Papéis (6e2, todos com `papel.gerenciar`):
 
 | Método | Rota | Descrição | Permissão |
 |---|---|---|---|
-| GET | `/clientes` | Lista (`?busca=&ativo=`). | `cliente.ver` |
+| GET | `/clientes` | Lista (`?busca=&ativo=&etiqueta=&responsavelId=`). | `cliente.ver` |
+| GET | `/clientes/etiquetas` | Etiquetas em uso no tenant, em ordem alfabética. | `cliente.ver` |
 | POST | `/clientes` | Cria. | `cliente.gerenciar` |
 | GET | `/clientes/{id}` | Detalha, com contatos. | `cliente.ver` |
 | PATCH | `/clientes/{id}` | Nome, documento, observações. | `cliente.gerenciar` |
 | DELETE | `/clientes/{id}` | Inativa (soft). | `cliente.gerenciar` |
 
 ```json
-// POST /clientes → 201
-{ "nome": "Padaria Bom Grão", "documento": "12.345.678/0001-90", "observacoes": null }
+// POST /clientes → 201 (só "nome" é obrigatório)
+{ "nome": "Padaria Bom Grão", "razaoSocial": "Bom Grão Panificadora Ltda", "documento": "12.345.678/0001-90",
+  "inscricaoEstadual": "ISENTO", "email": "contato@bomgrao.com", "telefone": "(18) 3333-0000",
+  "endereco": { "cep": "19700-000", "logradouro": "Rua das Flores", "numero": "120", "complemento": null,
+                "bairro": "Centro", "cidade": "Bastos", "uf": "SP" },
+  "responsavelId": "0f3…", "etiquetas": ["Varejo"], "observacoes": null }
 ```
+
+Cadastro ampliado (decidido em 16/10, RF-CLI-01, 06 e 07):
+- O `PATCH` recebe o formulário inteiro, como antes: campo ausente ou nulo apaga.
+- O detalhe devolve os mesmos campos, com `responsavel` como `{ id, nome }` em vez do Id. A lista devolve também `razaoSocial`, `responsavel` e `etiquetas`.
+- Validação, com o erro no campo:
+  - `endereco`: quando presente, exige CEP (8 dígitos), logradouro, cidade e UF válida; o erro vem com o caminho aninhado (`endereco.cep`);
+  - `inscricaoEstadual`: números e pontuação, ou `ISENTO`;
+  - `email`: formato mínimo;
+  - `responsavelId`: precisa ser da equipe, conferido só quando o valor muda (quem saiu da equipe continua aparecendo até alguém trocar);
+  - `etiquetas`: até 10, de até 30 caracteres; repetidas sem diferenciar maiúsculas viram uma, com a grafia da primeira.
+- `busca` procura também na razão social; `etiqueta` filtra pela grafia exata, como aparece em `/clientes/etiquetas`.
 
 ### 4.2 Contatos e acesso ao portal
 

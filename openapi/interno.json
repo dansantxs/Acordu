@@ -418,6 +418,21 @@
             }
           },
           {
+            "name": "etiqueta",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "responsavelId",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
             "name": "pagina",
             "in": "query",
             "schema": {
@@ -476,6 +491,28 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ClienteDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/clientes/etiquetas": {
+      "get": {
+        "tags": [
+          "Clientes"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
                 }
               }
             }
@@ -5265,7 +5302,14 @@
           "observacoes",
           "ativo",
           "versao",
-          "contatos"
+          "contatos",
+          "razaoSocial",
+          "inscricaoEstadual",
+          "email",
+          "telefone",
+          "endereco",
+          "responsavel",
+          "etiquetas"
         ],
         "type": "object",
         "properties": {
@@ -5299,6 +5343,56 @@
             "items": {
               "$ref": "#/components/schemas/ContatoDto"
             }
+          },
+          "razaoSocial": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "inscricaoEstadual": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "email": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "telefone": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "endereco": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/EnderecoDto"
+              }
+            ]
+          },
+          "responsavel": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/Referencia"
+              }
+            ]
+          },
+          "etiquetas": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
           }
         }
       },
@@ -5324,6 +5418,56 @@
               "null",
               "string"
             ]
+          },
+          "razaoSocial": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "inscricaoEstadual": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "email": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "telefone": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "endereco": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/EnderecoDto"
+              }
+            ]
+          },
+          "responsavelId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "etiquetas": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "type": "string"
+            }
           }
         }
       },
@@ -5332,7 +5476,10 @@
           "id",
           "nome",
           "documento",
-          "ativo"
+          "ativo",
+          "razaoSocial",
+          "responsavel",
+          "etiquetas"
         ],
         "type": "object",
         "properties": {
@@ -5351,6 +5498,28 @@
           },
           "ativo": {
             "type": "boolean"
+          },
+          "razaoSocial": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "responsavel": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/Referencia"
+              }
+            ]
+          },
+          "etiquetas": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
           }
         }
       },
@@ -6354,6 +6523,50 @@
               "null",
               "boolean"
             ]
+          }
+        }
+      },
+      "EnderecoDto": {
+        "required": [
+          "cep",
+          "logradouro",
+          "numero",
+          "complemento",
+          "bairro",
+          "cidade",
+          "uf"
+        ],
+        "type": "object",
+        "properties": {
+          "cep": {
+            "type": "string"
+          },
+          "logradouro": {
+            "type": "string"
+          },
+          "numero": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "complemento": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "bairro": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "cidade": {
+            "type": "string"
+          },
+          "uf": {
+            "type": "string"
           }
         }
       },

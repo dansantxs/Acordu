@@ -10,6 +10,8 @@ public sealed class ClientesTests(ApiFixture api)
 {
     private const string Base = "https://acordu.app.br/erros/";
 
+    private static readonly string[] EtiquetasCondominio = ["Condomínio"];
+
     private static object Padaria(string nome = "Padaria Bom Grão") =>
         new { nome, documento = "12.345.678/0001-95", observacoes = "Entrega às terças" };
 
@@ -143,5 +145,124 @@ public sealed class ClientesTests(ApiFixture api)
         var erro = await equipe.EsperarAsync(HttpStatusCode.Forbidden, HttpMethod.Post, "/api/v1/clientes", Padaria(), token: leitor);
 
         erro.GetProperty("type").GetString().Should().Be(Base + "sem-permissao");
+    }
+
+    private static object Completo(Guid? responsavelId, params string[] etiquetas) => new
+    {
+        nome = "Padaria Bom Grão",
+        documento = "12.345.678/0001-95",
+        observacoes = (string?)null,
+        razaoSocial = "Bom Grão Panificadora Ltda",
+        inscricaoEstadual = "isento",
+        email = "Contato@BomGrao.com",
+        telefone = "(18) 3333-0000",
+        endereco = new
+        {
+            cep = "19700-000",
+            logradouro = "Rua das Flores",
+            numero = "120",
+            complemento = (string?)null,
+            bairro = "Centro",
+            cidade = "Bastos",
+            uf = "sp",
+        },
+        responsavelId,
+        etiquetas,
+    };
+
+    private static async Task<Guid> EuAsync(Equipe equipe)
+    {
+        using var resposta = await equipe.GetAsync("/api/v1/auth/eu");
+        return (await Equipe.JsonAsync(resposta)).GetProperty("usuarioId").GetGuid();
+    }
+
+    [Fact]
+    public async Task CadastroAmpliado_GuardaNormalizadoEDevolveNoDetalhe()
+    {
+        var equipe = await Equipe.CriarAsync(api);
+        var dono = await EuAsync(equipe);
+
+        var cliente = await equipe.EsperarAsync(
+            HttpStatusCode.Created, HttpMethod.Post, "/api/v1/clientes", Completo(dono, " Varejo ", "varejo", "Centro"));
+
+        cliente.GetProperty("razaoSocial").GetString().Should().Be("Bom Grão Panificadora Ltda");
+        cliente.GetProperty("inscricaoEstadual").GetString().Should().Be("ISENTO");
+        cliente.GetProperty("email").GetString().Should().Be("contato@bomgrao.com");
+        cliente.GetProperty("telefone").GetString().Should().Be("(18) 3333-0000");
+        var endereco = cliente.GetProperty("endereco");
+        endereco.GetProperty("cep").GetString().Should().Be("19700000");
+        endereco.GetProperty("uf").GetString().Should().Be("SP");
+        endereco.GetProperty("complemento").ValueKind.Should().Be(System.Text.Json.JsonValueKind.Null);
+        cliente.GetProperty("responsavel").GetProperty("id").GetGuid().Should().Be(dono);
+        cliente.GetProperty("responsavel").GetProperty("nome").GetString().Should().NotBeNullOrEmpty();
+        cliente.GetProperty("etiquetas").EnumerateArray().Select(e => e.GetString()).Should().Equal("Varejo", "Centro");
+    }
+
+    [Fact]
+    public async Task CadastroAmpliado_PatchSemOsCamposApaga()
+    {
+        var equipe = await Equipe.CriarAsync(api);
+        var cliente = await equipe.EsperarAsync(
+            HttpStatusCode.Created, HttpMethod.Post, "/api/v1/clientes", Completo(await EuAsync(equipe), "Varejo"));
+        var id = cliente.GetProperty("id").GetGuid();
+
+        var editado = await equipe.EsperarAsync(
+            HttpStatusCode.OK, HttpMethod.Patch, $"/api/v1/clientes/{id}", new { nome = "Padaria Bom Grão" },
+            ifMatch: cliente.GetProperty("versao").GetString());
+
+        editado.GetProperty("razaoSocial").ValueKind.Should().Be(System.Text.Json.JsonValueKind.Null);
+        editado.GetProperty("endereco").ValueKind.Should().Be(System.Text.Json.JsonValueKind.Null);
+        editado.GetProperty("responsavel").ValueKind.Should().Be(System.Text.Json.JsonValueKind.Null);
+        editado.GetProperty("etiquetas").GetArrayLength().Should().Be(0);
+    }
+
+    [Theory]
+    [InlineData("cep", "1970", "endereco.cep")]
+    [InlineData("uf", "XX", "endereco.uf")]
+    public async Task EnderecoInvalido_400NoCampoAninhado(string campo, string valor, string erroEsperado)
+    {
+        var equipe = await Equipe.CriarAsync(api);
+        var endereco = new Dictionary<string, object?>
+        {
+            ["cep"] = "19700-000", ["logradouro"] = "Rua A", ["cidade"] = "Bastos", ["uf"] = "SP",
+        };
+        endereco[campo] = valor;
+
+        var erro = await equipe.EsperarAsync(
+            HttpStatusCode.BadRequest, HttpMethod.Post, "/api/v1/clientes", new { nome = "X", endereco });
+
+        erro.GetProperty("errors").TryGetProperty(erroEsperado, out _).Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task ResponsavelForaDaEquipe_400NoCampo()
+    {
+        var equipe = await Equipe.CriarAsync(api);
+        var outra = await Equipe.CriarAsync(api);
+
+        var erro = await equipe.EsperarAsync(
+            HttpStatusCode.BadRequest, HttpMethod.Post, "/api/v1/clientes", Completo(await EuAsync(outra)));
+
+        erro.GetProperty("errors").TryGetProperty("responsavelId", out _).Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task Listar_FiltraPorEtiquetaEResponsavel_EEtiquetasEmUso()
+    {
+        var equipe = await Equipe.CriarAsync(api);
+        var dono = await EuAsync(equipe);
+        await equipe.EsperarAsync(HttpStatusCode.Created, HttpMethod.Post, "/api/v1/clientes", Completo(dono, "Varejo", "Centro"));
+        await equipe.EsperarAsync(
+            HttpStatusCode.Created, HttpMethod.Post, "/api/v1/clientes", new { nome = "Condomínio Azul", etiquetas = EtiquetasCondominio });
+
+        var varejo = await equipe.EsperarAsync(HttpStatusCode.OK, HttpMethod.Get, "/api/v1/clientes?etiqueta=Varejo");
+        var doDono = await equipe.EsperarAsync(HttpStatusCode.OK, HttpMethod.Get, $"/api/v1/clientes?responsavelId={dono}");
+        var etiquetas = await equipe.EsperarAsync(HttpStatusCode.OK, HttpMethod.Get, "/api/v1/clientes/etiquetas");
+
+        varejo.GetProperty("total").GetInt32().Should().Be(1);
+        varejo.GetProperty("itens")[0].GetProperty("etiquetas").GetArrayLength().Should().Be(2);
+        doDono.GetProperty("total").GetInt32().Should().Be(1);
+        doDono.GetProperty("itens")[0].GetProperty("responsavel").GetProperty("id").GetGuid().Should().Be(dono);
+        etiquetas.EnumerateArray().Select(e => e.GetString()).Should().Equal("Centro", "Condomínio", "Varejo");
     }
 }

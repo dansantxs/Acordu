@@ -310,6 +310,21 @@ namespace Acordu.Infrastructure.Persistence.Migrations
                         .HasColumnType("character varying(14)")
                         .HasColumnName("documento");
 
+                    b.Property<string>("Email")
+                        .HasMaxLength(254)
+                        .HasColumnType("character varying(254)")
+                        .HasColumnName("email");
+
+                    b.PrimitiveCollection<string[]>("Etiquetas")
+                        .IsRequired()
+                        .HasColumnType("text[]")
+                        .HasColumnName("etiquetas");
+
+                    b.Property<string>("InscricaoEstadual")
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("inscricao_estadual");
+
                     b.Property<string>("Nome")
                         .IsRequired()
                         .HasMaxLength(200)
@@ -320,6 +335,20 @@ namespace Acordu.Infrastructure.Persistence.Migrations
                         .HasMaxLength(2000)
                         .HasColumnType("character varying(2000)")
                         .HasColumnName("observacoes");
+
+                    b.Property<string>("RazaoSocial")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("razao_social");
+
+                    b.Property<Guid?>("ResponsavelId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("responsavel_id");
+
+                    b.Property<string>("Telefone")
+                        .HasMaxLength(30)
+                        .HasColumnType("character varying(30)")
+                        .HasColumnName("telefone");
 
                     b.Property<Guid>("TenantId")
                         .HasColumnType("uuid")
@@ -336,6 +365,9 @@ namespace Acordu.Infrastructure.Persistence.Migrations
 
                     b.HasIndex("TenantId", "Nome")
                         .HasDatabaseName("ix_clientes_tenant_id_nome");
+
+                    b.HasIndex("TenantId", "ResponsavelId")
+                        .HasDatabaseName("ix_clientes_tenant_id_responsavel_id");
 
                     b.ToTable("clientes", (string)null);
                 });
@@ -1919,7 +1951,63 @@ namespace Acordu.Infrastructure.Persistence.Migrations
                                 .HasConstraintName("fk_contatos_clientes_cliente_id");
                         });
 
+                    b.OwnsOne("Acordu.Domain.ValueObjects.Endereco", "Endereco", b1 =>
+                        {
+                            b1.Property<Guid>("ClienteId")
+                                .HasColumnType("uuid")
+                                .HasColumnName("id");
+
+                            b1.Property<string>("Bairro")
+                                .HasMaxLength(100)
+                                .HasColumnType("character varying(100)")
+                                .HasColumnName("endereco_bairro");
+
+                            b1.Property<string>("Cep")
+                                .IsRequired()
+                                .HasMaxLength(8)
+                                .HasColumnType("character varying(8)")
+                                .HasColumnName("endereco_cep");
+
+                            b1.Property<string>("Cidade")
+                                .IsRequired()
+                                .HasMaxLength(100)
+                                .HasColumnType("character varying(100)")
+                                .HasColumnName("endereco_cidade");
+
+                            b1.Property<string>("Complemento")
+                                .HasMaxLength(100)
+                                .HasColumnType("character varying(100)")
+                                .HasColumnName("endereco_complemento");
+
+                            b1.Property<string>("Logradouro")
+                                .IsRequired()
+                                .HasMaxLength(200)
+                                .HasColumnType("character varying(200)")
+                                .HasColumnName("endereco_logradouro");
+
+                            b1.Property<string>("Numero")
+                                .HasMaxLength(20)
+                                .HasColumnType("character varying(20)")
+                                .HasColumnName("endereco_numero");
+
+                            b1.Property<string>("Uf")
+                                .IsRequired()
+                                .HasMaxLength(2)
+                                .HasColumnType("character varying(2)")
+                                .HasColumnName("endereco_uf");
+
+                            b1.HasKey("ClienteId");
+
+                            b1.ToTable("clientes");
+
+                            b1.WithOwner()
+                                .HasForeignKey("ClienteId")
+                                .HasConstraintName("fk_clientes_clientes_id");
+                        });
+
                     b.Navigation("Contatos");
+
+                    b.Navigation("Endereco");
                 });
 
             modelBuilder.Entity("Acordu.Domain.Entities.ComentarioTarefa", b =>

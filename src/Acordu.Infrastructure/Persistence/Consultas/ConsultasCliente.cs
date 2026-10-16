@@ -18,7 +18,12 @@ public sealed class ConsultasCliente : IConsultasCliente
     }
 
     public async Task<ResultadoPaginado<ClienteResumoDto>> ListarAsync(
-        string? busca, bool? ativo, Paginacao paginacao, CancellationToken cancellationToken = default)
+        string? busca,
+        bool? ativo,
+        string? etiqueta,
+        Guid? responsavelId,
+        Paginacao paginacao,
+        CancellationToken cancellationToken = default)
     {
         var consulta = _db.Clientes.AsNoTracking().Where(c => ativo == null || c.Ativo == ativo);
         if (!string.IsNullOrWhiteSpace(busca))
@@ -26,17 +31,41 @@ public sealed class ConsultasCliente : IConsultasCliente
             var termo = $"%{busca.Trim().Replace("\\", "\\\\", StringComparison.Ordinal).Replace("%", "\\%", StringComparison.Ordinal).Replace("_", "\\_", StringComparison.Ordinal)}%";
             var digitos = string.Concat(busca.Where(char.IsAsciiDigit));
             consulta = consulta.Where(c => EF.Functions.ILike(c.Nome, termo)
+                || (c.RazaoSocial != null && EF.Functions.ILike(c.RazaoSocial, termo))
                 || (digitos.Length > 0 && c.Documento != null && c.Documento.Contains(digitos)));
         }
 
+        if (!string.IsNullOrWhiteSpace(etiqueta))
+        {
+            var exata = etiqueta.Trim();
+            consulta = consulta.Where(c => c.Etiquetas.Contains(exata));
+        }
+
+        if (responsavelId is { } responsavel)
+            consulta = consulta.Where(c => c.ResponsavelId == responsavel);
+
         var total = await consulta.CountAsync(cancellationToken);
-        var itens = await consulta
+        var linhas = await consulta
             .OrderBy(c => c.Nome).ThenBy(c => c.Id)
             .Skip(paginacao.Pular).Take(paginacao.TamanhoPagina)
-            .Select(c => new ClienteResumoDto(c.Id, c.Nome, c.Documento, c.Ativo))
+            .Select(c => new { c.Id, c.Nome, c.Documento, c.Ativo, c.RazaoSocial, c.ResponsavelId, c.Etiquetas })
             .ToListAsync(cancellationToken);
+        var nomes = await Nomes.DeUsuariosAsync(
+            _db, linhas.Where(l => l.ResponsavelId is not null).Select(l => l.ResponsavelId!.Value), cancellationToken);
+        var itens = linhas
+            .Select(l => new ClienteResumoDto(
+                l.Id, l.Nome, l.Documento, l.Ativo, l.RazaoSocial, Nomes.Pessoa(l.ResponsavelId, nomes), [.. l.Etiquetas]))
+            .ToList();
         return new ResultadoPaginado<ClienteResumoDto>(itens, paginacao.Pagina, paginacao.TamanhoPagina, total);
     }
+
+    public async Task<IReadOnlyList<string>> EtiquetasAsync(CancellationToken cancellationToken = default) =>
+        await _db.Clientes.AsNoTracking()
+            .SelectMany(c => c.Etiquetas)
+            .Distinct()
+            .OrderBy(e => e)
+            .ToListAsync(cancellationToken);
+
 
     public async Task<ClienteDto?> DetalharAsync(Guid id, CancellationToken cancellationToken = default)
     {
@@ -49,6 +78,9 @@ public sealed class ConsultasCliente : IConsultasCliente
 
         var cliente = linha.Cliente;
         var acessos = await AcessosAoPortalAsync(cliente, cancellationToken);
+        Dictionary<Guid, string> nomes = cliente.ResponsavelId is { } responsavel
+            ? await Nomes.DeUsuariosAsync(_db, [responsavel], cancellationToken)
+            : [];
         return new ClienteDto(
             cliente.Id,
             cliente.Nome,
@@ -59,7 +91,14 @@ public sealed class ConsultasCliente : IConsultasCliente
             [.. cliente.Contatos
                 .OrderBy(c => c.Nome)
                 .Select(c => new ContatoDto(
-                    c.Id, c.Nome, c.Email, c.Telefone, c.Cargo, c.Ativo, c.UsuarioId is not null, acessos.GetValueOrDefault(c.Id)))]);
+                    c.Id, c.Nome, c.Email, c.Telefone, c.Cargo, c.Ativo, c.UsuarioId is not null, acessos.GetValueOrDefault(c.Id)))],
+            cliente.RazaoSocial,
+            cliente.InscricaoEstadual,
+            cliente.Email,
+            cliente.Telefone,
+            EnderecoDto.De(cliente.Endereco),
+            Nomes.Pessoa(cliente.ResponsavelId, nomes),
+            [.. cliente.Etiquetas]);
     }
 
     /// <summary>Por contato: vínculo de cliente (ATIVO) ou, sem ele, o convite pendente (CONVIDADO).</summary>

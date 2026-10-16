@@ -619,6 +619,8 @@ export interface paths {
                 query?: {
                     busca?: string
                     ativo?: boolean
+                    etiqueta?: string
+                    responsavelId?: string
                     pagina?: number | string
                     tamanhoPagina?: number | string
                 }
@@ -664,6 +666,41 @@ export interface paths {
                 }
             }
         }
+        delete?: never
+        options?: never
+        head?: never
+        patch?: never
+        trace?: never
+    }
+    '/api/v1/clientes/etiquetas': {
+        parameters: {
+            query?: never
+            header?: never
+            path?: never
+            cookie?: never
+        }
+        get: {
+            parameters: {
+                query?: never
+                header?: never
+                path?: never
+                cookie?: never
+            }
+            requestBody?: never
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown
+                    }
+                    content: {
+                        'application/json': string[]
+                    }
+                }
+            }
+        }
+        put?: never
+        post?: never
         delete?: never
         options?: never
         head?: never
@@ -4800,11 +4837,26 @@ export interface components {
             ativo: boolean
             versao: string
             contatos: components['schemas']['ContatoDto'][]
+            razaoSocial: null | string
+            inscricaoEstadual: null | string
+            email: null | string
+            telefone: null | string
+            endereco: null | components['schemas']['EnderecoDto']
+            responsavel: null | components['schemas']['Referencia']
+            etiquetas: string[]
         }
         ClienteRequest: {
             nome: string
             documento: null | string
             observacoes: null | string
+            razaoSocial?: null | string
+            inscricaoEstadual?: null | string
+            email?: null | string
+            telefone?: null | string
+            endereco?: null | components['schemas']['EnderecoDto']
+            /** Format: uuid */
+            responsavelId?: null | string
+            etiquetas?: null | string[]
         }
         ClienteResumoDto: {
             /** Format: uuid */
@@ -4812,6 +4864,9 @@ export interface components {
             nome: string
             documento: null | string
             ativo: boolean
+            razaoSocial: null | string
+            responsavel: null | components['schemas']['Referencia']
+            etiquetas: string[]
         }
         ComentarioTarefaDto: {
             /** Format: uuid */
@@ -5050,6 +5105,15 @@ export interface components {
             /** Format: int32 */
             validadeDias: null | number | string
             enviarEmail: null | boolean
+        }
+        EnderecoDto: {
+            cep: string
+            logradouro: string
+            numero: null | string
+            complemento: null | string
+            bairro: null | string
+            cidade: string
+            uf: string
         }
         /** @enum {unknown} */
         EscopoPortal: 'PROPRIAS' | 'TODAS_DO_CLIENTE' | null
