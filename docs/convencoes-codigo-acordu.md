@@ -97,6 +97,7 @@
   - o layout `_app` envolve as rotas da equipe com `features/casca/Casca` (capa lateral fixa a partir de `md`, gaveta abaixo disso, paleta Ctrl+K);
   - a navegação fica em `features/casca/navegacao.ts`, e cada item lista as permissões de leitura (basta uma). Item sem permissão não aparece, para não levar a um 403;
   - toda tela começa com `shared/ui/Pagina` (contexto, título, ações; também dá nome à aba), e lista ou tela vazia usa `shared/ui/EstadoVazio`;
+  - **campos brasileiros com máscara** (`shared/format/mascaras`, `shared/ui/CampoMascarado`): CPF/CNPJ (CNPJ a partir do 12º dígito), telefone (fixo ou celular; começando com `+`, fica como digitado) e CEP. Formatam ao digitar, mantendo o cursor depois do mesmo número de dígitos, e as mesmas funções formatam para exibir. A API recebe o valor formatado e normaliza;
   - datas exibidas usam o fuso do tenant (`shared/format/quando`, `saudacao`); comparação de texto sem acento por `shared/format/texto`;
   - ícones de traço em `shared/ui/Icone`, sem biblioteca; decorativos (`aria-hidden`), com o nome no texto ou no `aria-label` do botão.
 - **(Acordu, F1) Dados na tela, tempo real e retorno:**
