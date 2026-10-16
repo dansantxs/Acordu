@@ -3,6 +3,8 @@ import { Form } from 'react-aria-components'
 import { errosDeCampo, mensagemDeErro } from '@/shared/api/mensagens'
 import { Alerta } from '@/shared/ui/Alerta'
 import { Botao } from '@/shared/ui/Botao'
+import { formatarTelefone } from '@/shared/format/mascaras'
+import { CampoMascarado } from '@/shared/ui/CampoMascarado'
 import { CampoTexto } from '@/shared/ui/CampoTexto'
 import { Janela } from '@/shared/ui/Janela'
 import { adicionarContato, editarContato, opcional, type Cliente, type Contato, type DadosContato } from './consultas'
@@ -66,7 +68,13 @@ export function JanelaContato({
                     isRequired
                 />
                 <div className="grid gap-4 sm:grid-cols-2">
-                    <CampoTexto name="telefone" type="tel" rotulo="Telefone" defaultValue={contato?.telefone ?? ''} />
+                    <CampoMascarado
+                        name="telefone"
+                        type="tel"
+                        rotulo="Telefone"
+                        mascara={formatarTelefone}
+                        defaultValue={contato?.telefone}
+                    />
                     <CampoTexto name="cargo" rotulo="Cargo" defaultValue={contato?.cargo ?? ''} />
                 </div>
                 <div className="flex justify-end gap-3">

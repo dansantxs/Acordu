@@ -1,10 +1,11 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Link, useNavigate } from '@tanstack/react-router'
-import { useState } from 'react'
+import { useState, type ReactNode } from 'react'
 import { Button } from 'react-aria-components'
 import { pode } from '@/features/casca/navegacao'
 import { mensagemDeErro } from '@/shared/api/mensagens'
 import { avisar } from '@/shared/avisos/avisos'
+import { formatarCep, formatarDocumento, formatarTelefone } from '@/shared/format/mascaras'
 import type { Perfil } from '@/shared/sessao/perfil'
 import { Alerta } from '@/shared/ui/Alerta'
 import { Botao } from '@/shared/ui/Botao'
@@ -12,9 +13,38 @@ import { Confirmacao } from '@/shared/ui/Confirmacao'
 import { EstadoVazio } from '@/shared/ui/EstadoVazio'
 import { Icone } from '@/shared/ui/Icone'
 import { Pagina } from '@/shared/ui/Pagina'
-import { consultaCliente, inativarCliente, inativarContato, type Cliente, type Contato } from './consultas'
+import {
+    consultaCliente,
+    inativarCliente,
+    inativarContato,
+    type Cliente,
+    type Contato,
+    type Endereco,
+} from './consultas'
+import { Etiquetas } from './Etiquetas'
 import { JanelaCliente } from './JanelaCliente'
 import { JanelaContato } from './JanelaContato'
+
+function Dado({ rotulo, largo = false, children }: { rotulo: string; largo?: boolean; children: ReactNode }) {
+    return (
+        <div className={largo ? 'sm:col-span-2' : ''}>
+            <p className="text-xs font-semibold text-suave">{rotulo}</p>
+            <div>{children || <span className="text-suave">—</span>}</div>
+        </div>
+    )
+}
+
+function EnderecoPostal({ endereco: e }: { endereco: Endereco }) {
+    const primeira = [e.logradouro, e.numero, e.complemento].filter(Boolean).join(', ')
+    const segunda = [e.bairro, `${e.cidade}/${e.uf}`, formatarCep(e.cep)].filter(Boolean).join(' · ')
+    return (
+        <address className="not-italic">
+            {primeira}
+            <br />
+            {segunda}
+        </address>
+    )
+}
 
 const ROTULO_ESCOPO = { PROPRIAS: 'só as próprias', TODAS_DO_CLIENTE: 'todas do cliente' } as const
 
@@ -105,14 +135,29 @@ function Ficha({ cliente, podeGerenciar }: { cliente: Cliente; podeGerenciar: bo
                 <h2 id="dados" className="sr-only">
                     Dados
                 </h2>
-                <div>
-                    <p className="text-xs font-semibold text-suave">CPF ou CNPJ</p>
-                    <p>{cliente.documento ?? '—'}</p>
-                </div>
-                <div className="sm:col-span-2">
-                    <p className="text-xs font-semibold text-suave">Observações</p>
-                    <p className="whitespace-pre-line">{cliente.observacoes ?? '—'}</p>
-                </div>
+                <Dado rotulo="Razão social">{cliente.razaoSocial}</Dado>
+                <Dado rotulo="CPF ou CNPJ">{cliente.documento && formatarDocumento(cliente.documento)}</Dado>
+                <Dado rotulo="Inscrição estadual">{cliente.inscricaoEstadual}</Dado>
+                <Dado rotulo="Responsável na equipe">
+                    {cliente.responsavel?.nome || (cliente.responsavel && 'Pessoa que saiu da equipe')}
+                </Dado>
+                <Dado rotulo="E-mail">
+                    {cliente.email && (
+                        <a href={`mailto:${cliente.email}`} className="hover:underline">
+                            {cliente.email}
+                        </a>
+                    )}
+                </Dado>
+                <Dado rotulo="Telefone">{cliente.telefone && formatarTelefone(cliente.telefone)}</Dado>
+                <Dado rotulo="Endereço" largo>
+                    {cliente.endereco && <EnderecoPostal endereco={cliente.endereco} />}
+                </Dado>
+                <Dado rotulo="Etiquetas" largo>
+                    {cliente.etiquetas.length > 0 && <Etiquetas etiquetas={cliente.etiquetas} />}
+                </Dado>
+                <Dado rotulo="Observações" largo>
+                    {cliente.observacoes && <span className="whitespace-pre-line">{cliente.observacoes}</span>}
+                </Dado>
             </section>
 
             <section aria-labelledby="contatos" className="flex flex-col gap-3">
@@ -146,7 +191,7 @@ function Ficha({ cliente, podeGerenciar }: { cliente: Cliente; podeGerenciar: bo
                                     <a href={`mailto:${contato.email}`} className="hover:underline">
                                         {contato.email}
                                     </a>
-                                    {contato.telefone && <span>{contato.telefone}</span>}
+                                    {contato.telefone && <span>{formatarTelefone(contato.telefone)}</span>}
                                 </span>
                                 <span className="text-xs">
                                     <SituacaoPortal contato={contato} />
