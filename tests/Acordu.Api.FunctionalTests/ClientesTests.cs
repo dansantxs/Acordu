@@ -265,4 +265,44 @@ public sealed class ClientesTests(ApiFixture api)
         doDono.GetProperty("itens")[0].GetProperty("responsavel").GetProperty("id").GetGuid().Should().Be(dono);
         etiquetas.EnumerateArray().Select(e => e.GetString()).Should().Equal("Centro", "Condomínio", "Varejo");
     }
+
+    [Fact]
+    public async Task Reativar_ClienteEContato_VoltamAtivosSemAcessoAoPortal()
+    {
+        var equipe = await Equipe.CriarAsync(api);
+        var cliente = await equipe.EsperarAsync(HttpStatusCode.Created, HttpMethod.Post, "/api/v1/clientes", Padaria());
+        var id = cliente.GetProperty("id").GetGuid();
+        var contato = await equipe.EsperarAsync(
+            HttpStatusCode.Created, HttpMethod.Post, $"/api/v1/clientes/{id}/contatos", new { nome = "Marta", email = "marta@bomgrao.com" });
+        var contatoId = contato.GetProperty("id").GetGuid();
+        await equipe.EsperarAsync(HttpStatusCode.NoContent, HttpMethod.Delete, $"/api/v1/clientes/{id}/contatos/{contatoId}");
+        await equipe.EsperarAsync(HttpStatusCode.NoContent, HttpMethod.Delete, $"/api/v1/clientes/{id}");
+
+        // Contato de cliente inativo não volta antes do cliente.
+        var erro = await equipe.EsperarAsync(
+            HttpStatusCode.UnprocessableEntity, HttpMethod.Post, $"/api/v1/clientes/{id}/contatos/{contatoId}/reativacao");
+        var reativado = await equipe.EsperarAsync(HttpStatusCode.OK, HttpMethod.Post, $"/api/v1/clientes/{id}/reativacao");
+        var contatoReativado = await equipe.EsperarAsync(
+            HttpStatusCode.OK, HttpMethod.Post, $"/api/v1/clientes/{id}/contatos/{contatoId}/reativacao");
+
+        erro.GetProperty("type").GetString().Should().Be(Base + "transicao-invalida");
+        reativado.GetProperty("ativo").GetBoolean().Should().BeTrue();
+        contatoReativado.GetProperty("ativo").GetBoolean().Should().BeTrue();
+        contatoReativado.GetProperty("acessoPortal").ValueKind.Should().Be(System.Text.Json.JsonValueKind.Null);
+    }
+
+    [Fact]
+    public async Task ReativarContato_ComEmailJaUsado_422()
+    {
+        var equipe = await Equipe.CriarAsync(api);
+        var id = (await equipe.EsperarAsync(HttpStatusCode.Created, HttpMethod.Post, "/api/v1/clientes", Padaria())).GetProperty("id").GetGuid();
+        var antigo = (await equipe.EsperarAsync(
+            HttpStatusCode.Created, HttpMethod.Post, $"/api/v1/clientes/{id}/contatos", new { nome = "Marta", email = "marta@bomgrao.com" }))
+            .GetProperty("id").GetGuid();
+        await equipe.EsperarAsync(HttpStatusCode.NoContent, HttpMethod.Delete, $"/api/v1/clientes/{id}/contatos/{antigo}");
+        await equipe.EsperarAsync(
+            HttpStatusCode.Created, HttpMethod.Post, $"/api/v1/clientes/{id}/contatos", new { nome = "Marta Souza", email = "marta@bomgrao.com" });
+
+        await equipe.EsperarAsync(HttpStatusCode.UnprocessableEntity, HttpMethod.Post, $"/api/v1/clientes/{id}/contatos/{antigo}/reativacao");
+    }
 }

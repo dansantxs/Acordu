@@ -4,7 +4,7 @@ import { useState, type ReactNode } from 'react'
 import { Button } from 'react-aria-components'
 import { pode } from '@/features/casca/navegacao'
 import { mensagemDeErro } from '@/shared/api/mensagens'
-import { avisar } from '@/shared/avisos/avisos'
+import { avisar, avisarErro } from '@/shared/avisos/avisos'
 import { formatarCep, formatarDocumento, formatarTelefone } from '@/shared/format/mascaras'
 import type { Perfil } from '@/shared/sessao/perfil'
 import { Alerta } from '@/shared/ui/Alerta'
@@ -17,6 +17,8 @@ import {
     consultaCliente,
     inativarCliente,
     inativarContato,
+    reativarCliente,
+    reativarContato,
     type Cliente,
     type Contato,
     type Endereco,
@@ -98,7 +100,27 @@ function Ficha({ cliente, podeGerenciar }: { cliente: Cliente; podeGerenciar: bo
         },
     })
 
+    // Reativar não pede confirmação: dá para inativar de novo (convenções §4).
+    const reativacao = useMutation({
+        mutationFn: () => reativarCliente(cliente),
+        onSuccess: async () => {
+            await consultas.invalidateQueries({ queryKey: ['clientes'] })
+            avisar(`${cliente.nome} foi reativado. Para os contatos voltarem ao portal, convide-os de novo.`)
+        },
+        onError: avisarErro,
+    })
+    const reativacaoContato = useMutation({
+        mutationFn: (contato: Contato) => reativarContato(cliente, contato),
+        onSuccess: async (_, contato) => {
+            await consultas.invalidateQueries({ queryKey: ['clientes'] })
+            avisar(`${contato.nome} foi reativado.`)
+        },
+        onError: avisarErro,
+    })
+    const [verInativos, setVerInativos] = useState(false)
+
     const ativos = cliente.contatos.filter((c) => c.ativo)
+    const inativos = cliente.contatos.filter((c) => !c.ativo)
     const editavel = podeGerenciar && cliente.ativo
 
     return (
@@ -124,7 +146,18 @@ function Ficha({ cliente, podeGerenciar }: { cliente: Cliente; podeGerenciar: bo
         >
             {!cliente.ativo && (
                 <Alerta tom="aviso">
-                    Cliente inativo: não recebe solicitações novas e os contatos não acessam o portal.
+                    <span className="flex flex-wrap items-center justify-between gap-3">
+                        <span>Cliente inativo: não recebe solicitações novas e os contatos não acessam o portal.</span>
+                        {podeGerenciar && (
+                            <Botao
+                                variante="secundario"
+                                isPending={reativacao.isPending}
+                                onPress={() => reativacao.mutate()}
+                            >
+                                Reativar cliente
+                            </Botao>
+                        )}
+                    </span>
                 </Alerta>
             )}
 
@@ -217,6 +250,41 @@ function Ficha({ cliente, podeGerenciar }: { cliente: Cliente; podeGerenciar: bo
                             </li>
                         ))}
                     </ul>
+                )}
+                {inativos.length > 0 && (
+                    <div className="flex flex-col gap-2">
+                        <Button
+                            onPress={() => setVerInativos((v) => !v)}
+                            aria-expanded={verInativos}
+                            className="w-fit text-sm text-suave hover:underline"
+                        >
+                            {verInativos ? 'Esconder' : 'Ver'} contatos inativos ({inativos.length})
+                        </Button>
+                        {verInativos && (
+                            <ul className="divide-y divide-linha rounded-couro border border-dashed border-linha">
+                                {inativos.map((contato) => (
+                                    <li
+                                        key={contato.id}
+                                        className="flex flex-wrap items-center gap-x-6 gap-y-1 px-4 py-2.5 text-sm text-suave"
+                                    >
+                                        <span className="mr-auto">
+                                            {contato.nome} · {contato.email}
+                                        </span>
+                                        {editavel && (
+                                            <Button
+                                                onPress={() => reativacaoContato.mutate(contato)}
+                                                isDisabled={reativacaoContato.isPending}
+                                                aria-label={`Reativar ${contato.nome}`}
+                                                className="text-acento-texto hover:underline"
+                                            >
+                                                Reativar
+                                            </Button>
+                                        )}
+                                    </li>
+                                ))}
+                            </ul>
+                        )}
+                    </div>
                 )}
             </section>
 

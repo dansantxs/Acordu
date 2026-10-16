@@ -348,4 +348,56 @@ public sealed class ClienteTests
             cliente.ResponsavelId.Should().BeNull();
         }
     }
+
+    public sealed class Reativacao
+    {
+        [Fact]
+        public void Cliente_VoltaAtivo()
+        {
+            var cliente = Criar();
+            cliente.Inativar();
+
+            cliente.Reativar();
+
+            cliente.Ativo.Should().BeTrue();
+        }
+
+        [Fact]
+        public void Contato_VoltaAtivo()
+        {
+            var cliente = Criar();
+            var contato = cliente.AdicionarContato("Marta", "marta@bomgrao.com", null, null);
+            cliente.InativarContato(contato.Id);
+
+            cliente.ReativarContato(contato.Id);
+
+            contato.Ativo.Should().BeTrue();
+        }
+
+        [Fact]
+        public void Contato_ComClienteInativo_Lanca()
+        {
+            var cliente = Criar();
+            var contato = cliente.AdicionarContato("Marta", "marta@bomgrao.com", null, null);
+            cliente.InativarContato(contato.Id);
+            cliente.Inativar();
+
+            var acao = () => cliente.ReativarContato(contato.Id);
+
+            acao.Should().Throw<TransicaoInvalidaException>();
+        }
+
+        [Fact]
+        public void Contato_ComEmailJaUsadoPorOutroAtivo_Lanca()
+        {
+            var cliente = Criar();
+            var antigo = cliente.AdicionarContato("Marta", "marta@bomgrao.com", null, null);
+            cliente.InativarContato(antigo.Id);
+            cliente.AdicionarContato("Marta Souza", "marta@bomgrao.com", null, null);
+
+            var acao = () => cliente.ReativarContato(antigo.Id);
+
+            acao.Should().Throw<EmailDuplicadoException>();
+        }
+    }
 }

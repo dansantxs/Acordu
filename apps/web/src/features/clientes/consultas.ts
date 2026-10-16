@@ -77,6 +77,20 @@ export async function inativarCliente(cliente: Cliente): Promise<void> {
     await api.DELETE('/api/v1/clientes/{id}', { params: { path: { id: cliente.id } }, ...seVersao(cliente.versao) })
 }
 
+export async function reativarCliente(cliente: Cliente): Promise<void> {
+    await api.POST('/api/v1/clientes/{id}/reativacao', {
+        params: { path: { id: cliente.id } },
+        ...seVersao(cliente.versao),
+    })
+}
+
+export async function reativarContato(cliente: Cliente, contato: Contato): Promise<void> {
+    await api.POST('/api/v1/clientes/{id}/contatos/{contatoId}/reativacao', {
+        params: { path: { id: cliente.id, contatoId: contato.id } },
+        ...seVersao(cliente.versao),
+    })
+}
+
 export async function adicionarContato(cliente: Cliente, dados: DadosContato): Promise<Contato> {
     return (await api.POST('/api/v1/clientes/{id}/contatos', { params: { path: { id: cliente.id } }, body: dados }))
         .data!

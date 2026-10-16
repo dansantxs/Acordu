@@ -68,6 +68,14 @@ public sealed class ComandosCliente
         await _unidade.SalvarAsync(cancellationToken);
     }
 
+    /// <summary>Cliente que voltou (16/10). Os acessos ao portal revogados na inativação não voltam; convida-se de novo.</summary>
+    public async Task ReativarAsync(Guid id, string? versao, CancellationToken cancellationToken = default)
+    {
+        var cliente = await CarregarAsync(id, versao, cancellationToken);
+        cliente.Reativar();
+        await _unidade.SalvarAsync(cancellationToken);
+    }
+
     public async Task<Guid> AdicionarContatoAsync(Guid id, ContatoRequest dados, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(dados);
@@ -92,6 +100,13 @@ public sealed class ComandosCliente
         var cliente = await CarregarComContatoAsync(id, contatoId, versao, cancellationToken);
         cliente.InativarContato(contatoId);
         await _revogacao.RevogarAsync(cliente, contatoId, cancellationToken);
+        await _unidade.SalvarAsync(cancellationToken);
+    }
+
+    public async Task ReativarContatoAsync(Guid id, Guid contatoId, string? versao, CancellationToken cancellationToken = default)
+    {
+        var cliente = await CarregarComContatoAsync(id, contatoId, versao, cancellationToken);
+        cliente.ReativarContato(contatoId);
         await _unidade.SalvarAsync(cancellationToken);
     }
 

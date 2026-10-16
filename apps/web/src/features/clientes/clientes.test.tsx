@@ -293,4 +293,62 @@ describe('clientes', () => {
             ).toBe('Varejo'),
         )
     })
+
+    it('cliente inativo pode ser reativado, sem confirmação', async () => {
+        const chamadas = app(GERENCIAR, {
+            'GET /api/v1/clientes/c1': () =>
+                json({
+                    ...padaria,
+                    ativo: false,
+                    contatos: [
+                        {
+                            ...padaria.contatos[0],
+                            id: 'k2',
+                            nome: 'Pedro',
+                            email: 'pedro@x.com',
+                            ativo: false,
+                            acessoPortal: null,
+                        },
+                    ],
+                }),
+            'POST /api/v1/clientes/c1/reativacao': () => json(padaria),
+        })
+        await abrir('/clientes/c1')
+        const usuario = userEvent.setup()
+        await usuario.click(await screen.findByRole('button', { name: 'Reativar cliente' }))
+        expect(await screen.findByText(/foi reativado/)).toBeInTheDocument()
+        const chamada = chamadas.find((c) => c.caminho === '/api/v1/clientes/c1/reativacao')
+        expect(chamada?.ifMatch).toBe('"42"')
+    })
+
+    it('contatos inativos ficam escondidos e podem ser reativados', async () => {
+        const chamadas = app(GERENCIAR, {
+            'GET /api/v1/clientes/c1': () =>
+                json({
+                    ...padaria,
+                    contatos: [
+                        ...padaria.contatos,
+                        {
+                            ...padaria.contatos[0],
+                            id: 'k2',
+                            nome: 'Pedro',
+                            email: 'pedro@x.com',
+                            ativo: false,
+                            acessoPortal: null,
+                        },
+                    ],
+                }),
+            'POST /api/v1/clientes/c1/contatos/k2/reativacao': () => json({}),
+        })
+        await abrir('/clientes/c1')
+        const usuario = userEvent.setup()
+        expect(await screen.findByText('Marta Souza')).toBeInTheDocument()
+        expect(screen.queryByText(/Pedro/)).not.toBeInTheDocument()
+        await usuario.click(screen.getByRole('button', { name: 'Ver contatos inativos (1)' }))
+        await usuario.click(screen.getByRole('button', { name: 'Reativar Pedro' }))
+        await vi.waitFor(() =>
+            expect(chamadas.some((c) => c.caminho === '/api/v1/clientes/c1/contatos/k2/reativacao')).toBe(true),
+        )
+        expect(await screen.findByText('Pedro foi reativado.')).toBeInTheDocument()
+    })
 })

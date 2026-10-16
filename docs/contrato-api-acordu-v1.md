@@ -128,6 +128,7 @@ Papéis (6e2, todos com `papel.gerenciar`):
 | GET | `/clientes/{id}` | Detalha, com contatos. | `cliente.ver` |
 | PATCH | `/clientes/{id}` | Nome, documento, observações. | `cliente.gerenciar` |
 | DELETE | `/clientes/{id}` | Inativa (soft). | `cliente.gerenciar` |
+| POST | `/clientes/{id}/reativacao` | Reativa o cliente inativo → `200` com o detalhe. Os acessos ao portal revogados na inativação não voltam (decidido em 16/10). | `cliente.gerenciar` |
 
 ```json
 // POST /clientes → 201 (só "nome" é obrigatório)
@@ -156,6 +157,7 @@ Cadastro ampliado (decidido em 16/10, RF-CLI-01, 06 e 07):
 | POST | `/clientes/{id}/contatos` | Adiciona contato. | `cliente.gerenciar` |
 | PATCH | `/clientes/{id}/contatos/{contatoId}` | Edita. | `cliente.gerenciar` |
 | DELETE | `/clientes/{id}/contatos/{contatoId}` | Inativa. | `cliente.gerenciar` |
+| POST | `/clientes/{id}/contatos/{contatoId}/reativacao` | Reativa o contato → `200` com o contato. Cliente inativo → `422 transicao-invalida`; e-mail já usado por outro contato ativo → `422`. Sem acesso ao portal: convida-se de novo. | `cliente.gerenciar` |
 | POST | `/clientes/{id}/contatos/{contatoId}/acesso-portal` | Convida o contato para o portal. | `portal.gerenciar_acessos` |
 | PATCH | `/clientes/{id}/contatos/{contatoId}/acesso-portal` | Altera `escopoPortal`. | `portal.gerenciar_acessos` |
 | DELETE | `/clientes/{id}/contatos/{contatoId}/acesso-portal` | Revoga acesso (mantém histórico). | `portal.gerenciar_acessos` |

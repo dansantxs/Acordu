@@ -46,6 +46,8 @@ public sealed class Contato
 
     internal void Inativar() => Ativo = false;
 
+    internal void Reativar() => Ativo = true;
+
     internal void VincularUsuario(Guid usuarioId) => UsuarioId = usuarioId;
 
     internal void DesvincularUsuario() => UsuarioId = null;
