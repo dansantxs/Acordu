@@ -3,7 +3,7 @@
 | | |
 |---|---|
 | **Versão** | 0.2 (documento vivo — revisar conforme validar) |
-| **Data** | 10/10/2026 |
+| **Data** | 16/10/2026 |
 | **Empresa** | Nebrys |
 | **Natureza** | Visão e estratégia. Hipóteses a validar com usuários, não decisões cravadas. |
 
@@ -50,9 +50,32 @@ Referências de preço (ordem de grandeza, 2026): Zendesk a partir de US$19/agen
 
 **Primário:** pequenos prestadores de serviço B2B (2–30 pessoas) que atendem uma carteira de clientes recorrentes, com contrato (mensal ou banco de horas) e demandas que chegam por WhatsApp/e-mail.
 
-Exemplos: agência de marketing/design, escritório de contabilidade, consultoria, empresa de manutenção predial/equipamentos, escritório de engenharia/arquitetura, suporte de TI terceirizado de pequeno porte.
+O critério não é o setor, é o jeito de trabalhar: carteira de clientes recorrentes, contrato mensal, banco de horas ou trabalho por hora, pedidos que chegam por WhatsApp/e-mail, trabalho periódico e a necessidade de prestar contas ao cliente.
 
-**Fora do alvo (v1):** contact centers de alto volume (B2C), ITSM corporativo, software houses.
+### 3.1 Verticais
+
+**Atendidas pelo v1** (o modelo atual cobre o fluxo do dia a dia):
+
+| Vertical | Como usa o Acordu |
+|---|---|
+| Agência de marketing, design e social media | Pedidos de ajuste como solicitação; campanhas como projeto; contrato mensal com franquia; aprovação de entrega no portal. |
+| Escritório de contabilidade | Obrigações mensais como tarefa recorrente; dúvidas de clientes como solicitação com SLA; contrato mensal. |
+| Consultoria (jurídica, RH, gestão, TI) | Banco de horas ou mensal; horas apontadas por cliente; extrato para prestar contas. |
+| Empresa de manutenção (predial, equipamentos, climatização) | Chamados com SLA; preventivas como tarefa recorrente; contrato de manutenção mensal. |
+| Suporte de TI terceirizado de pequeno porte | Chamados com SLA em horas úteis; banco de horas. |
+| Freelancer com equipe (dev, redação, tradução) | O mesmo fluxo em escala menor; banco de horas ou avulso. |
+
+**Atendidas com ajustes (v2)** (a ideia encaixa, mas o contrato ou a entrega têm forma própria):
+
+| Vertical | O que já funciona | O que falta |
+|---|---|---|
+| **Escritório de arquitetura** | Projeto com tarefas por fase; pedidos de revisão como solicitação; portal com andamento e aprovação; horas para medir a rentabilidade do projeto. | Contrato **por projeto com preço fechado e pagamento por etapa**; **limite de revisões** por etapa; **entregas versionadas** (pranchas R01, R02) com aprovação formal e arquivos grandes (PDF/DWG > 20 MB); **cronograma de fases** com datas e marcos externos (aprovação na prefeitura); **acompanhamento de obra** (visitas e registros). SLA em horas úteis pesa menos que o prazo da etapa. |
+| Escritório de engenharia (projetos) | Igual à arquitetura. | As mesmas lacunas da arquitetura, mais registro de ART por projeto. |
+| Produtora de vídeo / estúdio criativo | Projetos, pedidos de alteração, aprovação no portal. | Contrato por entrega com rodadas de alteração limitadas; entregas grandes e versionadas (vídeo). |
+
+Os ajustes de arquitetura, engenharia e estúdios se sobrepõem: **contrato por projeto com etapas, limite de revisões e entregas versionadas** resolvem os três. São o candidato natural a pacote da v2, depois de validar com 2–3 escritórios (perguntas: como cobram, quantas revisões incluem, onde mais perdem tempo com o cliente).
+
+**Fora do alvo:** contact centers de alto volume (B2C), ITSM corporativo com processos ITIL, software houses (distância do mercado da empregadora, §1) e negócios sem cliente recorrente nem contrato (varejo, serviço avulso para pessoa física).
 
 ---
 
@@ -136,6 +159,7 @@ Implicação arquitetural (ADR 0002):
 
 **v2:**
 - Entrada por e-mail (e-mail vira solicitação).
+- **Ajustes para verticais de projeto** (arquitetura, engenharia, estúdios — §3.1): contrato por projeto com preço fechado e etapas; limite de revisões por etapa; entregas versionadas com aprovação formal e arquivos maiores; cronograma de fases com marcos externos; registro de visitas de obra.
 - **Base de conhecimento:** artigos internos/externos, publicação no portal, "transformar solução em artigo".
 - Projeção do contrato (§7.4).
 - Relatório mensal de prestação de contas (PDF) por cliente.
@@ -224,3 +248,4 @@ Implicação arquitetural (ADR 0002):
 | 06/10/2026 | Conta Oracle recuperada: volta à VM Ampere compartilhada com outros produtos; níveis 1 (Magalu Cloud SP) e 2; serverless como plano B (ADR 0006) | Decidido |
 | 10/10/2026 | Empresa: **Nebrys** (`nebrys.com.br` livre em 10/10/2026; INPI a verificar) | Decidido |
 | 15/10/2026 | Colaboração de autônomos/estudantes ("modo equipe", projeto sem cliente, convidado por projeto) e integrações com GitHub, Notion, Slack/Discord/Teams e agendas: **v2**, fora do v1 para não diluir o foco em prestadores | Hipótese |
+| 16/10/2026 | Verticais: **v1** atende agência, contabilidade, consultoria, manutenção, TI terceirizada e freelancer com equipe; **arquitetura, engenharia e estúdios** precisam de ajustes (contrato por projeto com etapas, limite de revisões, entregas versionadas) e ficam para a **v2**, após validação | Hipótese |
