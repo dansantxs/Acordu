@@ -22,7 +22,7 @@ namespace Acordu.Api.Composicao;
 /// Composição única da Api, usada pelo <c>Program</c> e pelos testes funcionais (que montam o mesmo pipeline e penduram
 /// endpoints de teste nos grupos). Configuração só por variáveis de ambiente (ADR 0006): <c>ConnectionStrings__Acordu</c>,
 /// <c>Jwt__ChaveAssinatura</c>, <c>Jobs__Token</c>, <c>Cors__Origem</c>, <c>App__UrlPublica</c> (links dos e-mails) e
-/// <c>Email__ResendChave</c>, <c>Email__Remetente</c>, <c>Email__NomeRemetente</c> e <c>Email__RegistrarConteudo</c> (só em
+/// <c>Email__ResendChave</c>, <c>Email__Remetente</c>, <c>Email__NomeRemetente</c> e <c>Email__Smtp__Host</c>/<c>Email__Smtp__Porta</c> (Mailpit, só em desenvolvimento), <c>Email__RegistrarConteudo</c> (só em
 /// desenvolvimento).
 /// </summary>
 internal static class ComposicaoApi
@@ -90,8 +90,8 @@ internal static class ComposicaoApi
     }
 
     /// <summary>
-    /// Resend quando há <c>Email__ResendChave</c>; senão, só log. TryAdd: os testes registram antes uma caixa de e-mails
-    /// em memória.
+    /// Resend quando há <c>Email__ResendChave</c>; senão, SMTP quando há <c>Email__Smtp__Host</c> (o Mailpit do
+    /// desenvolvimento); senão, só log. TryAdd: os testes registram antes uma caixa de e-mails em memória.
     /// </summary>
     private static void AdicionarEmail(IServiceCollection services, IConfiguration configuracao)
     {
@@ -99,13 +99,19 @@ internal static class ComposicaoApi
             configuracao["Email:ResendChave"],
             configuracao["Email:Remetente"] ?? OpcoesEmail.RemetentePadrao,
             configuracao["Email:NomeRemetente"] ?? OpcoesEmail.NomeRemetentePadrao,
-            configuracao.GetValue("Email:RegistrarConteudo", false));
+            configuracao.GetValue("Email:RegistrarConteudo", false),
+            configuracao["Email:Smtp:Host"],
+            configuracao.GetValue("Email:Smtp:Porta", 1025));
         services.AddSingleton(opcoes);
         if (opcoes.UsaResend)
         {
             services.AddHttpClient(nameof(EnviadorEmailResend), http => http.Timeout = TimeSpan.FromSeconds(15));
             services.TryAddSingleton<IEnviadorEmail>(sp => new EnviadorEmailResend(
                 sp.GetRequiredService<IHttpClientFactory>().CreateClient(nameof(EnviadorEmailResend)), opcoes));
+        }
+        else if (opcoes.UsaSmtp)
+        {
+            services.TryAddSingleton<IEnviadorEmail>(sp => new EnviadorEmailSmtp(opcoes, sp.GetRequiredService<ILogger<EnviadorEmailSmtp>>()));
         }
         else
         {

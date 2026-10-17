@@ -1,9 +1,6 @@
-using System.Net;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
-using System.Text;
 using System.Text.Json.Serialization;
-using System.Text.RegularExpressions;
 using Acordu.Application.Abstractions;
 
 namespace Acordu.Infrastructure.Email;
@@ -13,7 +10,7 @@ namespace Acordu.Infrastructure.Email;
 /// texto escapado, com quebras de linha e links clicáveis. Resposta fora de 2xx lança exceção (a outbox tenta de novo),
 /// sem o corpo da mensagem no erro.
 /// </summary>
-public sealed partial class EnviadorEmailResend : IEnviadorEmail
+public sealed class EnviadorEmailResend : IEnviadorEmail
 {
     public static readonly Uri Endpoint = new("https://api.resend.com/emails");
 
@@ -40,7 +37,7 @@ public sealed partial class EnviadorEmailResend : IEnviadorEmail
                 [mensagem.Para],
                 mensagem.Assunto,
                 mensagem.Texto,
-                Html(mensagem.Texto))),
+                FormatoEmail.Html(mensagem.Texto))),
         };
         requisicao.Headers.Authorization = new AuthenticationHeaderValue("Bearer", _opcoes.ChaveResend);
 
@@ -55,28 +52,8 @@ public sealed partial class EnviadorEmailResend : IEnviadorEmail
         }
     }
 
-    /// <summary>"Nome &lt;endereço&gt;", com o nome sem caracteres que quebrariam o cabeçalho.</summary>
-    private string De(string? nome)
-    {
-        var limpo = Regex.Replace(nome ?? string.Empty, "[\"<>\\r\\n,;]", string.Empty).Trim();
-        if (limpo.Length == 0)
-            limpo = _opcoes.NomePadrao;
-        return $"{limpo} <{_opcoes.Remetente}>";
-    }
-
-    /// <summary>Texto escapado, parágrafos preservados e URLs http(s) como links.</summary>
-    private static string Html(string texto)
-    {
-        var escapado = WebUtility.HtmlEncode(texto.Replace("\r\n", "\n", StringComparison.Ordinal));
-        var comLinks = Url().Replace(escapado, m => $"<a href=\"{m.Value}\">{m.Value}</a>");
-        var html = new StringBuilder("<div style=\"font-family:Arial,Helvetica,sans-serif;font-size:15px;line-height:1.5;color:#1f2933\">");
-        html.Append(comLinks.Replace("\n", "<br>", StringComparison.Ordinal));
-        html.Append("</div>");
-        return html.ToString();
-    }
-
-    [GeneratedRegex(@"https?://[^\s<>""]+")]
-    private static partial Regex Url();
+    /// <summary>"Nome &lt;endereço&gt;".</summary>
+    private string De(string? nome) => $"{FormatoEmail.NomeRemetente(nome, _opcoes)} <{_opcoes.Remetente}>";
 
     private sealed record CorpoResend(
         [property: JsonPropertyName("from")] string De,

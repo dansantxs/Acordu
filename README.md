@@ -152,7 +152,7 @@ Regra de higiene: **decisão de arquitetura vira ADR**; **convenção de código
 **Pré-requisitos:** .NET 10 SDK, Node 22 com pnpm (`corepack enable`), Docker.
 
 ```
-# Postgres local (porta 5434)
+# Postgres (porta 5434), emulador S3 e Mailpit (e-mails em http://localhost:8025)
 docker compose -f docker-compose.dev.yml up -d
 
 # schema do banco (na primeira vez e a cada migration nova que chegar na main)
@@ -168,6 +168,8 @@ cd apps/web && pnpm install && pnpm dev
 ```
 
 Abra o SPA por `http://localhost:5173` (não por IP nem outro nome): o cookie de refresh é `Secure` (ADR 0007), e Chrome, Edge e Firefox só o aceitam sem HTTPS quando o endereço é `localhost`.
+
+Os e-mails que a API manda no desenvolvimento (confirmação, senha, convites, avisos) chegam ao **Mailpit**: abra `http://localhost:8025` e clique nos links. Com `Email__ResendChave` definida, o envio vai pelo Resend.
 
 Configuração sensível em variáveis de ambiente / `.env` (nunca commitado).
 
