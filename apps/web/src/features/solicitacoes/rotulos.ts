@@ -49,3 +49,11 @@ export const SITUACAO_SLA: Record<SituacaoSla, { rotulo: string; estilo: string 
     VIOLADO: { rotulo: 'Violado', estilo: 'bg-vermelho' },
     CUMPRIDO: { rotulo: 'Cumprido', estilo: 'border-2 border-verde' },
 }
+
+export type TipoContrato = components['schemas']['TipoContrato']
+
+export const TIPO_CONTRATO: Record<TipoContrato, string> = {
+    MENSAL_FIXO: 'Mensal fixo',
+    BANCO_HORAS: 'Banco de horas',
+    AVULSO: 'Avulso',
+}

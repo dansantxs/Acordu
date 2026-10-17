@@ -19,7 +19,11 @@ export default tseslint.config(
         extends: [js.configs.recommended, ...tseslint.configs.recommended],
         languageOptions: { ecmaVersion: 2023, globals: globals.browser },
         plugins: { 'react-hooks': reactHooks },
-        rules: { ...reactHooks.configs.recommended.rules },
+        rules: {
+            ...reactHooks.configs.recommended.rules,
+            // Tirar um campo de um objeto com o resto (`const { nova, ...filtros } = busca`) não é variável esquecida.
+            '@typescript-eslint/no-unused-vars': ['error', { ignoreRestSiblings: true }],
+        },
     },
     {
         // O portal e o shared não importam nada do app interno (convenções §4); o que for comum vai para shared.

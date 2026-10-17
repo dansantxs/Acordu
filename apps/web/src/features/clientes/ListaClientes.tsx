@@ -22,7 +22,6 @@ import { JanelaCliente } from './JanelaCliente'
 /** Lista de clientes com busca e "mostrar inativos" no endereço (`?busca=&inativos=&pagina=`). */
 export function ListaClientes({ perfil, filtros }: { perfil: Perfil; filtros: FiltrosClientes }) {
     const navegar = useNavigate()
-    const [novo, setNovo] = useState(false)
     const [texto, setTexto] = useState(filtros.busca ?? '')
     const busca = useAtrasado(texto.trim())
     const lista = useQuery(consultaClientes(filtros))
@@ -31,6 +30,14 @@ export function ListaClientes({ perfil, filtros }: { perfil: Perfil; filtros: Fi
     const filtrar = (mudanca: Partial<FiltrosClientes>) =>
         void navegar({ to: '/clientes', search: (atual) => ({ ...atual, ...mudanca, pagina: undefined }) })
     const podeGerenciar = pode(perfil, 'cliente.gerenciar')
+    // A janela de novo cliente abre pelo endereço (`?novo=1`), para o Ctrl+K chegar com ela aberta.
+    const novo = Boolean(filtros.novo) && podeGerenciar
+    const setNovo = (aberta: boolean) =>
+        void navegar({
+            to: '/clientes',
+            search: (atual) => ({ ...atual, novo: aberta || undefined }),
+            replace: !aberta,
+        })
 
     // A busca digitada vai para o endereço (sem empilhar no histórico) e volta para a primeira página.
     useEffect(() => {

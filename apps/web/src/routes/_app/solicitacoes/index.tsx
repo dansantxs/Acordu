@@ -18,6 +18,7 @@ export const Route = createFileRoute('/_app/solicitacoes/')({
         sla: de(busca.sla, ['EM_RISCO', 'VIOLADO'] as const),
         ordem: de(busca.ordem, Object.keys(ORDENS) as (keyof typeof ORDENS)[]),
         pagina: Number.isInteger(Number(busca.pagina)) && Number(busca.pagina) > 1 ? Number(busca.pagina) : undefined,
+        nova: busca.nova === true || busca.nova === 1 || busca.nova === '1' || busca.nova === 'true' ? true : undefined,
     }),
     component: Solicitacoes,
 })

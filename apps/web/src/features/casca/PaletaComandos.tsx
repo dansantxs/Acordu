@@ -20,6 +20,12 @@ import type { Perfil } from '@/shared/sessao/perfil'
 import { Icone } from '@/shared/ui/Icone'
 import { navegacaoDe, pode } from './navegacao'
 
+/** Ações de criar: cada uma abre a tela com a janela aberta (`?nova=1`, `?novo=1`). */
+const CRIACOES = [
+    { rotulo: 'Nova solicitação', para: '/solicitacoes?nova=1', permissao: 'solicitacao.criar' },
+    { rotulo: 'Novo cliente', para: '/clientes?novo=1', permissao: 'cliente.gerenciar' },
+] as const
+
 /** A busca na API começa com 2 letras; antes disso só os destinos do menu. */
 const MINIMO_BUSCA = 2
 const LIMITE = 5
@@ -46,7 +52,7 @@ export function useAtalhoPaleta(): [boolean, (aberta: boolean) => void] {
 
 /**
  * Busca e navegação rápida: destinos do menu, clientes e solicitações (pela `busca` das listas da API). Cada grupo
- * só aparece com a permissão de leitura correspondente. Criar itens pela paleta entra com as telas do F2.
+ * só aparece com a permissão de leitura correspondente; as ações de criar, com a permissão de criar.
  */
 export function PaletaComandos({
     perfil,
@@ -79,10 +85,11 @@ export function PaletaComandos({
     })
 
     const destinos = navegacaoDe(perfil).filter((item) => !termo.trim() || contem(item.rotulo, termo))
+    const criacoes = CRIACOES.filter((c) => pode(perfil, c.permissao) && (!termo.trim() || contem(c.rotulo, termo)))
     const listaClientes = buscar ? (clientes.data ?? []) : []
     const listaSolicitacoes = buscar ? (solicitacoes.data ?? []) : []
     const carregando = buscar && (clientes.isFetching || solicitacoes.isFetching)
-    const vazio = destinos.length + listaClientes.length + listaSolicitacoes.length === 0
+    const vazio = criacoes.length + destinos.length + listaClientes.length + listaSolicitacoes.length === 0
 
     function ir(caminho: string) {
         aoMudar(false)
@@ -129,6 +136,19 @@ export function PaletaComandos({
                                 </p>
                             )}
                         >
+                            {criacoes.length > 0 && (
+                                <MenuSection>
+                                    <Header className={estiloSecao}>Criar</Header>
+                                    {criacoes.map((c) => (
+                                        <MenuItem key={c.para} id={c.para} textValue={c.rotulo} className={estiloItem}>
+                                            <span className="flex items-center gap-2">
+                                                <Icone nome="mais" className="size-4 text-suave" />
+                                                {c.rotulo}
+                                            </span>
+                                        </MenuItem>
+                                    ))}
+                                </MenuSection>
+                            )}
                             {destinos.length > 0 && (
                                 <MenuSection>
                                     <Header className={estiloSecao}>Ir para</Header>

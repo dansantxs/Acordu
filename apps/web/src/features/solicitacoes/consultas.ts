@@ -38,11 +38,13 @@ export interface FiltrosFila {
     sla?: 'EM_RISCO' | 'VIOLADO'
     ordem?: Ordem
     pagina?: number
+    /** Abre a janela de nova solicitação (Ctrl+K, botão); não filtra. */
+    nova?: boolean
 }
 
 export const TAMANHO_PAGINA = 50
 
-export function consultaFila(filtros: FiltrosFila, usuarioId: string) {
+export function consultaFila({ nova, ...filtros }: FiltrosFila, usuarioId: string) {
     const status = VISOES[filtros.visao ?? 'abertas'].status
     return queryOptions({
         queryKey: ['solicitacoes', 'lista', filtros, filtros.responsavel === 'eu' ? usuarioId : null],
@@ -74,3 +76,24 @@ export const consultaCategorias = queryOptions({
     queryFn: async () => (await api.GET('/api/v1/categorias')).data!,
     staleTime: 5 * 60_000,
 })
+
+export type NovaSolicitacao = components['schemas']['NovaSolicitacaoRequest']
+export type Solicitacao = components['schemas']['SolicitacaoDto']
+export type ContratoResumo = components['schemas']['ContratoResumoDto']
+
+export async function abrirSolicitacao(dados: NovaSolicitacao): Promise<Solicitacao> {
+    return (await api.POST('/api/v1/solicitacoes', { body: dados })).data!
+}
+
+/** Contratos ativos do cliente, para escolher na abertura (sem escolher, a API usa o único ativo, se houver). */
+export function consultaContratosAtivos(clienteId: string) {
+    return queryOptions({
+        queryKey: ['contratos', 'ativos', clienteId],
+        queryFn: async () =>
+            (
+                await api.GET('/api/v1/contratos', {
+                    params: { query: { clienteId, status: 'ATIVO', tamanhoPagina: 50 } },
+                })
+            ).data!.itens,
+    })
+}
