@@ -11,6 +11,7 @@ export const Route = createFileRoute('/_app/clientes/')({
             typeof busca.responsavel === 'string' && /^[0-9a-f-]{36}$/i.test(busca.responsavel)
                 ? busca.responsavel
                 : undefined,
+        novo: busca.novo === true || busca.novo === 1 || busca.novo === '1' || busca.novo === 'true' ? true : undefined,
         pagina: Number.isInteger(Number(busca.pagina)) && Number(busca.pagina) > 1 ? Number(busca.pagina) : undefined,
     }),
     component: Clientes,

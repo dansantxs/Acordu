@@ -16,6 +16,8 @@ export interface FiltrosClientes {
     etiqueta?: string
     responsavel?: string
     pagina?: number
+    /** Abre a janela de novo cliente (Ctrl+K); não filtra. */
+    novo?: boolean
 }
 
 /** Mesmo limite do domínio (`Cliente.MaximoEtiquetas`). */
@@ -24,7 +26,7 @@ export const MAXIMO_ETIQUETAS = 10
 export const TAMANHO_PAGINA = 50
 
 /** Chaves sob `clientes` (convenções §4): o sinal de tempo real `cliente` invalida lista e fichas juntas. */
-export function consultaClientes(filtros: FiltrosClientes) {
+export function consultaClientes({ novo, ...filtros }: FiltrosClientes) {
     return queryOptions({
         queryKey: ['clientes', 'lista', filtros],
         queryFn: async () =>

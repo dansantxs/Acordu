@@ -28,6 +28,7 @@ import {
     type SolicitacaoResumo,
     type Visao,
 } from './consultas'
+import { JanelaNovaSolicitacao } from './JanelaNovaSolicitacao'
 import { ESTILO_PRIORIDADE, ESTILO_STATUS, PRIORIDADE, SITUACAO_SLA, STATUS, type Prioridade } from './rotulos'
 
 /** Fila de solicitações (F2b): visões, filtros e ordem no endereço; o detalhe abre em painel no F2d. */
@@ -53,6 +54,14 @@ export function FilaSolicitacoes({ perfil, filtros }: { perfil: Perfil; filtros:
         })
     }, [busca, filtros, navegar])
 
+    // A janela abre pelo endereço (`?nova=1`): o Ctrl+K e outras telas chegam aqui com ela aberta.
+    const mudarNova = (aberta: boolean) =>
+        void navegar({
+            to: '/solicitacoes',
+            search: (atual) => ({ ...atual, nova: aberta || undefined }),
+            replace: !aberta,
+        })
+
     const algumFiltro = Boolean(
         filtros.busca ||
         filtros.cliente ||
@@ -67,7 +76,17 @@ export function FilaSolicitacoes({ perfil, filtros }: { perfil: Perfil; filtros:
     ]
 
     return (
-        <Pagina titulo="Solicitações">
+        <Pagina
+            titulo="Solicitações"
+            acoes={
+                pode(perfil, 'solicitacao.criar') && (
+                    <Botao onPress={() => mudarNova(true)}>
+                        <Icone nome="mais" />
+                        Nova solicitação
+                    </Botao>
+                )
+            }
+        >
             <Tabs
                 selectedKey={filtros.visao ?? 'abertas'}
                 onSelectionChange={(v) => filtrar({ visao: v === 'abertas' ? undefined : (v as Visao) })}
@@ -199,6 +218,14 @@ export function FilaSolicitacoes({ perfil, filtros }: { perfil: Perfil; filtros:
             ) : (
                 <Tabela itens={fila.data.itens} fuso={fuso} />
             )}
+
+            <JanelaNovaSolicitacao
+                perfil={perfil}
+                aberta={Boolean(filtros.nova) && pode(perfil, 'solicitacao.criar')}
+                aoMudar={mudarNova}
+                clienteInicial={filtros.cliente}
+                aoAbrir={(s) => void navegar({ to: '/solicitacoes/$id', params: { id: s.id } })}
+            />
 
             {fila.data && (
                 <Paginacao
