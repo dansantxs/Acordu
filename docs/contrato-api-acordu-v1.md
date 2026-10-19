@@ -287,7 +287,7 @@ Decidido na implementação:
 | GET | `/solicitacoes/{id}/semelhantes` | Até 5 resolvidas semelhantes (RF-CON-02). | `solicitacao.ver` |
 | POST | `/solicitacoes/{id}/acessos-portal` | Emite link sem senha para um contato. | `portal.gerenciar_acessos` |
 | DELETE | `/solicitacoes/{id}/acessos-portal/{acessoId}` | Revoga link. | `portal.gerenciar_acessos` |
-| GET | `/anexos/{id}/download` | `302` para URL assinada (curta). Interação ou comentário de tarefa (§8.1a). | `solicitacao.ver` ou `tarefa.ver` |
+| GET | `/anexos/{id}/download` | `200 { url }`: URL assinada (curta). Interação ou comentário de tarefa (§8.1a). | `solicitacao.ver` ou `tarefa.ver` |
 
 **Filtros do GET `/solicitacoes`:** `?status=ABERTA,EM_ANDAMENTO&clienteId=&responsavelId=&prioridade=&categoriaId=&situacaoSla=EM_RISCO&busca=&abertaDe=&abertaAte=&ordem=-abertaEm`.
 
@@ -337,7 +337,7 @@ Contrato de outro cliente ou não vigente → `422`. Sem `contratoId`, a API usa
 
 **POST `/solicitacoes/{id}/interacoes`** — `multipart/form-data`: `texto`, `visibilidade` (`INTERNA`|`EXTERNA`, padrão `INTERNA`), `anexos` (repetido; até 5, 20 MB cada). → `201` com a interação. Também aceita JSON sem anexos.
 - O tipo do arquivo é detectado pelo conteúdo (PNG, JPEG, GIF, WebP, PDF, ZIP, Office novo e antigo, texto UTF-8/CSV); o declarado pelo navegador é ignorado. Fora da lista → `422 anexo-invalido`; acima de 20 MB → `413 anexo-grande-demais`.
-- Interação (aqui e na linha do tempo) traz `anexos: [{ id, nomeArquivo, tipoConteudo, tamanhoBytes }]`. `GET /anexos/{id}/download` → `302` para URL assinada de 5 minutos, sempre como `attachment`.
+- Interação (aqui e na linha do tempo) traz `anexos: [{ id, nomeArquivo, tipoConteudo, tamanhoBytes }]`. `GET /anexos/{id}/download` → `200 { "url": "..." }` com a URL assinada de 5 minutos, sempre como `attachment`; o navegador abre a URL. Era `302` até 19/10: com o token no cabeçalho (ADR 0007), o SPA busca por `fetch`, e um redirect seguido pelo `fetch` não vira download.
 
 **GET `/solicitacoes/{id}/semelhantes`**
 ```json
@@ -725,7 +725,7 @@ Todas as rotas aplicam o filtro por `ClienteId` (e `ContatoId` se `escopoPortal 
 | POST | `/portal/solicitacoes/{id}/reprovacao` | Reprova com motivo (→ EM_ANDAMENTO). | ✓L |
 | GET | `/portal/contratos` | Contratos ativos do cliente. | |
 | GET | `/portal/contratos/{id}/extrato` | Extrato do período (`?periodo=2026-09`). | |
-| GET | `/portal/anexos/{id}/download` | `302` para URL assinada, só de interações externas. | ✓L |
+| GET | `/portal/anexos/{id}/download` | `200 { url }` (URL assinada), só de interações externas. | ✓L |
 
 **GET `/portal/solicitacoes/{id}`** — nada de status interno, responsável completo ou tempo não visível:
 ```json
@@ -819,7 +819,6 @@ Tipos (`type`) do v1: `validacao` (com `errors` por campo), `transicao-invalida`
 | Código | Uso |
 |---|---|
 | `200` / `201` / `202` / `204` | Sucesso (202 quando dispara e-mail assíncrono, ex.: convite). |
-| `302` | Download de anexo (URL assinada). |
 | `400` | JSON malformado, parâmetro inválido. |
 | `401` | Sem token, token inválido, link inválido/expirado. |
 | `403` | Sem permissão; papel Cliente em rota interna; sessão de link fora do seu escopo. |
