@@ -1360,6 +1360,13 @@
             }
           },
           {
+            "name": "semResponsavel",
+            "in": "query",
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
             "name": "prioridade",
             "in": "query",
             "schema": {

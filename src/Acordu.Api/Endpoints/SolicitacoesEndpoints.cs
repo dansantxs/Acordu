@@ -19,10 +19,12 @@ internal static class SolicitacoesEndpoints
         var solicitacoes = interno.MapGroup("/solicitacoes").WithTags("Solicitações");
 
         solicitacoes.MapGet(string.Empty, async (
-            string? status, Guid? clienteId, Guid? responsavelId, string? prioridade, Guid? categoriaId, string? situacaoSla,
-            string? busca, DateOnly? abertaDe, DateOnly? abertaAte, string? ordem, int? pagina, int? tamanhoPagina,
-            IConsultasSolicitacao consultas, CancellationToken cancellationToken) =>
+            string? status, Guid? clienteId, Guid? responsavelId, bool? semResponsavel, string? prioridade, Guid? categoriaId,
+            string? situacaoSla, string? busca, DateOnly? abertaDe, DateOnly? abertaAte, string? ordem, int? pagina,
+            int? tamanhoPagina, IConsultasSolicitacao consultas, CancellationToken cancellationToken) =>
         {
+            if (semResponsavel == true && responsavelId is not null)
+                throw ErroDeCampo.Criar(nameof(semResponsavel), "Use semResponsavel ou responsavelId, não os dois.");
             var filtro = new FiltroSolicitacoes(
                 Status: status?.Split(',', StringSplitOptions.RemoveEmptyEntries)
                     .Select(s => EnumsDaApi.Ler<StatusSolicitacao>(s, nameof(status))!.Value)
@@ -35,7 +37,8 @@ internal static class SolicitacoesEndpoints
                 Busca: busca,
                 AbertaDe: abertaDe,
                 AbertaAte: abertaAte,
-                Ordem: ordem);
+                Ordem: ordem,
+                SemResponsavel: semResponsavel == true);
             return Results.Ok(await consultas.ListarAsync(filtro, new Paginacao(pagina, tamanhoPagina), cancellationToken));
         })
             .RequirePermissao(Permissoes.SolicitacaoVer)

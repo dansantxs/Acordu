@@ -289,10 +289,11 @@ Decidido na implementação:
 | DELETE | `/solicitacoes/{id}/acessos-portal/{acessoId}` | Revoga link. | `portal.gerenciar_acessos` |
 | GET | `/anexos/{id}/download` | `200 { url }`: URL assinada (curta). Interação ou comentário de tarefa (§8.1a). | `solicitacao.ver` ou `tarefa.ver` |
 
-**Filtros do GET `/solicitacoes`:** `?status=ABERTA,EM_ANDAMENTO&clienteId=&responsavelId=&prioridade=&categoriaId=&situacaoSla=EM_RISCO&busca=&abertaDe=&abertaAte=&ordem=-abertaEm`.
+**Filtros do GET `/solicitacoes`:** `?status=ABERTA,EM_ANDAMENTO&clienteId=&responsavelId=&semResponsavel=true&prioridade=&categoriaId=&situacaoSla=EM_RISCO&busca=&abertaDe=&abertaAte=&ordem=-abertaEm`.
 
 Decidido na implementação (6c2):
 - `situacaoSla` no filtro aceita `EM_RISCO` e `VIOLADO`, resolvidos no banco pelos instantes persistidos (read side §5); solicitação pausada (AGUARDANDO_CLIENTE) não entra em nenhum dos dois. `ordem`: `abertaEm` (padrão `-abertaEm`), `numero`, `prioridade`, `prazoResolucao`. `busca`: trecho do título ou número (`#1042`).
+- `semResponsavel=true` (19/10, F2d3): só as sem responsável, a fila "de ninguém"; junto com `responsavelId` → `400` em `errors.semResponsavel`.
 - `PATCH` recebe título, descrição, prioridade, categoria e responsável (formulário inteiro). Responsável precisa ser da equipe (`400` no campo).
 - `PUT /solicitacoes/{id}/contrato` `{ "contratoId": "k9..." | null }` (`solicitacao.editar`, `If-Match` opcional) → `200` com a solicitação. O contrato precisa ser do mesmo cliente e vigente hoje (`422 contrato-incoerente`); resolvida ou final → `422 transicao-invalida`. SLA: com prazo correndo, recalcula pelo início do ciclo com os prazos do novo contrato (mantém pausas); sem SLA antes, começa agora; `null` remove contrato e SLA. Apontamentos já feitos não mudam. Fora do `PATCH` de propósito: o formulário inteiro sem o campo removeria o contrato.
 - Transições respondem `200` com a solicitação. `POST /interacoes` aceita JSON `{ "texto": "...", "visibilidade": "EXTERNA" }` (sem anexos) ou multipart (abaixo). Interação EXTERNA da equipe registra a primeira resposta.

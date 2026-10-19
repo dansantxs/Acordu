@@ -188,6 +188,8 @@ public sealed class ConsultasSolicitacao : IConsultasSolicitacao
             consulta = consulta.Where(s => s.ClienteId == clienteId);
         if (filtro.ResponsavelId is { } responsavelId)
             consulta = consulta.Where(s => s.ResponsavelId == responsavelId);
+        if (filtro.SemResponsavel)
+            consulta = consulta.Where(s => s.ResponsavelId == null);
         if (filtro.Prioridade is { } prioridade)
             consulta = consulta.Where(s => s.Prioridade == prioridade);
         if (filtro.CategoriaId is { } categoriaId)

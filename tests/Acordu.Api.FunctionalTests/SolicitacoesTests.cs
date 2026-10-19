@@ -197,11 +197,23 @@ public sealed class SolicitacoesTests(ApiFixture api)
         var porTexto = await equipe.EsperarAsync(HttpStatusCode.OK, HttpMethod.Get, "/api/v1/solicitacoes?busca=banner");
         var porNumero = await equipe.EsperarAsync(HttpStatusCode.OK, HttpMethod.Get, "/api/v1/solicitacoes?busca=%232");
         await equipe.EsperarAsync(HttpStatusCode.BadRequest, HttpMethod.Get, "/api/v1/solicitacoes?ordem=titulo");
+        var eu = (await equipe.EsperarAsync(HttpStatusCode.OK, HttpMethod.Get, "/api/v1/auth/eu")).GetProperty("usuarioId").GetGuid();
+        await equipe.EsperarAsync(HttpStatusCode.OK, HttpMethod.Patch, $"/api/v1/solicitacoes/{site}", new
+        {
+            titulo = "Site fora do ar", prioridade = "MEDIA", responsavelId = eu,
+        });
+        var semResponsavel = await equipe.EsperarAsync(HttpStatusCode.OK, HttpMethod.Get, "/api/v1/solicitacoes?semResponsavel=true");
+        var doDono = await equipe.EsperarAsync(HttpStatusCode.OK, HttpMethod.Get, $"/api/v1/solicitacoes?responsavelId={eu}");
+        var conflitante = await equipe.EsperarAsync(
+            HttpStatusCode.BadRequest, HttpMethod.Get, $"/api/v1/solicitacoes?semResponsavel=true&responsavelId={eu}");
 
         abertas.GetProperty("itens").EnumerateArray().Select(Id).Should().Equal(Id(banner));
         ambas.GetProperty("itens").EnumerateArray().Select(i => i.GetProperty("numero").GetInt32()).Should().Equal(1, 2);
         porTexto.GetProperty("total").GetInt32().Should().Be(1);
         porNumero.GetProperty("itens")[0].GetProperty("id").GetGuid().Should().Be(site);
+        semResponsavel.GetProperty("itens").EnumerateArray().Select(Id).Should().Equal(Id(banner));
+        doDono.GetProperty("itens").EnumerateArray().Select(i => i.GetProperty("id").GetGuid()).Should().Equal(site);
+        conflitante.GetProperty("errors").TryGetProperty("semResponsavel", out _).Should().BeTrue();
     }
 
     [Fact]

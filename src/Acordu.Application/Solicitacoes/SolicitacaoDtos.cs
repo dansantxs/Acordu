@@ -111,4 +111,5 @@ public sealed record FiltroSolicitacoes(
     string? Busca = null,
     DateOnly? AbertaDe = null,
     DateOnly? AbertaAte = null,
-    string? Ordem = null);
+    string? Ordem = null,
+    bool SemResponsavel = false);
