@@ -63,7 +63,7 @@ public sealed class ComentariosTarefaTests(ApiFixture api)
         comAnexo.GetProperty("anexos")[0].GetProperty("tipoConteudo").GetString().Should().Be("image/png");
         lista.GetArrayLength().Should().Be(2);
         lista[0].GetProperty("id").GetGuid().Should().Be(Id(simples));
-        download.StatusCode.Should().Be(HttpStatusCode.Redirect);
+        download.StatusCode.Should().Be(HttpStatusCode.OK);
         depois.EnumerateArray().Select(Id).Should().Equal(Id(simples));
         await equipe.EsperarAsync(HttpStatusCode.NotFound, HttpMethod.Get, $"/api/v1/anexos/{anexo}/download");
     }

@@ -182,7 +182,7 @@ Um usuário Cliente em um tenant e Membro em outro troca de tenant e recebe toke
 - Upload via API (a API faz streaming para o object storage); nunca upload direto do navegador ao bucket no v1.
 - Limites: 20 MB por arquivo, 5 por interação; tipos permitidos por lista (imagens, PDF, documentos Office, texto, zip). Conferência pelo conteúdo (*magic bytes*), não só pela extensão.
 - Chave no bucket: `{tenantId}/{solicitacaoId}/{anexoId}` — sem nome original na chave.
-- **Download:** a API verifica permissão (e visibilidade EXTERNA, no portal) e responde `302` para URL pré-assinada de **5 minutos**. O bucket é privado.
+- **Download:** a API verifica permissão (e visibilidade EXTERNA, no portal) e devolve (`200 { url }`) uma URL pré-assinada de **5 minutos**, que o navegador abre; o bucket recebe a requisição sem o token da API. O bucket é privado.
 - `Content-Disposition: attachment` sempre (evita executar HTML/SVG no navegador).
 - Antivírus fora do v1 (registrado como risco; avaliar ClamAV em container quando houver clientes pagantes).
 - **(Implementação, 10a)** `AWSSDK.S3` no endpoint S3 da OCI (path style, checksums só quando exigidos, upload sem `aws-chunked`). Arquivos validados (quantidade, tamanho, tipo pelo conteúdo) **antes** de enviar qualquer um; enviados antes do commit e removidos (melhor esforço) se a gravação falhar — órfão eventual fica no bucket versionado. Tipos detectados por tabela própria de assinaturas (`TiposDeArquivo`); a extensão só desempata ZIP × Office, OLE × Office antigo e texto × CSV.

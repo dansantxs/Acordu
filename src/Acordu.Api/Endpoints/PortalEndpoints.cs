@@ -1,4 +1,5 @@
 using Acordu.Api.Seguranca;
+using Acordu.Application.Anexos;
 using Acordu.Application.Common;
 using Acordu.Application.Portal;
 using Acordu.Domain.Acesso;
@@ -87,10 +88,10 @@ internal static class PortalEndpoints
 
         // Só anexos de interações EXTERNAS de solicitações visíveis ao contato; 302 para a URL assinada (5 min).
         portal.MapGet("/anexos/{id:guid}/download", async (Guid id, LeituraPortal leitura, CancellationToken cancellationToken) =>
-            Results.Redirect((await leitura.UrlDoAnexoAsync(id, cancellationToken)).ToString()))
+            Results.Ok(new LinkDownloadDto(await leitura.UrlDoAnexoAsync(id, cancellationToken))))
             .PermitirLink()
             .RequirePermissao(Permissoes.PortalSolicitacaoVer)
-            .Produces(StatusCodes.Status302Found);
+            .Produces<LinkDownloadDto>();
 
         solicitacoes.MapPost("/{id:guid}/aprovacao", async (
             Guid id, ComandosPortal comandos, LeituraPortal leitura, CancellationToken cancellationToken) =>
