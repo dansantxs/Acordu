@@ -57,3 +57,43 @@ export const TIPO_CONTRATO: Record<TipoContrato, string> = {
     BANCO_HORAS: 'Banco de horas',
     AVULSO: 'Avulso',
 }
+
+export type AcaoStatus =
+    'inicio' | 'aguardando-cliente' | 'aguardando-terceiro' | 'retomada' | 'resolucao' | 'reabertura' | 'cancelamento'
+
+/** Máquina de estados (modelo de domínio §4.3), sem o fechamento, que é do cliente ou do job. A primeira é a principal. */
+export const TRANSICOES: Record<Status, AcaoStatus[]> = {
+    ABERTA: ['inicio', 'aguardando-cliente', 'aguardando-terceiro', 'resolucao', 'cancelamento'],
+    EM_ANDAMENTO: ['resolucao', 'aguardando-cliente', 'aguardando-terceiro', 'cancelamento'],
+    AGUARDANDO_CLIENTE: ['retomada', 'resolucao', 'cancelamento'],
+    AGUARDANDO_TERCEIRO: ['retomada', 'resolucao', 'cancelamento'],
+    RESOLVIDA: ['reabertura'],
+    FECHADA: [],
+    CANCELADA: [],
+}
+
+export const ROTULO_ACAO: Record<AcaoStatus, string> = {
+    inicio: 'Iniciar',
+    'aguardando-cliente': 'Aguardar cliente',
+    'aguardando-terceiro': 'Aguardar terceiro',
+    retomada: 'Retomar',
+    resolucao: 'Resolver',
+    reabertura: 'Reabrir',
+    cancelamento: 'Cancelar solicitação',
+}
+
+export const FINAIS: Status[] = ['FECHADA', 'CANCELADA']
+
+export const ORIGEM: Record<components['schemas']['OrigemSolicitacao'], string> = {
+    INTERNA: 'pela equipe',
+    PORTAL: 'pelo portal',
+    EMAIL: 'por e-mail',
+    WHATSAPP: 'pelo WhatsApp',
+}
+
+export const STATUS_TAREFA: Record<components['schemas']['StatusTarefa'], string> = {
+    A_FAZER: 'A fazer',
+    FAZENDO: 'Fazendo',
+    CONCLUIDA: 'Concluída',
+    CANCELADA: 'Cancelada',
+}

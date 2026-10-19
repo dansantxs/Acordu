@@ -1,0 +1,216 @@
+import { screen, within } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { reiniciarParaTestes } from '@/shared/sessao/sessao'
+import { abrir, comPerfil, daquiA, json, perfil, type Rotas } from '@/testes/app'
+
+const ID = '0199f0a0-0000-7000-8000-0000000000a1'
+const RAFAEL = '0199f0a0-0000-7000-8000-000000000002'
+const PADARIA = '0199f0a0-0000-7000-8000-0000000000c1'
+
+const solicitacao = (mudancas: Record<string, unknown> = {}) => ({
+    id: ID,
+    numero: 1042,
+    versao: '7',
+    titulo: 'Forno não liga',
+    descricao: 'Desde ontem à tarde.',
+    cliente: { id: PADARIA, nome: 'Padaria Bom Grão' },
+    contato: { id: 'k1', nome: 'Marta Souza' },
+    contratoId: null,
+    categoriaId: null,
+    prioridade: 'MEDIA',
+    status: 'ABERTA',
+    statusExterno: 'RECEBIDA',
+    origem: 'PORTAL',
+    responsavel: null,
+    abertaEm: daquiA(-3_600_000),
+    sla: {
+        prazoPrimeiraResposta: daquiA(3_600_000),
+        primeiraRespostaEm: null,
+        prazoResolucao: daquiA(20 * 3_600_000),
+        pausado: false,
+        situacao: 'NO_PRAZO',
+        percentualConsumido: 10,
+    },
+    situacaoSla: 'NO_PRAZO',
+    tempoApontadoMinutos: 90,
+    tarefas: [{ id: 't1', titulo: 'Trocar resistência', status: 'FAZENDO' }],
+    solucao: null,
+    resolvidaEm: null,
+    fechadaEm: null,
+    canceladaEm: null,
+    motivoCancelamento: null,
+    ...mudancas,
+})
+
+const resumo = {
+    id: ID,
+    numero: 1042,
+    titulo: 'Forno não liga',
+    cliente: { id: PADARIA, nome: 'Padaria Bom Grão' },
+    prioridade: 'MEDIA',
+    status: 'ABERTA',
+    responsavel: null,
+    abertaEm: daquiA(-3_600_000),
+    prazoResolucao: null,
+    situacaoSla: 'SEM_SLA',
+}
+
+const app = (permissoes: string[], rotas: Rotas = {}) =>
+    comPerfil(permissoes, {
+        'GET /api/v1/solicitacoes': () => json({ itens: [resumo], pagina: 1, tamanhoPagina: 50, total: 1 }),
+        [`GET /api/v1/solicitacoes/${ID}`]: () => json(solicitacao()),
+        'GET /api/v1/equipe': () =>
+            json([
+                { id: perfil.usuarioId, nome: 'Ana Prado' },
+                { id: RAFAEL, nome: 'Rafael Moura' },
+            ]),
+        'GET /api/v1/categorias': () => json([]),
+        ...rotas,
+    })
+
+const EDITAR = ['solicitacao.ver', 'solicitacao.editar', 'cliente.ver']
+const painel = () => screen.findByRole('complementary', { name: 'Forno não liga' })
+
+describe('detalhe da solicitação', () => {
+    beforeEach(() => reiniciarParaTestes())
+    afterEach(() => vi.unstubAllGlobals())
+
+    it('abre em painel sobre a fila, mantém os filtros e fecha com Esc', async () => {
+        app(['solicitacao.ver'])
+        const roteador = await abrir('/solicitacoes?prioridade=MEDIA')
+        const usuario = userEvent.setup()
+        await usuario.click(await screen.findByRole('link', { name: 'Forno não liga' }))
+
+        const aside = await painel()
+        expect(roteador.state.location.pathname).toBe(`/solicitacoes/${ID}`)
+        expect(roteador.state.location.search).toEqual({ prioridade: 'MEDIA' })
+        expect(screen.getByRole('heading', { name: 'Solicitações', level: 1 })).toBeInTheDocument()
+        expect(within(aside).getByText('#1042')).toBeInTheDocument()
+        expect(within(aside).getByText(/Marta Souza · aberta há 1 h pelo portal/)).toBeInTheDocument()
+        expect(within(aside).getByText('1h30')).toBeInTheDocument()
+        expect(within(aside).getByText('Trocar resistência')).toBeInTheDocument()
+        // Só vê: sem ações de status e os campos como texto.
+        expect(within(aside).queryByRole('button', { name: 'Iniciar' })).not.toBeInTheDocument()
+        expect(within(aside).queryByRole('combobox')).not.toBeInTheDocument()
+
+        await vi.waitFor(() => expect(within(aside).getByRole('heading', { level: 2 })).toHaveFocus())
+        await usuario.keyboard('{Escape}')
+        await vi.waitFor(() => expect(roteador.state.location.pathname).toBe('/solicitacoes'))
+        expect(roteador.state.location.search).toEqual({ prioridade: 'MEDIA' })
+        expect(screen.queryByRole('complementary')).not.toBeInTheDocument()
+        await vi.waitFor(() => expect(screen.getByRole('link', { name: 'Forno não liga' })).toHaveFocus())
+    })
+
+    it('troca o responsável na hora e desfaz pelo aviso', async () => {
+        let atual = solicitacao()
+        const chamadas = app(EDITAR, {
+            [`GET /api/v1/solicitacoes/${ID}`]: () => json(atual),
+            [`PATCH /api/v1/solicitacoes/${ID}`]: (corpo) => {
+                const c = corpo as { responsavelId: string | null }
+                atual = solicitacao({
+                    versao: String(Number(atual.versao) + 1),
+                    responsavel: c.responsavelId ? { id: RAFAEL, nome: 'Rafael Moura' } : null,
+                })
+                return json(atual)
+            },
+        })
+        await abrir(`/solicitacoes/${ID}`)
+        const aside = await painel()
+        const usuario = userEvent.setup()
+
+        await usuario.click(within(aside).getByRole('combobox', { name: 'Responsável' }))
+        await usuario.click(await screen.findByRole('option', { name: 'Rafael Moura' }))
+        expect(await screen.findByText('Responsável: Rafael Moura.')).toBeInTheDocument()
+        const patches = () => chamadas.filter((c) => c.metodo === 'PATCH')
+        expect(patches()[0]).toMatchObject({
+            ifMatch: '"7"',
+            corpo: {
+                titulo: 'Forno não liga',
+                descricao: 'Desde ontem à tarde.',
+                prioridade: 'MEDIA',
+                categoriaId: null,
+                responsavelId: RAFAEL,
+            },
+        })
+
+        await usuario.click(screen.getByRole('button', { name: 'Desfazer' }))
+        await vi.waitFor(() => expect(patches()).toHaveLength(2))
+        expect(patches()[1]).toMatchObject({ ifMatch: '"8"', corpo: { responsavelId: null } })
+        await vi.waitFor(() => expect(within(aside).getByRole('combobox', { name: 'Responsável' })).toHaveValue(''))
+    })
+
+    it('muda o status direto e resolve com a solução', async () => {
+        let atual = solicitacao()
+        const chamadas = app(EDITAR, {
+            [`GET /api/v1/solicitacoes/${ID}`]: () => json(atual),
+            [`POST /api/v1/solicitacoes/${ID}/inicio`]: () => {
+                atual = solicitacao({ versao: '8', status: 'EM_ANDAMENTO' })
+                return json(atual)
+            },
+            [`POST /api/v1/solicitacoes/${ID}/resolucao`]: (corpo) => {
+                const { solucao } = corpo as { solucao: unknown }
+                atual = solicitacao({ versao: '9', status: 'RESOLVIDA', solucao, resolvidaEm: daquiA(0) })
+                return json(atual)
+            },
+        })
+        await abrir(`/solicitacoes/${ID}`)
+        const aside = await painel()
+        const usuario = userEvent.setup()
+
+        await usuario.click(within(aside).getByRole('button', { name: 'Iniciar' }))
+        expect(await screen.findByText('Solicitação #1042: em andamento.')).toBeInTheDocument()
+        expect(chamadas.find((c) => c.caminho.endsWith('/inicio'))?.ifMatch).toBe('"7"')
+
+        await usuario.click(within(aside).getByRole('button', { name: 'Resolver' }))
+        const janela = await screen.findByRole('dialog', { name: 'Resolver solicitação' })
+        await usuario.type(within(janela).getByLabelText('Solução'), 'Resistência trocada.')
+        await usuario.type(within(janela).getByLabelText('Causa'), 'Queimou')
+        await usuario.click(within(janela).getByRole('button', { name: 'Resolver' }))
+
+        expect(await within(aside).findByText('Resistência trocada.')).toBeInTheDocument()
+        expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+        expect(chamadas.find((c) => c.caminho.endsWith('/resolucao'))).toMatchObject({
+            ifMatch: '"8"',
+            corpo: { solucao: { texto: 'Resistência trocada.', problema: null, causa: 'Queimou' } },
+        })
+        expect(within(aside).getByRole('button', { name: 'Reabrir' })).toBeInTheDocument()
+        expect(within(aside).queryByRole('combobox', { name: 'Prioridade' })).not.toBeInTheDocument()
+    })
+
+    it('cancelar pede o motivo e avisa que não tem volta', async () => {
+        const chamadas = app(EDITAR, {
+            [`POST /api/v1/solicitacoes/${ID}/cancelamento`]: () =>
+                json(solicitacao({ versao: '8', status: 'CANCELADA', motivoCancelamento: 'Duplicada' })),
+        })
+        await abrir(`/solicitacoes/${ID}`)
+        const aside = await painel()
+        const usuario = userEvent.setup()
+
+        await usuario.click(within(aside).getByRole('button', { name: 'Cancelar solicitação' }))
+        const janela = await screen.findByRole('dialog', { name: 'Cancelar a solicitação #1042?' })
+        expect(within(janela).getByText(/definitivo/)).toBeInTheDocument()
+        // Esc fecha a janela, não o painel.
+        await usuario.keyboard('{Escape}')
+        await vi.waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument())
+        expect(screen.getByRole('complementary')).toBeInTheDocument()
+
+        await usuario.click(within(aside).getByRole('button', { name: 'Cancelar solicitação' }))
+        const denovo = await screen.findByRole('dialog', { name: 'Cancelar a solicitação #1042?' })
+        await usuario.type(within(denovo).getByLabelText('Motivo'), 'Duplicada')
+        await usuario.click(within(denovo).getByRole('button', { name: 'Cancelar solicitação' }))
+
+        expect(await within(aside).findByText(/Cancelada.*: Duplicada/)).toBeInTheDocument()
+        expect(chamadas.find((c) => c.caminho.endsWith('/cancelamento'))?.corpo).toEqual({ motivo: 'Duplicada' })
+        expect(within(aside).queryByRole('button', { name: /Cancelar|Resolver/ })).not.toBeInTheDocument()
+    })
+
+    it('solicitação inexistente avisa no painel e a fila continua', async () => {
+        app(['solicitacao.ver'], {
+            [`GET /api/v1/solicitacoes/${ID}`]: () => json({ status: 404, detail: 'Não encontrado.' }, 404),
+        })
+        await abrir(`/solicitacoes/${ID}`)
+        expect(await screen.findByText(/Não encontramos esta solicitação/)).toBeInTheDocument()
+        expect(screen.getByRole('link', { name: 'Forno não liga' })).toBeInTheDocument()
+    })
+})
