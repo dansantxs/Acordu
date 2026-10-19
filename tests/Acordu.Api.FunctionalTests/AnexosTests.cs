@@ -1,5 +1,6 @@
 using System.Net;
 using System.Net.Http.Headers;
+using System.Net.Http.Json;
 using System.Text;
 using System.Text.Json;
 using Acordu.Api.FunctionalTests.Apoio;
@@ -50,7 +51,9 @@ public sealed class AnexosTests(ApiFixture api)
         using var pedido = new HttpRequestMessage(HttpMethod.Get, new Uri(rota, UriKind.Relative));
         pedido.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
         using var resposta = await http.SendAsync(pedido);
-        return (resposta.StatusCode, resposta.Headers.Location);
+        if (resposta.StatusCode != HttpStatusCode.OK) return (resposta.StatusCode, null);
+        var corpo = await resposta.Content.ReadFromJsonAsync<JsonElement>();
+        return (resposta.StatusCode, new Uri(corpo.GetProperty("url").GetString()!));
     }
 
     private async Task<(Equipe Equipe, Guid Cliente, Guid Solicitacao)> CenarioAsync()
@@ -82,7 +85,7 @@ public sealed class AnexosTests(ApiFixture api)
 
         var anexo = anexos[0].GetProperty("id").GetGuid();
         var (baixar, destino) = await BaixarAsync($"/api/v1/anexos/{anexo}/download", equipe.Dono);
-        baixar.Should().Be(HttpStatusCode.Redirect);
+        baixar.Should().Be(HttpStatusCode.OK);
         var chave = $"{equipe.TenantId}/{solicitacao}/{anexo}";
         destino!.AbsoluteUri.Should().StartWith(ArmazenamentoDeTeste.Base + chave).And.Contain("validade=5");
         api.Arquivos.Conteudo(chave).Should().Equal(Pdf);
@@ -137,7 +140,7 @@ public sealed class AnexosTests(ApiFixture api)
 
         linha.GetArrayLength().Should().Be(1);
         linha[0].GetProperty("anexos")[0].GetProperty("nomeArquivo").GetString().Should().Be("arte.png");
-        externoBaixado.Status.Should().Be(HttpStatusCode.Redirect);
+        externoBaixado.Status.Should().Be(HttpStatusCode.OK);
         internoBaixado.Status.Should().Be(HttpStatusCode.NotFound);
         respondeu.Should().Be(HttpStatusCode.Created, "corpo: {0}", resposta);
         resposta.GetProperty("anexos")[0].GetProperty("tipoConteudo").GetString().Should().Be("application/pdf");
@@ -155,7 +158,7 @@ public sealed class AnexosTests(ApiFixture api)
         var outroCliente = await Cenarios.ClienteAsync(equipe, "Contábil Silva");
         var contatoDeOutro = await ContatosDoPortal.CriarAsync(api, equipe, outroCliente);
 
-        (await BaixarAsync($"/api/v1/anexos/{anexo}/download", leitor)).Status.Should().Be(HttpStatusCode.Redirect);
+        (await BaixarAsync($"/api/v1/anexos/{anexo}/download", leitor)).Status.Should().Be(HttpStatusCode.OK);
         (await BaixarAsync($"/api/v1/anexos/{anexo}/download", outra.Dono)).Status.Should().Be(HttpStatusCode.NotFound);
         (await BaixarAsync($"/api/v1/portal/anexos/{anexo}/download", contatoDeOutro.Token)).Status.Should().Be(HttpStatusCode.NotFound);
     }
