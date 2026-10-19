@@ -27,6 +27,8 @@ import {
     type Solicitacao,
     type Visibilidade,
 } from './consultas'
+import { consultaHistorico, type Atividade } from './historico'
+import { STATUS, type Status } from './rotulos'
 
 /**
  * Conversa da solicitação (RF-SOL-06/07, F2d2): linha do tempo com notas internas e mensagens ao cliente, em texto
@@ -42,6 +44,8 @@ export function Conversa({
     podeComentar: boolean
 }) {
     const interacoes = useQuery(consultaInteracoes(solicitacao.id))
+    // O histórico é complemento: se falhar, a conversa aparece sem ele.
+    const historico = useQuery(consultaHistorico(solicitacao.id))
     const equipe = useQuery(consultaEquipe)
     const nomes = useMemo(() => new Map((equipe.data ?? []).map((p) => [p.id.toLowerCase(), p.nome])), [equipe.data])
 
@@ -54,17 +58,60 @@ export function Conversa({
                 <p className="text-sm text-suave">Carregando…</p>
             ) : interacoes.isError ? (
                 <Alerta>{mensagemDeErro(interacoes.error)}</Alerta>
-            ) : interacoes.data.length === 0 ? (
+            ) : interacoes.data.length === 0 && !historico.data?.length ? (
                 <p className="text-sm text-suave">Nenhuma mensagem ainda.</p>
             ) : (
                 <ol className="flex flex-col gap-3">
-                    {interacoes.data.map((i) => (
-                        <Mensagem key={i.id} interacao={i} fuso={fuso} nomes={nomes} />
-                    ))}
+                    {linhaDoTempo(interacoes.data, historico.data ?? []).map((item) =>
+                        item.tipo === 'mensagem' ? (
+                            <Mensagem key={item.valor.id} interacao={item.valor} fuso={fuso} nomes={nomes} />
+                        ) : (
+                            <Evento key={item.valor.id} atividade={item.valor} fuso={fuso} />
+                        ),
+                    )}
                 </ol>
             )}
             {podeComentar && <Composicao solicitacao={solicitacao} equipe={equipe.data ?? []} />}
         </section>
+    )
+}
+
+type ItemLinha =
+    { tipo: 'mensagem'; valor: Interacao; quando: string } | { tipo: 'evento'; valor: Atividade; quando: string }
+
+/** Mensagens e mudanças (abertura, responsável, status) numa linha só, da mais antiga para a mais nova. */
+function linhaDoTempo(interacoes: Interacao[], historico: Atividade[]): ItemLinha[] {
+    return [
+        ...interacoes.map((i) => ({ tipo: 'mensagem' as const, valor: i, quando: i.registradaEm })),
+        ...historico.map((a) => ({ tipo: 'evento' as const, valor: a, quando: a.ocorridaEm })),
+    ].sort((a, b) => new Date(a.quando).getTime() - new Date(b.quando).getTime())
+}
+
+function fraseDoEvento(a: Atividade): string {
+    const quem = a.autor ? a.autor.nome || 'Pessoa removida' : 'O sistema'
+    const para = a.detalhe?.statusPara as Status | undefined
+    switch (a.tipo) {
+        case 'SOLICITACAO_ABERTA':
+            return `${quem} abriu a solicitação`
+        case 'SOLICITACAO_ATRIBUIDA': {
+            const responsavel = a.detalhe?.responsavel
+            if (!responsavel) return `${quem} tirou o responsável`
+            if (a.autor && responsavel.id === a.autor.id) return `${quem} assumiu a solicitação`
+            return `${quem} passou para ${responsavel.nome}`
+        }
+        default:
+            return para && STATUS[para] ? `${quem} mudou para ${STATUS[para].toLowerCase()}` : `${quem} mudou o status`
+    }
+}
+
+function Evento({ atividade: a, fuso }: { atividade: Atividade; fuso: string }) {
+    return (
+        <li className="flex items-baseline gap-2 px-3 text-xs text-suave">
+            <span aria-hidden="true" className="size-1.5 shrink-0 translate-y-[-1px] rounded-full bg-linha" />
+            <span>
+                {fraseDoEvento(a)} · <time dateTime={a.ocorridaEm}>{dataHora(a.ocorridaEm, fuso)}</time>
+            </span>
+        </li>
     )
 }
 
