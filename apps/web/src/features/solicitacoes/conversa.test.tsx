@@ -55,6 +55,8 @@ const app = (permissoes: string[], rotas: Rotas = {}) =>
                 { id: RAFAEL, nome: 'Rafael Moura' },
             ]),
         'GET /api/v1/categorias': () => json([]),
+        [`GET /api/v1/solicitacoes/${ID}/seguidores`]: () => json([]),
+        [`GET /api/v1/solicitacoes/${ID}/semelhantes`]: () => json([]),
         [`GET /api/v1/solicitacoes/${ID}/interacoes`]: () => json([]),
         ...rotas,
     })
