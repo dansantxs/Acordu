@@ -2334,6 +2334,14 @@
             }
           },
           {
+            "name": "solicitacaoId",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
             "name": "antes",
             "in": "query",
             "schema": {
