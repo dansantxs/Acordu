@@ -57,12 +57,14 @@ export interface paths {
             }
             requestBody?: never
             responses: {
-                /** @description Found */
-                302: {
+                /** @description OK */
+                200: {
                     headers: {
                         [name: string]: unknown
                     }
-                    content?: never
+                    content: {
+                        'application/json': components['schemas']['LinkDownloadDto']
+                    }
                 }
             }
         }
@@ -460,6 +462,10 @@ export interface components {
             descricao: string
             /** Format: int32 */
             duracaoMinutos: number | string
+        }
+        LinkDownloadDto: {
+            /** Format: uri */
+            url: string
         }
         MesReferencia: unknown
         NovaSolicitacaoPortalRequest: {

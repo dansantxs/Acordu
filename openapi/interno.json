@@ -2054,8 +2054,15 @@
           }
         ],
         "responses": {
-          "302": {
-            "description": "Found"
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LinkDownloadDto"
+                }
+              }
+            }
           }
         }
       }
@@ -7066,6 +7073,18 @@
           },
           "discreta": {
             "type": "boolean"
+          }
+        }
+      },
+      "LinkDownloadDto": {
+        "required": [
+          "url"
+        ],
+        "type": "object",
+        "properties": {
+          "url": {
+            "type": "string",
+            "format": "uri"
           }
         }
       },
