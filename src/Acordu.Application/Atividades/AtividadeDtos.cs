@@ -55,7 +55,8 @@ public sealed record NovaAtividade(
     string? StatusPara = null,
     Guid? ResponsavelId = null);
 
-public sealed record FiltroAtividades(Guid? ClienteId, Guid? PessoaId, long? Antes, bool VerSolicitacoes, bool VerTarefas);
+public sealed record FiltroAtividades(
+    Guid? ClienteId, Guid? PessoaId, long? Antes, bool VerSolicitacoes, bool VerTarefas, Guid? SolicitacaoId = null);
 
 /// <summary>Feed de atividade no tenant do contexto (fora dos agregados, como o sino).</summary>
 public interface IAtividades

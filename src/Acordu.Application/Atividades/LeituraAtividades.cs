@@ -23,12 +23,14 @@ public sealed class LeituraAtividades
         _atividades = atividades;
     }
 
-    public Task<PaginaAtividadesDto> ListarAsync(Guid? clienteId, Guid? pessoaId, long? antes, CancellationToken cancellationToken = default)
+    /// <summary><paramref name="solicitacaoId"/> restringe ao histórico de uma solicitação (o painel de detalhe, F2e).</summary>
+    public Task<PaginaAtividadesDto> ListarAsync(
+        Guid? clienteId, Guid? pessoaId, long? antes, Guid? solicitacaoId = null, CancellationToken cancellationToken = default)
     {
         var solicitacoes = _contexto.Permissoes.Contains(Permissoes.SolicitacaoVer);
         var tarefas = _contexto.Permissoes.Contains(Permissoes.TarefaVer);
         if (!solicitacoes && !tarefas)
             throw new AcessoNegadoException();
-        return _atividades.ListarAsync(new FiltroAtividades(clienteId, pessoaId, antes, solicitacoes, tarefas), TamanhoPagina, cancellationToken);
+        return _atividades.ListarAsync(new FiltroAtividades(clienteId, pessoaId, antes, solicitacoes, tarefas, solicitacaoId), TamanhoPagina, cancellationToken);
     }
 }

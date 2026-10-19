@@ -9,8 +9,9 @@ internal static class AtividadesEndpoints
 {
     public static void MapAtividades(this RouteGroupBuilder interno) =>
         interno.MapGet("/atividades", async (
-            Guid? clienteId, Guid? pessoaId, long? antes, LeituraAtividades leitura, CancellationToken cancellationToken) =>
-            Results.Ok(await leitura.ListarAsync(clienteId, pessoaId, antes, cancellationToken)))
+            Guid? clienteId, Guid? pessoaId, Guid? solicitacaoId, long? antes, LeituraAtividades leitura,
+            CancellationToken cancellationToken) =>
+            Results.Ok(await leitura.ListarAsync(clienteId, pessoaId, antes, solicitacaoId, cancellationToken)))
             .WithTags("Atividades")
             .RequireAlgumaPermissao(Permissoes.SolicitacaoVer, Permissoes.TarefaVer)
             .Produces<PaginaAtividadesDto>();
