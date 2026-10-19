@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query'
-import { Link, useNavigate } from '@tanstack/react-router'
+import { Link, useNavigate, useParams } from '@tanstack/react-router'
 import { useEffect, useState } from 'react'
 import { Input, SearchField, Tab, TabList, Tabs } from 'react-aria-components'
 import { pode } from '@/features/casca/navegacao'
@@ -31,9 +31,10 @@ import {
 import { JanelaNovaSolicitacao } from './JanelaNovaSolicitacao'
 import { ESTILO_PRIORIDADE, ESTILO_STATUS, PRIORIDADE, SITUACAO_SLA, STATUS, type Prioridade } from './rotulos'
 
-/** Fila de solicitações (F2b): visões, filtros e ordem no endereço; o detalhe abre em painel no F2d. */
+/** Fila de solicitações (F2b): visões, filtros e ordem no endereço; o detalhe abre em painel por cima (F2d). */
 export function FilaSolicitacoes({ perfil, filtros }: { perfil: Perfil; filtros: FiltrosFila }) {
     const navegar = useNavigate()
+    const aberta = useParams({ strict: false }).id
     const fuso = perfil.tenant.fusoHorario
     const [texto, setTexto] = useState(filtros.busca ?? '')
     const busca = useAtrasado(texto.trim())
@@ -42,13 +43,14 @@ export function FilaSolicitacoes({ perfil, filtros }: { perfil: Perfil; filtros:
     const categorias = useQuery(consultaCategorias)
 
     // Pelo endereço atual (e não pelo `filtros` da renderização): duas mudanças seguidas não se atropelam.
+    // `to: '.'`: com o painel aberto, filtrar não fecha a solicitação.
     const filtrar = (mudanca: Partial<FiltrosFila>) =>
-        void navegar({ to: '/solicitacoes', search: (atual) => ({ ...atual, ...mudanca, pagina: undefined }) })
+        void navegar({ to: '.', search: (atual: FiltrosFila) => ({ ...atual, ...mudanca, pagina: undefined }) })
 
     useEffect(() => {
         if (busca === (filtros.busca ?? '')) return
         void navegar({
-            to: '/solicitacoes',
+            to: '.',
             search: { ...filtros, busca: busca || undefined, pagina: undefined },
             replace: true,
         })
@@ -57,8 +59,8 @@ export function FilaSolicitacoes({ perfil, filtros }: { perfil: Perfil; filtros:
     // A janela abre pelo endereço (`?nova=1`): o Ctrl+K e outras telas chegam aqui com ela aberta.
     const mudarNova = (aberta: boolean) =>
         void navegar({
-            to: '/solicitacoes',
-            search: (atual) => ({ ...atual, nova: aberta || undefined }),
+            to: '.',
+            search: (atual: FiltrosFila) => ({ ...atual, nova: aberta || undefined }),
             replace: !aberta,
         })
 
@@ -189,7 +191,7 @@ export function FilaSolicitacoes({ perfil, filtros }: { perfil: Perfil; filtros:
                         onPress={() => {
                             setTexto('')
                             void navegar({
-                                to: '/solicitacoes',
+                                to: '.',
                                 search: { visao: filtros.visao, ordem: filtros.ordem },
                             })
                         }}
@@ -216,7 +218,7 @@ export function FilaSolicitacoes({ perfil, filtros }: { perfil: Perfil; filtros:
                     <EstadoVazio titulo="Nenhuma solicitação aqui" />
                 )
             ) : (
-                <Tabela itens={fila.data.itens} fuso={fuso} />
+                <Tabela itens={fila.data.itens} fuso={fuso} aberta={aberta} />
             )}
 
             <JanelaNovaSolicitacao
@@ -224,7 +226,13 @@ export function FilaSolicitacoes({ perfil, filtros }: { perfil: Perfil; filtros:
                 aberta={Boolean(filtros.nova) && pode(perfil, 'solicitacao.criar')}
                 aoMudar={mudarNova}
                 clienteInicial={filtros.cliente}
-                aoAbrir={(s) => void navegar({ to: '/solicitacoes/$id', params: { id: s.id } })}
+                aoAbrir={(s) =>
+                    void navegar({
+                        to: '/solicitacoes/$id',
+                        params: { id: s.id },
+                        search: (atual: FiltrosFila) => ({ ...atual, nova: undefined }),
+                    })
+                }
             />
 
             {fila.data && (
@@ -265,7 +273,7 @@ function Prazo({ item, fuso }: { item: SolicitacaoResumo; fuso: string }) {
     )
 }
 
-function Tabela({ itens, fuso }: { itens: SolicitacaoResumo[]; fuso: string }) {
+function Tabela({ itens, fuso, aberta }: { itens: SolicitacaoResumo[]; fuso: string; aberta?: string }) {
     return (
         <div className="overflow-x-auto rounded-couro border border-linha bg-superficie">
             <table className="w-full text-sm">
@@ -282,13 +290,18 @@ function Tabela({ itens, fuso }: { itens: SolicitacaoResumo[]; fuso: string }) {
                 </thead>
                 <tbody>
                     {itens.map((s) => (
-                        <tr key={s.id} className="border-b border-linha last:border-0 hover:bg-trilho/50">
+                        <tr
+                            key={s.id}
+                            aria-current={s.id === aberta ? 'true' : undefined}
+                            className="border-b border-linha last:border-0 hover:bg-trilho/50 aria-[current]:bg-acento-suave/60"
+                        >
                             <td className="px-4 py-2.5 text-suave tabular-nums">{s.numero}</td>
                             <td className="px-4 py-2.5">
                                 <Link
                                     to="/solicitacoes/$id"
                                     params={{ id: s.id }}
                                     search={(atual: Record<string, unknown>) => atual}
+                                    data-solicitacao={s.id}
                                     className="font-semibold hover:underline"
                                 >
                                     {s.titulo}

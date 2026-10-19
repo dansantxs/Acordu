@@ -1,4 +1,4 @@
-import { createFileRoute } from '@tanstack/react-router'
+import { createFileRoute, Outlet } from '@tanstack/react-router'
 import { ORDENS, VISOES, type FiltrosFila } from '@/features/solicitacoes/consultas'
 import { FilaSolicitacoes } from '@/features/solicitacoes/FilaSolicitacoes'
 import { PRIORIDADE } from '@/features/solicitacoes/rotulos'
@@ -7,7 +7,8 @@ const texto = (v: unknown) => (typeof v === 'string' && v.trim() ? v.trim() : un
 const id = (v: unknown) => (typeof v === 'string' && /^[0-9a-f-]{36}$/i.test(v) ? v : undefined)
 const de = <T extends string>(v: unknown, opcoes: readonly T[]) => (opcoes.includes(v as T) ? (v as T) : undefined)
 
-export const Route = createFileRoute('/_app/solicitacoes/')({
+/** A fila fica embaixo e o detalhe (`$id`) abre em painel por cima, com os filtros preservados no endereço. */
+export const Route = createFileRoute('/_app/solicitacoes')({
     validateSearch: (busca: Record<string, unknown>): FiltrosFila => ({
         visao: de(busca.visao, Object.keys(VISOES) as (keyof typeof VISOES)[]),
         busca: texto(busca.busca),
@@ -25,5 +26,10 @@ export const Route = createFileRoute('/_app/solicitacoes/')({
 
 function Solicitacoes() {
     const { perfil } = Route.useRouteContext()
-    return <FilaSolicitacoes perfil={perfil} filtros={Route.useSearch()} />
+    return (
+        <>
+            <FilaSolicitacoes perfil={perfil} filtros={Route.useSearch()} />
+            <Outlet />
+        </>
+    )
 }

@@ -1,5 +1,5 @@
 import { keepPreviousData, queryOptions } from '@tanstack/react-query'
-import { api } from '@/shared/api/cliente'
+import { api, seVersao } from '@/shared/api/cliente'
 import type { components } from '@/shared/api/interno'
 import { EM_ABERTO, type Prioridade, type Status } from './rotulos'
 
@@ -95,5 +95,76 @@ export function consultaContratosAtivos(clienteId: string) {
                     params: { query: { clienteId, status: 'ATIVO', tamanhoPagina: 50 } },
                 })
             ).data!.itens,
+    })
+}
+
+/** Detalhe (`GET /solicitacoes/{id}`); a chave começa pelo recurso, para o sinal de tempo real invalidar. */
+export function consultaSolicitacao(id: string) {
+    return queryOptions({
+        queryKey: ['solicitacoes', 'detalhe', id],
+        queryFn: async () => (await api.GET('/api/v1/solicitacoes/{id}', { params: { path: { id } } })).data!,
+    })
+}
+
+export type EdicaoSolicitacao = components['schemas']['EdicaoSolicitacaoRequest']
+
+/** O `PATCH` recebe o formulário inteiro (contrato §2): parte do atual e troca só o que mudou. */
+export function formularioDe(s: Solicitacao): EdicaoSolicitacao {
+    return {
+        titulo: s.titulo,
+        descricao: s.descricao,
+        prioridade: s.prioridade,
+        categoriaId: s.categoriaId,
+        responsavelId: s.responsavel?.id ?? null,
+    }
+}
+
+export async function editarSolicitacao(s: Solicitacao, mudanca: Partial<EdicaoSolicitacao>): Promise<Solicitacao> {
+    return (
+        await api.PATCH('/api/v1/solicitacoes/{id}', {
+            params: { path: { id: s.id } },
+            body: { ...formularioDe(s), ...mudanca },
+            ...seVersao(s.versao),
+        })
+    ).data!
+}
+
+export type Solucao = components['schemas']['SolucaoDto']
+
+/** Transições simples (sem corpo) e as que pedem solução ou motivo. */
+export type Transicao =
+    | { acao: 'inicio' | 'aguardando-cliente' | 'aguardando-terceiro' | 'retomada' }
+    | { acao: 'resolucao'; solucao: Solucao }
+    | { acao: 'reabertura' | 'cancelamento'; motivo: string }
+
+export async function transicionar(s: Solicitacao, t: Transicao): Promise<Solicitacao> {
+    const opcoes = { params: { path: { id: s.id } }, ...seVersao(s.versao) }
+    switch (t.acao) {
+        case 'inicio':
+            return (await api.POST('/api/v1/solicitacoes/{id}/inicio', opcoes)).data!
+        case 'aguardando-cliente':
+            return (await api.POST('/api/v1/solicitacoes/{id}/aguardando-cliente', opcoes)).data!
+        case 'aguardando-terceiro':
+            return (await api.POST('/api/v1/solicitacoes/{id}/aguardando-terceiro', opcoes)).data!
+        case 'retomada':
+            return (await api.POST('/api/v1/solicitacoes/{id}/retomada', opcoes)).data!
+        case 'resolucao':
+            return (await api.POST('/api/v1/solicitacoes/{id}/resolucao', { ...opcoes, body: { solucao: t.solucao } }))
+                .data!
+        case 'reabertura':
+            return (await api.POST('/api/v1/solicitacoes/{id}/reabertura', { ...opcoes, body: { motivo: t.motivo } }))
+                .data!
+        case 'cancelamento':
+            return (await api.POST('/api/v1/solicitacoes/{id}/cancelamento', { ...opcoes, body: { motivo: t.motivo } }))
+                .data!
+    }
+}
+
+export type Contrato = components['schemas']['ContratoDto']
+
+export function consultaContrato(id: string) {
+    return queryOptions({
+        queryKey: ['contratos', 'detalhe', id],
+        queryFn: async () => (await api.GET('/api/v1/contratos/{id}', { params: { path: { id } } })).data!,
     })
 }
