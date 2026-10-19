@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { useId, useMemo, useRef, useState, type KeyboardEvent } from 'react'
+import { useId, useLayoutEffect, useMemo, useRef, useState, type KeyboardEvent } from 'react'
 import {
     Button,
     DropZone,
@@ -181,6 +181,9 @@ function Composicao({ solicitacao, equipe }: { solicitacao: Solicitacao; equipe:
     const consultas = useQueryClient()
     const idLista = useId()
     const campo = useRef<HTMLTextAreaElement>(null)
+    // Depois de inserir a menção, o cursor vai para logo após o nome antes da próxima tecla (no layout, não num
+    // requestAnimationFrame, que deixava a digitação rápida escapar para o fim do texto).
+    const cursorPendente = useRef<number | null>(null)
     // RF-SOL-06: o padrão é INTERNA; mandar ao cliente é escolha explícita.
     const [visibilidade, setVisibilidade] = useState<Visibilidade>('INTERNA')
     const [texto, setTexto] = useState('')
@@ -189,6 +192,14 @@ function Composicao({ solicitacao, equipe }: { solicitacao: Solicitacao; equipe:
     const [busca, setBusca] = useState<string | null>(null)
     const [ativa, setAtiva] = useState(0)
     const [problemaAnexo, setProblemaAnexo] = useState<string | null>(null)
+
+    useLayoutEffect(() => {
+        const posicao = cursorPendente.current
+        if (posicao === null) return
+        cursorPendente.current = null
+        campo.current?.focus()
+        campo.current?.setSelectionRange(posicao, posicao)
+    }, [texto])
 
     const interna = visibilidade === 'INTERNA'
     const sugestoes = interna && busca !== null ? equipe.filter((p) => contem(p.nome, busca)).slice(0, 6) : []
@@ -241,10 +252,7 @@ function Composicao({ solicitacao, equipe }: { solicitacao: Solicitacao; equipe:
         setTexto(novo)
         setMencionados((atuais) => (atuais.some((m) => m.id === pessoa.id) ? atuais : [...atuais, pessoa]))
         setBusca(null)
-        requestAnimationFrame(() => {
-            campo.current?.focus()
-            campo.current?.setSelectionRange(antes.length, antes.length)
-        })
+        cursorPendente.current = antes.length
     }
 
     function aoTeclar(evento: KeyboardEvent<HTMLTextAreaElement>) {
