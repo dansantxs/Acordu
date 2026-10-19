@@ -31,7 +31,7 @@ export interface FiltrosFila {
     visao?: Visao
     busca?: string
     cliente?: string
-    /** Id da pessoa ou `eu`. */
+    /** Id da pessoa, `eu` ou `ninguem` (sem responsável). */
     responsavel?: string
     prioridade?: Prioridade
     categoria?: string
@@ -56,7 +56,13 @@ export function consultaFila({ nova, ...filtros }: FiltrosFila, usuarioId: strin
                             status: status.length ? status.join(',') : undefined,
                             busca: filtros.busca,
                             clienteId: filtros.cliente,
-                            responsavelId: filtros.responsavel === 'eu' ? usuarioId : filtros.responsavel,
+                            responsavelId:
+                                filtros.responsavel === 'eu'
+                                    ? usuarioId
+                                    : filtros.responsavel === 'ninguem'
+                                      ? undefined
+                                      : filtros.responsavel,
+                            semResponsavel: filtros.responsavel === 'ninguem' || undefined,
                             prioridade: filtros.prioridade,
                             categoriaId: filtros.categoria,
                             situacaoSla: filtros.sla,

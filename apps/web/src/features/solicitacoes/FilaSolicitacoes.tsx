@@ -74,6 +74,7 @@ export function FilaSolicitacoes({ perfil, filtros }: { perfil: Perfil; filtros:
     )
     const pessoas = [
         { id: 'eu', rotulo: 'Comigo' },
+        { id: 'ninguem', rotulo: 'Sem responsável' },
         ...(equipe.data ?? []).filter((p) => p.id !== perfil.usuarioId).map((p) => ({ id: p.id, rotulo: p.nome })),
     ]
 

@@ -13,7 +13,8 @@ export const Route = createFileRoute('/_app/solicitacoes')({
         visao: de(busca.visao, Object.keys(VISOES) as (keyof typeof VISOES)[]),
         busca: texto(busca.busca),
         cliente: id(busca.cliente),
-        responsavel: busca.responsavel === 'eu' ? 'eu' : id(busca.responsavel),
+        responsavel:
+            busca.responsavel === 'eu' || busca.responsavel === 'ninguem' ? busca.responsavel : id(busca.responsavel),
         prioridade: de(busca.prioridade, Object.keys(PRIORIDADE) as (keyof typeof PRIORIDADE)[]),
         categoria: id(busca.categoria),
         sla: de(busca.sla, ['EM_RISCO', 'VIOLADO'] as const),

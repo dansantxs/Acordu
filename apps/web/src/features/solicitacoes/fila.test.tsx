@@ -94,6 +94,18 @@ describe('fila de solicitações', () => {
         })
     })
 
+    it('"sem responsável" pede à API só as de ninguém', async () => {
+        const chamadas = app({ 'GET /api/v1/solicitacoes': () => pagina([]) })
+        const roteador = await abrir('/solicitacoes')
+        await screen.findByText('Nada em aberto')
+        const usuario = userEvent.setup()
+        await usuario.type(screen.getByRole('combobox', { name: 'Responsável' }), 'sem')
+        await usuario.click(await screen.findByRole('option', { name: 'Sem responsável' }))
+        await vi.waitFor(() => expect(roteador.state.location.search).toEqual({ responsavel: 'ninguem' }))
+        await vi.waitFor(() => expect(ultimaFila(chamadas)?.consulta.get('semResponsavel')).toBe('true'))
+        expect(ultimaFila(chamadas)?.consulta.has('responsavelId')).toBe(false)
+    })
+
     it('o filtro de cliente busca na API enquanto se digita', async () => {
         const chamadas = app({ 'GET /api/v1/solicitacoes': () => pagina([]) })
         const roteador = await abrir('/solicitacoes')
