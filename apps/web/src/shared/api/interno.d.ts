@@ -1459,6 +1459,7 @@ export interface paths {
                     status?: string
                     clienteId?: string
                     responsavelId?: string
+                    semResponsavel?: boolean
                     prioridade?: string
                     categoriaId?: string
                     situacaoSla?: string
