@@ -168,3 +168,42 @@ export function consultaContrato(id: string) {
         queryFn: async () => (await api.GET('/api/v1/contratos/{id}', { params: { path: { id } } })).data!,
     })
 }
+
+export type Interacao = components['schemas']['InteracaoDto']
+export type Visibilidade = components['schemas']['Visibilidade']
+
+/** Linha do tempo (internas e externas), da mais antiga para a mais nova. */
+export function consultaInteracoes(id: string) {
+    return queryOptions({
+        queryKey: ['solicitacoes', 'interacoes', id],
+        queryFn: async () =>
+            (await api.GET('/api/v1/solicitacoes/{id}/interacoes', { params: { path: { id } } })).data!,
+    })
+}
+
+/** Sem anexos vai em JSON; com anexos, multipart (`anexos` repetido, contrato §7). */
+export async function registrarInteracao(
+    id: string,
+    dados: { texto: string | null; visibilidade: Visibilidade; anexos: File[] },
+): Promise<Interacao> {
+    const { texto, visibilidade, anexos } = dados
+    if (anexos.length === 0) {
+        return (
+            await api.POST('/api/v1/solicitacoes/{id}/interacoes', {
+                params: { path: { id } },
+                body: { texto, visibilidade },
+            })
+        ).data!
+    }
+    const formulario = new FormData()
+    if (texto) formulario.append('texto', texto)
+    formulario.append('visibilidade', visibilidade)
+    anexos.forEach((arquivo) => formulario.append('anexos', arquivo, arquivo.name))
+    return (
+        await api.POST('/api/v1/solicitacoes/{id}/interacoes', {
+            params: { path: { id } },
+            // O openapi-fetch manda FormData como está e deixa o navegador pôr o boundary.
+            body: formulario as unknown as { texto: string | null; visibilidade: Visibilidade },
+        })
+    ).data!
+}

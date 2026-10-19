@@ -27,6 +27,7 @@ import {
     type Solicitacao,
     type Transicao,
 } from './consultas'
+import { Conversa } from './Conversa'
 import { JanelaEdicao, JanelaMotivo, JanelaResolucao } from './JanelasSolicitacao'
 import {
     ESTILO_PRIORIDADE,
@@ -334,6 +335,8 @@ function Detalhe({
                     </ul>
                 </section>
             )}
+
+            <Conversa solicitacao={s} fuso={fuso} podeComentar={pode(perfil, 'solicitacao.comentar')} />
 
             <JanelaEdicao
                 solicitacao={s}

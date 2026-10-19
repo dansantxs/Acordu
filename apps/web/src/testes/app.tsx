@@ -54,8 +54,14 @@ export function servidor(rotas: Rotas) {
         vi.fn(async (requisicao: Request) => {
             const url = new URL(requisicao.url)
             const caminho = url.pathname
-            const texto = await requisicao.text()
-            const corpo: unknown = texto ? JSON.parse(texto) : null
+            const tipo = requisicao.headers.get('content-type') ?? ''
+            // Multipart (anexos) chega como FormData; o resto, JSON.
+            const texto = tipo.includes('multipart') ? '' : await requisicao.text()
+            const corpo: unknown = tipo.includes('multipart')
+                ? await requisicao.formData()
+                : texto
+                  ? JSON.parse(texto)
+                  : null
             chamadas.push({
                 metodo: requisicao.method,
                 caminho,
