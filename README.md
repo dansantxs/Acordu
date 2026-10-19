@@ -171,6 +171,8 @@ Abra o SPA por `http://localhost:5173` (não por IP nem outro nome): o cookie de
 
 Os e-mails que a API manda no desenvolvimento (confirmação, senha, convites, avisos) chegam ao **Mailpit**: abra `http://localhost:8025` e clique nos links. Com `Email__ResendChave` definida, o envio vai pelo Resend.
 
+Os anexos vão para o **emulador S3** do compose (porta 9090), já configurado no `appsettings.Development`. Ele não guarda nada entre reinícios: anexos antigos param de baixar quando o contêiner é recriado.
+
 Configuração sensível em variáveis de ambiente / `.env` (nunca commitado).
 
 ---
