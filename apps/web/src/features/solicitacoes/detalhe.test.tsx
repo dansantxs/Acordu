@@ -271,6 +271,100 @@ describe('detalhe da solicitação', () => {
         expect(roteador.state.location.search).toEqual({ prioridade: 'MEDIA' })
     })
 
+    it('gera o link do portal para um contato e revoga o antigo', async () => {
+        const chamadas = app(['solicitacao.ver', 'cliente.ver', 'portal.gerenciar_acessos'], {
+            [`GET /api/v1/clientes/${PADARIA}`]: () =>
+                json({
+                    id: PADARIA,
+                    nome: 'Padaria Bom Grão',
+                    contatos: [
+                        { id: 'k1', nome: 'Marta Souza', ativo: true },
+                        { id: 'k3', nome: 'João Lima', ativo: true },
+                    ],
+                }),
+            [`GET /api/v1/solicitacoes/${ID}/acessos-portal`]: () =>
+                json([
+                    {
+                        acessoId: 'l1',
+                        contatoId: 'k3',
+                        contatoNome: 'João Lima',
+                        emitidoEm: daquiA(-86_400_000),
+                        expiraEm: daquiA(86_400_000 * 29),
+                    },
+                ]),
+            [`DELETE /api/v1/solicitacoes/${ID}/acessos-portal/l1`]: () => new Response(null, { status: 204 }),
+            [`POST /api/v1/solicitacoes/${ID}/acessos-portal`]: () =>
+                json(
+                    {
+                        acessoId: 'l2',
+                        expiraEm: daquiA(86_400_000 * 30),
+                        link: 'http://localhost:5173/portal/l/abc123',
+                        emailEnviado: true,
+                    },
+                    201,
+                ),
+        })
+        await abrir(`/solicitacoes/${ID}`)
+        const aside = await painel()
+        const usuario = userEvent.setup()
+
+        await usuario.click(within(aside).getByRole('button', { name: 'Link do portal' }))
+        const janela = await screen.findByRole('dialog', { name: 'Link do portal' })
+        expect(await within(janela).findByText('João Lima')).toBeInTheDocument()
+        await usuario.click(within(janela).getByRole('button', { name: 'Revogar' }))
+        expect(await screen.findByText('Link de João Lima revogado.')).toBeInTheDocument()
+
+        await vi.waitFor(() =>
+            expect(within(janela).getByRole('combobox', { name: 'Para quem' })).toHaveValue('Marta Souza'),
+        )
+        await usuario.click(within(janela).getByRole('button', { name: 'Gerar link' }))
+        expect(await within(janela).findByDisplayValue('http://localhost:5173/portal/l/abc123')).toBeInTheDocument()
+        expect(within(janela).getByText(/enviado por e-mail/)).toBeInTheDocument()
+        expect(chamadas.find((c) => c.metodo === 'POST' && c.caminho.endsWith('/acessos-portal'))?.corpo).toEqual({
+            contatoId: 'k1',
+            validadeDias: 30,
+            enviarEmail: true,
+        })
+        expect(chamadas.some((c) => c.metodo === 'DELETE')).toBe(true)
+    })
+
+    it('troca o contrato e recalcula o prazo', async () => {
+        let atual = solicitacao({ contratoId: 'k9' })
+        const chamadas = app(['solicitacao.ver', 'solicitacao.editar', 'contrato.ver'], {
+            [`GET /api/v1/solicitacoes/${ID}`]: () => json(atual),
+            '/api/v1/contratos/k9': () => json({ id: 'k9', tipo: 'BANCO_HORAS', inicio: '2026-01-01' }),
+            '/api/v1/contratos/k10': () => json({ id: 'k10', tipo: 'MENSAL_FIXO', inicio: '2026-06-01' }),
+            'GET /api/v1/contratos': () =>
+                json({
+                    itens: [
+                        { id: 'k9', tipo: 'BANCO_HORAS', inicio: '2026-01-01' },
+                        { id: 'k10', tipo: 'MENSAL_FIXO', inicio: '2026-06-01' },
+                    ],
+                    pagina: 1,
+                    tamanhoPagina: 50,
+                    total: 2,
+                }),
+            [`PUT /api/v1/solicitacoes/${ID}/contrato`]: () => {
+                atual = solicitacao({ contratoId: 'k10', versao: '8' })
+                return json(atual)
+            },
+        })
+        await abrir(`/solicitacoes/${ID}`)
+        const aside = await painel()
+        const usuario = userEvent.setup()
+
+        expect(await within(aside).findByText('Banco de horas')).toBeInTheDocument()
+        await usuario.click(within(aside).getByRole('button', { name: 'Trocar' }))
+        const janela = await screen.findByRole('dialog', { name: 'Trocar contrato' })
+        await usuario.click(within(janela).getByRole('combobox', { name: 'Contrato' }))
+        await usuario.click(await screen.findByRole('option', { name: /Mensal fixo/ }))
+        await usuario.click(within(janela).getByRole('button', { name: 'Trocar contrato' }))
+
+        expect(await screen.findByText('Contrato trocado; o prazo foi recalculado.')).toBeInTheDocument()
+        expect(await within(aside).findByText('Mensal fixo')).toBeInTheDocument()
+        expect(chamadas.find((c) => c.metodo === 'PUT')).toMatchObject({ ifMatch: '"7"', corpo: { contratoId: 'k10' } })
+    })
+
     it('solicitação inexistente avisa no painel e a fila continua', async () => {
         app(['solicitacao.ver'], {
             [`GET /api/v1/solicitacoes/${ID}`]: () => json({ status: 404, detail: 'Não encontrado.' }, 404),

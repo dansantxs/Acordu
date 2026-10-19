@@ -28,6 +28,8 @@ import {
     type Transicao,
 } from './consultas'
 import { Conversa } from './Conversa'
+import { JanelaContrato } from './JanelaContrato'
+import { JanelaLinkPortal } from './JanelaLinkPortal'
 import { Seguidores } from './Seguidores'
 import { Semelhantes } from './Semelhantes'
 import { JanelaEdicao, JanelaMotivo, JanelaResolucao } from './JanelasSolicitacao'
@@ -147,6 +149,8 @@ function Detalhe({
     const equipe = useQuery(consultaEquipe)
     const categorias = useQuery(consultaCategorias)
     const [editando, setEditando] = useState(false)
+    const [janelaLink, setJanelaLink] = useState(false)
+    const [janelaContrato, setJanelaContrato] = useState(false)
 
     const podeEditar = pode(perfil, 'solicitacao.editar')
     const final = FINAIS.includes(s.status)
@@ -195,6 +199,11 @@ function Detalhe({
                     >
                         {s.titulo}
                     </h2>
+                    {pode(perfil, 'portal.gerenciar_acessos') && !final && (
+                        <Botao variante="discreto" onPress={() => setJanelaLink(true)} className="!px-0">
+                            Link do portal
+                        </Botao>
+                    )}
                     {editavel && (
                         <Botao variante="discreto" onPress={() => setEditando(true)} className="!px-0">
                             Editar
@@ -303,7 +312,15 @@ function Detalhe({
                     s.categoriaId && <Dado rotulo="Categoria">{nomeCategoria ?? '—'}</Dado>
                 )}
                 <Dado rotulo="Contrato">
-                    <ContratoDaSolicitacao contratoId={s.contratoId} perfil={perfil} />
+                    <span className="flex flex-wrap items-baseline gap-x-3">
+                        <ContratoDaSolicitacao contratoId={s.contratoId} perfil={perfil} />
+                        {/* Contrato não troca em RESOLVIDA nem em estado final (modelo §4.3). */}
+                        {editavel && s.status !== 'RESOLVIDA' && pode(perfil, 'contrato.ver') && (
+                            <Botao variante="discreto" onPress={() => setJanelaContrato(true)} className="!p-0">
+                                Trocar
+                            </Botao>
+                        )}
+                    </span>
                 </Dado>
                 <Dado rotulo="Tempo apontado">{formatarDuracao(Number(s.tempoApontadoMinutos))}</Dado>
                 <Seguidores solicitacaoId={s.id} usuarioId={perfil.usuarioId} />
@@ -344,6 +361,27 @@ function Detalhe({
 
             <Conversa solicitacao={s} fuso={fuso} podeComentar={pode(perfil, 'solicitacao.comentar')} />
 
+            <JanelaLinkPortal
+                solicitacao={s}
+                fuso={fuso}
+                podeVerCliente={pode(perfil, 'cliente.ver')}
+                aberta={janelaLink}
+                aoMudar={setJanelaLink}
+            />
+            <JanelaContrato
+                solicitacao={s}
+                aberta={janelaContrato}
+                aoMudar={setJanelaContrato}
+                aoTrocar={(nova) => {
+                    guardar(nova)
+                    setJanelaContrato(false)
+                    avisar(
+                        nova.contratoId
+                            ? 'Contrato trocado; o prazo foi recalculado.'
+                            : 'Solicitação sem contrato agora: sem prazo.',
+                    )
+                }}
+            />
             <JanelaEdicao
                 solicitacao={s}
                 aberta={editando}
