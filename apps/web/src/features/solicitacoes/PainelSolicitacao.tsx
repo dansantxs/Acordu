@@ -28,8 +28,11 @@ import {
     type Transicao,
 } from './consultas'
 import { Conversa } from './Conversa'
+import { Seguidores } from './Seguidores'
+import { Semelhantes } from './Semelhantes'
 import { JanelaEdicao, JanelaMotivo, JanelaResolucao } from './JanelasSolicitacao'
 import {
+    EM_ABERTO,
     ESTILO_PRIORIDADE,
     ESTILO_STATUS,
     FINAIS,
@@ -303,6 +306,7 @@ function Detalhe({
                     <ContratoDaSolicitacao contratoId={s.contratoId} perfil={perfil} />
                 </Dado>
                 <Dado rotulo="Tempo apontado">{formatarDuracao(Number(s.tempoApontadoMinutos))}</Dado>
+                <Seguidores solicitacaoId={s.id} usuarioId={perfil.usuarioId} />
             </section>
 
             <Prazos solicitacao={s} fuso={fuso} />
@@ -317,6 +321,8 @@ function Detalhe({
                     <p className="text-sm text-suave">Sem descrição.</p>
                 )}
             </section>
+
+            {EM_ABERTO.includes(s.status) && <Semelhantes solicitacaoId={s.id} fuso={fuso} />}
 
             {s.tarefas.length > 0 && (
                 <section aria-labelledby="tarefas" className="flex flex-col gap-2">

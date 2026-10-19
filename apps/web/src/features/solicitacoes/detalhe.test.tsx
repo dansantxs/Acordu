@@ -66,6 +66,9 @@ const app = (permissoes: string[], rotas: Rotas = {}) =>
                 { id: RAFAEL, nome: 'Rafael Moura' },
             ]),
         'GET /api/v1/categorias': () => json([]),
+        [`GET /api/v1/solicitacoes/${ID}/seguidores`]: () => json([]),
+        [`GET /api/v1/solicitacoes/${ID}/semelhantes`]: () => json([]),
+        [`GET /api/v1/solicitacoes/${ID}/interacoes`]: () => json([]),
         ...rotas,
     })
 
@@ -203,6 +206,69 @@ describe('detalhe da solicitação', () => {
         expect(await within(aside).findByText(/Cancelada.*: Duplicada/)).toBeInTheDocument()
         expect(chamadas.find((c) => c.caminho.endsWith('/cancelamento'))?.corpo).toEqual({ motivo: 'Duplicada' })
         expect(within(aside).queryByRole('button', { name: /Cancelar|Resolver/ })).not.toBeInTheDocument()
+    })
+
+    it('segue e deixa de seguir', async () => {
+        let seguindo = false
+        const chamadas = app(['solicitacao.ver'], {
+            [`GET /api/v1/solicitacoes/${ID}/seguidores`]: () =>
+                json([
+                    { id: RAFAEL, nome: 'Rafael Moura' },
+                    ...(seguindo ? [{ id: perfil.usuarioId, nome: 'Ana Prado' }] : []),
+                ]),
+            [`PUT /api/v1/solicitacoes/${ID}/seguidores/eu`]: () => {
+                seguindo = true
+                return new Response(null, { status: 204 })
+            },
+            [`DELETE /api/v1/solicitacoes/${ID}/seguidores/eu`]: () => {
+                seguindo = false
+                return new Response(null, { status: 204 })
+            },
+        })
+        await abrir(`/solicitacoes/${ID}`)
+        const aside = await painel()
+        const usuario = userEvent.setup()
+
+        expect(await within(aside).findByText('Rafael Moura')).toBeInTheDocument()
+        await usuario.click(within(aside).getByRole('button', { name: 'Seguir' }))
+        expect(await within(aside).findByText('Rafael Moura, você')).toBeInTheDocument()
+        await usuario.click(within(aside).getByRole('button', { name: 'Deixar de seguir' }))
+        expect(await within(aside).findByText('Rafael Moura')).toBeInTheDocument()
+        expect(chamadas.filter((c) => c.caminho.endsWith('/seguidores/eu')).map((c) => c.metodo)).toEqual([
+            'PUT',
+            'DELETE',
+        ])
+    })
+
+    it('mostra as parecidas já resolvidas e abre uma delas no painel', async () => {
+        const OUTRA = '0199f0a0-0000-7000-8000-0000000000a2'
+        app(['solicitacao.ver'], {
+            [`GET /api/v1/solicitacoes/${ID}/semelhantes`]: () =>
+                json([
+                    {
+                        id: OUTRA,
+                        numero: 981,
+                        titulo: 'Forno sem aquecer',
+                        solucaoResumo: 'Resistência queimada, trocada.',
+                        resolvidaEm: daquiA(-86_400_000 * 30),
+                        relevancia: 0.71,
+                    },
+                ]),
+            [`GET /api/v1/solicitacoes/${OUTRA}`]: () =>
+                json(solicitacao({ id: OUTRA, numero: 981, titulo: 'Forno sem aquecer' })),
+            [`GET /api/v1/solicitacoes/${OUTRA}/seguidores`]: () => json([]),
+            [`GET /api/v1/solicitacoes/${OUTRA}/semelhantes`]: () => json([]),
+            [`GET /api/v1/solicitacoes/${OUTRA}/interacoes`]: () => json([]),
+        })
+        const roteador = await abrir(`/solicitacoes/${ID}?prioridade=MEDIA`)
+        const aside = await painel()
+        const parecidas = within(await within(aside).findByRole('region', { name: 'Parecidas já resolvidas' }))
+        expect(parecidas.getByText('Resistência queimada, trocada.')).toBeInTheDocument()
+
+        await userEvent.setup().click(parecidas.getByRole('link', { name: /Forno sem aquecer/ }))
+        expect(await screen.findByRole('complementary', { name: 'Forno sem aquecer' })).toBeInTheDocument()
+        expect(roteador.state.location.pathname).toBe(`/solicitacoes/${OUTRA}`)
+        expect(roteador.state.location.search).toEqual({ prioridade: 'MEDIA' })
     })
 
     it('solicitação inexistente avisa no painel e a fila continua', async () => {
