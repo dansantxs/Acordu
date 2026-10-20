@@ -57,6 +57,7 @@ const app = (permissoes: string[], rotas: Rotas = {}) =>
         'GET /api/v1/categorias': () => json([]),
         [`GET /api/v1/solicitacoes/${ID}/seguidores`]: () => json([]),
         [`GET /api/v1/solicitacoes/${ID}/semelhantes`]: () => json([]),
+        'GET /api/v1/atividades': () => json({ itens: [], proximo: null }),
         [`GET /api/v1/solicitacoes/${ID}/interacoes`]: () => json([]),
         ...rotas,
     })
@@ -99,6 +100,57 @@ describe('conversa da solicitação', () => {
         await userEvent.setup().click(c.getByRole('button', { name: /foto\.jpg/ }))
         await vi.waitFor(() => expect(chamadas.some((ch) => ch.caminho === '/api/v1/anexos/a1/download')).toBe(true))
         expect(c.getByText('240 KB')).toBeInTheDocument()
+    })
+
+    it('intercala abertura, responsável e status entre as mensagens', async () => {
+        const evento = (
+            tipo: string,
+            minutos: number,
+            detalhe: unknown = null,
+            autor: unknown = { id: perfil.usuarioId, nome: 'Ana Prado' },
+        ) => ({
+            id: crypto.randomUUID(),
+            tipo,
+            ocorridaEm: daquiA(-minutos * 60_000),
+            autor,
+            autorEhCliente: false,
+            alvo: { tipo: 'SOLICITACAO', id: ID, titulo: 'Forno não liga', numero: 1042 },
+            cliente: { id: 'c1', nome: 'Padaria Bom Grão' },
+            detalhe,
+        })
+        const chamadas = app(['solicitacao.ver'], {
+            [`GET /api/v1/solicitacoes/${ID}/interacoes`]: () =>
+                json([interacao({ texto: 'Vou ver isso.', registradaEm: daquiA(-30 * 60_000) })]),
+            'GET /api/v1/atividades': () =>
+                json({
+                    itens: [
+                        evento('SOLICITACAO_STATUS', 10, {
+                            statusDe: 'ABERTA',
+                            statusPara: 'EM_ANDAMENTO',
+                            responsavel: null,
+                        }),
+                        evento('NOTA_INTERNA', 30),
+                        evento('SOLICITACAO_ATRIBUIDA', 40, {
+                            statusDe: null,
+                            statusPara: null,
+                            responsavel: { id: RAFAEL, nome: 'Rafael Moura' },
+                        }),
+                        evento('SOLICITACAO_ABERTA', 60, null, null),
+                    ],
+                    proximo: null,
+                }),
+        })
+        await abrir(`/solicitacoes/${ID}`)
+        const c = await conversa()
+
+        await c.findByText(/O sistema abriu a solicitação/)
+        const linhas = c.getAllByRole('listitem').map((li) => li.textContent ?? '')
+        expect(linhas).toHaveLength(4)
+        expect(linhas[0]).toMatch(/O sistema abriu a solicitação/)
+        expect(linhas[1]).toMatch(/Ana Prado passou para Rafael Moura/)
+        expect(linhas[2]).toMatch(/Vou ver isso\./)
+        expect(linhas[3]).toMatch(/Ana Prado mudou para em andamento/)
+        expect(chamadas.find((ch) => ch.caminho === '/api/v1/atividades')?.consulta.get('solicitacaoId')).toBe(ID)
     })
 
     it('registra nota interna com menção escolhida pelo teclado', async () => {

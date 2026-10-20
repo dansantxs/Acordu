@@ -2365,6 +2365,7 @@ export interface paths {
                 query?: {
                     clienteId?: string
                     pessoaId?: string
+                    solicitacaoId?: string
                     antes?: number | string
                 }
                 header?: never

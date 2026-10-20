@@ -31,11 +31,14 @@ public sealed class AtividadesTests(ApiFixture api)
         var feed = await equipe.EsperarAsync(HttpStatusCode.OK, HttpMethod.Get, "/api/v1/atividades");
         var doCliente = await equipe.EsperarAsync(HttpStatusCode.OK, HttpMethod.Get, $"/api/v1/atividades?clienteId={cliente}");
         var minhas = await equipe.EsperarAsync(HttpStatusCode.OK, HttpMethod.Get, $"/api/v1/atividades?pessoaId={eu}");
+        var daSolicitacao = await equipe.EsperarAsync(
+            HttpStatusCode.OK, HttpMethod.Get, $"/api/v1/atividades?solicitacaoId={solicitacao}");
 
         Tipos(feed).Should().Equal(
             "TAREFA_CRIADA", "COMENTARIO_TAREFA", "TAREFA_STATUS", "TAREFA_CRIADA", "NOTA_INTERNA", "SOLICITACAO_ABERTA");
         Tipos(doCliente).Should().Equal("COMENTARIO_TAREFA", "TAREFA_STATUS", "TAREFA_CRIADA", "NOTA_INTERNA", "SOLICITACAO_ABERTA");
         Tipos(minhas).Should().HaveCount(6);
+        Tipos(daSolicitacao).Should().Equal("NOTA_INTERNA", "SOLICITACAO_ABERTA");
         feed.GetProperty("proximo").ValueKind.Should().Be(JsonValueKind.Null);
         var status = feed.GetProperty("itens")[2];
         status.GetProperty("autor").GetProperty("id").GetGuid().Should().Be(eu);

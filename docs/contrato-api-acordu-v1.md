@@ -688,7 +688,7 @@ Decidido no marco 15 (14/10):
 
 | Método | Rota | Descrição | Permissão |
 |---|---|---|---|
-| GET | `/atividades?clienteId=&pessoaId=&antes=` | Do mais recente, 50 por página; `proximo` é o cursor (`antes`) da página seguinte, nulo no fim. | `solicitacao.ver` ou `tarefa.ver` |
+| GET | `/atividades?clienteId=&pessoaId=&solicitacaoId=&antes=` | Do mais recente, 50 por página; `proximo` é o cursor (`antes`) da página seguinte, nulo no fim. | `solicitacao.ver` ou `tarefa.ver` |
 
 ```json
 // GET /atividades → 200
@@ -704,7 +704,7 @@ Decidido no marco 15 (14/10):
 Decidido no marco 16 (14/10):
 - **Tipos:** `SOLICITACAO_ABERTA`, `SOLICITACAO_ATRIBUIDA`, `SOLICITACAO_STATUS`, `RESPOSTA_DO_CLIENTE`, `RESPOSTA_AO_CLIENTE`, `NOTA_INTERNA`, `TAREFA_CRIADA`, `TAREFA_ATRIBUIDA`, `TAREFA_STATUS` e `COMENTARIO_TAREFA`. O front monta a frase; o `alvo` traz o título **atual**. Apontamentos não entram.
 - **Autor:** `autor` nulo = sistema (job, recorrência); `autorEhCliente` marca o contato.
-- **Filtros:** `pessoaId` filtra pelo autor da equipe; `clienteId` alimenta "Últimos movimentos" na ficha do cliente.
+- **Filtros:** `pessoaId` filtra pelo autor da equipe; `clienteId` alimenta "Últimos movimentos" na ficha do cliente. `solicitacaoId` (19/10, F2e) traz o histórico de uma solicitação para o painel de detalhe (só a solicitação, sem as tarefas dela).
 - **Visibilidade:** cada linha só aparece para quem pode ver o alvo (solicitação ou tarefa). Alvo que não aparece mais pelos filtros some do feed. O portal não acessa.
 - **Gravação e retenção:** cada linha é gravada depois do commit, uma por mensagem da outbox (`RegistroDeAtividades`). O job `expurgo-notificacoes` apaga também as atividades com mais de 90 dias (`atividadesRemovidas` na resposta).
 

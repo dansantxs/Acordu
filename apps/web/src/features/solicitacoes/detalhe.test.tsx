@@ -68,6 +68,7 @@ const app = (permissoes: string[], rotas: Rotas = {}) =>
         'GET /api/v1/categorias': () => json([]),
         [`GET /api/v1/solicitacoes/${ID}/seguidores`]: () => json([]),
         [`GET /api/v1/solicitacoes/${ID}/semelhantes`]: () => json([]),
+        'GET /api/v1/atividades': () => json({ itens: [], proximo: null }),
         [`GET /api/v1/solicitacoes/${ID}/interacoes`]: () => json([]),
         ...rotas,
     })

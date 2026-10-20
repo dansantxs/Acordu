@@ -55,6 +55,8 @@ public sealed class RegistroAtividades : IAtividades
             consulta = consulta.Where(a => a.ClienteId == clienteId);
         if (filtro.PessoaId is { } pessoaId)
             consulta = consulta.Where(a => a.AutorId == pessoaId && !a.AutorEhCliente);
+        if (filtro.SolicitacaoId is { } solicitacaoId)
+            consulta = consulta.Where(a => a.Alvo == AlvoColaboracao.Solicitacao && a.AlvoId == solicitacaoId);
         if (filtro.Antes is { } antes)
             consulta = consulta.Where(a => a.Sequencia < antes);
 
