@@ -240,3 +240,37 @@ export function consultaSemelhantes(id: string) {
         staleTime: 5 * 60_000,
     })
 }
+
+export type LinkPortal = components['schemas']['LinkPortalDto']
+export type LinkEmitido = components['schemas']['LinkEmitidoDto']
+
+/** Links sem senha válidos desta solicitação (contrato §7, 6d3), sem o token. */
+export function consultaLinksPortal(id: string) {
+    return queryOptions({
+        queryKey: ['solicitacoes', 'links-portal', id],
+        queryFn: async () =>
+            (await api.GET('/api/v1/solicitacoes/{id}/acessos-portal', { params: { path: { id } } })).data!,
+    })
+}
+
+export async function emitirLinkPortal(
+    id: string,
+    dados: components['schemas']['EmissaoLinkRequest'],
+): Promise<LinkEmitido> {
+    return (await api.POST('/api/v1/solicitacoes/{id}/acessos-portal', { params: { path: { id } }, body: dados })).data!
+}
+
+export async function revogarLinkPortal(id: string, acessoId: string): Promise<void> {
+    await api.DELETE('/api/v1/solicitacoes/{id}/acessos-portal/{acessoId}', { params: { path: { id, acessoId } } })
+}
+
+/** Fora do `PATCH` de propósito (contrato §7): recalcula o SLA com os prazos do contrato novo. */
+export async function trocarContrato(s: Solicitacao, contratoId: string | null): Promise<Solicitacao> {
+    return (
+        await api.PUT('/api/v1/solicitacoes/{id}/contrato', {
+            params: { path: { id: s.id } },
+            body: { contratoId },
+            ...seVersao(s.versao),
+        })
+    ).data!
+}
