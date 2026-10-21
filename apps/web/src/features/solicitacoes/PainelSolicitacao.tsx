@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Link, useNavigate } from '@tanstack/react-router'
-import { useEffect, useRef, useState, type ReactNode } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { Button } from 'react-aria-components'
 import { pode } from '@/features/casca/navegacao'
 import { mensagemDeErro } from '@/shared/api/mensagens'
@@ -14,7 +14,7 @@ import type { Perfil } from '@/shared/sessao/perfil'
 import { Alerta } from '@/shared/ui/Alerta'
 import { Botao } from '@/shared/ui/Botao'
 import { CampoSelecao } from '@/shared/ui/CampoSelecao'
-import { Icone } from '@/shared/ui/Icone'
+import { Dado, PainelLateral } from '@/shared/ui/PainelLateral'
 import {
     consultaCategorias,
     consultaContrato,
@@ -61,22 +61,11 @@ export function PainelSolicitacao({ perfil, id }: { perfil: Perfil; id: string }
     const titulo = useRef<HTMLHeadingElement>(null)
     const consulta = useQuery(consultaSolicitacao(id))
 
-    useEffect(() => {
-        function fechar() {
-            void navegar({ to: '/solicitacoes', search: (atual: FiltrosFila) => atual }).then(() =>
-                // O foco volta para a linha de onde a pessoa veio, se ela estiver na página.
-                document.querySelector<HTMLElement>(`[data-solicitacao="${id}"]`)?.focus(),
-            )
-        }
-        function aoTeclar(evento: KeyboardEvent) {
-            if (evento.key !== 'Escape' || evento.defaultPrevented) return
-            // Esc numa lista aberta, num campo de escolha ou numa janela é deles, não do painel.
-            const alvo = evento.target instanceof Element ? evento.target : null
-            if (alvo?.closest('[role="combobox"], [role="listbox"], [role="dialog"], [role="menu"]')) return
-            fechar()
-        }
-        document.addEventListener('keydown', aoTeclar)
-        return () => document.removeEventListener('keydown', aoTeclar)
+    const fechar = useCallback(() => {
+        void navegar({ to: '/solicitacoes', search: (atual: FiltrosFila) => atual }).then(() =>
+            // O foco volta para a linha de onde a pessoa veio, se ela estiver na página.
+            document.querySelector<HTMLElement>(`[data-solicitacao="${id}"]`)?.focus(),
+        )
     }, [id, navegar])
 
     const carregada = consulta.isSuccess
@@ -85,52 +74,34 @@ export function PainelSolicitacao({ perfil, id }: { perfil: Perfil; id: string }
     }, [carregada])
 
     return (
-        <aside
-            aria-labelledby={ID_TITULO}
-            className="fixed inset-y-0 right-0 z-40 flex w-full max-w-2xl flex-col border-l border-linha bg-fundo text-tinta shadow-2xl"
-        >
-            <div className="flex items-center gap-3 border-b border-linha bg-superficie px-5 py-3">
-                <span className="text-sm text-suave tabular-nums">
-                    {consulta.data ? `#${consulta.data.numero}` : 'Solicitação'}
-                </span>
-                {consulta.data && (
-                    <span className={`rounded-couro px-2 py-0.5 text-xs ${ESTILO_STATUS[consulta.data.status]}`}>
-                        {STATUS[consulta.data.status]}
+        <PainelLateral
+            idTitulo={ID_TITULO}
+            fechar={fechar}
+            cabecalho={
+                <>
+                    <span className="text-sm text-suave tabular-nums">
+                        {consulta.data ? `#${consulta.data.numero}` : 'Solicitação'}
                     </span>
-                )}
-                <Link
-                    to="/solicitacoes"
-                    search={(atual: FiltrosFila) => atual}
-                    aria-label="Fechar"
-                    title="Fechar (Esc)"
-                    className="ml-auto grid size-8 place-items-center rounded-couro text-suave hover:bg-trilho hover:text-tinta"
-                >
-                    <Icone nome="fechar" />
-                </Link>
-            </div>
-            <div className="flex-1 overflow-y-auto px-5 py-5">
-                {consulta.isPending ? (
-                    <p className="text-sm text-suave">Carregando…</p>
-                ) : consulta.isError ? (
-                    <Alerta>
-                        {consulta.error instanceof ErroApi && consulta.error.status === 404
-                            ? 'Não encontramos esta solicitação. Ela pode ter outro endereço ou não estar visível para você.'
-                            : mensagemDeErro(consulta.error)}
-                    </Alerta>
-                ) : (
-                    <Detalhe solicitacao={consulta.data} perfil={perfil} refTitulo={titulo} />
-                )}
-            </div>
-        </aside>
-    )
-}
-
-function Dado({ rotulo, children }: { rotulo: string; children: ReactNode }) {
-    return (
-        <div className="flex flex-col gap-1">
-            <p className="text-sm font-semibold">{rotulo}</p>
-            <div className="py-2 text-sm">{children}</div>
-        </div>
+                    {consulta.data && (
+                        <span className={`rounded-couro px-2 py-0.5 text-xs ${ESTILO_STATUS[consulta.data.status]}`}>
+                            {STATUS[consulta.data.status]}
+                        </span>
+                    )}
+                </>
+            }
+        >
+            {consulta.isPending ? (
+                <p className="text-sm text-suave">Carregando…</p>
+            ) : consulta.isError ? (
+                <Alerta>
+                    {consulta.error instanceof ErroApi && consulta.error.status === 404
+                        ? 'Não encontramos esta solicitação. Ela pode ter outro endereço ou não estar visível para você.'
+                        : mensagemDeErro(consulta.error)}
+                </Alerta>
+            ) : (
+                <Detalhe solicitacao={consulta.data} perfil={perfil} refTitulo={titulo} />
+            )}
+        </PainelLateral>
     )
 }
 

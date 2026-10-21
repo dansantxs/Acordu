@@ -10,6 +10,7 @@ import {
     Popover,
     useDragAndDrop,
 } from 'react-aria-components'
+import { useNavigate } from '@tanstack/react-router'
 import { mensagemDeErro } from '@/shared/api/mensagens'
 import { avisar, avisarErro } from '@/shared/avisos/avisos'
 import { Alerta } from '@/shared/ui/Alerta'
@@ -109,6 +110,7 @@ function ColunaDoQuadro({
     aoMover: (tarefa: TarefaResumo, para: Coluna) => void
 }) {
     const titulo = STATUS_TAREFA[coluna]
+    const navegar = useNavigate()
     const { dragAndDropHooks } = useDragAndDrop({
         isDisabled: !podeEditar,
         getItems: (chaves) =>
@@ -135,6 +137,14 @@ function ColunaDoQuadro({
             </h2>
             <GridList
                 aria-labelledby={`coluna-${coluna}`}
+                // Enter ou clique no cartão abre o detalhe em painel, mantendo os filtros.
+                onAction={(chave) =>
+                    void navegar({
+                        to: '/tarefas/$id',
+                        params: { id: String(chave) },
+                        search: (atual: FiltrosTarefas) => atual,
+                    })
+                }
                 items={tarefas}
                 dragAndDropHooks={dragAndDropHooks}
                 renderEmptyState={() => <p className="px-2 py-6 text-center text-xs text-suave">Nada aqui.</p>}
@@ -144,6 +154,7 @@ function ColunaDoQuadro({
                     <GridListItem
                         id={t.id}
                         textValue={t.titulo}
+                        data-tarefa={t.id}
                         className="flex flex-col gap-1 rounded-couro border border-linha bg-superficie p-3 text-sm shadow-sm outline-none data-[dragging]:opacity-50 data-[focus-visible]:ring-2 data-[focus-visible]:ring-acento"
                     >
                         <div className="flex items-start gap-2">

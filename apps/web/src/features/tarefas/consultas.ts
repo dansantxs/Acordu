@@ -1,5 +1,5 @@
 import { keepPreviousData, queryOptions } from '@tanstack/react-query'
-import { api } from '@/shared/api/cliente'
+import { api, seVersao } from '@/shared/api/cliente'
 import type { components } from '@/shared/api/interno'
 import type { StatusTarefa } from './rotulos'
 
@@ -119,4 +119,70 @@ export async function moverTarefa(id: string, de: Coluna, para: Coluna): Promise
                     : (await api.POST('/api/v1/tarefas/{id}/retorno', opcoes)).data!
     }
     return ultima
+}
+
+/** Detalhe (`GET /tarefas/{id}`), com checklist, total apontado e nomes da origem. */
+export function consultaTarefa(id: string) {
+    return queryOptions({
+        queryKey: ['tarefas', 'detalhe', id],
+        queryFn: async () => (await api.GET('/api/v1/tarefas/{id}', { params: { path: { id } } })).data!,
+    })
+}
+
+export type EdicaoTarefa = components['schemas']['EdicaoTarefaRequest']
+
+/** O `PATCH` recebe o formulário inteiro (omitir `planejadaPara` limpa o dia): parte do atual. */
+export function formularioDaTarefa(t: Tarefa): EdicaoTarefa {
+    return {
+        titulo: t.titulo,
+        descricao: t.descricao,
+        responsavelId: t.responsavel?.id ?? null,
+        prazo: t.prazo,
+        estimativaMinutos: t.estimativaMinutos,
+        visivelCliente: t.visivelCliente,
+        planejadaPara: t.planejadaPara,
+    }
+}
+
+export async function editarTarefa(t: Tarefa, mudanca: Partial<EdicaoTarefa>): Promise<Tarefa> {
+    return (
+        await api.PATCH('/api/v1/tarefas/{id}', {
+            params: { path: { id: t.id } },
+            body: { ...formularioDaTarefa(t), ...mudanca },
+            ...seVersao(t.versao),
+        })
+    ).data!
+}
+
+export type AcaoTarefa = 'inicio' | 'retorno' | 'conclusao' | 'reabertura' | 'cancelamento'
+
+export async function transicionarTarefa(t: Tarefa, acao: AcaoTarefa): Promise<Tarefa> {
+    const opcoes = { params: { path: { id: t.id } }, ...seVersao(t.versao) }
+    switch (acao) {
+        case 'inicio':
+            return (await api.POST('/api/v1/tarefas/{id}/inicio', opcoes)).data!
+        case 'retorno':
+            return (await api.POST('/api/v1/tarefas/{id}/retorno', opcoes)).data!
+        case 'conclusao':
+            return (await api.POST('/api/v1/tarefas/{id}/conclusao', opcoes)).data!
+        case 'reabertura':
+            return (await api.POST('/api/v1/tarefas/{id}/reabertura', opcoes)).data!
+        case 'cancelamento':
+            return (await api.POST('/api/v1/tarefas/{id}/cancelamento', opcoes)).data!
+    }
+}
+
+export async function adicionarItem(tarefaId: string, texto: string): Promise<void> {
+    await api.POST('/api/v1/tarefas/{id}/itens', { params: { path: { id: tarefaId } }, body: { texto, feito: null } })
+}
+
+export async function editarItem(tarefaId: string, itemId: string, texto: string, feito: boolean): Promise<void> {
+    await api.PATCH('/api/v1/tarefas/{id}/itens/{itemId}', {
+        params: { path: { id: tarefaId, itemId } },
+        body: { texto, feito },
+    })
+}
+
+export async function removerItem(tarefaId: string, itemId: string): Promise<void> {
+    await api.DELETE('/api/v1/tarefas/{id}/itens/{itemId}', { params: { path: { id: tarefaId, itemId } } })
 }

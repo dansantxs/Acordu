@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query'
-import { useNavigate } from '@tanstack/react-router'
+import { Link, useNavigate, useParams } from '@tanstack/react-router'
 import { useEffect, useState } from 'react'
 import { Input, Radio, RadioGroup, SearchField, Tab, TabList, Tabs } from 'react-aria-components'
 import { pode } from '@/features/casca/navegacao'
@@ -207,6 +207,7 @@ export function Prazo({ tarefa: t, hoje }: { tarefa: TarefaResumo; hoje: string 
 }
 
 function Tabela({ itens, hoje }: { itens: TarefaResumo[]; hoje: string }) {
+    const aberta = useParams({ strict: false }).id
     return (
         <div className="overflow-x-auto rounded-couro border border-linha bg-superficie">
             <table className="w-full text-sm">
@@ -222,9 +223,21 @@ function Tabela({ itens, hoje }: { itens: TarefaResumo[]; hoje: string }) {
                 </thead>
                 <tbody>
                     {itens.map((t) => (
-                        <tr key={t.id} className="border-b border-linha last:border-0 hover:bg-trilho/50">
+                        <tr
+                            key={t.id}
+                            aria-current={t.id === aberta ? 'true' : undefined}
+                            className="border-b border-linha last:border-0 hover:bg-trilho/50 aria-[current]:bg-acento-suave/60"
+                        >
                             <td className="px-4 py-2.5">
-                                <span className="block font-semibold">{t.titulo}</span>
+                                <Link
+                                    to="/tarefas/$id"
+                                    params={{ id: t.id }}
+                                    search={(atual: FiltrosTarefas) => atual}
+                                    data-tarefa={t.id}
+                                    className="block font-semibold hover:underline"
+                                >
+                                    {t.titulo}
+                                </Link>
                                 <OrigemTarefa tarefa={t} />
                             </td>
                             <td className="hidden px-4 py-2.5 md:table-cell">
