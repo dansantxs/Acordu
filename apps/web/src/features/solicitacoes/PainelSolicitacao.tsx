@@ -18,7 +18,6 @@ import { Seguidores } from '@/shared/colaboracao/Seguidores'
 import { Dado, PainelLateral } from '@/shared/ui/PainelLateral'
 import {
     consultaCategorias,
-    consultaContrato,
     consultaSolicitacao,
     editarSolicitacao,
     formularioDe,
@@ -29,6 +28,7 @@ import {
     type Transicao,
 } from './consultas'
 import { JanelaNovaTarefa } from '@/features/tarefas/JanelaNovaTarefa'
+import { consultaContrato } from '@/features/contratos/consultas'
 import { Conversa } from './Conversa'
 import { JanelaContrato } from './JanelaContrato'
 import { JanelaLinkPortal } from './JanelaLinkPortal'

@@ -29,3 +29,27 @@ export function diaPorExtenso(data: string): string {
     const semana = new Intl.DateTimeFormat('pt-BR', { weekday: 'long', timeZone: 'UTC' }).format(d)
     return `${semana}, ${dataCurta(data)}`
 }
+
+/** Mês corrente (`YYYY-MM`) no fuso do tenant. */
+export function mesAtual(fuso: string, agora = new Date()): string {
+    return hojeNoFuso(fuso, agora).slice(0, 7)
+}
+
+/** Soma meses a um `YYYY-MM`. */
+export function somarMeses(mes: string, quantos: number): string {
+    const [ano, m] = mes.split('-').map(Number)
+    const total = ano! * 12 + (m! - 1) + quantos
+    return `${Math.floor(total / 12)}-${String((total % 12) + 1).padStart(2, '0')}`
+}
+
+/** "2026-10" → "outubro de 2026". */
+export function nomeDoMes(mes: string): string {
+    return new Intl.DateTimeFormat('pt-BR', { month: 'long', year: 'numeric', timeZone: 'UTC' }).format(
+        new Date(`${mes}-15T12:00:00Z`),
+    )
+}
+
+/** Último dia do mês `YYYY-MM`. */
+export function fimDoMes(mes: string): string {
+    return somarDias(`${somarMeses(mes, 1)}-01`, -1)
+}

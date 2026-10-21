@@ -166,15 +166,6 @@ export async function transicionar(s: Solicitacao, t: Transicao): Promise<Solici
     }
 }
 
-export type Contrato = components['schemas']['ContratoDto']
-
-export function consultaContrato(id: string) {
-    return queryOptions({
-        queryKey: ['contratos', 'detalhe', id],
-        queryFn: async () => (await api.GET('/api/v1/contratos/{id}', { params: { path: { id } } })).data!,
-    })
-}
-
 export type Interacao = components['schemas']['InteracaoDto']
 export type Visibilidade = components['schemas']['Visibilidade']
 

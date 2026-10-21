@@ -10,6 +10,7 @@ export interface FiltrosApontamentos {
     usuarioId?: string
     tarefaId?: string
     clienteId?: string
+    contratoId?: string
     de?: string
     ate?: string
 }
