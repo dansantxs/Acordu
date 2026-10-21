@@ -253,7 +253,7 @@ function Barra({ rotulo, valor, maximo, texto }: { rotulo: string; valor: number
 }
 
 /** Régua do mês: franquia × consumo (mensal), saldo acumulado (banco de horas) ou só o consumo (avulso). */
-function Regua({ contrato: c, consumo: k }: { contrato: Contrato; consumo: Consumo }) {
+export function Regua({ contrato: c, consumo: k }: { contrato: Contrato; consumo: Consumo }) {
     const consumido = Number(k.consumidoMinutos)
     const franquia = k.franquiaMinutos != null ? Number(k.franquiaMinutos) : null
     if (c.tipo === 'BANCO_HORAS' && franquia != null) {
