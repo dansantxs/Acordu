@@ -19,6 +19,9 @@ public sealed record RegraRecorrenciaDto(
     DateOnly? Inicio,
     DateOnly? Fim);
 
+/// <summary>Prévia de uma regra ainda não salva (F4c, 21/10): as próximas datas para conferir antes de gravar.</summary>
+public sealed record PreviaRegraRequest(RegraRecorrenciaDto? Regra, int? Quantidade);
+
 /// <summary>Item da listagem de recorrências.</summary>
 public sealed record RecorrenciaResumoDto(
     Guid Id,

@@ -135,6 +135,31 @@ public sealed class ComandosRecorrencia
         return datas;
     }
 
+    /// <summary>
+    /// Próximas datas de uma regra sem salvar nada (decidido em 21/10, F4c): o formulário mostra o que a regra vai
+    /// gerar, com o mesmo gerador da recorrência salva. Conta a partir de hoje (ou do início, se for depois).
+    /// </summary>
+    public async Task<IReadOnlyList<DateOnly>> PreviaDaRegraAsync(PreviaRegraRequest dados, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(dados);
+        _contexto.Exigir(Permissoes.RecorrenciaVer);
+        var total = dados.Quantidade ?? PreviaPadrao;
+        if (total < 1 || total > PreviaMaxima)
+            throw ErroDeCampo.Criar("quantidade", $"Quantidade entre 1 e {PreviaMaxima}.");
+        var hoje = await _relogio.HojeAsync(cancellationToken);
+        var regra = Regra(dados.Regra, hoje);
+
+        var datas = new List<DateOnly>(total);
+        var proxima = GeradorDeDatas.Proxima(regra, hoje);
+        while (proxima is { } data && datas.Count < total)
+        {
+            datas.Add(data);
+            proxima = GeradorDeDatas.Proxima(regra, data.AddDays(1));
+        }
+
+        return datas;
+    }
+
     private async Task AlterarAsync(
         Guid id, string? versao, Action<RecorrenciaTarefa, DateOnly> alterar, CancellationToken cancellationToken)
     {

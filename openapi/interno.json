@@ -3352,6 +3352,39 @@
         }
       }
     },
+    "/api/v1/recorrencias/previa": {
+      "post": {
+        "tags": [
+          "Recorrências"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PreviaRegraRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "format": "date"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/recorrencias/{id}/previa": {
       "get": {
         "tags": [
@@ -7962,6 +7995,34 @@
             "items": {
               "$ref": "#/components/schemas/PreferenciaDto"
             }
+          }
+        }
+      },
+      "PreviaRegraRequest": {
+        "required": [
+          "regra",
+          "quantidade"
+        ],
+        "type": "object",
+        "properties": {
+          "regra": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/RegraRecorrenciaDto"
+              }
+            ]
+          },
+          "quantidade": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "null",
+              "integer",
+              "string"
+            ],
+            "format": "int32"
           }
         }
       },
