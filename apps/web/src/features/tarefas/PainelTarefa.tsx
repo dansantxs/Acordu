@@ -33,6 +33,7 @@ import {
     type FiltrosTarefas,
     type Tarefa,
 } from './consultas'
+import { BotaoCronometro } from '@/features/cronometro/Cronometro'
 import { Comentarios } from './Comentarios'
 import {
     ESTILO_STATUS_TAREFA,
@@ -193,6 +194,11 @@ function Detalhe({
             </header>
 
             {podeEditar && <AcoesStatus tarefa={t} aoMudar={guardar} aoFalhar={falhou} />}
+            {pode(perfil, 'apontamento.criar') && (t.status === 'A_FAZER' || t.status === 'FAZENDO') && (
+                <div>
+                    <BotaoCronometro tarefaId={t.id} />
+                </div>
+            )}
 
             <section aria-label="Planejamento" className="grid gap-4 sm:grid-cols-2">
                 {editavel ? (
