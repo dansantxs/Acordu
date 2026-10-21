@@ -9,3 +9,23 @@ export function dataCurta(data: string, referencia?: string): string {
     const mesmoAno = !referencia || referencia.slice(0, 4) === ano
     return mesmoAno ? `${dia}/${mes}` : `${dia}/${mes}/${ano!.slice(2)}`
 }
+
+/** Soma dias a uma data `YYYY-MM-DD` (sem fuso: é aritmética de calendário). */
+export function somarDias(data: string, dias: number): string {
+    const d = new Date(`${data}T12:00:00Z`)
+    d.setUTCDate(d.getUTCDate() + dias)
+    return d.toISOString().slice(0, 10)
+}
+
+/** Segunda-feira da semana da data (semana de segunda a domingo). */
+export function segundaDaSemana(data: string): string {
+    const diaDaSemana = new Date(`${data}T12:00:00Z`).getUTCDay()
+    return somarDias(data, -((diaDaSemana + 6) % 7))
+}
+
+/** "segunda, 20/10" para cabeçalho de dia. */
+export function diaPorExtenso(data: string): string {
+    const d = new Date(`${data}T12:00:00Z`)
+    const semana = new Intl.DateTimeFormat('pt-BR', { weekday: 'long', timeZone: 'UTC' }).format(d)
+    return `${semana}, ${dataCurta(data)}`
+}

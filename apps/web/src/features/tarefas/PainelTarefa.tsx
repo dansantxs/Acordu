@@ -33,6 +33,7 @@ import {
     type FiltrosTarefas,
     type Tarefa,
 } from './consultas'
+import { HorasDaTarefa } from '@/features/apontamentos/HorasDaTarefa'
 import { BotaoCronometro } from '@/features/cronometro/Cronometro'
 import { Comentarios } from './Comentarios'
 import {
@@ -280,6 +281,12 @@ function Detalhe({
                 tarefa={t}
                 editavel={editavel}
                 aoMudar={() => consultas.invalidateQueries({ queryKey: chave })}
+            />
+
+            <HorasDaTarefa
+                tarefa={{ id: t.id, titulo: t.titulo, temCliente: t.clienteId !== null }}
+                perfil={perfil}
+                aceitaLancamento={t.status !== 'CANCELADA'}
             />
 
             <Comentarios
