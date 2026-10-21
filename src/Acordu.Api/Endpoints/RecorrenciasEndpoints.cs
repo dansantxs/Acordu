@@ -27,6 +27,12 @@ internal static class RecorrenciasEndpoints
             .RequirePermissao(Permissoes.RecorrenciaVer)
             .Produces<RecorrenciaDto>();
 
+        // Prévia de regra ainda não salva (F4c): POST porque a regra vai no corpo; não grava nada.
+        recorrencias.MapPost("/previa", async (PreviaRegraRequest corpo, ComandosRecorrencia comandos, CancellationToken cancellationToken) =>
+            Results.Ok(await comandos.PreviaDaRegraAsync(corpo, cancellationToken)))
+            .RequirePermissao(Permissoes.RecorrenciaVer)
+            .Produces<IReadOnlyList<DateOnly>>();
+
         recorrencias.MapGet("/{id:guid}/previa", async (
             Guid id, int? quantidade, ComandosRecorrencia comandos, CancellationToken cancellationToken) =>
             Results.Ok(await comandos.PreviaAsync(id, quantidade, cancellationToken)))
