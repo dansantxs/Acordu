@@ -104,4 +104,60 @@ describe('tarefas', () => {
         expect(ultimaLista(chamadas)?.consulta.get('minhas')).toBe('true')
         expect(ultimaLista(chamadas)?.consulta.has('responsavelId')).toBe(false)
     })
+
+    it('troca para o quadro, com abertas e concluídas recentes numa chamada', async () => {
+        const chamadas = app({
+            'GET /api/v1/tarefas': () =>
+                pagina([
+                    tarefa({ titulo: 'Arte', status: 'A_FAZER' }),
+                    tarefa({ titulo: 'Texto', status: 'FAZENDO' }),
+                    tarefa({ titulo: 'Logo', status: 'CONCLUIDA', concluidaEm: new Date().toISOString() }),
+                ]),
+        })
+        const roteador = await abrir('/tarefas')
+        const usuario = userEvent.setup()
+        await usuario.click(await screen.findByRole('radio', { name: 'Quadro' }))
+
+        await vi.waitFor(() => expect(roteador.state.location.search).toEqual({ modo: 'quadro' }))
+        const coluna = (nome: string) => within(screen.getByRole('region', { name: new RegExp(`^${nome}`) }))
+        expect(await coluna('A fazer').findByText('Arte')).toBeInTheDocument()
+        expect(coluna('Fazendo').getByText('Texto')).toBeInTheDocument()
+        expect(coluna('Concluída').getByText('Logo')).toBeInTheDocument()
+        expect(screen.queryByRole('tab')).not.toBeInTheDocument()
+        const consulta = ultimaLista(chamadas)?.consulta
+        expect(consulta?.get('status')).toBe('A_FAZER,FAZENDO,CONCLUIDA')
+        expect(new Date(consulta!.get('concluidaDesde')!).getTime()).toBeLessThan(Date.now() - 13 * 86_400_000)
+    })
+
+    it('mover para concluída passa por fazendo e o aviso desfaz', async () => {
+        const arte = tarefa({ titulo: 'Arte', status: 'A_FAZER' })
+        const resposta = (status: string) => () =>
+            json({ ...arte, status, versao: '1', checklist: [], apontadoMinutos: 0 })
+        const chamadas = comPerfil(['tarefa.ver', 'tarefa.editar'], {
+            'GET /api/v1/tarefas': () => pagina([arte]),
+            'GET /api/v1/equipe': () => json([]),
+            [`POST /api/v1/tarefas/${arte.id}/inicio`]: resposta('FAZENDO'),
+            [`POST /api/v1/tarefas/${arte.id}/conclusao`]: resposta('CONCLUIDA'),
+            [`POST /api/v1/tarefas/${arte.id}/reabertura`]: resposta('FAZENDO'),
+            [`POST /api/v1/tarefas/${arte.id}/retorno`]: resposta('A_FAZER'),
+        })
+        await abrir('/tarefas?modo=quadro')
+        const usuario = userEvent.setup()
+
+        await usuario.click(await screen.findByRole('button', { name: 'Mover Arte' }))
+        await usuario.click(await screen.findByRole('menuitem', { name: 'Mover para concluída' }))
+        expect(await screen.findByText('"Arte" em concluída.')).toBeInTheDocument()
+        const transicoes = () => chamadas.filter((c) => c.metodo === 'POST' && c.caminho.startsWith('/api/v1/tarefas/'))
+        expect(transicoes().map((c) => c.caminho.split('/').at(-1))).toEqual(['inicio', 'conclusao'])
+
+        await usuario.click(screen.getByRole('button', { name: 'Desfazer' }))
+        await vi.waitFor(() =>
+            expect(transicoes().map((c) => c.caminho.split('/').at(-1))).toEqual([
+                'inicio',
+                'conclusao',
+                'reabertura',
+                'retorno',
+            ]),
+        )
+    })
 })

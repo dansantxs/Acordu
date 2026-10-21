@@ -1,7 +1,7 @@
 import { useQuery } from '@tanstack/react-query'
 import { useNavigate } from '@tanstack/react-router'
 import { useEffect, useState } from 'react'
-import { Input, SearchField, Tab, TabList, Tabs } from 'react-aria-components'
+import { Input, Radio, RadioGroup, SearchField, Tab, TabList, Tabs } from 'react-aria-components'
 import { pode } from '@/features/casca/navegacao'
 import { CampoCliente } from '@/features/clientes/CampoCliente'
 import { mensagemDeErro } from '@/shared/api/mensagens'
@@ -25,15 +25,17 @@ import {
     type FiltrosTarefas,
     type TarefaResumo,
 } from './consultas'
+import { Quadro } from './Quadro'
 import { ESTILO_STATUS_TAREFA, STATUS_TAREFA } from './rotulos'
 
-/** Tarefas (F3a): lista com abas e filtros no endereço; o quadro e o detalhe em painel vêm nos próximos PRs do F3. */
+/** Tarefas (F3a): lista com abas ou quadro, filtros no endereço; o detalhe em painel vem no F3b. */
 export function TelaTarefas({ perfil, filtros }: { perfil: Perfil; filtros: FiltrosTarefas }) {
     const navegar = useNavigate()
     const fuso = perfil.tenant.fusoHorario
     const [texto, setTexto] = useState(filtros.busca ?? '')
     const busca = useAtrasado(texto.trim())
-    const lista = useQuery(consultaListaTarefas(filtros))
+    const quadro = filtros.modo === 'quadro'
+    const lista = useQuery({ ...consultaListaTarefas(filtros), enabled: !quadro })
     const equipe = useQuery(consultaEquipe)
 
     const filtrar = (mudanca: Partial<FiltrosTarefas>) =>
@@ -52,23 +54,55 @@ export function TelaTarefas({ perfil, filtros }: { perfil: Perfil; filtros: Filt
     ]
 
     return (
-        <Pagina titulo="Tarefas">
-            <Tabs
-                selectedKey={filtros.aba ?? 'abertas'}
-                onSelectionChange={(v) => filtrar({ aba: v === 'abertas' ? undefined : (v as Aba) })}
-            >
-                <TabList aria-label="Situação" className="flex w-fit flex-wrap gap-1 rounded-couro bg-trilho p-1">
-                    {(Object.keys(ABAS) as Aba[]).map((aba) => (
-                        <Tab
-                            key={aba}
-                            id={aba}
-                            className="cursor-default rounded-couro px-3 py-1.5 text-sm text-suave outline-none data-[focus-visible]:ring-2 data-[focus-visible]:ring-acento data-[selected]:bg-superficie data-[selected]:font-semibold data-[selected]:text-tinta data-[selected]:shadow-sm"
+        <Pagina
+            titulo="Tarefas"
+            acoes={
+                <RadioGroup
+                    aria-label="Ver como"
+                    orientation="horizontal"
+                    value={quadro ? 'quadro' : 'lista'}
+                    onChange={(v) =>
+                        void navegar({
+                            to: '.',
+                            search: (atual: FiltrosTarefas) => ({
+                                ...atual,
+                                modo: v === 'quadro' ? ('quadro' as const) : undefined,
+                                pagina: undefined,
+                            }),
+                        })
+                    }
+                    className="flex gap-1 rounded-couro bg-trilho p-1"
+                >
+                    {(['lista', 'quadro'] as const).map((v) => (
+                        <Radio
+                            key={v}
+                            value={v}
+                            className="cursor-default rounded-couro px-3 py-1 text-sm text-suave outline-none data-[focus-visible]:ring-2 data-[focus-visible]:ring-acento data-[selected]:bg-superficie data-[selected]:font-semibold data-[selected]:text-tinta data-[selected]:shadow-sm"
                         >
-                            {ABAS[aba].rotulo}
-                        </Tab>
+                            {v === 'lista' ? 'Lista' : 'Quadro'}
+                        </Radio>
                     ))}
-                </TabList>
-            </Tabs>
+                </RadioGroup>
+            }
+        >
+            {!quadro && (
+                <Tabs
+                    selectedKey={filtros.aba ?? 'abertas'}
+                    onSelectionChange={(v) => filtrar({ aba: v === 'abertas' ? undefined : (v as Aba) })}
+                >
+                    <TabList aria-label="Situação" className="flex w-fit flex-wrap gap-1 rounded-couro bg-trilho p-1">
+                        {(Object.keys(ABAS) as Aba[]).map((aba) => (
+                            <Tab
+                                key={aba}
+                                id={aba}
+                                className="cursor-default rounded-couro px-3 py-1.5 text-sm text-suave outline-none data-[focus-visible]:ring-2 data-[focus-visible]:ring-acento data-[selected]:bg-superficie data-[selected]:font-semibold data-[selected]:text-tinta data-[selected]:shadow-sm"
+                            >
+                                {ABAS[aba].rotulo}
+                            </Tab>
+                        ))}
+                    </TabList>
+                </Tabs>
+            )}
 
             <div className="grid grid-cols-2 gap-3 sm:flex sm:flex-wrap sm:items-end">
                 <SearchField
@@ -117,7 +151,9 @@ export function TelaTarefas({ perfil, filtros }: { perfil: Perfil; filtros: Filt
                 )}
             </div>
 
-            {lista.isPending ? (
+            {quadro ? (
+                <Quadro filtros={filtros} hoje={hojeNoFuso(fuso)} podeEditar={pode(perfil, 'tarefa.editar')} />
+            ) : lista.isPending ? (
                 <p className="text-sm text-suave">Carregando…</p>
             ) : lista.isError ? (
                 <Alerta>{mensagemDeErro(lista.error)}</Alerta>
@@ -137,7 +173,7 @@ export function TelaTarefas({ perfil, filtros }: { perfil: Perfil; filtros: Filt
                 <Tabela itens={lista.data.itens} hoje={hojeNoFuso(fuso)} />
             )}
 
-            {lista.data && (
+            {!quadro && lista.data && (
                 <Paginacao
                     pagina={filtros.pagina ?? 1}
                     tamanhoPagina={TAMANHO_PAGINA}
