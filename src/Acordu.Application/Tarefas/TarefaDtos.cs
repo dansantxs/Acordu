@@ -21,7 +21,8 @@ public sealed record TarefaResumoDto(
     DateOnly? PlanejadaPara,
     string? ClienteNome = null,
     int? SolicitacaoNumero = null,
-    string? ProjetoNome = null);
+    string? ProjetoNome = null,
+    DateTimeOffset? ConcluidaEm = null);
 
 /// <summary>Detalhe da tarefa com checklist e total apontado (contrato §8.1).</summary>
 public sealed record TarefaDto(
@@ -40,7 +41,8 @@ public sealed record TarefaDto(
     bool VisivelCliente,
     DateOnly? PlanejadaPara,
     int ApontadoMinutos,
-    IReadOnlyList<ItemChecklistDto> Checklist);
+    IReadOnlyList<ItemChecklistDto> Checklist,
+    DateTimeOffset? ConcluidaEm = null);
 
 public sealed record ItemChecklistDto(Guid Id, int Ordem, string Texto, bool Feito);
 
@@ -85,4 +87,5 @@ public sealed record FiltroTarefas(
     Guid? ClienteId = null,
     DateOnly? PrazoAte = null,
     string? Busca = null,
-    bool SemResponsavel = false);
+    bool SemResponsavel = false,
+    DateTimeOffset? ConcluidaDesde = null);

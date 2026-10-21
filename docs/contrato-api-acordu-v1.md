@@ -369,11 +369,11 @@ Decidido na implementação (6d3):
 
 | Método | Rota | Descrição | Permissão |
 |---|---|---|---|
-| GET | `/tarefas` | Lista (`?status=&responsavelId=&semResponsavel=true&solicitacaoId=&projetoId=&clienteId=&prazoAte=&minhas=true&busca=`). | `tarefa.ver` |
+| GET | `/tarefas` | Lista (`?status=&responsavelId=&semResponsavel=true&solicitacaoId=&projetoId=&clienteId=&prazoAte=&minhas=true&busca=&concluidaDesde=`). | `tarefa.ver` |
 | POST | `/tarefas` | Cria (avulsa, de solicitação e/ou projeto). | `tarefa.criar` |
 | GET | `/tarefas/{id}` | Detalha, com checklist e total apontado. | `tarefa.ver` |
 | PATCH | `/tarefas/{id}` | Título, descrição, responsável, prazo, estimativa, `visivelCliente`, `planejadaPara`. | `tarefa.editar` |
-| POST | `/tarefas/{id}/inicio` · `/conclusao` · `/reabertura` · `/cancelamento` | Transições. | `tarefa.editar` |
+| POST | `/tarefas/{id}/inicio` · `/retorno` · `/conclusao` · `/reabertura` · `/cancelamento` | Transições (`/retorno`: FAZENDO → A_FAZER, 21/10). | `tarefa.editar` |
 | POST | `/tarefas/{id}/itens` | Adiciona item de checklist. | `tarefa.editar` |
 | PATCH/DELETE | `/tarefas/{id}/itens/{itemId}` | Marca/edita/remove item. | `tarefa.editar` |
 
@@ -436,6 +436,7 @@ Decidido no marco 14 (14/10):
 
 Decidido na implementação (6c3):
 - `POST /tarefas` aceita também `clienteId` para tarefa avulsa; com solicitação/projeto, o cliente é herdado (e precisa coincidir). Projeto concluído ou cancelado não recebe tarefas (`400` em `projetoId`). `visivelCliente` sem cliente → `400` no campo.
+- `concluidaDesde` (instante, 21/10): recorta só as CONCLUIDA (`concluidaEm` a partir dele) e deixa os outros status como estão, para o quadro pedir as abertas e as concluídas recentes numa chamada. Lista e detalhe trazem `concluidaEm` (nulo fora de CONCLUIDA e nas concluídas antes da migration).
 - Lista (F3a, 20/10): cada item traz também `clienteNome`, `solicitacaoNumero` e `projetoNome`, para o cartão do quadro; `busca` procura no título; `semResponsavel=true` lista as de ninguém e não combina com `responsavelId` nem `minhas` (`400` em `errors.semResponsavel`).
 - `PATCH /tarefas/{id}` e `/projetos/{id}` recebem o formulário inteiro; `PATCH .../itens/{itemId}` recebe `{ "texto": "...", "feito": true }` (`feito` nulo mantém).
 - Transições de tarefa e projeto respondem `200` com o recurso; itens respondem com o item.

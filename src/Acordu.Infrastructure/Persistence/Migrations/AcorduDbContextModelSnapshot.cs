@@ -996,6 +996,10 @@ namespace Acordu.Infrastructure.Persistence.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("cliente_id");
 
+                    b.Property<DateTimeOffset?>("ConcluidaEm")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("concluida_em");
+
                     b.Property<DateOnly?>("DataReferencia")
                         .HasColumnType("date")
                         .HasColumnName("data_referencia");

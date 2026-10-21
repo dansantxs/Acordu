@@ -2412,6 +2412,7 @@ export interface paths {
                     prazoAte?: string
                     minhas?: boolean
                     busca?: string
+                    concluidaDesde?: string
                     pagina?: number | string
                     tamanhoPagina?: number | string
                 }
@@ -2600,6 +2601,43 @@ export interface paths {
         trace?: never
     }
     '/api/v1/tarefas/{id}/reabertura': {
+        parameters: {
+            query?: never
+            header?: never
+            path?: never
+            cookie?: never
+        }
+        get?: never
+        put?: never
+        post: {
+            parameters: {
+                query?: never
+                header?: never
+                path: {
+                    id: string
+                }
+                cookie?: never
+            }
+            requestBody?: never
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown
+                    }
+                    content: {
+                        'application/json': components['schemas']['TarefaDto']
+                    }
+                }
+            }
+        }
+        delete?: never
+        options?: never
+        head?: never
+        patch?: never
+        trace?: never
+    }
+    '/api/v1/tarefas/{id}/retorno': {
         parameters: {
             query?: never
             header?: never
@@ -5892,6 +5930,8 @@ export interface components {
             /** Format: int32 */
             apontadoMinutos: number | string
             checklist: components['schemas']['ItemChecklistDto'][]
+            /** Format: date-time */
+            concluidaEm?: null | string
         }
         TarefaResumoDto: {
             /** Format: uuid */
@@ -5916,6 +5956,8 @@ export interface components {
             /** Format: int32 */
             solicitacaoNumero?: null | number | string
             projetoNome?: null | string
+            /** Format: date-time */
+            concluidaEm?: null | string
         }
         TarefasDashboardDto: {
             /** Format: int32 */

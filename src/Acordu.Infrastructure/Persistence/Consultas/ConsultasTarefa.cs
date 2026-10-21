@@ -2,6 +2,7 @@ using System.Globalization;
 using Acordu.Application.Common;
 using Acordu.Application.Tarefas;
 using Acordu.Domain.Entities;
+using Acordu.Domain.Enums;
 using Acordu.Infrastructure.Persistence.Configurations;
 using Microsoft.EntityFrameworkCore;
 
@@ -40,6 +41,9 @@ public sealed class ConsultasTarefa : IConsultasTarefa
             consulta = consulta.Where(t => t.Prazo != null && t.Prazo <= prazoAte);
         if (filtro.SemResponsavel)
             consulta = consulta.Where(t => t.ResponsavelId == null);
+        // Só recorta as concluídas: o quadro pede as abertas e as concluídas recentes numa chamada só.
+        if (filtro.ConcluidaDesde is { } desde)
+            consulta = consulta.Where(t => t.Status != StatusTarefa.Concluida || t.ConcluidaEm >= desde);
         if (!string.IsNullOrWhiteSpace(filtro.Busca))
         {
             var termo = $"%{filtro.Busca.Trim().Replace("\\", "\\\\", StringComparison.Ordinal).Replace("%", "\\%", StringComparison.Ordinal).Replace("_", "\\_", StringComparison.Ordinal)}%";
@@ -67,7 +71,8 @@ public sealed class ConsultasTarefa : IConsultasTarefa
                 t.Estimativa?.Minutos, t.VisivelCliente, t.PlanejadaPara,
                 t.ClienteId is { } c ? clientes.GetValueOrDefault(c) : null,
                 t.SolicitacaoId is { } s ? numeros.GetValueOrDefault(s) : null,
-                t.ProjetoId is { } p ? projetos.GetValueOrDefault(p) : null))],
+                t.ProjetoId is { } p ? projetos.GetValueOrDefault(p) : null,
+                t.ConcluidaEm))],
             paginacao.Pagina,
             paginacao.TamanhoPagina,
             total);
@@ -107,7 +112,8 @@ public sealed class ConsultasTarefa : IConsultasTarefa
             t.VisivelCliente,
             t.PlanejadaPara,
             apontado,
-            [.. t.Checklist.Select(i => new ItemChecklistDto(i.Id, i.Ordem, i.Texto, i.Feito))]);
+            [.. t.Checklist.Select(i => new ItemChecklistDto(i.Id, i.Ordem, i.Texto, i.Feito))],
+            t.ConcluidaEm);
     }
 
     private sealed class Soma

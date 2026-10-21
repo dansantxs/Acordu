@@ -2443,6 +2443,14 @@
             }
           },
           {
+            "name": "concluidaDesde",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            }
+          },
+          {
             "name": "pagina",
             "in": "query",
             "schema": {
@@ -2637,6 +2645,36 @@
       }
     },
     "/api/v1/tarefas/{id}/reabertura": {
+      "post": {
+        "tags": [
+          "Tarefas"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TarefaDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/tarefas/{id}/retorno": {
       "post": {
         "tags": [
           "Tarefas"
@@ -9387,6 +9425,13 @@
             "items": {
               "$ref": "#/components/schemas/ItemChecklistDto"
             }
+          },
+          "concluidaEm": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
           }
         }
       },
@@ -9493,6 +9538,13 @@
               "null",
               "string"
             ]
+          },
+          "concluidaEm": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
           }
         }
       },
