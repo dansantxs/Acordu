@@ -474,6 +474,7 @@ Decidido na implementação (6c3):
 | GET/PATCH/DELETE | `/recorrencias/{id}` | Detalha / edita contrato, modelo e regra / encerra (204; fica como histórico). | idem |
 | POST | `/recorrencias/{id}/pausa` · `/retomada` | Transições. | `recorrencia.gerenciar` |
 | GET | `/recorrencias/{id}/previa` | Próximas datas (`?quantidade=6`, 1–24). | `recorrencia.ver` |
+| POST | `/recorrencias/previa` | Próximas datas de uma regra **sem salvar** (`{ regra, quantidade? }`), para o formulário conferir antes de gravar (21/10, F4c). | `recorrencia.ver` |
 
 ```json
 // POST /recorrencias → 201
@@ -492,6 +493,7 @@ Decidido na implementação (6c3):
 - `PATCH` recebe `contratoId`, `modelo` e `regra` completos (o cliente não muda; `regra.inicio` ausente mantém o atual). Vale para as próximas tarefas: as já geradas não mudam. Regra diferente recalcula a próxima data a partir de hoje; regra igual não mexe nela. `If-Match` opcional, como nas demais edições.
 - Validação: cliente ativo; contrato, se houver, do mesmo cliente e não encerrado; responsável da equipe (checado só quando muda). Erro de campo aninhado vem com o caminho (`regra.diaReferencia`).
 - Detalhe: `{ id, clienteId, clienteNome, contratoId, modelo, regra, proximaData, status, versao }`; listagem paginada com `titulo`, `responsavelId`, `periodicidade`, `proximaData` e `status` (ativas primeiro, pela próxima data).
+- Prévia sem salvar (`POST /recorrencias/previa`): mesma regra e mesmo gerador; conta a partir de hoje no fuso do tenant (ou do `inicio`, se for depois); erro de campo com o caminho (`regra.diaReferencia`); `quantidade` 1–24, padrão 6.
 - Prévia: ATIVA a partir da próxima data; PAUSADA, as datas que valeriam se retomasse hoje; ENCERRADA, lista vazia.
 
 - **Geração (RF-REC-03):** no job `tick` (a cada 5 min), com o "hoje" no fuso de cada tenant: assim que `data de referência − antecedência ≤ hoje`, a tarefa é criada copiando o modelo (prazo = data de referência, checklist nova). Cada recorrência com suas tarefas num commit; a próxima data avança junto, e o índice único (recorrência, data) barra duplicata. Cliente inativo: as datas passam sem gerar e sem acumular. Responsável que saiu da equipe: a tarefa nasce sem responsável. O contrato não é olhado na geração: o apontamento usa o contrato da recorrência (RF-APT-03).
