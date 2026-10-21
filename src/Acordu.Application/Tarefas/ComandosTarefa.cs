@@ -18,6 +18,7 @@ public sealed class ComandosTarefa
     private readonly IMembrosDaEquipe _equipe;
     private readonly IUnitOfWork _unidade;
     private readonly IControleVersao _versoes;
+    private readonly TimeProvider _relogio;
 
     public ComandosTarefa(
         ITenantContext contexto,
@@ -27,7 +28,8 @@ public sealed class ComandosTarefa
         IRepositorio<Cliente> clientes,
         IMembrosDaEquipe equipe,
         IUnitOfWork unidade,
-        IControleVersao versoes)
+        IControleVersao versoes,
+        TimeProvider relogio)
     {
         ArgumentNullException.ThrowIfNull(contexto);
         ArgumentNullException.ThrowIfNull(tarefas);
@@ -37,6 +39,7 @@ public sealed class ComandosTarefa
         ArgumentNullException.ThrowIfNull(equipe);
         ArgumentNullException.ThrowIfNull(unidade);
         ArgumentNullException.ThrowIfNull(versoes);
+        ArgumentNullException.ThrowIfNull(relogio);
         _contexto = contexto;
         _tarefas = tarefas;
         _solicitacoes = solicitacoes;
@@ -45,6 +48,7 @@ public sealed class ComandosTarefa
         _equipe = equipe;
         _unidade = unidade;
         _versoes = versoes;
+        _relogio = relogio;
     }
 
     public async Task<Guid> CriarAsync(NovaTarefaRequest dados, CancellationToken cancellationToken = default)
@@ -94,7 +98,10 @@ public sealed class ComandosTarefa
         AlterarAsync(id, versao, t => t.Iniciar(), cancellationToken);
 
     public Task ConcluirAsync(Guid id, string? versao, CancellationToken cancellationToken = default) =>
-        AlterarAsync(id, versao, t => t.Concluir(), cancellationToken);
+        AlterarAsync(id, versao, t => t.Concluir(_relogio.GetUtcNow()), cancellationToken);
+
+    public Task RetornarAsync(Guid id, string? versao, CancellationToken cancellationToken = default) =>
+        AlterarAsync(id, versao, t => t.Retornar(), cancellationToken);
 
     public Task ReabrirAsync(Guid id, string? versao, CancellationToken cancellationToken = default) =>
         AlterarAsync(id, versao, t => t.Reabrir(), cancellationToken);
