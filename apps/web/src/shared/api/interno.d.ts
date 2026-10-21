@@ -3256,6 +3256,45 @@ export interface paths {
         }
         trace?: never
     }
+    '/api/v1/recorrencias/previa': {
+        parameters: {
+            query?: never
+            header?: never
+            path?: never
+            cookie?: never
+        }
+        get?: never
+        put?: never
+        post: {
+            parameters: {
+                query?: never
+                header?: never
+                path?: never
+                cookie?: never
+            }
+            requestBody: {
+                content: {
+                    'application/json': components['schemas']['PreviaRegraRequest']
+                }
+            }
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown
+                    }
+                    content: {
+                        'application/json': string[]
+                    }
+                }
+            }
+        }
+        delete?: never
+        options?: never
+        head?: never
+        patch?: never
+        trace?: never
+    }
     '/api/v1/recorrencias/{id}/previa': {
         parameters: {
             query?: never
@@ -5577,6 +5616,11 @@ export interface components {
         }
         PreferenciasDto: {
             categorias: components['schemas']['PreferenciaDto'][]
+        }
+        PreviaRegraRequest: {
+            regra: null | components['schemas']['RegraRecorrenciaDto']
+            /** Format: int32 */
+            quantidade: null | number | string
         }
         /** @enum {unknown} */
         Prioridade: 'BAIXA' | 'MEDIA' | 'ALTA' | 'URGENTE'
