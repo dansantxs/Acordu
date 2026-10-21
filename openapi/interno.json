@@ -9432,6 +9432,27 @@
               "string"
             ],
             "format": "date-time"
+          },
+          "clienteNome": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "solicitacaoNumero": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "null",
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "projetoNome": {
+            "type": [
+              "null",
+              "string"
+            ]
           }
         }
       },
