@@ -9,6 +9,7 @@ namespace Acordu.Domain.UnitTests.Entities;
 public sealed class TarefaTests
 {
     private static readonly Guid Solicitacao = Guid.Parse("55555555-5555-5555-5555-555555555555");
+    private static readonly DateTimeOffset Agora = new(2026, 10, 21, 13, 0, 0, TimeSpan.Zero);
 
     private static Tarefa Criar(
         Guid? clienteId = null,
@@ -35,7 +36,7 @@ public sealed class TarefaTests
                 break;
             case StatusTarefa.Concluida:
                 tarefa.Iniciar();
-                tarefa.Concluir();
+                tarefa.Concluir(Agora);
                 break;
             case StatusTarefa.Cancelada:
                 tarefa.Cancelar();
@@ -123,11 +124,12 @@ public sealed class TarefaTests
             [(StatusTarefa.AFazer, "Iniciar")] = StatusTarefa.Fazendo,
             [(StatusTarefa.AFazer, "Cancelar")] = StatusTarefa.Cancelada,
             [(StatusTarefa.Fazendo, "Concluir")] = StatusTarefa.Concluida,
+            [(StatusTarefa.Fazendo, "Retornar")] = StatusTarefa.AFazer,
             [(StatusTarefa.Fazendo, "Cancelar")] = StatusTarefa.Cancelada,
             [(StatusTarefa.Concluida, "Reabrir")] = StatusTarefa.Fazendo,
         };
 
-        private static readonly string[] Operacoes = ["Iniciar", "Concluir", "Reabrir", "Cancelar"];
+        private static readonly string[] Operacoes = ["Iniciar", "Concluir", "Reabrir", "Cancelar", "Retornar"];
 
         public static TheoryData<StatusTarefa, string> TransicoesValidas()
         {
@@ -180,7 +182,7 @@ public sealed class TarefaTests
         {
             var tarefa = Em(StatusTarefa.Fazendo);
 
-            tarefa.Concluir();
+            tarefa.Concluir(Agora);
 
             tarefa.Eventos.Should().HaveCount(2);
             var status = (TarefaStatusAlterada)tarefa.Eventos[0];
@@ -189,13 +191,38 @@ public sealed class TarefaTests
         }
 
         [Fact]
+        public void Concluir_GuardaQuandoEReabrirZera()
+        {
+            var tarefa = Em(StatusTarefa.Fazendo);
+
+            tarefa.Concluir(Agora);
+            var concluida = tarefa.ConcluidaEm;
+            tarefa.Reabrir();
+
+            concluida.Should().Be(Agora);
+            tarefa.ConcluidaEm.Should().BeNull();
+        }
+
+        [Fact]
+        public void Retornar_VoltaParaAFazerEmitindoStatus()
+        {
+            var tarefa = Em(StatusTarefa.Fazendo);
+
+            tarefa.Retornar();
+
+            tarefa.Eventos.Should().HaveCount(1);
+            var status = (TarefaStatusAlterada)tarefa.Eventos[0];
+            (status.De, status.Para).Should().Be((StatusTarefa.Fazendo, StatusTarefa.AFazer));
+        }
+
+        [Fact]
         public void Transicoes_TemOcorrenciasDistintas()
         {
             var tarefa = Em(StatusTarefa.Fazendo);
 
-            tarefa.Concluir();
+            tarefa.Concluir(Agora);
             tarefa.Reabrir();
-            tarefa.Concluir();
+            tarefa.Concluir(Agora);
 
             var ocorrencias = tarefa.Eventos.OfType<TarefaStatusAlterada>().Select(e => e.Ocorrencia).ToList();
             ocorrencias.Should().HaveCount(3);
@@ -238,7 +265,8 @@ public sealed class TarefaTests
             switch (operacao)
             {
                 case "Iniciar": tarefa.Iniciar(); break;
-                case "Concluir": tarefa.Concluir(); break;
+                case "Concluir": tarefa.Concluir(Agora); break;
+                case "Retornar": tarefa.Retornar(); break;
                 case "Reabrir": tarefa.Reabrir(); break;
                 case "Cancelar": tarefa.Cancelar(); break;
                 default: throw new ArgumentOutOfRangeException(nameof(operacao));
@@ -429,7 +457,7 @@ public sealed class TarefaTests
             var tarefa = DeSolicitacao();
             var item = tarefa.AdicionarItem("Revisar");
             tarefa.Iniciar();
-            tarefa.Concluir();
+            tarefa.Concluir(Agora);
 
             tarefa.MarcarItem(item.Id, true);
 

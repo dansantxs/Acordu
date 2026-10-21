@@ -27,7 +27,7 @@ public sealed class ConsultasProjetoESqlTests(BancoFixture banco)
         var projeto = Projeto.Criar(Guid.NewGuid(), _tenant, _cliente, "Site", null, null, estimativa);
         var concluida = TarefaDoProjeto(projeto, 120);
         concluida.Iniciar();
-        concluida.Concluir();
+        concluida.Concluir(DateTimeOffset.UtcNow);
         var aFazer = TarefaDoProjeto(projeto, 60);
         var cancelada = TarefaDoProjeto(projeto, 500);
         cancelada.Cancelar();

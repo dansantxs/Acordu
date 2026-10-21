@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Net;
 using System.Text.Json;
 using Acordu.Api.FunctionalTests.Apoio;
@@ -69,6 +70,35 @@ public sealed class TarefasTests(ApiFixture api)
         concluida.GetProperty("status").GetString().Should().Be("CONCLUIDA");
         reaberta.GetProperty("status").GetString().Should().Be("FAZENDO");
         cancelada.GetProperty("status").GetString().Should().Be("CANCELADA");
+    }
+
+    [Fact]
+    public async Task Retorno_VoltaParaAFazer_EConcluidaEmRecortaOQuadro()
+    {
+        var equipe = await Equipe.CriarAsync(api);
+        var voltou = await TarefaAsync(equipe, titulo: "Voltou");
+        var concluida = await TarefaAsync(equipe, titulo: "Concluída");
+        var aberta = await TarefaAsync(equipe, titulo: "Aberta");
+        // O relógio da API nos testes é o RelogioDeTeste (parado), não o da máquina.
+        var antes = api.Relogio.Agora.AddMinutes(-1);
+
+        await equipe.EsperarAsync(HttpStatusCode.UnprocessableEntity, HttpMethod.Post, $"/api/v1/tarefas/{voltou}/retorno");
+        await equipe.EsperarAsync(HttpStatusCode.OK, HttpMethod.Post, $"/api/v1/tarefas/{voltou}/inicio");
+        var retornada = await equipe.EsperarAsync(HttpStatusCode.OK, HttpMethod.Post, $"/api/v1/tarefas/{voltou}/retorno");
+        await equipe.EsperarAsync(HttpStatusCode.OK, HttpMethod.Post, $"/api/v1/tarefas/{concluida}/inicio");
+        var feita = await equipe.EsperarAsync(HttpStatusCode.OK, HttpMethod.Post, $"/api/v1/tarefas/{concluida}/conclusao");
+        var recentes = await equipe.EsperarAsync(
+            HttpStatusCode.OK, HttpMethod.Get, $"/api/v1/tarefas?concluidaDesde={Uri.EscapeDataString(antes.ToString("O", CultureInfo.InvariantCulture))}");
+        var depois = await equipe.EsperarAsync(
+            HttpStatusCode.OK, HttpMethod.Get,
+            $"/api/v1/tarefas?concluidaDesde={Uri.EscapeDataString(api.Relogio.Agora.AddMinutes(1).ToString("O", CultureInfo.InvariantCulture))}");
+        var reaberta = await equipe.EsperarAsync(HttpStatusCode.OK, HttpMethod.Post, $"/api/v1/tarefas/{concluida}/reabertura");
+
+        retornada.GetProperty("status").GetString().Should().Be("A_FAZER");
+        feita.GetProperty("concluidaEm").GetDateTimeOffset().Should().BeAfter(antes);
+        recentes.GetProperty("itens").EnumerateArray().Select(Id).Should().BeEquivalentTo(new[] { voltou, concluida, aberta });
+        depois.GetProperty("itens").EnumerateArray().Select(Id).Should().BeEquivalentTo(new[] { voltou, aberta });
+        reaberta.GetProperty("concluidaEm").ValueKind.Should().Be(JsonValueKind.Null);
     }
 
     [Fact]
