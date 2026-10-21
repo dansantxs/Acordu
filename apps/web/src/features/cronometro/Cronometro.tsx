@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Link } from '@tanstack/react-router'
 import { useState } from 'react'
-import { Button, Checkbox, Form } from 'react-aria-components'
+import { Button, Form } from 'react-aria-components'
 import { consultaTarefa } from '@/features/tarefas/consultas'
 import { mensagemDeErro } from '@/shared/api/mensagens'
 import { avisar, avisarErro } from '@/shared/avisos/avisos'
@@ -20,6 +20,7 @@ import { Botao } from '@/shared/ui/Botao'
 import { CampoTexto } from '@/shared/ui/CampoTexto'
 import { Confirmacao } from '@/shared/ui/Confirmacao'
 import { Janela } from '@/shared/ui/Janela'
+import { Marcador } from '@/shared/ui/Marcador'
 
 /** Depois de parar ou descartar: o cronômetro some e as horas da tarefa e das listas mudam. */
 async function atualizar(consultas: ReturnType<typeof useQueryClient>) {
@@ -230,32 +231,5 @@ function FormularioParada({ cronometro: c, aoFechar }: { cronometro: Cronometro;
                 <p>O tempo contado ({formatarDuracao(minutos)}) é perdido e nada é apontado.</p>
             </Confirmacao>
         </Form>
-    )
-}
-
-function Marcador({
-    valor,
-    aoMudar,
-    children,
-}: {
-    valor: boolean
-    aoMudar: (valor: boolean) => void
-    children: React.ReactNode
-}) {
-    return (
-        <Checkbox isSelected={valor} onChange={aoMudar} className="group flex items-center gap-2 text-sm">
-            <span
-                aria-hidden="true"
-                className="grid size-4 place-items-center rounded border border-linha bg-superficie group-data-[selected]:border-acento group-data-[selected]:bg-acento group-data-[focus-visible]:ring-2 group-data-[focus-visible]:ring-acento"
-            >
-                <svg
-                    viewBox="0 0 12 12"
-                    className="size-3 text-botao-tinta opacity-0 group-data-[selected]:opacity-100"
-                >
-                    <path d="M2.5 6.5 5 9l4.5-6" fill="none" stroke="currentColor" strokeWidth="2" />
-                </svg>
-            </span>
-            {children}
-        </Checkbox>
     )
 }
