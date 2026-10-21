@@ -3,7 +3,10 @@ using Acordu.Domain.Enums;
 
 namespace Acordu.Application.Tarefas;
 
-/// <summary>Item da lista/quadro de tarefas (o kanban agrupa por <see cref="Status"/> no front).</summary>
+/// <summary>
+/// Item da lista/quadro de tarefas (o kanban agrupa por <see cref="Status"/> no front). Nome do cliente, número da
+/// solicitação e nome do projeto vêm junto para o cartão não precisar de outra busca (F3a, 20/10).
+/// </summary>
 public sealed record TarefaResumoDto(
     Guid Id,
     string Titulo,
@@ -15,7 +18,10 @@ public sealed record TarefaResumoDto(
     DateOnly? Prazo,
     int? EstimativaMinutos,
     bool VisivelCliente,
-    DateOnly? PlanejadaPara);
+    DateOnly? PlanejadaPara,
+    string? ClienteNome = null,
+    int? SolicitacaoNumero = null,
+    string? ProjetoNome = null);
 
 /// <summary>Detalhe da tarefa com checklist e total apontado (contrato §8.1).</summary>
 public sealed record TarefaDto(
@@ -77,4 +83,6 @@ public sealed record FiltroTarefas(
     Guid? SolicitacaoId = null,
     Guid? ProjetoId = null,
     Guid? ClienteId = null,
-    DateOnly? PrazoAte = null);
+    DateOnly? PrazoAte = null,
+    string? Busca = null,
+    bool SemResponsavel = false);
