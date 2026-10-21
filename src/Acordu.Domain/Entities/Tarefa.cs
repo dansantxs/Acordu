@@ -59,6 +59,9 @@ public sealed class Tarefa : EntidadeBase
 
     public DateOnly? DataReferencia { get; private set; }
 
+    /// <summary>Quando foi concluída; zera ao reabrir (o quadro mostra as concluídas recentes, F3 de 21/10).</summary>
+    public DateTimeOffset? ConcluidaEm { get; private set; }
+
     /// <summary>Aparece no portal (RF-TAR-04). Exige <see cref="ClienteId"/>.</summary>
     public bool VisivelCliente { get; private set; }
 
@@ -177,9 +180,17 @@ public sealed class Tarefa : EntidadeBase
         MudarStatus(StatusTarefa.Fazendo);
     }
 
-    public void Concluir()
+    /// <summary>Volta de FAZENDO para A_FAZER (decidido em 21/10, F3): mover no quadro e desfazer o "Iniciar".</summary>
+    public void Retornar()
+    {
+        Exigir(nameof(Retornar), StatusTarefa.Fazendo);
+        MudarStatus(StatusTarefa.AFazer);
+    }
+
+    public void Concluir(DateTimeOffset agora)
     {
         Exigir(nameof(Concluir), StatusTarefa.Fazendo);
+        ConcluidaEm = agora;
         MudarStatus(StatusTarefa.Concluida);
         Registrar(new TarefaConcluida(Id, TenantId, ClienteId, SolicitacaoId, ProjetoId));
     }
@@ -187,6 +198,7 @@ public sealed class Tarefa : EntidadeBase
     public void Reabrir()
     {
         Exigir(nameof(Reabrir), StatusTarefa.Concluida);
+        ConcluidaEm = null;
         MudarStatus(StatusTarefa.Fazendo);
     }
 
