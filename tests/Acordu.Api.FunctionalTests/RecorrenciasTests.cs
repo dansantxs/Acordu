@@ -77,6 +77,32 @@ public sealed class RecorrenciasTests(ApiFixture api)
     }
 
     [Fact]
+    public async Task PreviaDeRegraSemSalvar_MesmoGeradorEValidacaoNoCampo()
+    {
+        var equipe = await Equipe.CriarAsync(api);
+
+        var mensal = await equipe.EsperarAsync(HttpStatusCode.OK, HttpMethod.Post, "/api/v1/recorrencias/previa", new
+        {
+            regra = new { periodicidade = "MENSAL", diaReferencia = 31, antecedenciaDias = 3, inicio = "2030-01-01", fim = (string?)null },
+            quantidade = 3,
+        });
+        var comFim = await equipe.EsperarAsync(HttpStatusCode.OK, HttpMethod.Post, "/api/v1/recorrencias/previa", new
+        {
+            regra = new { periodicidade = "MENSAL", diaReferencia = 31, antecedenciaDias = 0, inicio = "2030-01-01", fim = "2030-02-28" },
+        });
+        var invalida = await equipe.EsperarAsync(HttpStatusCode.BadRequest, HttpMethod.Post, "/api/v1/recorrencias/previa", new
+        {
+            regra = new { periodicidade = "SEMANAL", diaReferencia = 9, antecedenciaDias = 0, inicio = "2030-01-01", fim = (string?)null },
+        });
+        var lista = await equipe.EsperarAsync(HttpStatusCode.OK, HttpMethod.Get, "/api/v1/recorrencias");
+
+        Datas(mensal).Should().Equal("2030-01-31", "2030-02-28", "2030-03-31");
+        Datas(comFim).Should().Equal("2030-01-31", "2030-02-28");
+        invalida.GetProperty("errors").TryGetProperty("regra.diaReferencia", out _).Should().BeTrue();
+        lista.GetProperty("total").GetInt32().Should().Be(0, "a prévia não grava nada");
+    }
+
+    [Fact]
     public async Task InicioNoPassado_SoAncoraOCiclo_SemDatasRetroativas()
     {
         var equipe = await Equipe.CriarAsync(api);
