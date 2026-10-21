@@ -38,6 +38,13 @@ public sealed class ConsultasTarefa : IConsultasTarefa
             consulta = consulta.Where(t => t.ClienteId == clienteId);
         if (filtro.PrazoAte is { } prazoAte)
             consulta = consulta.Where(t => t.Prazo != null && t.Prazo <= prazoAte);
+        if (filtro.SemResponsavel)
+            consulta = consulta.Where(t => t.ResponsavelId == null);
+        if (!string.IsNullOrWhiteSpace(filtro.Busca))
+        {
+            var termo = $"%{filtro.Busca.Trim().Replace("\\", "\\\\", StringComparison.Ordinal).Replace("%", "\\%", StringComparison.Ordinal).Replace("_", "\\_", StringComparison.Ordinal)}%";
+            consulta = consulta.Where(t => EF.Functions.ILike(t.Titulo, termo));
+        }
 
         var total = await consulta.CountAsync(cancellationToken);
         var pagina = await consulta
@@ -45,10 +52,22 @@ public sealed class ConsultasTarefa : IConsultasTarefa
             .Skip(paginacao.Pular).Take(paginacao.TamanhoPagina)
             .ToListAsync(cancellationToken);
         var pessoas = await Nomes.DeUsuariosAsync(_db, pagina.Where(t => t.ResponsavelId is not null).Select(t => t.ResponsavelId!.Value), cancellationToken);
+        var idsClientes = pagina.Where(t => t.ClienteId is not null).Select(t => t.ClienteId!.Value).Distinct().ToList();
+        var idsSolicitacoes = pagina.Where(t => t.SolicitacaoId is not null).Select(t => t.SolicitacaoId!.Value).Distinct().ToList();
+        var idsProjetos = pagina.Where(t => t.ProjetoId is not null).Select(t => t.ProjetoId!.Value).Distinct().ToList();
+        var clientes = await _db.Clientes.AsNoTracking().Where(c => idsClientes.Contains(c.Id))
+            .ToDictionaryAsync(c => c.Id, c => c.Nome, cancellationToken);
+        var numeros = await _db.Solicitacoes.AsNoTracking().Where(s => idsSolicitacoes.Contains(s.Id))
+            .ToDictionaryAsync(s => s.Id, s => s.Numero, cancellationToken);
+        var projetos = await _db.Projetos.AsNoTracking().Where(p => idsProjetos.Contains(p.Id))
+            .ToDictionaryAsync(p => p.Id, p => p.Nome, cancellationToken);
         return new ResultadoPaginado<TarefaResumoDto>(
             [.. pagina.Select(t => new TarefaResumoDto(
                 t.Id, t.Titulo, t.Status, t.ClienteId, t.SolicitacaoId, t.ProjetoId, Nomes.Pessoa(t.ResponsavelId, pessoas), t.Prazo,
-                t.Estimativa?.Minutos, t.VisivelCliente, t.PlanejadaPara))],
+                t.Estimativa?.Minutos, t.VisivelCliente, t.PlanejadaPara,
+                t.ClienteId is { } c ? clientes.GetValueOrDefault(c) : null,
+                t.SolicitacaoId is { } s ? numeros.GetValueOrDefault(s) : null,
+                t.ProjetoId is { } p ? projetos.GetValueOrDefault(p) : null))],
             paginacao.Pagina,
             paginacao.TamanhoPagina,
             total);

@@ -14,6 +14,7 @@ export type CaminhoNavegacao =
     | '/'
     | '/agenda'
     | '/solicitacoes'
+    | '/tarefas'
     | '/clientes'
     | '/contratos'
     | '/projetos'
@@ -30,6 +31,7 @@ export const NAVEGACAO: ItemNavegacao[] = [
         permissoes: ['solicitacao.ver', 'tarefa.ver', 'projeto.ver', 'recorrencia.ver'],
     },
     { rotulo: 'Solicitações', para: '/solicitacoes', permissoes: ['solicitacao.ver'], separar: true },
+    { rotulo: 'Tarefas', para: '/tarefas', permissoes: ['tarefa.ver'] },
     { rotulo: 'Clientes', para: '/clientes', permissoes: ['cliente.ver'] },
     { rotulo: 'Contratos', para: '/contratos', permissoes: ['contrato.ver'] },
     { rotulo: 'Projetos', para: '/projetos', permissoes: ['projeto.ver'] },

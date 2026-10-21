@@ -110,11 +110,21 @@ public sealed class TarefasTests(ApiFixture api)
         var minhas = await equipe.EsperarAsync(HttpStatusCode.OK, HttpMethod.Get, "/api/v1/tarefas?minhas=true");
         var fazendo = await equipe.EsperarAsync(HttpStatusCode.OK, HttpMethod.Get, "/api/v1/tarefas?status=FAZENDO");
         var daSolicitacao = await equipe.EsperarAsync(HttpStatusCode.OK, HttpMethod.Get, $"/api/v1/tarefas?solicitacaoId={solicitacao}");
+        var semResponsavel = await equipe.EsperarAsync(HttpStatusCode.OK, HttpMethod.Get, "/api/v1/tarefas?semResponsavel=true");
+        var porBusca = await equipe.EsperarAsync(HttpStatusCode.OK, HttpMethod.Get, "/api/v1/tarefas?busca=MINH");
+        var conflitante = await equipe.EsperarAsync(HttpStatusCode.BadRequest, HttpMethod.Get, "/api/v1/tarefas?semResponsavel=true&minhas=true");
 
         minhas.GetProperty("itens").EnumerateArray().Select(Id).Should().Equal(minha);
         minhas.GetProperty("itens")[0].GetProperty("responsavel").GetProperty("nome").GetString().Should().Be("Pessoa da equipe");
         fazendo.GetProperty("itens").EnumerateArray().Select(Id).Should().Equal(outra);
         daSolicitacao.GetProperty("total").GetInt32().Should().Be(1);
+        var cartao = daSolicitacao.GetProperty("itens")[0];
+        cartao.GetProperty("clienteNome").GetString().Should().Be("Padaria Bom Grão");
+        cartao.GetProperty("solicitacaoNumero").GetInt32().Should().BePositive();
+        cartao.GetProperty("projetoNome").ValueKind.Should().Be(JsonValueKind.Null);
+        semResponsavel.GetProperty("itens").EnumerateArray().Select(Id).Should().Equal(outra);
+        porBusca.GetProperty("itens").EnumerateArray().Select(Id).Should().Equal(minha);
+        conflitante.GetProperty("errors").TryGetProperty("semResponsavel", out _).Should().BeTrue();
     }
 
     [Fact]

@@ -2405,11 +2405,13 @@ export interface paths {
                 query?: {
                     status?: string
                     responsavelId?: string
+                    semResponsavel?: boolean
                     solicitacaoId?: string
                     projetoId?: string
                     clienteId?: string
                     prazoAte?: string
                     minhas?: boolean
+                    busca?: string
                     pagina?: number | string
                     tamanhoPagina?: number | string
                 }
@@ -5910,6 +5912,10 @@ export interface components {
             visivelCliente: boolean
             /** Format: date */
             planejadaPara: null | string
+            clienteNome?: null | string
+            /** Format: int32 */
+            solicitacaoNumero?: null | number | string
+            projetoNome?: null | string
         }
         TarefasDashboardDto: {
             /** Format: int32 */

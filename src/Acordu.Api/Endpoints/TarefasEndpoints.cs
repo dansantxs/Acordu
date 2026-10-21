@@ -15,9 +15,12 @@ internal static class TarefasEndpoints
         var tarefas = interno.MapGroup("/tarefas").WithTags("Tarefas");
 
         tarefas.MapGet(string.Empty, async (
-            string? status, Guid? responsavelId, Guid? solicitacaoId, Guid? projetoId, Guid? clienteId, DateOnly? prazoAte, bool? minhas,
-            int? pagina, int? tamanhoPagina, ITenantContext contexto, IConsultasTarefa consultas, CancellationToken cancellationToken) =>
+            string? status, Guid? responsavelId, bool? semResponsavel, Guid? solicitacaoId, Guid? projetoId, Guid? clienteId,
+            DateOnly? prazoAte, bool? minhas, string? busca, int? pagina, int? tamanhoPagina, ITenantContext contexto,
+            IConsultasTarefa consultas, CancellationToken cancellationToken) =>
         {
+            if (semResponsavel == true && (responsavelId is not null || minhas == true))
+                throw ErroDeCampo.Criar(nameof(semResponsavel), "Use semResponsavel sem responsavelId nem minhas.");
             var filtro = new FiltroTarefas(
                 Status: status?.Split(',', StringSplitOptions.RemoveEmptyEntries)
                     .Select(s => EnumsDaApi.Ler<StatusTarefa>(s, nameof(status))!.Value)
@@ -26,7 +29,9 @@ internal static class TarefasEndpoints
                 SolicitacaoId: solicitacaoId,
                 ProjetoId: projetoId,
                 ClienteId: clienteId,
-                PrazoAte: prazoAte);
+                PrazoAte: prazoAte,
+                Busca: busca,
+                SemResponsavel: semResponsavel == true);
             return Results.Ok(await consultas.ListarAsync(filtro, new Paginacao(pagina, tamanhoPagina), cancellationToken));
         })
             .RequirePermissao(Permissoes.TarefaVer)
