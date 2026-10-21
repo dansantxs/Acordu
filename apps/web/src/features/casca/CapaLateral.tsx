@@ -3,7 +3,8 @@ import { Button } from 'react-aria-components'
 import type { Perfil } from '@/shared/sessao/perfil'
 import { Icone } from '@/shared/ui/Icone'
 import { MenuUsuario } from './MenuUsuario'
-import { navegacaoDe } from './navegacao'
+import { IndicadorCronometro } from '@/features/cronometro/Cronometro'
+import { navegacaoDe, pode } from './navegacao'
 import { Sino } from './Sino'
 
 const estiloLink =
@@ -54,6 +55,7 @@ export function CapaLateral({
             </ul>
 
             <div className="mt-auto flex flex-col gap-2">
+                {pode(perfil, 'apontamento.criar') && <IndicadorCronometro />}
                 <Button
                     onPress={aoBuscar}
                     className="flex items-center gap-2 rounded-couro bg-lateral-cartao px-3 py-2 text-left text-sm text-lateral-suave hover:text-lateral-tinta"
