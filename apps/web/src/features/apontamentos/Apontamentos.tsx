@@ -226,6 +226,7 @@ export function LinhasApontamento({
     podeCriar,
     mostrarTarefa = false,
     mostrarPessoa = false,
+    mostrarData = false,
 }: {
     itens: Apontamento[]
     fuso: string
@@ -234,6 +235,8 @@ export function LinhasApontamento({
     podeCriar: boolean
     mostrarTarefa?: boolean
     mostrarPessoa?: boolean
+    /** A data mesmo com a tarefa visível (horas do mês no contrato). */
+    mostrarData?: boolean
 }) {
     const consultas = useQueryClient()
     const [editando, setEditando] = useState<Apontamento | null>(null)
@@ -273,7 +276,9 @@ export function LinhasApontamento({
                         </span>
                         <span className="flex items-center gap-2 text-xs text-suave">
                             {mostrarPessoa && <span>{a.usuario.nome}</span>}
-                            {!mostrarTarefa && <span>{a.data.split('-').reverse().slice(0, 2).join('/')}</span>}
+                            {(mostrarData || !mostrarTarefa) && (
+                                <span>{a.data.split('-').reverse().slice(0, 2).join('/')}</span>
+                            )}
                             <span>{a.faturavel ? 'faturável' : 'não faturável'}</span>
                             {podeMexer(a) && (
                                 <>
