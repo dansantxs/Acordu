@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Link, useNavigate } from '@tanstack/react-router'
 import { useState, type ReactNode } from 'react'
-import { Button } from 'react-aria-components'
+import { Button, Tab, TabList, TabPanel, Tabs } from 'react-aria-components'
 import { pode } from '@/features/casca/navegacao'
 import { mensagemDeErro } from '@/shared/api/mensagens'
 import { avisar, avisarErro } from '@/shared/avisos/avisos'
@@ -23,6 +23,8 @@ import {
     type Contato,
     type Endereco,
 } from './consultas'
+import { ABAS_CLIENTE, ROTULO_ABA, type AbaCliente } from './abas'
+import { ContratosCliente, EmAbertoCliente, ResumoCliente } from './SecoesFicha'
 import { Etiquetas } from './Etiquetas'
 import { JanelaCliente } from './JanelaCliente'
 import { JanelaContato } from './JanelaContato'
@@ -62,19 +64,43 @@ function SituacaoPortal({ contato }: { contato: Contato }) {
 }
 
 /**
- * Ficha básica (F2a): dados, observações e contatos. A ficha completa do protótipo — régua do banco de horas,
- * contratos, em aberto, acessos ao portal — chega no F4.
+ * Ficha do cliente em abas com endereço (decisão 1 do F4): resumo com dados e a régua dos contratos ativos, o que
+ * está em aberto, contratos e contatos (arquivos, movimentos e o portal dos contatos chegam no F4b2).
  */
-export function FichaCliente({ perfil, id }: { perfil: Perfil; id: string }) {
+export function FichaCliente({
+    perfil,
+    id,
+    aba = 'resumo',
+    aoMudarAba,
+}: {
+    perfil: Perfil
+    id: string
+    aba?: AbaCliente
+    aoMudarAba: (aba: AbaCliente) => void
+}) {
     const ficha = useQuery(consultaCliente(id))
     const podeGerenciar = pode(perfil, 'cliente.gerenciar')
 
     if (ficha.isPending) return <p className="text-sm text-suave">Carregando…</p>
     if (ficha.isError) throw ficha.error
-    return <Ficha cliente={ficha.data} podeGerenciar={podeGerenciar} />
+    return (
+        <Ficha cliente={ficha.data} podeGerenciar={podeGerenciar} perfil={perfil} aba={aba} aoMudarAba={aoMudarAba} />
+    )
 }
 
-function Ficha({ cliente, podeGerenciar }: { cliente: Cliente; podeGerenciar: boolean }) {
+function Ficha({
+    cliente,
+    podeGerenciar,
+    perfil,
+    aba,
+    aoMudarAba,
+}: {
+    cliente: Cliente
+    podeGerenciar: boolean
+    perfil: Perfil
+    aba: AbaCliente
+    aoMudarAba: (aba: AbaCliente) => void
+}) {
     const consultas = useQueryClient()
     const navegar = useNavigate()
     const [editando, setEditando] = useState(false)
@@ -122,6 +148,7 @@ function Ficha({ cliente, podeGerenciar }: { cliente: Cliente; podeGerenciar: bo
     const ativos = cliente.contatos.filter((c) => c.ativo)
     const inativos = cliente.contatos.filter((c) => !c.ativo)
     const editavel = podeGerenciar && cliente.ativo
+    const abasVisiveis = ABAS_CLIENTE.filter((a) => a !== 'contratos' || pode(perfil, 'contrato.ver'))
 
     return (
         <Pagina
@@ -161,132 +188,160 @@ function Ficha({ cliente, podeGerenciar }: { cliente: Cliente; podeGerenciar: bo
                 </Alerta>
             )}
 
-            <section
-                aria-labelledby="dados"
-                className="grid gap-4 rounded-couro border border-linha bg-superficie p-5 sm:grid-cols-2"
-            >
-                <h2 id="dados" className="sr-only">
-                    Dados
-                </h2>
-                <Dado rotulo="Razão social">{cliente.razaoSocial}</Dado>
-                <Dado rotulo="CPF ou CNPJ">{cliente.documento && formatarDocumento(cliente.documento)}</Dado>
-                <Dado rotulo="Inscrição estadual">{cliente.inscricaoEstadual}</Dado>
-                <Dado rotulo="Responsável na equipe">
-                    {cliente.responsavel?.nome || (cliente.responsavel && 'Pessoa que saiu da equipe')}
-                </Dado>
-                <Dado rotulo="E-mail">
-                    {cliente.email && (
-                        <a href={`mailto:${cliente.email}`} className="hover:underline">
-                            {cliente.email}
-                        </a>
-                    )}
-                </Dado>
-                <Dado rotulo="Telefone">{cliente.telefone && formatarTelefone(cliente.telefone)}</Dado>
-                <Dado rotulo="Endereço" largo>
-                    {cliente.endereco && <EnderecoPostal endereco={cliente.endereco} />}
-                </Dado>
-                <Dado rotulo="Etiquetas" largo>
-                    {cliente.etiquetas.length > 0 && <Etiquetas etiquetas={cliente.etiquetas} />}
-                </Dado>
-                <Dado rotulo="Observações" largo>
-                    {cliente.observacoes && <span className="whitespace-pre-line">{cliente.observacoes}</span>}
-                </Dado>
-            </section>
-
-            <section aria-labelledby="contatos" className="flex flex-col gap-3">
-                <div className="flex items-center justify-between gap-3">
-                    <h2 id="contatos" className="font-titulo text-xl font-semibold">
-                        Contatos
-                    </h2>
-                    {editavel && (
-                        <Botao variante="secundario" onPress={() => setContatoEmEdicao('novo')}>
-                            <Icone nome="mais" />
-                            Novo contato
-                        </Botao>
-                    )}
-                </div>
-                {ativos.length === 0 ? (
-                    <EstadoVazio titulo="Nenhum contato">
-                        Os contatos recebem os avisos das solicitações e podem ser convidados para o portal.
-                    </EstadoVazio>
-                ) : (
-                    <ul className="divide-y divide-linha rounded-couro border border-linha bg-superficie">
-                        {ativos.map((contato) => (
-                            <li
-                                key={contato.id}
-                                className="flex flex-wrap items-center gap-x-6 gap-y-1 px-4 py-3 text-sm"
-                            >
-                                <div className="mr-auto flex min-w-48 flex-col">
-                                    <span className="font-semibold">{contato.nome}</span>
-                                    {contato.cargo && <span className="text-xs text-suave">{contato.cargo}</span>}
-                                </div>
-                                <span className="flex flex-col text-suave">
-                                    <a href={`mailto:${contato.email}`} className="hover:underline">
-                                        {contato.email}
-                                    </a>
-                                    {contato.telefone && <span>{formatarTelefone(contato.telefone)}</span>}
-                                </span>
-                                <span className="text-xs">
-                                    <SituacaoPortal contato={contato} />
-                                </span>
-                                {editavel && (
-                                    <span className="flex gap-3 text-sm">
-                                        <Button
-                                            onPress={() => setContatoEmEdicao(contato)}
-                                            aria-label={`Editar ${contato.nome}`}
-                                            className="text-acento-texto hover:underline"
-                                        >
-                                            Editar
-                                        </Button>
-                                        <Button
-                                            onPress={() => setContatoInativando(contato)}
-                                            aria-label={`Inativar ${contato.nome}`}
-                                            className="text-suave hover:underline"
-                                        >
-                                            Inativar
-                                        </Button>
-                                    </span>
-                                )}
-                            </li>
-                        ))}
-                    </ul>
-                )}
-                {inativos.length > 0 && (
-                    <div className="flex flex-col gap-2">
-                        <Button
-                            onPress={() => setVerInativos((v) => !v)}
-                            aria-expanded={verInativos}
-                            className="w-fit text-sm text-suave hover:underline"
+            <Tabs selectedKey={aba} onSelectionChange={(chave) => aoMudarAba(chave as AbaCliente)}>
+                <TabList
+                    aria-label="Seções do cliente"
+                    className="flex w-fit flex-wrap gap-1 rounded-couro bg-trilho p-1"
+                >
+                    {abasVisiveis.map((a) => (
+                        <Tab
+                            key={a}
+                            id={a}
+                            className="cursor-default rounded-couro px-3 py-1.5 text-sm text-suave outline-none data-[focus-visible]:ring-2 data-[focus-visible]:ring-acento data-[selected]:bg-superficie data-[selected]:font-semibold data-[selected]:text-tinta data-[selected]:shadow-sm"
                         >
-                            {verInativos ? 'Esconder' : 'Ver'} contatos inativos ({inativos.length})
-                        </Button>
-                        {verInativos && (
-                            <ul className="divide-y divide-linha rounded-couro border border-dashed border-linha">
-                                {inativos.map((contato) => (
+                            {ROTULO_ABA[a]}
+                        </Tab>
+                    ))}
+                </TabList>
+                <TabPanel id="resumo" className="flex flex-col gap-6 pt-6 outline-none">
+                    <section
+                        aria-labelledby="dados"
+                        className="grid gap-4 rounded-couro border border-linha bg-superficie p-5 sm:grid-cols-2"
+                    >
+                        <h2 id="dados" className="sr-only">
+                            Dados
+                        </h2>
+                        <Dado rotulo="Razão social">{cliente.razaoSocial}</Dado>
+                        <Dado rotulo="CPF ou CNPJ">{cliente.documento && formatarDocumento(cliente.documento)}</Dado>
+                        <Dado rotulo="Inscrição estadual">{cliente.inscricaoEstadual}</Dado>
+                        <Dado rotulo="Responsável na equipe">
+                            {cliente.responsavel?.nome || (cliente.responsavel && 'Pessoa que saiu da equipe')}
+                        </Dado>
+                        <Dado rotulo="E-mail">
+                            {cliente.email && (
+                                <a href={`mailto:${cliente.email}`} className="hover:underline">
+                                    {cliente.email}
+                                </a>
+                            )}
+                        </Dado>
+                        <Dado rotulo="Telefone">{cliente.telefone && formatarTelefone(cliente.telefone)}</Dado>
+                        <Dado rotulo="Endereço" largo>
+                            {cliente.endereco && <EnderecoPostal endereco={cliente.endereco} />}
+                        </Dado>
+                        <Dado rotulo="Etiquetas" largo>
+                            {cliente.etiquetas.length > 0 && <Etiquetas etiquetas={cliente.etiquetas} />}
+                        </Dado>
+                        <Dado rotulo="Observações" largo>
+                            {cliente.observacoes && <span className="whitespace-pre-line">{cliente.observacoes}</span>}
+                        </Dado>
+                    </section>
+                    <ResumoCliente cliente={cliente} perfil={perfil} />
+                </TabPanel>
+                <TabPanel id="aberto" className="pt-6 outline-none">
+                    <EmAbertoCliente cliente={cliente} perfil={perfil} />
+                </TabPanel>
+                <TabPanel id="contratos" className="pt-6 outline-none">
+                    <ContratosCliente cliente={cliente} perfil={perfil} />
+                </TabPanel>
+                <TabPanel id="contatos" className="pt-6 outline-none">
+                    <section aria-labelledby="contatos" className="flex flex-col gap-3">
+                        <div className="flex items-center justify-between gap-3">
+                            <h2 id="contatos" className="font-titulo text-xl font-semibold">
+                                Contatos
+                            </h2>
+                            {editavel && (
+                                <Botao variante="secundario" onPress={() => setContatoEmEdicao('novo')}>
+                                    <Icone nome="mais" />
+                                    Novo contato
+                                </Botao>
+                            )}
+                        </div>
+                        {ativos.length === 0 ? (
+                            <EstadoVazio titulo="Nenhum contato">
+                                Os contatos recebem os avisos das solicitações e podem ser convidados para o portal.
+                            </EstadoVazio>
+                        ) : (
+                            <ul className="divide-y divide-linha rounded-couro border border-linha bg-superficie">
+                                {ativos.map((contato) => (
                                     <li
                                         key={contato.id}
-                                        className="flex flex-wrap items-center gap-x-6 gap-y-1 px-4 py-2.5 text-sm text-suave"
+                                        className="flex flex-wrap items-center gap-x-6 gap-y-1 px-4 py-3 text-sm"
                                     >
-                                        <span className="mr-auto">
-                                            {contato.nome} · {contato.email}
+                                        <div className="mr-auto flex min-w-48 flex-col">
+                                            <span className="font-semibold">{contato.nome}</span>
+                                            {contato.cargo && (
+                                                <span className="text-xs text-suave">{contato.cargo}</span>
+                                            )}
+                                        </div>
+                                        <span className="flex flex-col text-suave">
+                                            <a href={`mailto:${contato.email}`} className="hover:underline">
+                                                {contato.email}
+                                            </a>
+                                            {contato.telefone && <span>{formatarTelefone(contato.telefone)}</span>}
+                                        </span>
+                                        <span className="text-xs">
+                                            <SituacaoPortal contato={contato} />
                                         </span>
                                         {editavel && (
-                                            <Button
-                                                onPress={() => reativacaoContato.mutate(contato)}
-                                                isDisabled={reativacaoContato.isPending}
-                                                aria-label={`Reativar ${contato.nome}`}
-                                                className="text-acento-texto hover:underline"
-                                            >
-                                                Reativar
-                                            </Button>
+                                            <span className="flex gap-3 text-sm">
+                                                <Button
+                                                    onPress={() => setContatoEmEdicao(contato)}
+                                                    aria-label={`Editar ${contato.nome}`}
+                                                    className="text-acento-texto hover:underline"
+                                                >
+                                                    Editar
+                                                </Button>
+                                                <Button
+                                                    onPress={() => setContatoInativando(contato)}
+                                                    aria-label={`Inativar ${contato.nome}`}
+                                                    className="text-suave hover:underline"
+                                                >
+                                                    Inativar
+                                                </Button>
+                                            </span>
                                         )}
                                     </li>
                                 ))}
                             </ul>
                         )}
-                    </div>
-                )}
-            </section>
+                        {inativos.length > 0 && (
+                            <div className="flex flex-col gap-2">
+                                <Button
+                                    onPress={() => setVerInativos((v) => !v)}
+                                    aria-expanded={verInativos}
+                                    className="w-fit text-sm text-suave hover:underline"
+                                >
+                                    {verInativos ? 'Esconder' : 'Ver'} contatos inativos ({inativos.length})
+                                </Button>
+                                {verInativos && (
+                                    <ul className="divide-y divide-linha rounded-couro border border-dashed border-linha">
+                                        {inativos.map((contato) => (
+                                            <li
+                                                key={contato.id}
+                                                className="flex flex-wrap items-center gap-x-6 gap-y-1 px-4 py-2.5 text-sm text-suave"
+                                            >
+                                                <span className="mr-auto">
+                                                    {contato.nome} · {contato.email}
+                                                </span>
+                                                {editavel && (
+                                                    <Button
+                                                        onPress={() => reativacaoContato.mutate(contato)}
+                                                        isDisabled={reativacaoContato.isPending}
+                                                        aria-label={`Reativar ${contato.nome}`}
+                                                        className="text-acento-texto hover:underline"
+                                                    >
+                                                        Reativar
+                                                    </Button>
+                                                )}
+                                            </li>
+                                        ))}
+                                    </ul>
+                                )}
+                            </div>
+                        )}
+                    </section>
+                </TabPanel>
+            </Tabs>
 
             <JanelaCliente cliente={cliente} aberta={editando} aoMudar={setEditando} />
             {contatoEmEdicao && (

@@ -123,11 +123,13 @@ describe('clientes', () => {
             'GET /api/v1/clientes/c1': () => json(padaria),
             'POST /api/v1/clientes/c1/contatos': () => json({}, 201),
         })
-        await abrir('/clientes/c1')
+        const roteador = await abrir('/clientes/c1')
+        const usuario = userEvent.setup()
+        await usuario.click(await screen.findByRole('tab', { name: 'Contatos' }))
+        await vi.waitFor(() => expect(roteador.state.location.search).toEqual({ secao: 'contatos' }))
         expect(await screen.findByText('Marta Souza')).toBeInTheDocument()
         expect(screen.getByText('acessa o portal · todas do cliente')).toBeInTheDocument()
 
-        const usuario = userEvent.setup()
         await usuario.click(screen.getByRole('button', { name: 'Novo contato' }))
         const janela = await screen.findByRole('dialog', { name: 'Novo contato' })
         await usuario.type(within(janela).getByLabelText('Nome'), 'João')
@@ -340,7 +342,7 @@ describe('clientes', () => {
                 }),
             'POST /api/v1/clientes/c1/contatos/k2/reativacao': () => json({}),
         })
-        await abrir('/clientes/c1')
+        await abrir('/clientes/c1?secao=contatos')
         const usuario = userEvent.setup()
         expect(await screen.findByText('Marta Souza')).toBeInTheDocument()
         expect(screen.queryByText(/Pedro/)).not.toBeInTheDocument()
