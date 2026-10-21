@@ -125,7 +125,7 @@ describe('clientes', () => {
         })
         const roteador = await abrir('/clientes/c1')
         const usuario = userEvent.setup()
-        await usuario.click(await screen.findByRole('tab', { name: 'Contatos' }))
+        await usuario.click(await screen.findByRole('tab', { name: 'Contatos e portal' }))
         await vi.waitFor(() => expect(roteador.state.location.search).toEqual({ secao: 'contatos' }))
         expect(await screen.findByText('Marta Souza')).toBeInTheDocument()
         expect(screen.getByText('acessa o portal · todas do cliente')).toBeInTheDocument()

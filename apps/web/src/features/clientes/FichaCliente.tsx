@@ -24,6 +24,8 @@ import {
     type Endereco,
 } from './consultas'
 import { ABAS_CLIENTE, ROTULO_ABA, type AbaCliente } from './abas'
+import { ArquivosCliente, MovimentosCliente } from './ArquivosMovimentos'
+import { AcoesPortal, SituacaoPortal } from './PortalContato'
 import { ContratosCliente, EmAbertoCliente, ResumoCliente } from './SecoesFicha'
 import { Etiquetas } from './Etiquetas'
 import { JanelaCliente } from './JanelaCliente'
@@ -50,32 +52,22 @@ function EnderecoPostal({ endereco: e }: { endereco: Endereco }) {
     )
 }
 
-const ROTULO_ESCOPO = { PROPRIAS: 'só as próprias', TODAS_DO_CLIENTE: 'todas do cliente' } as const
-
-function SituacaoPortal({ contato }: { contato: Contato }) {
-    const acesso = contato.acessoPortal
-    if (!acesso) return <span className="text-suave">sem acesso</span>
-    const escopo = acesso.escopoPortal ? ROTULO_ESCOPO[acesso.escopoPortal] : ''
-    return acesso.situacao === 'ATIVO' ? (
-        <span className="text-verde">acessa o portal · {escopo}</span>
-    ) : (
-        <span className="text-ambar-texto">convidado · {escopo}</span>
-    )
-}
-
 /**
  * Ficha do cliente em abas com endereço (decisão 1 do F4): resumo com dados e a régua dos contratos ativos, o que
- * está em aberto, contratos e contatos (arquivos, movimentos e o portal dos contatos chegam no F4b2).
+ * está em aberto, contratos, contatos com o acesso ao portal, arquivos e movimentos.
  */
 export function FichaCliente({
     perfil,
     id,
     aba = 'resumo',
+    pagina = 1,
     aoMudarAba,
 }: {
     perfil: Perfil
     id: string
     aba?: AbaCliente
+    /** Página da aba Arquivos. */
+    pagina?: number
     aoMudarAba: (aba: AbaCliente) => void
 }) {
     const ficha = useQuery(consultaCliente(id))
@@ -84,7 +76,14 @@ export function FichaCliente({
     if (ficha.isPending) return <p className="text-sm text-suave">Carregando…</p>
     if (ficha.isError) throw ficha.error
     return (
-        <Ficha cliente={ficha.data} podeGerenciar={podeGerenciar} perfil={perfil} aba={aba} aoMudarAba={aoMudarAba} />
+        <Ficha
+            cliente={ficha.data}
+            podeGerenciar={podeGerenciar}
+            perfil={perfil}
+            aba={aba}
+            pagina={pagina}
+            aoMudarAba={aoMudarAba}
+        />
     )
 }
 
@@ -93,12 +92,14 @@ function Ficha({
     podeGerenciar,
     perfil,
     aba,
+    pagina,
     aoMudarAba,
 }: {
     cliente: Cliente
     podeGerenciar: boolean
     perfil: Perfil
     aba: AbaCliente
+    pagina: number
     aoMudarAba: (aba: AbaCliente) => void
 }) {
     const consultas = useQueryClient()
@@ -148,7 +149,13 @@ function Ficha({
     const ativos = cliente.contatos.filter((c) => c.ativo)
     const inativos = cliente.contatos.filter((c) => !c.ativo)
     const editavel = podeGerenciar && cliente.ativo
-    const abasVisiveis = ABAS_CLIENTE.filter((a) => a !== 'contratos' || pode(perfil, 'contrato.ver'))
+    const portal = pode(perfil, 'portal.gerenciar_acessos') && cliente.ativo
+    const fuso = perfil.tenant.fusoHorario
+    // Arquivos e movimentos vêm das solicitações e tarefas: sem ver nenhuma das duas, não há o que mostrar.
+    const verTrabalho = pode(perfil, 'solicitacao.ver') || pode(perfil, 'tarefa.ver')
+    const abasVisiveis = ABAS_CLIENTE.filter((a) =>
+        a === 'contratos' ? pode(perfil, 'contrato.ver') : a === 'arquivos' || a === 'movimentos' ? verTrabalho : true,
+    )
 
     return (
         <Pagina
@@ -280,24 +287,29 @@ function Ficha({
                                             {contato.telefone && <span>{formatarTelefone(contato.telefone)}</span>}
                                         </span>
                                         <span className="text-xs">
-                                            <SituacaoPortal contato={contato} />
+                                            <SituacaoPortal contato={contato} fuso={fuso} />
                                         </span>
-                                        {editavel && (
-                                            <span className="flex gap-3 text-sm">
-                                                <Button
-                                                    onPress={() => setContatoEmEdicao(contato)}
-                                                    aria-label={`Editar ${contato.nome}`}
-                                                    className="text-acento-texto hover:underline"
-                                                >
-                                                    Editar
-                                                </Button>
-                                                <Button
-                                                    onPress={() => setContatoInativando(contato)}
-                                                    aria-label={`Inativar ${contato.nome}`}
-                                                    className="text-suave hover:underline"
-                                                >
-                                                    Inativar
-                                                </Button>
+                                        {(editavel || portal) && (
+                                            <span className="flex flex-wrap gap-3 text-sm">
+                                                {portal && <AcoesPortal cliente={cliente} contato={contato} />}
+                                                {editavel && (
+                                                    <>
+                                                        <Button
+                                                            onPress={() => setContatoEmEdicao(contato)}
+                                                            aria-label={`Editar ${contato.nome}`}
+                                                            className="text-acento-texto hover:underline"
+                                                        >
+                                                            Editar
+                                                        </Button>
+                                                        <Button
+                                                            onPress={() => setContatoInativando(contato)}
+                                                            aria-label={`Inativar ${contato.nome}`}
+                                                            className="text-suave hover:underline"
+                                                        >
+                                                            Inativar
+                                                        </Button>
+                                                    </>
+                                                )}
                                             </span>
                                         )}
                                     </li>
@@ -340,6 +352,12 @@ function Ficha({
                             </div>
                         )}
                     </section>
+                </TabPanel>
+                <TabPanel id="arquivos" className="pt-6 outline-none">
+                    <ArquivosCliente cliente={cliente} fuso={fuso} pagina={pagina} />
+                </TabPanel>
+                <TabPanel id="movimentos" className="pt-6 outline-none">
+                    <MovimentosCliente cliente={cliente} fuso={fuso} />
                 </TabPanel>
             </Tabs>
 

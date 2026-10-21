@@ -119,3 +119,28 @@ export function opcional(valor: FormDataEntryValue | null): string | null {
     const texto = typeof valor === 'string' ? valor.trim() : ''
     return texto === '' ? null : texto
 }
+
+export type EscopoPortal = NonNullable<components['schemas']['EscopoPortal']>
+
+/** Convida (ou reconvida: o convite pendente anterior deixa de valer) o contato para o portal (contrato §4.2). */
+export async function convidarParaPortal(cliente: Cliente, contato: Contato, escopo: EscopoPortal): Promise<void> {
+    await api.POST('/api/v1/clientes/{id}/contatos/{contatoId}/acesso-portal', {
+        params: { path: { id: cliente.id, contatoId: contato.id } },
+        body: { escopoPortal: escopo },
+    })
+}
+
+/** Muda o que o contato vê no portal; vale para o acesso ativo ou para o convite pendente. */
+export async function mudarEscopoPortal(cliente: Cliente, contato: Contato, escopo: EscopoPortal): Promise<void> {
+    await api.PATCH('/api/v1/clientes/{id}/contatos/{contatoId}/acesso-portal', {
+        params: { path: { id: cliente.id, contatoId: contato.id } },
+        body: { escopoPortal: escopo },
+    })
+}
+
+/** Revoga o acesso, o convite pendente e os links por solicitação do contato; dá para convidar de novo. */
+export async function revogarPortal(cliente: Cliente, contato: Contato): Promise<void> {
+    await api.DELETE('/api/v1/clientes/{id}/contatos/{contatoId}/acesso-portal', {
+        params: { path: { id: cliente.id, contatoId: contato.id } },
+    })
+}
