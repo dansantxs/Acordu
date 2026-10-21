@@ -14,6 +14,7 @@ import type { Perfil } from '@/shared/sessao/perfil'
 import { Alerta } from '@/shared/ui/Alerta'
 import { Botao } from '@/shared/ui/Botao'
 import { CampoSelecao } from '@/shared/ui/CampoSelecao'
+import { Seguidores } from '@/shared/colaboracao/Seguidores'
 import { Dado, PainelLateral } from '@/shared/ui/PainelLateral'
 import {
     consultaCategorias,
@@ -30,7 +31,6 @@ import {
 import { Conversa } from './Conversa'
 import { JanelaContrato } from './JanelaContrato'
 import { JanelaLinkPortal } from './JanelaLinkPortal'
-import { Seguidores } from './Seguidores'
 import { Semelhantes } from './Semelhantes'
 import { JanelaEdicao, JanelaMotivo, JanelaResolucao } from './JanelasSolicitacao'
 import {
@@ -294,7 +294,7 @@ function Detalhe({
                     </span>
                 </Dado>
                 <Dado rotulo="Tempo apontado">{formatarDuracao(Number(s.tempoApontadoMinutos))}</Dado>
-                <Seguidores solicitacaoId={s.id} usuarioId={perfil.usuarioId} />
+                <Seguidores alvo="solicitacoes" id={s.id} usuarioId={perfil.usuarioId} />
             </section>
 
             <Prazos solicitacao={s} fuso={fuso} />
