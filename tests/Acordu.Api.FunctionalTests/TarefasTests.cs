@@ -26,6 +26,9 @@ public sealed class TarefasTests(ApiFixture api)
         var naSolicitacao = await equipe.EsperarAsync(HttpStatusCode.OK, HttpMethod.Get, $"/api/v1/solicitacoes/{solicitacao}");
 
         tarefa.GetProperty("clienteId").GetGuid().Should().Be(cliente);
+        tarefa.GetProperty("clienteNome").GetString().Should().Be("Padaria Bom Grão");
+        tarefa.GetProperty("solicitacaoNumero").GetInt32().Should().BePositive();
+        tarefa.GetProperty("projetoNome").ValueKind.Should().Be(JsonValueKind.Null);
         tarefa.GetProperty("status").GetString().Should().Be("A_FAZER");
         tarefa.GetProperty("estimativaMinutos").GetInt32().Should().Be(120);
         tarefa.GetProperty("apontadoMinutos").GetInt32().Should().Be(0);

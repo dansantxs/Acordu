@@ -42,7 +42,10 @@ public sealed record TarefaDto(
     DateOnly? PlanejadaPara,
     int ApontadoMinutos,
     IReadOnlyList<ItemChecklistDto> Checklist,
-    DateTimeOffset? ConcluidaEm = null);
+    DateTimeOffset? ConcluidaEm = null,
+    string? ClienteNome = null,
+    int? SolicitacaoNumero = null,
+    string? ProjetoNome = null);
 
 public sealed record ItemChecklistDto(Guid Id, int Ordem, string Texto, bool Feito);
 

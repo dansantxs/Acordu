@@ -1,0 +1,202 @@
+import { fireEvent, screen, within } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { reiniciarParaTestes } from '@/shared/sessao/sessao'
+import { abrir, comPerfil, json, perfil, type Rotas } from '@/testes/app'
+
+const ID = '0199f0a0-0000-7000-8000-0000000000b1'
+const RAFAEL = '0199f0a0-0000-7000-8000-000000000002'
+
+const tarefa = (mudancas: Record<string, unknown> = {}) => ({
+    id: ID,
+    versao: '3',
+    titulo: 'Trocar resistência',
+    descricao: 'Forno 2.',
+    status: 'A_FAZER',
+    clienteId: 'c1',
+    solicitacaoId: 's1',
+    projetoId: null,
+    recorrenciaId: null,
+    responsavel: null,
+    prazo: '2026-10-25',
+    estimativaMinutos: 60,
+    visivelCliente: false,
+    planejadaPara: null,
+    apontadoMinutos: 30,
+    checklist: [{ id: 'i1', ordem: 1, texto: 'Comprar peça', feito: false }],
+    concluidaEm: null,
+    clienteNome: 'Padaria Bom Grão',
+    solicitacaoNumero: 1042,
+    projetoNome: null,
+    ...mudancas,
+})
+
+const resumo = {
+    id: ID,
+    titulo: 'Trocar resistência',
+    status: 'A_FAZER',
+    clienteId: 'c1',
+    solicitacaoId: 's1',
+    projetoId: null,
+    responsavel: null,
+    prazo: null,
+    estimativaMinutos: null,
+    visivelCliente: false,
+    planejadaPara: null,
+    clienteNome: 'Padaria Bom Grão',
+    solicitacaoNumero: 1042,
+    projetoNome: null,
+    concluidaEm: null,
+}
+
+const app = (permissoes: string[], rotas: Rotas = {}) =>
+    comPerfil(permissoes, {
+        'GET /api/v1/tarefas': () => json({ itens: [resumo], pagina: 1, tamanhoPagina: 50, total: 1 }),
+        [`GET /api/v1/tarefas/${ID}`]: () => json(tarefa()),
+        'GET /api/v1/equipe': () =>
+            json([
+                { id: perfil.usuarioId, nome: 'Ana Prado' },
+                { id: RAFAEL, nome: 'Rafael Moura' },
+            ]),
+        ...rotas,
+    })
+
+const EDITAR = ['tarefa.ver', 'tarefa.editar', 'solicitacao.ver', 'cliente.ver']
+const painel = () => screen.findByRole('complementary', { name: 'Trocar resistência' })
+
+describe('detalhe da tarefa', () => {
+    beforeEach(() => reiniciarParaTestes())
+    afterEach(() => vi.unstubAllGlobals())
+
+    it('abre da lista em painel, com a origem, e fecha com Esc mantendo os filtros', async () => {
+        app(['tarefa.ver', 'solicitacao.ver'])
+        const roteador = await abrir('/tarefas?responsavel=eu')
+        const usuario = userEvent.setup()
+        await usuario.click(await screen.findByRole('link', { name: 'Trocar resistência' }))
+
+        const aside = await painel()
+        expect(roteador.state.location.pathname).toBe(`/tarefas/${ID}`)
+        expect(within(aside).getByRole('link', { name: 'solicitação #1042' })).toBeInTheDocument()
+        expect(within(aside).getByText('Padaria Bom Grão')).toBeInTheDocument()
+        expect(within(aside).getByText('30min')).toBeInTheDocument()
+        expect(within(aside).getByText('Comprar peça')).toBeInTheDocument()
+        // Só vê: sem ações nem campos.
+        expect(within(aside).queryByRole('button', { name: 'Iniciar' })).not.toBeInTheDocument()
+        expect(within(aside).queryByRole('combobox')).not.toBeInTheDocument()
+
+        await usuario.keyboard('{Escape}')
+        await vi.waitFor(() => expect(roteador.state.location.pathname).toBe('/tarefas'))
+        expect(roteador.state.location.search).toEqual({ responsavel: 'eu' })
+    })
+
+    it('inicia, mostra concluir e voltar, e cancela com confirmação', async () => {
+        let atual = tarefa()
+        const chamadas = app(EDITAR, {
+            [`GET /api/v1/tarefas/${ID}`]: () => json(atual),
+            [`POST /api/v1/tarefas/${ID}/inicio`]: () => {
+                atual = tarefa({ status: 'FAZENDO', versao: '4' })
+                return json(atual)
+            },
+            [`POST /api/v1/tarefas/${ID}/cancelamento`]: () => {
+                atual = tarefa({ status: 'CANCELADA', versao: '5' })
+                return json(atual)
+            },
+        })
+        await abrir(`/tarefas/${ID}`)
+        const aside = await painel()
+        const usuario = userEvent.setup()
+
+        await usuario.click(within(aside).getByRole('button', { name: 'Iniciar' }))
+        expect(await screen.findByText('Tarefa fazendo.')).toBeInTheDocument()
+        expect(chamadas.find((c) => c.caminho.endsWith('/inicio'))?.ifMatch).toBe('"3"')
+        expect(within(aside).getByRole('button', { name: 'Concluir' })).toBeInTheDocument()
+        expect(within(aside).getByRole('button', { name: 'Voltar para a fazer' })).toBeInTheDocument()
+
+        await usuario.click(within(aside).getByRole('button', { name: 'Cancelar tarefa' }))
+        const janela = await screen.findByRole('dialog', { name: 'Cancelar esta tarefa?' })
+        await usuario.click(within(janela).getByRole('button', { name: 'Cancelar tarefa' }))
+        await vi.waitFor(() =>
+            expect(within(aside).queryByRole('button', { name: 'Concluir' })).not.toBeInTheDocument(),
+        )
+        expect(chamadas.find((c) => c.caminho.endsWith('/cancelamento'))?.ifMatch).toBe('"4"')
+    })
+
+    it('troca o responsável com desfazer e salva prazo e estimativa pelo formulário inteiro', async () => {
+        let atual = tarefa()
+        const chamadas = app(EDITAR, {
+            [`GET /api/v1/tarefas/${ID}`]: () => json(atual),
+            [`PATCH /api/v1/tarefas/${ID}`]: (corpo) => {
+                const c = corpo as Record<string, unknown>
+                atual = tarefa({
+                    ...c,
+                    responsavel: c.responsavelId ? { id: RAFAEL, nome: 'Rafael Moura' } : null,
+                    versao: String(Number(atual.versao) + 1),
+                })
+                return json(atual)
+            },
+        })
+        await abrir(`/tarefas/${ID}`)
+        const aside = await painel()
+        const usuario = userEvent.setup()
+        const patches = () => chamadas.filter((c) => c.metodo === 'PATCH')
+
+        await usuario.click(within(aside).getByRole('combobox', { name: 'Responsável' }))
+        await usuario.click(await screen.findByRole('option', { name: 'Rafael Moura' }))
+        expect(await screen.findByText('Responsável: Rafael Moura.')).toBeInTheDocument()
+        expect(patches()[0]).toMatchObject({
+            ifMatch: '"3"',
+            corpo: {
+                titulo: 'Trocar resistência',
+                descricao: 'Forno 2.',
+                responsavelId: RAFAEL,
+                prazo: '2026-10-25',
+                estimativaMinutos: 60,
+                visivelCliente: false,
+                planejadaPara: null,
+            },
+        })
+        await usuario.click(screen.getByRole('button', { name: 'Desfazer' }))
+        await vi.waitFor(() => expect(patches()).toHaveLength(2))
+        expect(patches()[1]).toMatchObject({ ifMatch: '"4"', corpo: { responsavelId: null } })
+
+        fireEvent.change(within(aside).getByLabelText('Prazo'), { target: { value: '2026-10-30' } })
+        await vi.waitFor(() => expect(patches()).toHaveLength(3))
+        expect(patches()[2]?.corpo).toMatchObject({ prazo: '2026-10-30' })
+
+        const estimativa = within(aside).getByLabelText('Estimativa')
+        await usuario.clear(estimativa)
+        await usuario.type(estimativa, 'xyz{Enter}')
+        expect(within(aside).getByText(/Não entendi/)).toBeInTheDocument()
+        await usuario.clear(estimativa)
+        await usuario.type(estimativa, '1:30{Enter}')
+        await vi.waitFor(() => expect(patches()).toHaveLength(4))
+        expect(patches()[3]?.corpo).toMatchObject({ estimativaMinutos: 90 })
+    })
+
+    it('checklist: adiciona, marca e tira itens', async () => {
+        const chamadas = app(EDITAR, {
+            [`POST /api/v1/tarefas/${ID}/itens`]: () =>
+                json({ id: 'i2', ordem: 2, texto: 'Instalar', feito: false }, 201),
+            [`PATCH /api/v1/tarefas/${ID}/itens/i1`]: () =>
+                json({ id: 'i1', ordem: 1, texto: 'Comprar peça', feito: true }),
+            [`DELETE /api/v1/tarefas/${ID}/itens/i1`]: () => new Response(null, { status: 204 }),
+        })
+        await abrir(`/tarefas/${ID}`)
+        const aside = await painel()
+        const usuario = userEvent.setup()
+
+        await usuario.type(within(aside).getByLabelText('Novo item da checklist'), 'Instalar{Enter}')
+        await vi.waitFor(() =>
+            expect(chamadas.find((c) => c.metodo === 'POST' && c.caminho.endsWith('/itens'))?.corpo).toEqual({
+                texto: 'Instalar',
+                feito: null,
+            }),
+        )
+        await usuario.click(within(aside).getByRole('checkbox', { name: 'Comprar peça' }))
+        await vi.waitFor(() =>
+            expect(chamadas.find((c) => c.metodo === 'PATCH')?.corpo).toEqual({ texto: 'Comprar peça', feito: true }),
+        )
+        await usuario.click(within(aside).getByRole('button', { name: 'Tirar "Comprar peça"' }))
+        await vi.waitFor(() => expect(chamadas.some((c) => c.metodo === 'DELETE')).toBe(true))
+    })
+})

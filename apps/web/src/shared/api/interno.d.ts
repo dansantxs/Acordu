@@ -5932,6 +5932,10 @@ export interface components {
             checklist: components['schemas']['ItemChecklistDto'][]
             /** Format: date-time */
             concluidaEm?: null | string
+            clienteNome?: null | string
+            /** Format: int32 */
+            solicitacaoNumero?: null | number | string
+            projetoNome?: null | string
         }
         TarefaResumoDto: {
             /** Format: uuid */

@@ -95,6 +95,16 @@ public sealed class ConsultasTarefa : IConsultasTarefa
             WHERE tenant_id = {e.TenantId} AND tarefa_id = {id}
               AND (CAST({e.ClienteId} AS uuid) IS NULL OR cliente_id = {e.ClienteId})
             """, cancellationToken)).Single().Total;
+        // Nomes para o cabeçalho do detalhe (F3b), como na lista.
+        var clienteNome = t.ClienteId is { } c
+            ? await _db.Clientes.AsNoTracking().Where(x => x.Id == c).Select(x => x.Nome).SingleOrDefaultAsync(cancellationToken)
+            : null;
+        int? numero = t.SolicitacaoId is { } s
+            ? await _db.Solicitacoes.AsNoTracking().Where(x => x.Id == s).Select(x => (int?)x.Numero).SingleOrDefaultAsync(cancellationToken)
+            : null;
+        var projetoNome = t.ProjetoId is { } p
+            ? await _db.Projetos.AsNoTracking().Where(x => x.Id == p).Select(x => x.Nome).SingleOrDefaultAsync(cancellationToken)
+            : null;
 
         return new TarefaDto(
             t.Id,
@@ -113,7 +123,10 @@ public sealed class ConsultasTarefa : IConsultasTarefa
             t.PlanejadaPara,
             apontado,
             [.. t.Checklist.Select(i => new ItemChecklistDto(i.Id, i.Ordem, i.Texto, i.Feito))],
-            t.ConcluidaEm);
+            t.ConcluidaEm,
+            clienteNome,
+            numero,
+            projetoNome);
     }
 
     private sealed class Soma
