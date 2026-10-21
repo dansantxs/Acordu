@@ -2390,6 +2390,13 @@
             }
           },
           {
+            "name": "semResponsavel",
+            "in": "query",
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
             "name": "solicitacaoId",
             "in": "query",
             "schema": {
@@ -2426,6 +2433,13 @@
             "in": "query",
             "schema": {
               "type": "boolean"
+            }
+          },
+          {
+            "name": "busca",
+            "in": "query",
+            "schema": {
+              "type": "string"
             }
           },
           {
@@ -9458,6 +9472,27 @@
               "string"
             ],
             "format": "date"
+          },
+          "clienteNome": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "solicitacaoNumero": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "null",
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "projetoNome": {
+            "type": [
+              "null",
+              "string"
+            ]
           }
         }
       },
