@@ -17,52 +17,43 @@ import { Janela } from '@/shared/ui/Janela'
 import { LegendaObrigatorios } from '@/shared/ui/Rotulo'
 import { criarTarefa, type Tarefa } from './consultas'
 
-/** De onde a tarefa nasce quando vem do painel da solicitação (o cliente é herdado pela API). */
-export interface OrigemSolicitacao {
-    id: string
-    numero: number | string
-    clienteNome: string
-}
+/** De onde a tarefa nasce quando vem do painel da solicitação ou do projeto (o cliente é herdado pela API). */
+export type OrigemTarefa =
+    | { tipo: 'solicitacao'; id: string; numero: number | string; clienteNome: string }
+    | { tipo: 'projeto'; id: string; nome: string; clienteNome: string }
 
 /**
  * Nova tarefa (RF-TAR-01, F3b): avulsa (com ou sem cliente) pela tela de tarefas ou pelo Ctrl+K, ou de uma solicitação
- * pelo painel dela. Projeto entra no F3e.
+ * ou de um projeto pelo painel deles.
  */
 export function JanelaNovaTarefa({
     perfil,
     aberta,
     aoMudar,
-    solicitacao,
+    origem,
     aoCriar,
 }: {
     perfil: Perfil
     aberta: boolean
     aoMudar: (aberta: boolean) => void
-    solicitacao?: OrigemSolicitacao
+    origem?: OrigemTarefa
     aoCriar: (tarefa: Tarefa) => void
 }) {
     return (
         <Janela titulo="Nova tarefa" aberta={aberta} aoMudar={aoMudar} larga>
-            {aberta && (
-                <Formulario
-                    perfil={perfil}
-                    solicitacao={solicitacao}
-                    aoFechar={() => aoMudar(false)}
-                    aoCriar={aoCriar}
-                />
-            )}
+            {aberta && <Formulario perfil={perfil} origem={origem} aoFechar={() => aoMudar(false)} aoCriar={aoCriar} />}
         </Janela>
     )
 }
 
 function Formulario({
     perfil,
-    solicitacao,
+    origem,
     aoFechar,
     aoCriar,
 }: {
     perfil: Perfil
-    solicitacao?: OrigemSolicitacao
+    origem?: OrigemTarefa
     aoFechar: () => void
     aoCriar: (tarefa: Tarefa) => void
 }) {
@@ -70,16 +61,17 @@ function Formulario({
     const equipe = useQuery(consultaEquipe)
     const [clienteId, setClienteId] = useState<string | null>(null)
     const [responsavel, setResponsavel] = useState<string | null>(null)
-    // Tarefa de solicitação aparece no portal por padrão (o cliente acompanha o andamento); avulsa não.
-    const [visivel, setVisivel] = useState(Boolean(solicitacao))
+    // Tarefa de solicitação aparece no portal por padrão (o cliente acompanha o andamento); avulsa e de projeto não.
+    const [visivel, setVisivel] = useState(origem?.tipo === 'solicitacao')
     const [estimativaInvalida, setEstimativaInvalida] = useState(false)
-    const temCliente = Boolean(solicitacao) || clienteId !== null
+    const temCliente = Boolean(origem) || clienteId !== null
 
     const envio = useMutation({
         mutationFn: criarTarefa,
         onSuccess: async (tarefa) => {
             await consultas.invalidateQueries({ queryKey: ['tarefas'] })
-            if (solicitacao) await consultas.invalidateQueries({ queryKey: ['solicitacoes'] })
+            if (origem?.tipo === 'solicitacao') await consultas.invalidateQueries({ queryKey: ['solicitacoes'] })
+            if (origem?.tipo === 'projeto') await consultas.invalidateQueries({ queryKey: ['projetos'] })
             avisar(`Tarefa "${tarefa.titulo}" criada.`)
             aoFechar()
             aoCriar(tarefa)
@@ -101,9 +93,9 @@ function Formulario({
                 envio.mutate({
                     titulo: String(dados.get('titulo')).trim(),
                     descricao: opcional(dados.get('descricao')),
-                    solicitacaoId: solicitacao?.id ?? null,
-                    projetoId: null,
-                    clienteId: solicitacao ? null : clienteId,
+                    solicitacaoId: origem?.tipo === 'solicitacao' ? origem.id : null,
+                    projetoId: origem?.tipo === 'projeto' ? origem.id : null,
+                    clienteId: origem ? null : clienteId,
                     responsavelId: responsavel,
                     prazo: opcional(dados.get('prazo')),
                     planejadaPara: opcional(dados.get('planejadaPara')),
@@ -114,15 +106,16 @@ function Formulario({
         >
             <LegendaObrigatorios />
             {mensagem && <Alerta>{mensagem}</Alerta>}
-            {solicitacao && (
+            {origem && (
                 <p className="text-sm text-suave">
-                    Da solicitação #{solicitacao.numero} · {solicitacao.clienteNome}
+                    {origem.tipo === 'solicitacao' ? `Da solicitação #${origem.numero}` : `Do projeto ${origem.nome}`} ·{' '}
+                    {origem.clienteNome}
                 </p>
             )}
             <CampoTexto name="titulo" rotulo="Título" maxLength={200} isRequired autoFocus />
             <CampoTexto name="descricao" rotulo="Descrição" maxLength={10_000} multilinha />
             <div className="grid gap-4 sm:grid-cols-2">
-                {!solicitacao && pode(perfil, 'cliente.ver') && (
+                {!origem && pode(perfil, 'cliente.ver') && (
                     <CampoCliente
                         name="clienteId"
                         rotulo="Cliente"
