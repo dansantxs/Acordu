@@ -142,13 +142,14 @@ class Tarefa <<aggregate root>> {
   +SolicitacaoId?, ProjetoId?
   +RecorrenciaId?, DataReferencia?
   +VisivelCliente: bool
+  +ConcluidaEm: DateTimeOffset?
   +Checklist: ItemChecklist[]
   --
   +Criar(...) / CriarDeRecorrencia(...)
   +Editar(titulo, descricao?) / Atribuir(responsavelId?)
   +DefinirPrazo(prazo?) / DefinirEstimativa(estimativa?)
   +Planejar(dia?)
-  +Iniciar() / Concluir() / Reabrir() / Cancelar()
+  +Iniciar() / Retornar() / Concluir(agora) / Reabrir() / Cancelar()
   +AdicionarItem(texto) / EditarItem(id, texto)
   +MarcarItem(id, feito) / RemoverItem(id)
   +TornarVisivelAoCliente(bool)
@@ -384,7 +385,8 @@ Regras:
 - Quem pode ser mencionado (pessoa da equipe com permissão de ver o alvo) é regra da Application (`ValidacaoMencoes`), checada antes de enviar anexos.
 
 ### 4.6 Tarefa
-- **Transições:** A_FAZER → FAZENDO → CONCLUIDA; A_FAZER/FAZENDO → CANCELADA; CONCLUIDA → FAZENDO (`Reabrir`).
+- **Transições:** A_FAZER → FAZENDO → CONCLUIDA; FAZENDO → A_FAZER (`Retornar`, decidido em 21/10 para o quadro do F3: mover de volta e desfazer o "Iniciar"); A_FAZER/FAZENDO → CANCELADA; CONCLUIDA → FAZENDO (`Reabrir`).
+- **`ConcluidaEm`** (21/10): gravado por `Concluir(agora)` e zerado por `Reabrir`; o quadro mostra só as concluídas recentes. Tarefas concluídas antes da migration ficam sem a data.
 - **Invariantes:** título obrigatório; tarefa de solicitação ou projeto exige `ClienteId`; `VisivelCliente` só pode ser verdadeiro se houver `ClienteId` (vale também para tarefa de recorrência, que aparece no extrato — read side §4); estimativa > 0 se informada; `(RecorrenciaId, DataReferencia)` preenchidos juntos ou nenhum.
 - `ClienteId` é herdado da solicitação/projeto/recorrência na criação pela Application (desnormalizado para o filtro do portal).
 - Checklist: no máximo 50 itens, texto não vazio (≤ 500). O Id do item é gerado pela tarefa (`Guid.CreateVersion7`).
