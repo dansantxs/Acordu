@@ -28,6 +28,7 @@ import {
     type Solicitacao,
     type Transicao,
 } from './consultas'
+import { JanelaNovaTarefa } from '@/features/tarefas/JanelaNovaTarefa'
 import { Conversa } from './Conversa'
 import { JanelaContrato } from './JanelaContrato'
 import { JanelaLinkPortal } from './JanelaLinkPortal'
@@ -122,6 +123,9 @@ function Detalhe({
     const [editando, setEditando] = useState(false)
     const [janelaLink, setJanelaLink] = useState(false)
     const [janelaContrato, setJanelaContrato] = useState(false)
+    const [novaTarefa, setNovaTarefa] = useState(false)
+    // Tarefa nova não entra em solicitação fechada ou cancelada.
+    const podeCriarTarefa = pode(perfil, 'tarefa.criar') && !FINAIS.includes(s.status)
 
     const podeEditar = pode(perfil, 'solicitacao.editar')
     const final = FINAIS.includes(s.status)
@@ -312,23 +316,49 @@ function Detalhe({
 
             {EM_ABERTO.includes(s.status) && <Semelhantes solicitacaoId={s.id} fuso={fuso} />}
 
-            {s.tarefas.length > 0 && (
+            {(s.tarefas.length > 0 || podeCriarTarefa) && (
                 <section aria-labelledby="tarefas" className="flex flex-col gap-2">
-                    <h3 id="tarefas" className="text-sm font-semibold">
+                    <h3 id="tarefas" className="flex items-baseline justify-between text-sm font-semibold">
                         Tarefas
+                        {podeCriarTarefa && (
+                            <Botao variante="discreto" onPress={() => setNovaTarefa(true)} className="!p-0">
+                                Nova tarefa
+                            </Botao>
+                        )}
                     </h3>
-                    <ul className="divide-y divide-linha rounded-couro border border-linha bg-superficie text-sm">
-                        {s.tarefas.map((t) => (
-                            <li key={t.id} className="flex items-center justify-between gap-3 px-3 py-2">
-                                <span className={t.status === 'CANCELADA' ? 'text-suave line-through' : ''}>
-                                    {t.titulo}
-                                </span>
-                                <span className="text-xs text-suave">{STATUS_TAREFA[t.status]}</span>
-                            </li>
-                        ))}
-                    </ul>
+                    {s.tarefas.length === 0 && <p className="text-sm text-suave">Nenhuma tarefa ainda.</p>}
+                    {s.tarefas.length > 0 && (
+                        <ul className="divide-y divide-linha rounded-couro border border-linha bg-superficie text-sm">
+                            {s.tarefas.map((t) => (
+                                <li key={t.id} className="flex items-center justify-between gap-3 px-3 py-2">
+                                    {pode(perfil, 'tarefa.ver') ? (
+                                        <Link
+                                            to="/tarefas/$id"
+                                            params={{ id: t.id }}
+                                            className={`hover:underline ${t.status === 'CANCELADA' ? 'text-suave line-through' : ''}`}
+                                        >
+                                            {t.titulo}
+                                        </Link>
+                                    ) : (
+                                        <span className={t.status === 'CANCELADA' ? 'text-suave line-through' : ''}>
+                                            {t.titulo}
+                                        </span>
+                                    )}
+                                    <span className="text-xs text-suave">{STATUS_TAREFA[t.status]}</span>
+                                </li>
+                            ))}
+                        </ul>
+                    )}
                 </section>
             )}
+
+            <JanelaNovaTarefa
+                perfil={perfil}
+                aberta={novaTarefa}
+                aoMudar={setNovaTarefa}
+                solicitacao={{ id: s.id, numero: s.numero, clienteNome: s.cliente.nome }}
+                aoCriar={() => undefined}
+            />
 
             <Conversa solicitacao={s} fuso={fuso} podeComentar={pode(perfil, 'solicitacao.comentar')} />
 

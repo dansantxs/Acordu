@@ -24,6 +24,8 @@ export interface FiltrosTarefas {
     /** Id da pessoa, `eu` ou `ninguem`. */
     responsavel?: string
     pagina?: number
+    /** Abre a janela de nova tarefa (Ctrl+K, botão); não filtra. */
+    nova?: boolean
 }
 
 export const TAMANHO_PAGINA = 50
@@ -41,7 +43,7 @@ function parametros(filtros: FiltrosTarefas) {
     }
 }
 
-export function consultaListaTarefas({ modo, ...filtros }: FiltrosTarefas) {
+export function consultaListaTarefas({ modo, nova, ...filtros }: FiltrosTarefas) {
     const status = ABAS[filtros.aba ?? 'abertas'].status
     return queryOptions({
         queryKey: ['tarefas', 'lista', filtros],
@@ -66,7 +68,7 @@ export function consultaListaTarefas({ modo, ...filtros }: FiltrosTarefas) {
 export const DIAS_CONCLUIDAS_NO_QUADRO = 14
 
 /** Quadro: abertas e concluídas recentes numa chamada (`concluidaDesde` só recorta as concluídas). */
-export function consultaQuadro({ modo, aba, pagina, ...filtros }: FiltrosTarefas, agora = Date.now()) {
+export function consultaQuadro({ modo, aba, pagina, nova, ...filtros }: FiltrosTarefas, agora = Date.now()) {
     const desde = new Date(agora - DIAS_CONCLUIDAS_NO_QUADRO * 86_400_000)
     // Arredonda para a hora: a chave da consulta não muda a cada renderização.
     desde.setUTCMinutes(0, 0, 0)
@@ -214,4 +216,10 @@ export async function comentar(id: string, texto: string | null, anexos: File[])
 
 export async function excluirComentario(id: string, comentarioId: string): Promise<void> {
     await api.DELETE('/api/v1/tarefas/{id}/comentarios/{comentarioId}', { params: { path: { id, comentarioId } } })
+}
+
+export type NovaTarefa = components['schemas']['NovaTarefaRequest']
+
+export async function criarTarefa(dados: NovaTarefa): Promise<Tarefa> {
+    return (await api.POST('/api/v1/tarefas', { body: dados })).data!
 }

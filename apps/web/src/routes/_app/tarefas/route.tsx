@@ -14,6 +14,7 @@ export const Route = createFileRoute('/_app/tarefas')({
         cliente: id(busca.cliente),
         responsavel:
             busca.responsavel === 'eu' || busca.responsavel === 'ninguem' ? busca.responsavel : id(busca.responsavel),
+        nova: busca.nova === true || busca.nova === 1 || busca.nova === '1' || busca.nova === 'true' ? true : undefined,
         pagina: Number.isInteger(Number(busca.pagina)) && Number(busca.pagina) > 1 ? Number(busca.pagina) : undefined,
     }),
     component: Tarefas,
