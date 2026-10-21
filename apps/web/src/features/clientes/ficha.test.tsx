@@ -116,7 +116,7 @@ describe('ficha do cliente', () => {
     it('sem contrato.ver, não há aba de contratos nem régua', async () => {
         app(['cliente.ver'])
         await abrir(`/clientes/${C}`)
-        expect(await screen.findByRole('tab', { name: 'Contatos' })).toBeInTheDocument()
+        expect(await screen.findByRole('tab', { name: 'Contatos e portal' })).toBeInTheDocument()
         expect(screen.queryByRole('tab', { name: 'Contratos' })).not.toBeInTheDocument()
         expect(screen.queryByText('Contratos ativos')).not.toBeInTheDocument()
     })
