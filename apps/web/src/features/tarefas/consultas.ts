@@ -223,3 +223,12 @@ export type NovaTarefa = components['schemas']['NovaTarefaRequest']
 export async function criarTarefa(dados: NovaTarefa): Promise<Tarefa> {
     return (await api.POST('/api/v1/tarefas', { body: dados })).data!
 }
+
+/** Tarefas de um projeto, de todos os status (painel do projeto, F3e). */
+export function consultaTarefasDoProjeto(projetoId: string) {
+    return queryOptions({
+        queryKey: ['tarefas', 'do-projeto', projetoId],
+        queryFn: async () =>
+            (await api.GET('/api/v1/tarefas', { params: { query: { projetoId, tamanhoPagina: 200 } } })).data!.itens,
+    })
+}

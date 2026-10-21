@@ -356,7 +356,7 @@ function Detalhe({
                 perfil={perfil}
                 aberta={novaTarefa}
                 aoMudar={setNovaTarefa}
-                solicitacao={{ id: s.id, numero: s.numero, clienteNome: s.cliente.nome }}
+                origem={{ tipo: 'solicitacao', id: s.id, numero: s.numero, clienteNome: s.cliente.nome }}
                 aoCriar={() => undefined}
             />
 
