@@ -16,8 +16,8 @@ internal static class TarefasEndpoints
 
         tarefas.MapGet(string.Empty, async (
             string? status, Guid? responsavelId, bool? semResponsavel, Guid? solicitacaoId, Guid? projetoId, Guid? clienteId,
-            DateOnly? prazoAte, bool? minhas, string? busca, int? pagina, int? tamanhoPagina, ITenantContext contexto,
-            IConsultasTarefa consultas, CancellationToken cancellationToken) =>
+            DateOnly? prazoAte, bool? minhas, string? busca, DateTimeOffset? concluidaDesde, int? pagina, int? tamanhoPagina,
+            ITenantContext contexto, IConsultasTarefa consultas, CancellationToken cancellationToken) =>
         {
             if (semResponsavel == true && (responsavelId is not null || minhas == true))
                 throw ErroDeCampo.Criar(nameof(semResponsavel), "Use semResponsavel sem responsavelId nem minhas.");
@@ -31,7 +31,8 @@ internal static class TarefasEndpoints
                 ClienteId: clienteId,
                 PrazoAte: prazoAte,
                 Busca: busca,
-                SemResponsavel: semResponsavel == true);
+                SemResponsavel: semResponsavel == true,
+                ConcluidaDesde: concluidaDesde);
             return Results.Ok(await consultas.ListarAsync(filtro, new Paginacao(pagina, tamanhoPagina), cancellationToken));
         })
             .RequirePermissao(Permissoes.TarefaVer)
@@ -64,6 +65,7 @@ internal static class TarefasEndpoints
         MapTransicao(tarefas, "/inicio", (c, id, versao, ct) => c.IniciarAsync(id, versao, ct));
         MapTransicao(tarefas, "/conclusao", (c, id, versao, ct) => c.ConcluirAsync(id, versao, ct));
         MapTransicao(tarefas, "/reabertura", (c, id, versao, ct) => c.ReabrirAsync(id, versao, ct));
+        MapTransicao(tarefas, "/retorno", (c, id, versao, ct) => c.RetornarAsync(id, versao, ct));
         MapTransicao(tarefas, "/cancelamento", (c, id, versao, ct) => c.CancelarAsync(id, versao, ct));
 
         tarefas.MapPost("/{id:guid}/itens", async (
