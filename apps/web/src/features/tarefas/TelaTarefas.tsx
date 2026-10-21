@@ -25,6 +25,7 @@ import {
     type FiltrosTarefas,
     type TarefaResumo,
 } from './consultas'
+import { JanelaNovaTarefa } from './JanelaNovaTarefa'
 import { Quadro } from './Quadro'
 import { ESTILO_STATUS_TAREFA, STATUS_TAREFA } from './rotulos'
 
@@ -46,6 +47,14 @@ export function TelaTarefas({ perfil, filtros }: { perfil: Perfil; filtros: Filt
         void navegar({ to: '.', search: { ...filtros, busca: busca || undefined, pagina: undefined }, replace: true })
     }, [busca, filtros, navegar])
 
+    // A janela abre pelo endereço (`?nova=1`), como a de nova solicitação (convenções §4).
+    const mudarNova = (aberta: boolean) =>
+        void navegar({
+            to: '.',
+            search: (atual: FiltrosTarefas) => ({ ...atual, nova: aberta || undefined }),
+            replace: !aberta,
+        })
+
     const algumFiltro = Boolean(filtros.busca || filtros.cliente || filtros.responsavel)
     const pessoas = [
         { id: 'eu', rotulo: 'Comigo' },
@@ -57,32 +66,40 @@ export function TelaTarefas({ perfil, filtros }: { perfil: Perfil; filtros: Filt
         <Pagina
             titulo="Tarefas"
             acoes={
-                <RadioGroup
-                    aria-label="Ver como"
-                    orientation="horizontal"
-                    value={quadro ? 'quadro' : 'lista'}
-                    onChange={(v) =>
-                        void navegar({
-                            to: '.',
-                            search: (atual: FiltrosTarefas) => ({
-                                ...atual,
-                                modo: v === 'quadro' ? ('quadro' as const) : undefined,
-                                pagina: undefined,
-                            }),
-                        })
-                    }
-                    className="flex gap-1 rounded-couro bg-trilho p-1"
-                >
-                    {(['lista', 'quadro'] as const).map((v) => (
-                        <Radio
-                            key={v}
-                            value={v}
-                            className="cursor-default rounded-couro px-3 py-1 text-sm text-suave outline-none data-[focus-visible]:ring-2 data-[focus-visible]:ring-acento data-[selected]:bg-superficie data-[selected]:font-semibold data-[selected]:text-tinta data-[selected]:shadow-sm"
-                        >
-                            {v === 'lista' ? 'Lista' : 'Quadro'}
-                        </Radio>
-                    ))}
-                </RadioGroup>
+                <div className="flex flex-wrap items-center gap-3">
+                    {pode(perfil, 'tarefa.criar') && (
+                        <Botao onPress={() => mudarNova(true)}>
+                            <Icone nome="mais" />
+                            Nova tarefa
+                        </Botao>
+                    )}
+                    <RadioGroup
+                        aria-label="Ver como"
+                        orientation="horizontal"
+                        value={quadro ? 'quadro' : 'lista'}
+                        onChange={(v) =>
+                            void navegar({
+                                to: '.',
+                                search: (atual: FiltrosTarefas) => ({
+                                    ...atual,
+                                    modo: v === 'quadro' ? ('quadro' as const) : undefined,
+                                    pagina: undefined,
+                                }),
+                            })
+                        }
+                        className="flex gap-1 rounded-couro bg-trilho p-1"
+                    >
+                        {(['lista', 'quadro'] as const).map((v) => (
+                            <Radio
+                                key={v}
+                                value={v}
+                                className="cursor-default rounded-couro px-3 py-1 text-sm text-suave outline-none data-[focus-visible]:ring-2 data-[focus-visible]:ring-acento data-[selected]:bg-superficie data-[selected]:font-semibold data-[selected]:text-tinta data-[selected]:shadow-sm"
+                            >
+                                {v === 'lista' ? 'Lista' : 'Quadro'}
+                            </Radio>
+                        ))}
+                    </RadioGroup>
+                </div>
             }
         >
             {!quadro && (
@@ -172,6 +189,19 @@ export function TelaTarefas({ perfil, filtros }: { perfil: Perfil; filtros: Filt
             ) : (
                 <Tabela itens={lista.data.itens} hoje={hojeNoFuso(fuso)} />
             )}
+
+            <JanelaNovaTarefa
+                perfil={perfil}
+                aberta={Boolean(filtros.nova) && pode(perfil, 'tarefa.criar')}
+                aoMudar={mudarNova}
+                aoCriar={(t) =>
+                    void navegar({
+                        to: '/tarefas/$id',
+                        params: { id: t.id },
+                        search: (atual: FiltrosTarefas) => ({ ...atual, nova: undefined }),
+                    })
+                }
+            />
 
             {!quadro && lista.data && (
                 <Paginacao

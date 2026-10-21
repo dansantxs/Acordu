@@ -23,6 +23,7 @@ import { navegacaoDe, pode } from './navegacao'
 /** Ações de criar: cada uma abre a tela com a janela aberta (`?nova=1`, `?novo=1`). */
 const CRIACOES = [
     { rotulo: 'Nova solicitação', para: '/solicitacoes?nova=1', permissao: 'solicitacao.criar' },
+    { rotulo: 'Nova tarefa', para: '/tarefas?nova=1', permissao: 'tarefa.criar' },
     { rotulo: 'Novo cliente', para: '/clientes?novo=1', permissao: 'cliente.gerenciar' },
 ] as const
 

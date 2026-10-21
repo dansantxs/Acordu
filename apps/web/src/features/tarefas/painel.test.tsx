@@ -53,6 +53,8 @@ const app = (permissoes: string[], rotas: Rotas = {}) =>
     comPerfil(permissoes, {
         'GET /api/v1/tarefas': () => json({ itens: [resumo], pagina: 1, tamanhoPagina: 50, total: 1 }),
         [`GET /api/v1/tarefas/${ID}`]: () => json(tarefa()),
+        [`GET /api/v1/tarefas/${ID}/comentarios`]: () => json([]),
+        [`GET /api/v1/tarefas/${ID}/seguidores`]: () => json([]),
         'GET /api/v1/equipe': () =>
             json([
                 { id: perfil.usuarioId, nome: 'Ana Prado' },
@@ -198,5 +200,70 @@ describe('detalhe da tarefa', () => {
         )
         await usuario.click(within(aside).getByRole('button', { name: 'Tirar "Comprar peça"' }))
         await vi.waitFor(() => expect(chamadas.some((c) => c.metodo === 'DELETE')).toBe(true))
+    })
+
+    it('comenta com menção, exclui o próprio comentário e segue a tarefa', async () => {
+        let comentarios = [
+            {
+                id: 'c1',
+                autor: { id: RAFAEL, nome: 'Rafael Moura' },
+                texto: 'Peça chega amanhã.',
+                registradoEm: new Date().toISOString(),
+                anexos: [],
+            },
+        ]
+        let seguindo = false
+        const chamadas = app(EDITAR, {
+            [`GET /api/v1/tarefas/${ID}/comentarios`]: () => json(comentarios),
+            [`POST /api/v1/tarefas/${ID}/comentarios`]: (corpo) => {
+                const novo = {
+                    id: 'c2',
+                    autor: { id: perfil.usuarioId, nome: 'Ana Prado' },
+                    texto: (corpo as { texto: string }).texto,
+                    registradoEm: new Date().toISOString(),
+                    anexos: [],
+                }
+                comentarios = [...comentarios, novo]
+                return json(novo, 201)
+            },
+            [`DELETE /api/v1/tarefas/${ID}/comentarios/c2`]: () => {
+                comentarios = comentarios.filter((c) => c.id !== 'c2')
+                return new Response(null, { status: 204 })
+            },
+            [`GET /api/v1/tarefas/${ID}/seguidores`]: () =>
+                json(seguindo ? [{ id: perfil.usuarioId, nome: 'Ana Prado' }] : []),
+            [`PUT /api/v1/tarefas/${ID}/seguidores/eu`]: () => {
+                seguindo = true
+                return new Response(null, { status: 204 })
+            },
+        })
+        await abrir(`/tarefas/${ID}`)
+        const aside = await painel()
+        const secao = within(await within(aside).findByRole('region', { name: 'Comentários' }))
+        const usuario = userEvent.setup()
+
+        expect(await secao.findByText('Peça chega amanhã.')).toBeInTheDocument()
+        // Só o autor exclui.
+        expect(secao.queryByRole('button', { name: 'Excluir' })).not.toBeInTheDocument()
+
+        const caixa = secao.getByRole('combobox', { name: 'Comentário' })
+        await usuario.type(caixa, 'Valeu @raf')
+        await usuario.click(await screen.findByRole('option', { name: 'Rafael Moura' }))
+        await usuario.click(secao.getByRole('button', { name: 'Comentar' }))
+        await vi.waitFor(() =>
+            expect(chamadas.find((c) => c.metodo === 'POST' && c.caminho.endsWith('/comentarios'))?.corpo).toEqual({
+                texto: `Valeu @{${RAFAEL}}`,
+            }),
+        )
+        expect(await secao.findByText('@Rafael Moura')).toBeInTheDocument()
+
+        await usuario.click(secao.getByRole('button', { name: 'Excluir' }))
+        const janela = await screen.findByRole('dialog', { name: 'Excluir o comentário?' })
+        await usuario.click(within(janela).getByRole('button', { name: 'Excluir comentário' }))
+        expect(await screen.findByText('Comentário excluído.')).toBeInTheDocument()
+        await vi.waitFor(() => expect(secao.queryByText('@Rafael Moura')).not.toBeInTheDocument())
+
+        await usuario.click(within(aside).getByRole('button', { name: 'Seguir' }))
+        expect(await within(aside).findByText('você')).toBeInTheDocument()
     })
 })

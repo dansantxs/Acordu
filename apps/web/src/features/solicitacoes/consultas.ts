@@ -214,21 +214,6 @@ export async function registrarInteracao(
     ).data!
 }
 
-/** Quem segue (RF-COL-03): recebe no sino as novidades da solicitação. */
-export function consultaSeguidores(id: string) {
-    return queryOptions({
-        queryKey: ['solicitacoes', 'seguidores', id],
-        queryFn: async () =>
-            (await api.GET('/api/v1/solicitacoes/{id}/seguidores', { params: { path: { id } } })).data!,
-    })
-}
-
-export async function seguir(id: string, seguindo: boolean): Promise<void> {
-    const opcoes = { params: { path: { id } } }
-    if (seguindo) await api.PUT('/api/v1/solicitacoes/{id}/seguidores/eu', opcoes)
-    else await api.DELETE('/api/v1/solicitacoes/{id}/seguidores/eu', opcoes)
-}
-
 export type Semelhante = components['schemas']['SolicitacaoSemelhanteDto']
 
 /** Até 5 resolvidas parecidas (RF-CON-02), para reaproveitar a solução. */

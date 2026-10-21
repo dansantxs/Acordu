@@ -24,6 +24,8 @@ export interface FiltrosTarefas {
     /** Id da pessoa, `eu` ou `ninguem`. */
     responsavel?: string
     pagina?: number
+    /** Abre a janela de nova tarefa (Ctrl+K, botão); não filtra. */
+    nova?: boolean
 }
 
 export const TAMANHO_PAGINA = 50
@@ -41,7 +43,7 @@ function parametros(filtros: FiltrosTarefas) {
     }
 }
 
-export function consultaListaTarefas({ modo, ...filtros }: FiltrosTarefas) {
+export function consultaListaTarefas({ modo, nova, ...filtros }: FiltrosTarefas) {
     const status = ABAS[filtros.aba ?? 'abertas'].status
     return queryOptions({
         queryKey: ['tarefas', 'lista', filtros],
@@ -66,7 +68,7 @@ export function consultaListaTarefas({ modo, ...filtros }: FiltrosTarefas) {
 export const DIAS_CONCLUIDAS_NO_QUADRO = 14
 
 /** Quadro: abertas e concluídas recentes numa chamada (`concluidaDesde` só recorta as concluídas). */
-export function consultaQuadro({ modo, aba, pagina, ...filtros }: FiltrosTarefas, agora = Date.now()) {
+export function consultaQuadro({ modo, aba, pagina, nova, ...filtros }: FiltrosTarefas, agora = Date.now()) {
     const desde = new Date(agora - DIAS_CONCLUIDAS_NO_QUADRO * 86_400_000)
     // Arredonda para a hora: a chave da consulta não muda a cada renderização.
     desde.setUTCMinutes(0, 0, 0)
@@ -185,4 +187,39 @@ export async function editarItem(tarefaId: string, itemId: string, texto: string
 
 export async function removerItem(tarefaId: string, itemId: string): Promise<void> {
     await api.DELETE('/api/v1/tarefas/{id}/itens/{itemId}', { params: { path: { id: tarefaId, itemId } } })
+}
+
+export type Comentario = components['schemas']['ComentarioTarefaDto']
+
+/** Comentários da tarefa (contrato §8.1a), do mais antigo; só da equipe. */
+export function consultaComentarios(id: string) {
+    return queryOptions({
+        queryKey: ['tarefas', 'comentarios', id],
+        queryFn: async () => (await api.GET('/api/v1/tarefas/{id}/comentarios', { params: { path: { id } } })).data!,
+    })
+}
+
+/** Sem anexos vai em JSON; com anexos, multipart (como as interações da solicitação). */
+export async function comentar(id: string, texto: string | null, anexos: File[]): Promise<Comentario> {
+    if (anexos.length === 0)
+        return (await api.POST('/api/v1/tarefas/{id}/comentarios', { params: { path: { id } }, body: { texto } })).data!
+    const formulario = new FormData()
+    if (texto) formulario.append('texto', texto)
+    anexos.forEach((arquivo) => formulario.append('anexos', arquivo, arquivo.name))
+    return (
+        await api.POST('/api/v1/tarefas/{id}/comentarios', {
+            params: { path: { id } },
+            body: formulario as unknown as { texto: string | null },
+        })
+    ).data!
+}
+
+export async function excluirComentario(id: string, comentarioId: string): Promise<void> {
+    await api.DELETE('/api/v1/tarefas/{id}/comentarios/{comentarioId}', { params: { path: { id, comentarioId } } })
+}
+
+export type NovaTarefa = components['schemas']['NovaTarefaRequest']
+
+export async function criarTarefa(dados: NovaTarefa): Promise<Tarefa> {
+    return (await api.POST('/api/v1/tarefas', { body: dados })).data!
 }
