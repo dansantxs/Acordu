@@ -17,6 +17,7 @@ import { CampoTexto } from '@/shared/ui/CampoTexto'
 import { Confirmacao } from '@/shared/ui/Confirmacao'
 import { Icone } from '@/shared/ui/Icone'
 import { Janela } from '@/shared/ui/Janela'
+import { Seguidores } from '@/shared/colaboracao/Seguidores'
 import { Dado, PainelLateral } from '@/shared/ui/PainelLateral'
 import { LegendaObrigatorios } from '@/shared/ui/Rotulo'
 import {
@@ -32,6 +33,7 @@ import {
     type FiltrosTarefas,
     type Tarefa,
 } from './consultas'
+import { Comentarios } from './Comentarios'
 import {
     ESTILO_STATUS_TAREFA,
     ROTULO_ACAO_TAREFA,
@@ -45,7 +47,7 @@ const ID_TITULO = 'titulo-tarefa'
 /**
  * Detalhe da tarefa em painel sobre a lista ou o quadro (plano do F3, 20/10), no padrão das solicitações (convenções
  * §4). Status pelos botões, sem desfazer; responsável muda na hora com desfazer; prazo, dia planejado, estimativa e
- * visibilidade salvam ao mudar. Comentários e seguidores chegam no F3b2.
+ * visibilidade salvam ao mudar.
  */
 export function PainelTarefa({ perfil, id }: { perfil: Perfil; id: string }) {
     const navegar = useNavigate()
@@ -235,6 +237,7 @@ function Detalhe({
                         </span>
                     )}
                 </Dado>
+                <Seguidores alvo="tarefas" id={t.id} usuarioId={perfil.usuarioId} />
                 {t.clienteId && (
                     <div className="flex flex-col gap-1">
                         <p className="text-sm font-semibold">No portal</p>
@@ -271,6 +274,13 @@ function Detalhe({
                 tarefa={t}
                 editavel={editavel}
                 aoMudar={() => consultas.invalidateQueries({ queryKey: chave })}
+            />
+
+            <Comentarios
+                tarefaId={t.id}
+                fuso={perfil.tenant.fusoHorario}
+                usuarioId={perfil.usuarioId}
+                podeComentar={podeEditar}
             />
 
             <JanelaEdicaoTarefa
