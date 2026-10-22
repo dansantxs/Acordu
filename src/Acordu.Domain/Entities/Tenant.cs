@@ -1,4 +1,5 @@
 using Acordu.Domain.Common;
+using Acordu.Domain.ValueObjects;
 
 namespace Acordu.Domain.Entities;
 
@@ -44,6 +45,18 @@ public sealed class Tenant
 
     public const int TamanhoLogoChave = 512;
 
+    /// <summary>
+    /// Endereço que recebe as respostas dos e-mails ao contato (Reply-To; pedido de 16/10). O "De" continua sendo o
+    /// endereço do Acordu; nulo = responder vai para o endereço sem caixa.
+    /// </summary>
+    public string? ResponderPara { get; private set; }
+
+    /// <summary>Prazos sugeridos no cadastro de contrato; nulo = <see cref="PoliticaSla.Sugerida"/>.</summary>
+    public PoliticaSla? SlaPadrao { get; private set; }
+
+    /// <summary>A política que o cadastro de contrato sugere: a da empresa ou a do sistema.</summary>
+    public PoliticaSla SlaSugerido => SlaPadrao ?? PoliticaSla.Sugerida;
+
     public static Tenant Criar(Guid id, string nome, DateTimeOffset agora) =>
         new(Ids.Obrigatorio(id, nameof(id)), Texto.Obrigatorio(nome, LimitesTexto.Nome, nameof(nome)), agora.ToUniversalTime());
 
@@ -61,6 +74,17 @@ public sealed class Tenant
 
         NomePortal = Texto.Opcional(nomePortal, LimitesTexto.Nome, nameof(nomePortal));
         DiasFechamentoAutomatico = diasFechamentoAutomatico;
+    }
+
+    /// <summary>Nome da empresa, endereço de resposta (vazio = nenhum) e SLA sugerido nos contratos novos.</summary>
+    public void ConfigurarEmpresa(string nome, string? responderPara, PoliticaSla slaPadrao)
+    {
+        ArgumentNullException.ThrowIfNull(slaPadrao);
+        var novoNome = Texto.Obrigatorio(nome, LimitesTexto.Nome, nameof(nome));
+        var endereco = string.IsNullOrWhiteSpace(responderPara) ? null : Email.Normalizar(responderPara, nameof(responderPara));
+        Nome = novoNome;
+        ResponderPara = endereco;
+        SlaPadrao = slaPadrao;
     }
 
     /// <summary>Troca (ou remove, com nulo) o logotipo; o arquivo já está no storage.</summary>

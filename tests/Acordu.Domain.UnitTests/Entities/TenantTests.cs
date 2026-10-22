@@ -1,5 +1,7 @@
 using Acordu.Domain.Common;
 using Acordu.Domain.Entities;
+using Acordu.Domain.Enums;
+using Acordu.Domain.ValueObjects;
 
 namespace Acordu.Domain.UnitTests.Entities;
 
@@ -90,5 +92,45 @@ public sealed class TenantTests
         tenant.LogoChave.Should().Be("t/portal/logo-1.png");
         tenant.DefinirLogo(null);
         tenant.LogoChave.Should().BeNull();
+    }
+
+    [Fact]
+    public void Criar_SemSlaProprio_SugereODoSistema()
+    {
+        var tenant = Tenant.Criar(Guid.NewGuid(), "Estúdio", Agora);
+
+        tenant.SlaPadrao.Should().BeNull();
+        tenant.SlaSugerido.Should().Be(PoliticaSla.Sugerida);
+        tenant.SlaSugerido.PrazosDe(Prioridade.Urgente).Resolucao.Should().Be(Duracao.FromHoras(4));
+        tenant.ResponderPara.Should().BeNull();
+    }
+
+    [Fact]
+    public void ConfigurarEmpresa_NormalizaEmailEGuardaSla()
+    {
+        var tenant = Tenant.Criar(Guid.NewGuid(), "Estúdio", Agora);
+        var sla = new PoliticaSla(Enum.GetValues<Prioridade>()
+            .Select(p => new PrazoSla(p, Duracao.FromHoras(1), Duracao.FromHoras(8))));
+
+        tenant.ConfigurarEmpresa("  Estúdio Traço ", " Contato@EstudioTraco.com.br ", sla);
+
+        tenant.Nome.Should().Be("Estúdio Traço");
+        tenant.ResponderPara.Should().Be("contato@estudiotraco.com.br");
+        tenant.SlaSugerido.Should().Be(sla);
+
+        tenant.ConfigurarEmpresa("Estúdio Traço", "   ", sla);
+        tenant.ResponderPara.Should().BeNull();
+    }
+
+    [Fact]
+    public void ConfigurarEmpresa_EmailInvalido_NaoMudaNada()
+    {
+        var tenant = Tenant.Criar(Guid.NewGuid(), "Estúdio", Agora);
+
+        var acao = () => tenant.ConfigurarEmpresa("Outro nome", "sem-arroba", PoliticaSla.Sugerida);
+
+        acao.Should().Throw<ArgumentException>().WithParameterName("responderPara");
+        tenant.Nome.Should().Be("Estúdio");
+        tenant.SlaPadrao.Should().BeNull();
     }
 }
