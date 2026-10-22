@@ -23,6 +23,65 @@ public sealed class ConfiguracoesTests(ApiFixture api)
         feriados = new[] { "2026-11-02", "2026-10-12", "2026-11-02" },
     };
 
+    private static object[] Sla(int urgenteResolucao = 360) =>
+    [
+        new { prioridade = "URGENTE", primeiraRespostaMinutos = 60, resolucaoMinutos = urgenteResolucao },
+        new { prioridade = "ALTA", primeiraRespostaMinutos = 120, resolucaoMinutos = 960 },
+        new { prioridade = "MEDIA", primeiraRespostaMinutos = 240, resolucaoMinutos = 1920 },
+        new { prioridade = "BAIXA", primeiraRespostaMinutos = 480, resolucaoMinutos = 4800 },
+    ];
+
+    [Fact]
+    public async Task Empresa_SugereOSlaDoSistema_DepoisODaEmpresa_EResponderParaNormalizado()
+    {
+        var equipe = await Equipe.CriarAsync(api);
+        var membro = await equipe.ComPapelAsync(Papel.NomeMembro);
+
+        var padrao = await equipe.EsperarAsync(HttpStatusCode.OK, HttpMethod.Get, "/api/v1/configuracoes/empresa", token: membro);
+        var salvo = await equipe.EsperarAsync(HttpStatusCode.OK, HttpMethod.Put, "/api/v1/configuracoes/empresa", new
+        {
+            nome = "  Estúdio Traço Design ", responderPara = " Atendimento@EstudioTraco.com.br ", slaPadrao = Sla(),
+        });
+        var relido = await equipe.EsperarAsync(HttpStatusCode.OK, HttpMethod.Get, "/api/v1/configuracoes/empresa", token: membro);
+
+        padrao.GetProperty("slaPersonalizado").GetBoolean().Should().BeFalse();
+        padrao.GetProperty("responderPara").ValueKind.Should().Be(System.Text.Json.JsonValueKind.Null);
+        padrao.GetProperty("slaPadrao")[0].GetProperty("prioridade").GetString().Should().Be("URGENTE");
+        padrao.GetProperty("slaPadrao")[0].GetProperty("resolucaoMinutos").GetInt32().Should().Be(240);
+        salvo.GetProperty("nome").GetString().Should().Be("Estúdio Traço Design");
+        salvo.GetProperty("responderPara").GetString().Should().Be("atendimento@estudiotraco.com.br");
+        relido.GetProperty("slaPersonalizado").GetBoolean().Should().BeTrue();
+        relido.GetProperty("slaPadrao")[0].GetProperty("resolucaoMinutos").GetInt32().Should().Be(360);
+    }
+
+    [Fact]
+    public async Task Empresa_ErrosNoCampo_EMembroNaoAltera()
+    {
+        var equipe = await Equipe.CriarAsync(api);
+        var membro = await equipe.ComPapelAsync(Papel.NomeMembro);
+
+        var email = await equipe.EsperarAsync(HttpStatusCode.BadRequest, HttpMethod.Put, "/api/v1/configuracoes/empresa", new
+        {
+            nome = "Estúdio", responderPara = "sem-arroba", slaPadrao = Sla(),
+        });
+        var nome = await equipe.EsperarAsync(HttpStatusCode.BadRequest, HttpMethod.Put, "/api/v1/configuracoes/empresa", new
+        {
+            nome = " ", responderPara = (string?)null, slaPadrao = Sla(),
+        });
+        var sla = await equipe.EsperarAsync(HttpStatusCode.BadRequest, HttpMethod.Put, "/api/v1/configuracoes/empresa", new
+        {
+            nome = "Estúdio", responderPara = (string?)null, slaPadrao = Sla(urgenteResolucao: 30),
+        });
+        await equipe.EsperarAsync(HttpStatusCode.Forbidden, HttpMethod.Put, "/api/v1/configuracoes/empresa", new
+        {
+            nome = "Estúdio", responderPara = (string?)null, slaPadrao = Sla(),
+        }, token: membro);
+
+        email.GetProperty("errors").TryGetProperty("responderPara", out _).Should().BeTrue();
+        nome.GetProperty("errors").TryGetProperty("nome", out _).Should().BeTrue();
+        sla.GetProperty("errors").TryGetProperty("slaPadrao", out _).Should().BeTrue("resolução menor que a primeira resposta");
+    }
+
     [Fact]
     public async Task Calendario_PadraoDoRegistro_EAlteracao()
     {
