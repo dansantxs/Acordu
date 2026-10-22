@@ -7,7 +7,7 @@ using Acordu.Domain.Acesso;
 
 namespace Acordu.Api.Endpoints;
 
-/// <summary>Calendário, configurações do portal e categorias (contrato §6).</summary>
+/// <summary>Calendário, empresa, configurações do portal e categorias (contrato §6).</summary>
 internal static class ConfiguracoesEndpoints
 {
     public static void MapConfiguracoes(this RouteGroupBuilder interno)
@@ -24,6 +24,17 @@ internal static class ConfiguracoesEndpoints
             Results.Ok(await comandos.AtualizarCalendarioAsync(corpo, cancellationToken)))
             .RequirePermissao(Permissoes.ConfiguracaoGerenciar)
             .Produces<CalendarioDto>();
+
+        // Leitura liberada à equipe: o cadastro de contrato sugere o SLA da empresa.
+        configuracoes.MapGet("/empresa", async (ComandosConfiguracao comandos, CancellationToken cancellationToken) =>
+            Results.Ok(await comandos.ObterEmpresaAsync(cancellationToken)))
+            .Produces<ConfiguracaoEmpresaDto>();
+
+        configuracoes.MapPut("/empresa", async (
+            ConfiguracaoEmpresaRequest corpo, ComandosConfiguracao comandos, CancellationToken cancellationToken) =>
+            Results.Ok(await comandos.AtualizarEmpresaAsync(corpo, cancellationToken)))
+            .RequirePermissao(Permissoes.ConfiguracaoGerenciar)
+            .Produces<ConfiguracaoEmpresaDto>();
 
         configuracoes.MapGet("/portal", async (ComandosConfiguracao comandos, CancellationToken cancellationToken) =>
             Results.Ok(await comandos.ObterPortalAsync(cancellationToken)))

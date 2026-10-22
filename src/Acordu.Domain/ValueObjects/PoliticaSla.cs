@@ -29,6 +29,17 @@ public sealed record PoliticaSla
         _prazos = [.. lista.OrderBy(p => p.Prioridade)];
     }
 
+    /// <summary>
+    /// Prazos sugeridos quando a empresa não definiu os seus (decisão 3 do F4, em horas úteis): Urgente 1h/4h,
+    /// Alta 2h/16h, Média 4h/32h, Baixa 8h/80h.
+    /// </summary>
+    public static PoliticaSla Sugerida { get; } = new([
+        new PrazoSla(Prioridade.Urgente, Duracao.FromHoras(1), Duracao.FromHoras(4)),
+        new PrazoSla(Prioridade.Alta, Duracao.FromHoras(2), Duracao.FromHoras(16)),
+        new PrazoSla(Prioridade.Media, Duracao.FromHoras(4), Duracao.FromHoras(32)),
+        new PrazoSla(Prioridade.Baixa, Duracao.FromHoras(8), Duracao.FromHoras(80)),
+    ]);
+
     /// <summary>Prazos ordenados por prioridade (da mais baixa para a mais alta).</summary>
     public IReadOnlyList<PrazoSla> Prazos => _prazos;
 

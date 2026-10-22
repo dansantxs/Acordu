@@ -3830,6 +3830,52 @@
         }
       }
     },
+    "/api/v1/configuracoes/empresa": {
+      "get": {
+        "tags": [
+          "Configurações"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConfiguracaoEmpresaDto"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "Configurações"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ConfiguracaoEmpresaRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConfiguracaoEmpresaDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/configuracoes/portal": {
       "get": {
         "tags": [
@@ -5767,6 +5813,66 @@
               "null",
               "string"
             ]
+          }
+        }
+      },
+      "ConfiguracaoEmpresaDto": {
+        "required": [
+          "nome",
+          "responderPara",
+          "slaPadrao",
+          "slaPersonalizado"
+        ],
+        "type": "object",
+        "properties": {
+          "nome": {
+            "type": "string"
+          },
+          "responderPara": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "slaPadrao": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PrazoSlaDto"
+            }
+          },
+          "slaPersonalizado": {
+            "type": "boolean"
+          }
+        }
+      },
+      "ConfiguracaoEmpresaRequest": {
+        "required": [
+          "nome",
+          "responderPara",
+          "slaPadrao"
+        ],
+        "type": "object",
+        "properties": {
+          "nome": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "responderPara": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "slaPadrao": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "$ref": "#/components/schemas/PrazoSlaDto"
+            }
           }
         }
       },

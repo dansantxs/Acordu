@@ -1,3 +1,5 @@
+using Acordu.Application.Contratos;
+
 namespace Acordu.Application.Configuracoes;
 
 /// <summary>Dia da semana em português no contrato (<c>SEGUNDA</c>); o domínio usa <see cref="DayOfWeek"/>.</summary>
@@ -24,3 +26,12 @@ public sealed record CalendarioRequest(string FusoHorario, IReadOnlyList<JanelaD
 public sealed record ConfiguracaoPortalDto(string NomeTenant, string? NomeExibido, int DiasFechamentoAutomatico, Uri? LogoUrl);
 
 public sealed record ConfiguracaoPortalRequest(string? NomeExibido, int DiasFechamentoAutomatico);
+
+/// <summary>
+/// Empresa (contrato §6, F5a): nome, endereço que recebe as respostas dos e-mails ao contato e SLA sugerido nos
+/// contratos novos (o da empresa ou, sem ele, o do sistema; <see cref="SlaPersonalizado"/> diz qual).
+/// </summary>
+public sealed record ConfiguracaoEmpresaDto(
+    string Nome, string? ResponderPara, IReadOnlyList<PrazoSlaDto> SlaPadrao, bool SlaPersonalizado);
+
+public sealed record ConfiguracaoEmpresaRequest(string? Nome, string? ResponderPara, IReadOnlyList<PrazoSlaDto>? SlaPadrao);

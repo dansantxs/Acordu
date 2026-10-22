@@ -37,7 +37,8 @@ public sealed class EnviadorEmailResend : IEnviadorEmail
                 [mensagem.Para],
                 mensagem.Assunto,
                 mensagem.Texto,
-                FormatoEmail.Html(mensagem.Texto))),
+                FormatoEmail.Html(mensagem.Texto),
+                mensagem.ResponderPara is null ? null : [mensagem.ResponderPara])),
         };
         requisicao.Headers.Authorization = new AuthenticationHeaderValue("Bearer", _opcoes.ChaveResend);
 
@@ -60,5 +61,7 @@ public sealed class EnviadorEmailResend : IEnviadorEmail
         [property: JsonPropertyName("to")] IReadOnlyList<string> Para,
         [property: JsonPropertyName("subject")] string Assunto,
         [property: JsonPropertyName("text")] string Texto,
-        [property: JsonPropertyName("html")] string Html);
+        [property: JsonPropertyName("html")] string Html,
+        [property: JsonPropertyName("reply_to"), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+        IReadOnlyList<string>? ResponderPara);
 }

@@ -46,8 +46,22 @@ public sealed class EnviadorEmailResendTests
 
         await new EnviadorEmailResend(http, Opcoes).EnviarAsync(new MensagemEmail("a@b.com", "Oi", "Oi", "teste"));
 
-        JsonDocument.Parse(handler.Corpo!).RootElement.GetProperty("from").GetString()
-            .Should().Be("Acordu <nao-responda@send.acordu.app.br>");
+        var corpo = JsonDocument.Parse(handler.Corpo!).RootElement;
+        corpo.GetProperty("from").GetString().Should().Be("Acordu <nao-responda@send.acordu.app.br>");
+        corpo.TryGetProperty("reply_to", out _).Should().BeFalse("sem endereço de resposta, o campo não vai");
+    }
+
+    [Fact]
+    public async Task Enviar_ComResponderPara_VaiNoReplyTo()
+    {
+        var handler = new HandlerFalso(HttpStatusCode.OK);
+        using var http = new HttpClient(handler);
+
+        await new EnviadorEmailResend(http, Opcoes).EnviarAsync(
+            new MensagemEmail("a@b.com", "Oi", "Oi", "aviso-mensagem", "Estúdio Traço", "contato@estudiotraco.com.br"));
+
+        JsonDocument.Parse(handler.Corpo!).RootElement.GetProperty("reply_to")[0].GetString()
+            .Should().Be("contato@estudiotraco.com.br");
     }
 
     [Fact]

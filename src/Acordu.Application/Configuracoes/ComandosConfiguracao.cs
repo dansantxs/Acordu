@@ -1,8 +1,11 @@
 using System.Globalization;
 using Acordu.Application.Abstractions;
 using Acordu.Application.Common;
+using Acordu.Application.Contratos;
 using Acordu.Domain.Acesso;
+using Acordu.Domain.Common;
 using Acordu.Domain.Entities;
+using Acordu.Domain.Exceptions;
 using Acordu.Domain.ValueObjects;
 
 namespace Acordu.Application.Configuracoes;
@@ -87,6 +90,65 @@ public sealed class ComandosConfiguracao
         tenant.ConfigurarPortal(dados.NomeExibido, dados.DiasFechamentoAutomatico);
         await _unidade.SalvarAsync(cancellationToken);
         return Portal(tenant);
+    }
+
+    public static ConfiguracaoEmpresaDto Empresa(Tenant tenant)
+    {
+        ArgumentNullException.ThrowIfNull(tenant);
+        return new ConfiguracaoEmpresaDto(
+            tenant.Nome,
+            tenant.ResponderPara,
+            [.. tenant.SlaSugerido.Prazos
+                .OrderByDescending(p => p.Prioridade)
+                .Select(p => new PrazoSlaDto(p.Prioridade, p.PrimeiraResposta.Minutos, p.Resolucao.Minutos))],
+            tenant.SlaPadrao is not null);
+    }
+
+    /// <summary>Leitura liberada à equipe: o cadastro de contrato usa o SLA sugerido.</summary>
+    public async Task<ConfiguracaoEmpresaDto> ObterEmpresaAsync(CancellationToken cancellationToken = default) =>
+        Empresa(await _tenant.ObterAsync(cancellationToken));
+
+    public async Task<ConfiguracaoEmpresaDto> AtualizarEmpresaAsync(
+        ConfiguracaoEmpresaRequest dados, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(dados);
+        _contexto.Exigir(Permissoes.ConfiguracaoGerenciar);
+        if (string.IsNullOrWhiteSpace(dados.Nome))
+            throw ErroDeCampo.Criar("nome", "Informe o nome da empresa.");
+        if (dados.Nome.Trim().Length > LimitesTexto.Nome)
+            throw ErroDeCampo.Criar("nome", $"O nome vai até {LimitesTexto.Nome} caracteres.");
+        var sla = SlaPadrao(dados.SlaPadrao);
+
+        var tenant = await _tenant.ObterAsync(cancellationToken);
+        try
+        {
+            tenant.ConfigurarEmpresa(dados.Nome, dados.ResponderPara, sla);
+        }
+        catch (ArgumentException e) when (e.ParamName == "responderPara")
+        {
+            throw ErroDeCampo.Criar("responderPara", "E-mail inválido.");
+        }
+
+        await _unidade.SalvarAsync(cancellationToken);
+        return Empresa(tenant);
+    }
+
+    /// <summary>As quatro prioridades, com o erro no campo <c>slaPadrao</c> (no contrato, a mesma regra vira 422).</summary>
+    private static PoliticaSla SlaPadrao(IReadOnlyList<PrazoSlaDto>? sla)
+    {
+        if (sla is null || sla.Count == 0)
+            throw ErroDeCampo.Criar("slaPadrao", "Informe os prazos das quatro prioridades.");
+        if (sla.Any(p => p.PrimeiraRespostaMinutos <= 0 || p.ResolucaoMinutos <= 0))
+            throw ErroDeCampo.Criar("slaPadrao", "Os prazos precisam ser maiores que zero.");
+        try
+        {
+            return new PoliticaSla(sla.Select(p => new PrazoSla(
+                p.Prioridade, Duracao.FromMinutos(p.PrimeiraRespostaMinutos), Duracao.FromMinutos(p.ResolucaoMinutos))));
+        }
+        catch (Exception e) when (e is SlaIncompletoException or ArgumentOutOfRangeException)
+        {
+            throw ErroDeCampo.Criar("slaPadrao", e.Message);
+        }
     }
 
     /// <summary>Valida o expediente com erro no campo (o domínio também valida, com mensagens sem o campo do JSON).</summary>

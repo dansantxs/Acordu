@@ -85,6 +85,28 @@ public sealed class AvisosAoContatoTests(ApiFixture api)
         api.Emails.Para(email).Should().HaveCount(antes);
     }
 
+    [Fact]
+    public async Task ResponderParaDaEmpresa_VaiNosEmailsAoContato()
+    {
+        var equipe = await Equipe.CriarAsync(api);
+        var empresa = await equipe.EsperarAsync(HttpStatusCode.OK, HttpMethod.Get, "/api/v1/configuracoes/empresa");
+        await equipe.EsperarAsync(HttpStatusCode.OK, HttpMethod.Put, "/api/v1/configuracoes/empresa", new
+        {
+            nome = empresa.GetProperty("nome").GetString(),
+            responderPara = "atendimento@estudiotraco.com.br",
+            slaPadrao = empresa.GetProperty("slaPadrao"),
+        });
+        var cliente = await Cenarios.ClienteAsync(equipe);
+        var (contato, email) = await ContatoAsync(equipe, cliente);
+
+        await equipe.EsperarAsync(HttpStatusCode.Created, HttpMethod.Post, "/api/v1/solicitacoes", new
+        {
+            clienteId = cliente, contatoId = contato, titulo = "Trocar a logo do site", prioridade = "MEDIA",
+        });
+
+        Ultimo(email, "aviso-recebida").ResponderPara.Should().Be("atendimento@estudiotraco.com.br");
+    }
+
     private MensagemEmail Ultimo(string email, string categoria) =>
         api.Emails.Para(email).Last(m => m.Categoria == categoria);
 
