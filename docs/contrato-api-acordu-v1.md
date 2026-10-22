@@ -245,6 +245,7 @@ Para `BANCO_HORAS`, `saldoMinutos` é o saldo **acumulado** desde o início do c
 | Método | Rota | Descrição | Permissão |
 |---|---|---|---|
 | GET/PUT | `/configuracoes/calendario` | Fuso, expediente por dia, feriados (ADR 0003). | `configuracao.gerenciar` (GET: qualquer interno) |
+| GET/PUT | `/configuracoes/empresa` | Nome, "responder para" dos e-mails ao contato e SLA sugerido nos contratos novos (F5a). | `configuracao.gerenciar` (GET: qualquer interno) |
 | GET/PUT | `/configuracoes/portal` | Nome exibido e logotipo (RF-POR-09), dias para fechamento automático. | `configuracao.gerenciar` |
 | GET/POST/PATCH/DELETE | `/categorias` | Categorias de solicitação. | `configuracao.gerenciar` |
 
@@ -267,6 +268,7 @@ Decidido na implementação:
 - **Mudar o calendário não recalcula prazos de solicitações já abertas**: eles foram fixados com o calendário da época; só o que vier depois usa o novo.
 - `PUT /configuracoes/portal` `{ "nomeExibido": "...", "diasFechamentoAutomatico": 5 }` (1 a 60; guardados no próprio tenant); a resposta traz também `nomeTenant` e `logoUrl`.
 - `PUT /configuracoes/portal/logo` — multipart, campo `logo`: PNG, JPEG ou WebP (pelo conteúdo) até 512 KB → `200` com a configuração. Tipo errado → `400` em `errors.logo`; acima do limite → `413`. `DELETE /configuracoes/portal/logo` remove (→ `200`). `logoUrl` é uma URL assinada de 1 hora (o bucket é privado); o portal recebe a mesma em `/portal/eu` (`prestador.logoUrl`). Cada envio usa um arquivo novo e o anterior é apagado.
+- **Empresa (22/10, F5a, pedido de 16/10 e decisão 3 do F4):** `PUT /configuracoes/empresa` `{ "nome": "...", "responderPara": "atendimento@...", "slaPadrao": [ { "prioridade", "primeiraRespostaMinutos", "resolucaoMinutos" } x4 ] }` → `200` com `{ nome, responderPara, slaPadrao, slaPersonalizado }`. `responderPara` vazio = nenhum; vai como Reply-To nos e-mails ao contato (avisos, convite do portal, link por solicitação), com o "De" ainda no endereço do Acordu; e-mails da equipe e da conta não usam. `slaPadrao` só **sugere** os prazos no cadastro de contrato (a política continua no contrato); sem ele, o GET devolve a sugestão do sistema (Urgente 1h/4h, Alta 2h/16h, Média 4h/32h, Baixa 8h/80h, em minutos úteis) com `slaPersonalizado: false`. Erros no campo: `nome` (vazio ou longo), `responderPara` (formato), `slaPadrao` (faltando prioridade, prazo zero, resolução menor que a primeira resposta). O `GET` é liberado à equipe porque o cadastro de contrato usa a sugestão.
 - Categorias: `POST`/`PATCH` `{ "nome": "...", "ativa": true }` (`ativa` nulo mantém; PATCH reativa), `DELETE` inativa; nome repetido no tenant (sem diferenciar maiúsculas) → `400` em `nome`; categoria inativa não entra em nova solicitação (`400` em `categoriaId`).
 
 ---
