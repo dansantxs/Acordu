@@ -1115,6 +1115,15 @@ namespace Acordu.Infrastructure.Persistence.Migrations
                         .HasColumnType("character varying(200)")
                         .HasColumnName("nome_portal");
 
+                    b.Property<string>("ResponderPara")
+                        .HasMaxLength(254)
+                        .HasColumnType("character varying(254)")
+                        .HasColumnName("responder_para");
+
+                    b.Property<string>("SlaPadrao")
+                        .HasColumnType("jsonb")
+                        .HasColumnName("sla_padrao");
+
                     b.Property<uint>("Versao")
                         .IsConcurrencyToken()
                         .ValueGeneratedOnAddOrUpdate()
