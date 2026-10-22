@@ -38,6 +38,8 @@ public sealed partial class EnviadorEmailSmtp : IEnviadorEmail
             BodyEncoding = Encoding.UTF8,
         };
         email.To.Add(mensagem.Para);
+        if (mensagem.ResponderPara is not null)
+            email.ReplyToList.Add(mensagem.ResponderPara);
         email.AlternateViews.Add(
             AlternateView.CreateAlternateViewFromString(FormatoEmail.Html(mensagem.Texto), Encoding.UTF8, MediaTypeNames.Text.Html));
 
