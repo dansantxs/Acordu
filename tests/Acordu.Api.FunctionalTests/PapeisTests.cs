@@ -97,6 +97,23 @@ public sealed class PapeisTests(ApiFixture api)
         await outra.EsperarAsync(HttpStatusCode.NotFound, HttpMethod.Delete, $"/api/v1/papeis/{dono}");
     }
 
+    [Fact]
+    public async Task QuemConvidaListaOsPapeis_MasNaoVeOCatalogoNemAltera()
+    {
+        var equipe = await Equipe.CriarAsync(api);
+        await equipe.EsperarAsync(HttpStatusCode.Created, HttpMethod.Post, "/api/v1/papeis",
+            new { nome = "Recrutador", permissoes = new[] { Permissoes.UsuarioConvidar } });
+        var recrutador = await equipe.ComPapelAsync("Recrutador");
+
+        var papeis = await equipe.EsperarAsync(HttpStatusCode.OK, HttpMethod.Get, "/api/v1/papeis", token: recrutador);
+        var membro = papeis.EnumerateArray().Single(p => p.GetProperty("nome").GetString() == Papel.NomeMembro).GetProperty("id").GetGuid();
+        await equipe.EsperarAsync(HttpStatusCode.Accepted, HttpMethod.Post, "/api/v1/convites",
+            new { email = $"novo-{Guid.NewGuid():N}@estudio.com", papelId = membro }, recrutador);
+        await equipe.EsperarAsync(HttpStatusCode.Forbidden, HttpMethod.Get, "/api/v1/papeis/permissoes", token: recrutador);
+        await equipe.EsperarAsync(HttpStatusCode.Forbidden, HttpMethod.Post, "/api/v1/papeis",
+            new { nome = "Outro", permissoes = new[] { Permissoes.ClienteVer } }, recrutador);
+    }
+
     private static async Task<Guid> PapelAsync(Equipe equipe, string nome)
     {
         var papeis = await equipe.EsperarAsync(HttpStatusCode.OK, HttpMethod.Get, "/api/v1/papeis");

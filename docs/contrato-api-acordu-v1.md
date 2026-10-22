@@ -101,7 +101,7 @@ Regras:
 - Aceite: em vez de `POST /convites/{id}/aceite`, segue o padrão do portal: só o token, no corpo, em `/auth` (o Id na URL vaza em log e histórico). Conta nova exige `nome` e nasce com e-mail confirmado; conta existente exige a senha dela (`400` em `senha`, conta para o bloqueio). Token inválido, expirado, revogado ou usado → `401`.
 - Pessoa que não é da equipe deste tenant (inexistente, de outro tenant ou contato de cliente) → `404`.
 
-Papéis (6e2, todos com `papel.gerenciar`):
+Papéis (6e2, todos com `papel.gerenciar`; o `GET /papeis` também com `usuario.convidar`, porque o convite exige escolher o papel — 22/10, F5c):
 
 | Método | Rota | Descrição |
 |---|---|---|

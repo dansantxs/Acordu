@@ -126,7 +126,7 @@ ASP.NET Core Identity (ADR 0001: confirmação de e-mail, lockout, política de 
 
 Fluxos específicos:
 - **Registro:** cria `Usuario` + `Tenant` (o prestador) + `Vinculo` Dono + `CalendarioUtil` padrão + papéis padrão.
-- **Convite para a equipe (6e1):** equipe com `usuario.convidar` convida um e-mail com um papel INTERNO → e-mail com link de aceite → `POST /auth/convite` cria a conta (ou confere a senha da existente) e o `Vinculo` com o papel do convite. Mesmas regras de token do convite do portal; o convite é entidade própria (`ConviteEquipe`), não um vínculo pendente.
+- **Convite para a equipe (6e1):** equipe com `usuario.convidar` convida um e-mail com um papel INTERNO → e-mail com link de aceite → `POST /auth/convite` cria a conta (ou confere a senha da existente) e o `Vinculo` com o papel do convite. Mesmas regras de token do convite do portal; o convite é entidade própria (`ConviteEquipe`), não um vínculo pendente. Quem convida lista os papéis (`GET /papeis`, 22/10) para escolher; criar, editar e excluir papel e ver o catálogo continuam só com `papel.gerenciar`.
 - **Convite de contato para o portal:** equipe convida → e-mail com link de aceite → contato define senha (ou, se já tem conta, confirma com a senha dela) → `Vinculo` com papel Cliente, `ClienteId` e escopo; `Contato.UsuarioId` preenchido.
   - Token do convite como o do link (32 bytes, base64url, só o SHA-256 no banco), **gerado no envio do e-mail**, nunca em claro na outbox. Validade de 7 dias a partir do envio; reconvidar ou revogar invalida.
   - Conta existente exige a senha dela: o token prova acesso ao e-mail, mas não autoriza adotar uma conta que pode ser da equipe de outro prestador. A falha conta para o bloqueio.
