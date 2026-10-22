@@ -25,6 +25,7 @@ const CRIACOES = [
     { rotulo: 'Nova solicitação', para: '/solicitacoes?nova=1', permissao: 'solicitacao.criar' },
     { rotulo: 'Nova tarefa', para: '/tarefas?nova=1', permissao: 'tarefa.criar' },
     { rotulo: 'Novo projeto', para: '/projetos?novo=1', permissao: 'projeto.gerenciar' },
+    { rotulo: 'Nova recorrência', para: '/recorrencias?nova=1', permissao: 'recorrencia.gerenciar' },
     { rotulo: 'Novo cliente', para: '/clientes?novo=1', permissao: 'cliente.gerenciar' },
 ] as const
 
