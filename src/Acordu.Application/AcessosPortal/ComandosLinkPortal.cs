@@ -145,7 +145,8 @@ public sealed class ComandosLinkPortal
             O link vale até {expiraEm:dd/MM/yyyy} e é pessoal: não o encaminhe.
             """,
             "link-portal",
-            prestador);
+            prestador,
+            tenant.ResponderPara);
         try
         {
             await _email.EnviarAsync(mensagem, cancellationToken);

@@ -158,7 +158,7 @@ public sealed class AvisosAoContato :
         var prestador = tenant.NomePortal ?? tenant.Nome;
         var link = await LinkAsync(solicitacao, cliente, contato, cancellationToken);
         var (assunto, texto) = montar(new Aviso(solicitacao, contato, prestador, link, tenant.DiasFechamentoAutomatico));
-        await _email.EnviarAsync(new MensagemEmail(contato.Email, assunto, texto, categoria, prestador), cancellationToken);
+        await _email.EnviarAsync(new MensagemEmail(contato.Email, assunto, texto, categoria, prestador, tenant.ResponderPara), cancellationToken);
     }
 
     private async Task<Uri?> LinkAsync(Solicitacao solicitacao, Cliente cliente, Contato contato, CancellationToken cancellationToken)
