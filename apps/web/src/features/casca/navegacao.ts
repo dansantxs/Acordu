@@ -42,10 +42,11 @@ export const NAVEGACAO: ItemNavegacao[] = [
         rotulo: 'Configurações',
         para: '/configuracoes',
         permissoes: [
+            // As mesmas das seções (features/configuracoes/secoes.ts); o portal dos contatos fica na ficha do cliente.
             'configuracao.gerenciar',
             'usuario.convidar',
+            'usuario.remover',
             'papel.gerenciar',
-            'portal.gerenciar_acessos',
             'auditoria.ver',
         ],
     },

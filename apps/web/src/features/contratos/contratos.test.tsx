@@ -121,6 +121,21 @@ describe('contratos', () => {
         })
     })
 
+    it('novo contrato já vem com o SLA padrão da empresa', async () => {
+        app(GESTAO, {
+            'GET /api/v1/configuracoes/empresa': () =>
+                json({
+                    nome: 'Estúdio',
+                    responderPara: null,
+                    slaPadrao: [{ ...sla[0], primeiraRespostaMinutos: 30 }, sla[1], sla[2], sla[3]],
+                    slaPersonalizado: true,
+                }),
+        })
+        await abrir('/contratos?novo=1')
+        const janela = await screen.findByRole('dialog', { name: 'Novo contrato' })
+        expect(await within(janela).findByLabelText('1ª resposta Urgente')).toHaveValue('30min')
+    })
+
     it('página mostra o saldo do banco de horas, fecha o mês anterior e ajusta o saldo', async () => {
         const chamadas = app(GESTAO, {
             [`POST /api/v1/contratos/${ID}/periodos/${anterior}/fechamento`]: () => new Response(null, { status: 204 }),

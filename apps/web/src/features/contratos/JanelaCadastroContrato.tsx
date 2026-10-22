@@ -1,8 +1,9 @@
-import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
 import { Form } from 'react-aria-components'
 import { CampoCliente } from '@/features/clientes/CampoCliente'
-import { PRIORIDADE, TIPO_CONTRATO, type Prioridade, type TipoContrato } from '@/features/solicitacoes/rotulos'
+import { consultaEmpresa } from '@/features/configuracoes/consultas'
+import { TIPO_CONTRATO, type TipoContrato } from '@/features/solicitacoes/rotulos'
 import { errosDeCampo, mensagemDeErro } from '@/shared/api/mensagens'
 import { ErroApi } from '@/shared/api/problema'
 import { avisar } from '@/shared/avisos/avisos'
@@ -14,8 +15,7 @@ import { CampoSelecao } from '@/shared/ui/CampoSelecao'
 import { Janela } from '@/shared/ui/Janela'
 import { LegendaObrigatorios } from '@/shared/ui/Rotulo'
 import { criarContrato, editarContrato, SLA_PADRAO, type Contrato, type PrazoSla } from './consultas'
-
-const PRIORIDADES: Prioridade[] = ['URGENTE', 'ALTA', 'MEDIA', 'BAIXA']
+import { lerTextosSla, PRIORIDADES, TabelaSla, textosSla } from './TabelaSla'
 
 const DESCRICAO_TIPO: Record<TipoContrato, string> = {
     MENSAL_FIXO: 'Mensalidade com franquia de horas por mês (opcional); o que passa aparece como excedente.',
@@ -26,7 +26,7 @@ const DESCRICAO_TIPO: Record<TipoContrato, string> = {
 /**
  * Criar ou editar contrato (RF-CTR-01, F4a): cliente, tipo e início ficam fixos depois de criado; franquia (obrigatória
  * no banco de horas, proibida no avulso), fim da vigência e SLA das quatro prioridades, que já vem preenchido com o
- * padrão sugerido (decisão 3 do F4) e aceita "4h" ou "1h30" (horas úteis).
+ * SLA padrão da empresa (F5a; sem ele, o sugerido pelo sistema) e aceita "4h" ou "1h30" (horas úteis).
  */
 export function JanelaCadastroContrato({
     fuso,
@@ -46,7 +46,7 @@ export function JanelaCadastroContrato({
     return (
         <Janela titulo={contrato ? 'Editar contrato' : 'Novo contrato'} aberta={aberta} aoMudar={aoMudar} larga>
             {aberta && (
-                <Formulario
+                <FormularioComSugestao
                     fuso={fuso}
                     contrato={contrato}
                     clienteInicial={clienteInicial ?? null}
@@ -58,35 +58,39 @@ export function JanelaCadastroContrato({
     )
 }
 
-function slaInicial(contrato?: Contrato): Record<string, string> {
-    const valores: Record<string, string> = {}
-    for (const p of PRIORIDADES) {
-        const atual = contrato?.sla.find((s) => s.prioridade === p)
-        valores[`${p}.primeira`] = formatarDuracao(
-            atual ? Number(atual.primeiraRespostaMinutos) : SLA_PADRAO[p].primeiraResposta,
-        )
-        valores[`${p}.resolucao`] = formatarDuracao(atual ? Number(atual.resolucaoMinutos) : SLA_PADRAO[p].resolucao)
-    }
-    return valores
+const SUGESTAO_DO_SISTEMA: PrazoSla[] = PRIORIDADES.map((p) => ({
+    prioridade: p,
+    primeiraRespostaMinutos: SLA_PADRAO[p].primeiraResposta,
+    resolucaoMinutos: SLA_PADRAO[p].resolucao,
+}))
+
+/** Criar espera o SLA padrão da empresa para preencher a tabela; se a leitura falhar, fica a sugestão do sistema. */
+function FormularioComSugestao(props: Omit<Parameters<typeof Formulario>[0], 'sugestao'>) {
+    const empresa = useQuery({ ...consultaEmpresa, enabled: !props.contrato })
+    if (!props.contrato && empresa.isPending) return <p className="text-sm text-suave">Carregando…</p>
+    return <Formulario {...props} sugestao={props.contrato?.sla ?? empresa.data?.slaPadrao ?? SUGESTAO_DO_SISTEMA} />
 }
 
 function Formulario({
     fuso,
     contrato: c,
     clienteInicial,
+    sugestao,
     aoFechar,
     aoSalvar,
 }: {
     fuso: string
     contrato?: Contrato
     clienteInicial: string | null
+    /** Prazos que já vêm na tabela: os do contrato ou o padrão da empresa. */
+    sugestao: readonly PrazoSla[]
     aoFechar: () => void
     aoSalvar: (contrato: Contrato) => void
 }) {
     const consultas = useQueryClient()
     const [clienteId, setClienteId] = useState<string | null>(c?.clienteId ?? clienteInicial)
     const [tipo, setTipo] = useState<TipoContrato>(c?.tipo ?? 'MENSAL_FIXO')
-    const [sla, setSla] = useState(slaInicial(c))
+    const [sla, setSla] = useState(() => textosSla(sugestao))
     const [invalidos, setInvalidos] = useState<string[]>([])
 
     const envio = useMutation({
@@ -119,13 +123,8 @@ function Formulario({
                 const franquia = comFranquia && textoFranquia ? lerDuracao(textoFranquia) : null
                 if (comFranquia && textoFranquia && franquia === null) ruins.push('franquia')
                 if (tipo === 'BANCO_HORAS' && !textoFranquia) ruins.push('franquia')
-                const prazos: PrazoSla[] = PRIORIDADES.map((p) => {
-                    const primeira = lerDuracao(sla[`${p}.primeira`] ?? '')
-                    const resolucao = lerDuracao(sla[`${p}.resolucao`] ?? '')
-                    if (primeira === null) ruins.push(`${p}.primeira`)
-                    if (resolucao === null) ruins.push(`${p}.resolucao`)
-                    return { prioridade: p, primeiraRespostaMinutos: primeira ?? 0, resolucaoMinutos: resolucao ?? 0 }
-                })
+                const { prazos, invalidos: slaInvalido } = lerTextosSla(sla)
+                ruins.push(...slaInvalido)
                 setInvalidos(ruins)
                 if (ruins.length) return
                 envio.mutate({
@@ -221,47 +220,11 @@ function Formulario({
             <fieldset className="flex flex-col gap-2">
                 <legend className="text-sm font-semibold">Prazos de SLA (horas úteis)</legend>
                 <p className="text-xs text-suave">
-                    Contados no expediente da empresa, sem fins de semana e feriados. Já vem com um padrão; ajuste ao
-                    combinado com o cliente.
+                    Contados no expediente da empresa, sem fins de semana e feriados. Já vem com o padrão da empresa;
+                    ajuste ao combinado com o cliente.
                 </p>
                 {erroDe('sla') && <p className="text-sm text-vermelho">{erroDe('sla')}</p>}
-                <table className="w-full text-sm">
-                    <thead className="text-left text-xs text-suave">
-                        <tr>
-                            <th className="py-1 font-semibold">Prioridade</th>
-                            <th className="py-1 font-semibold">1ª resposta</th>
-                            <th className="py-1 font-semibold">Solução</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {PRIORIDADES.map((p) => (
-                            <tr key={p}>
-                                <th scope="row" className="py-1 pr-3 text-left font-normal">
-                                    {PRIORIDADE[p]}
-                                </th>
-                                {(['primeira', 'resolucao'] as const).map((campo) => {
-                                    const chave = `${p}.${campo}`
-                                    return (
-                                        <td key={campo} className="py-1 pr-3">
-                                            <input
-                                                aria-label={`${campo === 'primeira' ? '1ª resposta' : 'Solução'} ${PRIORIDADE[p]}`}
-                                                value={sla[chave] ?? ''}
-                                                onChange={(e) =>
-                                                    setSla((atual) => ({ ...atual, [chave]: e.target.value }))
-                                                }
-                                                aria-invalid={invalidos.includes(chave) || undefined}
-                                                className="w-24 rounded-couro border border-linha bg-superficie px-2 py-1.5 text-sm text-tinta aria-[invalid]:border-vermelho"
-                                            />
-                                        </td>
-                                    )
-                                })}
-                            </tr>
-                        ))}
-                    </tbody>
-                </table>
-                {invalidos.some((i) => i.includes('.')) && (
-                    <p className="text-sm text-vermelho">Confira os prazos marcados: use 4h, 1h30 ou 90.</p>
-                )}
+                <TabelaSla valores={sla} aoMudar={setSla} invalidos={invalidos} />
             </fieldset>
 
             <div className="flex justify-end gap-3">
