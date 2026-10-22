@@ -173,6 +173,50 @@ describe('contratos', () => {
         })
     })
 
+    it('fecha o mês anterior em lote, um por vez, com o resultado de cada contrato', async () => {
+        const OUTRO = '0199f0a0-0000-7000-8000-0000000000e2'
+        const FECHADO = '0199f0a0-0000-7000-8000-0000000000e3'
+        const resumo = (id: string, clienteNome: string) => ({
+            id,
+            clienteId: PADARIA,
+            clienteNome,
+            tipo: 'MENSAL_FIXO',
+            inicio: '2026-01-01',
+            fim: null,
+            franquiaMinutos: 1200,
+            status: 'ATIVO',
+        })
+        const chamadas = app(['contrato.ver', 'contrato.fechar_periodo'], {
+            'GET /api/v1/contratos': (_, url) =>
+                url.searchParams.get('tamanhoPagina') === '200'
+                    ? pagina([
+                          resumo(ID, 'Padaria Bom Grão'),
+                          resumo(OUTRO, 'Contábil Silva'),
+                          resumo(FECHADO, 'Ateliê Rosa'),
+                      ])
+                    : pagina([]),
+            [`GET /api/v1/contratos/${ID}`]: () => json(contrato()),
+            [`GET /api/v1/contratos/${OUTRO}`]: () => json(contrato({ id: OUTRO })),
+            [`GET /api/v1/contratos/${FECHADO}`]: () =>
+                json(contrato({ id: FECHADO, periodosFechados: [`${anterior}-01`] })),
+            [`POST /api/v1/contratos/${ID}/periodos/${anterior}/fechamento`]: () => new Response(null, { status: 204 }),
+            [`POST /api/v1/contratos/${OUTRO}/periodos/${anterior}/fechamento`]: () =>
+                json({ status: 422, title: 'Regra', detail: 'O mês está fora da vigência do contrato.' }, 422),
+        })
+        await abrir('/contratos')
+        const usuario = userEvent.setup()
+        await usuario.click(await screen.findByRole('button', { name: 'Fechar o mês' }))
+        const janela = await screen.findByRole('dialog', { name: 'Fechar o mês' })
+        await usuario.click(await within(janela).findByRole('button', { name: 'Fechar 2 contratos' }))
+
+        expect(await within(janela).findByText('O mês está fora da vigência do contrato.')).toBeInTheDocument()
+        expect(await screen.findByText('1 fechado, 1 com problema: veja na lista.')).toBeInTheDocument()
+        expect(chamadas.filter((c) => c.caminho.endsWith('/fechamento')).map((c) => c.caminho)).toEqual([
+            `/api/v1/contratos/${ID}/periodos/${anterior}/fechamento`,
+            `/api/v1/contratos/${OUTRO}/periodos/${anterior}/fechamento`,
+        ])
+    })
+
     it('suspende direto e encerra com confirmação e data', async () => {
         let atual = contrato()
         const chamadas = app(GESTAO, {

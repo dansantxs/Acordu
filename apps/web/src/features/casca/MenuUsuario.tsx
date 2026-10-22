@@ -1,4 +1,5 @@
 import { useMutation } from '@tanstack/react-query'
+import { useNavigate } from '@tanstack/react-router'
 import { useState } from 'react'
 import { Button, Header, Menu, MenuItem, MenuSection, MenuTrigger, Popover, Separator } from 'react-aria-components'
 import { avisarErro } from '@/shared/avisos/avisos'
@@ -9,8 +10,9 @@ import { escolherTema, temaAtual, type Tema } from '@/shared/tema/tema'
 const item =
     'flex cursor-default items-center justify-between gap-3 rounded-couro px-3 py-2 text-sm outline-none data-[focused]:bg-trilho data-[disabled]:text-suave'
 
-/** Pé da capa: quem está usando e em qual empresa; troca de empresa, tema e saída. */
+/** Pé da capa: quem está usando e em qual empresa; troca de empresa, Minha conta, tema e saída. */
 export function MenuUsuario({ perfil }: { perfil: Perfil }) {
+    const navegar = useNavigate()
     const [tema, setTema] = useState<Tema>(temaAtual)
     const troca = useMutation({ mutationFn: trocarEmpresa, onError: avisarErro })
     const outras = perfil.tenants.filter((t) => t.id !== perfil.tenant.id)
@@ -30,7 +32,8 @@ export function MenuUsuario({ perfil }: { perfil: Perfil }) {
                 <Menu
                     className="outline-none"
                     onAction={(chave) => {
-                        if (chave === 'tema') setTema(escolherTema(tema === 'escuro' ? 'claro' : 'escuro'))
+                        if (chave === 'conta') void navegar({ to: '/conta' })
+                        else if (chave === 'tema') setTema(escolherTema(tema === 'escuro' ? 'claro' : 'escuro'))
                         else if (chave === 'sair') void sair()
                         else if (typeof chave === 'string' && chave.startsWith('empresa:')) troca.mutate(chave.slice(8))
                     }}
@@ -51,6 +54,9 @@ export function MenuUsuario({ perfil }: { perfil: Perfil }) {
                             <Separator className="my-1 border-t border-linha" />
                         </>
                     )}
+                    <MenuItem id="conta" className={item}>
+                        Minha conta
+                    </MenuItem>
                     <MenuItem id="tema" className={item}>
                         {tema === 'escuro' ? 'Tema claro' : 'Tema escuro'}
                     </MenuItem>

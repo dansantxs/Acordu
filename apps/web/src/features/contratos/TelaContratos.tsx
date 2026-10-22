@@ -1,5 +1,6 @@
 import { useQuery } from '@tanstack/react-query'
 import { Link, useNavigate } from '@tanstack/react-router'
+import { useState } from 'react'
 import { Tab, TabList, Tabs } from 'react-aria-components'
 import { pode } from '@/features/casca/navegacao'
 import { CampoCliente } from '@/features/clientes/CampoCliente'
@@ -24,10 +25,12 @@ import {
     type FiltrosContratos,
 } from './consultas'
 import { JanelaCadastroContrato } from './JanelaCadastroContrato'
+import { JanelaFechamentoLote } from './JanelaFechamentoLote'
 
 /** Contratos (F4a): lista por situação e cliente; o detalhe é página própria (decisão 2 do F4). */
 export function TelaContratos({ perfil, filtros }: { perfil: Perfil; filtros: FiltrosContratos }) {
     const navegar = useNavigate()
+    const [fechandoLote, setFechandoLote] = useState(false)
     const lista = useQuery(consultaContratos(filtros))
     const hoje = hojeNoFuso(perfil.tenant.fusoHorario)
     const filtrar = (mudanca: Partial<FiltrosContratos>) =>
@@ -46,12 +49,19 @@ export function TelaContratos({ perfil, filtros }: { perfil: Perfil; filtros: Fi
         <Pagina
             titulo="Contratos"
             acoes={
-                pode(perfil, 'contrato.gerenciar') && (
-                    <Botao onPress={() => mudarNovo(true)}>
-                        <Icone nome="mais" />
-                        Novo contrato
-                    </Botao>
-                )
+                <div className="flex flex-wrap gap-2">
+                    {pode(perfil, 'contrato.fechar_periodo') && (
+                        <Botao variante="secundario" onPress={() => setFechandoLote(true)}>
+                            Fechar o mês
+                        </Botao>
+                    )}
+                    {pode(perfil, 'contrato.gerenciar') && (
+                        <Botao onPress={() => mudarNovo(true)}>
+                            <Icone nome="mais" />
+                            Novo contrato
+                        </Botao>
+                    )}
+                </div>
             }
         >
             <Tabs
@@ -148,6 +158,7 @@ export function TelaContratos({ perfil, filtros }: { perfil: Perfil; filtros: Fi
                 />
             )}
 
+            <JanelaFechamentoLote fuso={perfil.tenant.fusoHorario} aberta={fechandoLote} aoMudar={setFechandoLote} />
             <JanelaCadastroContrato
                 fuso={perfil.tenant.fusoHorario}
                 aberta={Boolean(filtros.novo) && pode(perfil, 'contrato.gerenciar')}
