@@ -1,0 +1,90 @@
+name: Ajuda
+
+# Bot das capturas do manual (M2): sobe a API com uma empresa de demonstração fictícia, fotografa as telas listadas em
+# apps/web/src/features/ajuda/capturas.ts e faz commit de apps/web/public/ajuda/*.webp na branch de feature
+# (convenções §4). Disparos:
+#   1. Pedido por arquivo: commitar `.github/ajuda-request` (conteúdo livre) numa branch de feature. O workflow tira as
+#      fotos, apaga o pedido e faz o commit.
+#   2. Manual: Actions → Ajuda → Run workflow (numa branch de feature).
+# Commits feitos com o GITHUB_TOKEN não disparam o CI: depois, um push qualquer na branch roda os testes.
+
+on:
+  workflow_dispatch:
+  push:
+    branches-ignore: [main]
+    paths: [".github/ajuda-request"]
+
+permissions:
+  contents: write
+
+concurrency:
+  group: ajuda-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  capturar:
+    name: Capturar as telas
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: acordu
+          POSTGRES_PASSWORD: acordu_dev
+          POSTGRES_DB: acordu
+        ports: ["5434:5432"]
+        options: >-
+          --health-cmd "pg_isready -U acordu" --health-interval 5s --health-timeout 5s --health-retries 10
+      # Os convites da equipe de demonstração são aceitos pelo link que chega aqui.
+      mailpit:
+        image: axllent/mailpit:v1.31.5
+        ports: ["1025:1025", "8025:8025"]
+    steps:
+      - name: Recusar a main
+        if: github.ref == 'refs/heads/main'
+        run: |
+          echo "Gere as capturas numa branch de feature, nunca direto na main."
+          exit 1
+
+      - uses: actions/checkout@v4
+
+      - name: Pedido removido?
+        id: pedido
+        if: github.event_name == 'push'
+        run: |
+          if [[ ! -f .github/ajuda-request ]]; then
+            echo "Pedido removido neste push; nada a capturar."
+            echo "pular=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - uses: ./.github/actions/subir-acordu
+        if: steps.pedido.outputs.pular != 'true'
+
+      - name: Capturar
+        if: steps.pedido.outputs.pular != 'true'
+        working-directory: apps/web
+        run: pnpm ajuda:capturas
+
+      - name: Anotar erros da API
+        if: failure()
+        shell: python
+        run: |
+          # O log da API não é baixável pela sessão: erros e exceções viram annotations do check run.
+          import os
+          if os.path.exists("api.log"):
+              linhas = open("api.log", encoding="utf-8", errors="replace").read().splitlines()
+              for i, linha in enumerate(linhas):
+                  if linha.startswith(("fail:", "crit:")) or "Exception" in linha:
+                      trecho = " | ".join(l.strip() for l in linhas[i:i + 6])
+                      print("::error title=api.log::" + trecho.replace("%", "%25")[:1800])
+
+      - name: Commit na branch
+        if: steps.pedido.outputs.pular != 'true'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git rm -q --ignore-unmatch .github/ajuda-request
+          git add -A apps/web/public/ajuda
+          git commit -m "docs(web): atualiza as capturas do manual"
+          git push
