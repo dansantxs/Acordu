@@ -69,3 +69,53 @@ export function consultaSolicitacaoPortal(id: string) {
             (await apiPortal.GET('/api/v1/portal/solicitacoes/{id}', { params: { path: { id } } })).data!,
     })
 }
+
+export type InteracaoPortal = components['schemas']['InteracaoPortalDto']
+
+export function consultaInteracoesPortal(id: string) {
+    return queryOptions({
+        queryKey: ['portal', 'interacoes', id],
+        queryFn: async () =>
+            (await apiPortal.GET('/api/v1/portal/solicitacoes/{id}/interacoes', { params: { path: { id } } })).data!,
+    })
+}
+
+/** Resposta do contato (sempre externa): JSON sem anexos, multipart com (contrato §12). */
+export async function responderNoPortal(id: string, texto: string | null, anexos: File[]): Promise<InteracaoPortal> {
+    if (anexos.length === 0)
+        return (
+            await apiPortal.POST('/api/v1/portal/solicitacoes/{id}/interacoes', {
+                params: { path: { id } },
+                body: { texto },
+            })
+        ).data!
+    const formulario = new FormData()
+    if (texto) formulario.append('texto', texto)
+    anexos.forEach((a) => formulario.append('anexos', a, a.name))
+    return (
+        await apiPortal.POST('/api/v1/portal/solicitacoes/{id}/interacoes', {
+            params: { path: { id } },
+            // O openapi-fetch manda FormData como está e deixa o navegador pôr o boundary.
+            body: formulario as never,
+        })
+    ).data!
+}
+
+export async function aprovarEntrega(id: string): Promise<SolicitacaoPortal> {
+    return (await apiPortal.POST('/api/v1/portal/solicitacoes/{id}/aprovacao', { params: { path: { id } } })).data!
+}
+
+export async function pedirAjuste(id: string, motivo: string): Promise<SolicitacaoPortal> {
+    return (
+        await apiPortal.POST('/api/v1/portal/solicitacoes/{id}/reprovacao', {
+            params: { path: { id } },
+            body: { motivo },
+        })
+    ).data!
+}
+
+/** Anexo de interação externa: a API devolve a URL assinada e o navegador a abre sem sair da página. */
+export async function baixarAnexoPortal(id: string): Promise<void> {
+    const { url } = (await apiPortal.GET('/api/v1/portal/anexos/{id}/download', { params: { path: { id } } })).data!
+    globalThis.location.assign(url)
+}

@@ -35,14 +35,21 @@ export interface AnexoBaixavel {
     tamanhoBytes: number | string
 }
 
-export function AnexosParaBaixar({ anexos }: { anexos: AnexoBaixavel[] }) {
+/** `baixar`: a rota de download (a da equipe por padrão; o portal passa a dele). */
+export function AnexosParaBaixar({
+    anexos,
+    baixar = baixarAnexo,
+}: {
+    anexos: AnexoBaixavel[]
+    baixar?: (id: string) => Promise<void>
+}) {
     if (anexos.length === 0) return null
     return (
         <ul aria-label="Anexos" className="flex flex-wrap gap-2">
             {anexos.map((a) => (
                 <li key={a.id}>
                     <Button
-                        onPress={() => void baixarAnexo(a.id).catch(avisarErro)}
+                        onPress={() => void baixar(a.id).catch(avisarErro)}
                         className="flex items-center gap-2 rounded-couro border border-linha bg-superficie px-2 py-1 text-xs hover:bg-trilho"
                     >
                         <Icone nome="clipe" className="size-3.5" />
@@ -209,11 +216,12 @@ export function CaixaMensagem({
                     onChange={(e) => aoDigitar(e.target.value)}
                     onKeyDown={aoTeclar}
                     onBlur={() => setBusca(null)}
-                    role="combobox"
-                    aria-expanded={listaAberta}
+                    // Só com menções o campo é uma combobox (a lista da equipe); sem elas, um campo de texto comum.
+                    role={comMencoes ? 'combobox' : undefined}
+                    aria-expanded={comMencoes ? listaAberta : undefined}
                     aria-controls={listaAberta ? `${idLista}-lista` : undefined}
                     aria-activedescendant={listaAberta ? `${idLista}-${ativa}` : undefined}
-                    aria-autocomplete="list"
+                    aria-autocomplete={comMencoes ? 'list' : undefined}
                     placeholder={placeholder}
                     className={`resize-y rounded-couro border px-3 py-2 text-sm text-tinta placeholder:text-suave ${
                         destaque ? 'border-ambar/40 bg-ambar-suave/40' : 'border-linha bg-superficie'

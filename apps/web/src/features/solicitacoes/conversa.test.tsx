@@ -194,7 +194,7 @@ describe('conversa da solicitação', () => {
         const entrada = document.querySelector<HTMLInputElement>('input[type="file"]')!
         await usuario.upload(entrada, new File(['%PDF-1.4'], 'orcamento.pdf', { type: 'application/pdf' }))
         expect(c.getByRole('list', { name: 'Arquivos para enviar' })).toHaveTextContent('orcamento.pdf')
-        await usuario.type(c.getByRole('combobox', { name: 'Resposta ao cliente' }), 'Segue o orçamento.')
+        await usuario.type(c.getByRole('textbox', { name: 'Resposta ao cliente' }), 'Segue o orçamento.')
         await usuario.click(c.getByRole('button', { name: 'Enviar ao cliente' }))
 
         await vi.waitFor(() =>
