@@ -1,6 +1,10 @@
 import { keepPreviousData, queryOptions } from '@tanstack/react-query'
-import { apiPortal } from '@/shared/api/cliente'
+import { apiLink, apiPortal } from '@/shared/api/cliente'
+import { sessaoLink } from '@/shared/sessao/sessaoLink'
 import type { components } from '@/shared/api/portal'
+
+/** Cliente do portal: o da sessão por link, quando ela está aberta nesta aba, ou o da sessão com conta. */
+const portal = () => (sessaoLink() ? apiLink : apiPortal)
 
 export type PortalEu = components['schemas']['PortalEuDto']
 export type StatusExterno = components['schemas']['StatusExterno']
@@ -43,7 +47,7 @@ export const TAMANHO_PAGINA = 20
 /** Quem é o contato e de qual prestador (`GET /portal/eu`): nome, logotipo, escopo e se vê contratos. */
 export const consultaEu = queryOptions({
     queryKey: ['portal', 'eu'],
-    queryFn: async () => (await apiPortal.GET('/api/v1/portal/eu')).data!,
+    queryFn: async () => (await portal().GET('/api/v1/portal/eu')).data!,
     staleTime: 5 * 60_000,
 })
 
@@ -52,7 +56,7 @@ export function consultaSolicitacoesPortal(grupo: Grupo, pagina = 1) {
         queryKey: ['portal', 'solicitacoes', grupo, pagina],
         queryFn: async () =>
             (
-                await apiPortal.GET('/api/v1/portal/solicitacoes', {
+                await portal().GET('/api/v1/portal/solicitacoes', {
                     params: {
                         query: { statusExterno: GRUPOS[grupo].status.join(','), pagina, tamanhoPagina: TAMANHO_PAGINA },
                     },
@@ -66,7 +70,7 @@ export function consultaSolicitacaoPortal(id: string) {
     return queryOptions({
         queryKey: ['portal', 'solicitacao', id],
         queryFn: async () =>
-            (await apiPortal.GET('/api/v1/portal/solicitacoes/{id}', { params: { path: { id } } })).data!,
+            (await portal().GET('/api/v1/portal/solicitacoes/{id}', { params: { path: { id } } })).data!,
     })
 }
 
@@ -76,7 +80,7 @@ export function consultaInteracoesPortal(id: string) {
     return queryOptions({
         queryKey: ['portal', 'interacoes', id],
         queryFn: async () =>
-            (await apiPortal.GET('/api/v1/portal/solicitacoes/{id}/interacoes', { params: { path: { id } } })).data!,
+            (await portal().GET('/api/v1/portal/solicitacoes/{id}/interacoes', { params: { path: { id } } })).data!,
     })
 }
 
@@ -84,7 +88,7 @@ export function consultaInteracoesPortal(id: string) {
 export async function responderNoPortal(id: string, texto: string | null, anexos: File[]): Promise<InteracaoPortal> {
     if (anexos.length === 0)
         return (
-            await apiPortal.POST('/api/v1/portal/solicitacoes/{id}/interacoes', {
+            await portal().POST('/api/v1/portal/solicitacoes/{id}/interacoes', {
                 params: { path: { id } },
                 body: { texto },
             })
@@ -93,7 +97,7 @@ export async function responderNoPortal(id: string, texto: string | null, anexos
     if (texto) formulario.append('texto', texto)
     anexos.forEach((a) => formulario.append('anexos', a, a.name))
     return (
-        await apiPortal.POST('/api/v1/portal/solicitacoes/{id}/interacoes', {
+        await portal().POST('/api/v1/portal/solicitacoes/{id}/interacoes', {
             params: { path: { id } },
             // O openapi-fetch manda FormData como está e deixa o navegador pôr o boundary.
             body: formulario as never,
@@ -102,12 +106,12 @@ export async function responderNoPortal(id: string, texto: string | null, anexos
 }
 
 export async function aprovarEntrega(id: string): Promise<SolicitacaoPortal> {
-    return (await apiPortal.POST('/api/v1/portal/solicitacoes/{id}/aprovacao', { params: { path: { id } } })).data!
+    return (await portal().POST('/api/v1/portal/solicitacoes/{id}/aprovacao', { params: { path: { id } } })).data!
 }
 
 export async function pedirAjuste(id: string, motivo: string): Promise<SolicitacaoPortal> {
     return (
-        await apiPortal.POST('/api/v1/portal/solicitacoes/{id}/reprovacao', {
+        await portal().POST('/api/v1/portal/solicitacoes/{id}/reprovacao', {
             params: { path: { id } },
             body: { motivo },
         })
@@ -116,7 +120,7 @@ export async function pedirAjuste(id: string, motivo: string): Promise<Solicitac
 
 /** Anexo de interação externa: a API devolve a URL assinada e o navegador a abre sem sair da página. */
 export async function baixarAnexoPortal(id: string): Promise<void> {
-    const { url } = (await apiPortal.GET('/api/v1/portal/anexos/{id}/download', { params: { path: { id } } })).data!
+    const { url } = (await portal().GET('/api/v1/portal/anexos/{id}/download', { params: { path: { id } } })).data!
     globalThis.location.assign(url)
 }
 
@@ -127,12 +131,12 @@ export async function abrirNoPortal(
     dados: { titulo: string; descricao: string | null; prioridade: Prioridade },
     anexos: File[],
 ): Promise<SolicitacaoPortal> {
-    if (anexos.length === 0) return (await apiPortal.POST('/api/v1/portal/solicitacoes', { body: dados })).data!
+    if (anexos.length === 0) return (await portal().POST('/api/v1/portal/solicitacoes', { body: dados })).data!
     const formulario = new FormData()
     formulario.append('titulo', dados.titulo)
     if (dados.descricao) formulario.append('descricao', dados.descricao)
     formulario.append('prioridade', dados.prioridade)
     anexos.forEach((a) => formulario.append('anexos', a, a.name))
     // O openapi-fetch manda FormData como está e deixa o navegador pôr o boundary.
-    return (await apiPortal.POST('/api/v1/portal/solicitacoes', { body: formulario as never })).data!
+    return (await portal().POST('/api/v1/portal/solicitacoes', { body: formulario as never })).data!
 }

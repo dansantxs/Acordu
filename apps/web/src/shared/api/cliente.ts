@@ -3,6 +3,7 @@ import { definirRenovador, encerrarSessao, renovar, tokenAtual, tokenVencendo } 
 import type { paths as PathsInterno } from './interno'
 import type { paths as PathsPortal } from './portal'
 import { lerProblema } from './problema'
+import { encerrarSessaoLink, sessaoLink } from '../sessao/sessaoLink'
 
 /**
  * Cliente HTTP central (convenções §4): base `/api/v1`, Bearer do access token em memória (`shared/sessao`) e Problem
@@ -65,6 +66,26 @@ api.use(autenticacao)
 /** O portal tem cliente próprio, só com as rotas `/api/v1/portal` (estrutura §6). */
 export const apiPortal = createClient<PathsPortal>({ baseUrl: base, fetch: buscar })
 apiPortal.use(autenticacao)
+
+/**
+ * Cliente do portal na sessão por link: o Bearer é o da `sessaoLink`, sem renovar; um 401 encerra a sessão por link
+ * (a tela troca para "abra o link de novo").
+ */
+const autenticacaoLink: Middleware = {
+    onRequest({ request }) {
+        const atual = sessaoLink()
+        if (atual) request.headers.set('Authorization', `Bearer ${atual.accessToken}`)
+        return request
+    },
+    async onResponse({ response }) {
+        if (response.status === 401) encerrarSessaoLink('expirado')
+        if (!response.ok) throw await lerProblema(response)
+        return response
+    },
+}
+
+export const apiLink = createClient<PathsPortal>({ baseUrl: base, fetch: buscar })
+apiLink.use(autenticacaoLink)
 
 // O refresh vai sem Bearer (só o cookie) e por fora do middleware: um 401 aqui é a resposta, não motivo para renovar.
 definirRenovador(async () => {
