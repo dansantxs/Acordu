@@ -11,7 +11,7 @@ const estiloLink =
 
 /**
  * Moldura do portal (decisão 1 do F7): pensada primeiro para o celular. Barra no topo com o logotipo e o nome do
- * prestador, a navegação (Solicitações e, se o contato vê, Contratos) e o menu do contato. Na sessão por link
+ * prestador, a navegação (Solicitações, Contratos se o contato vê, e Ajuda) e o menu do contato. Na sessão por link
  * (`link`), sem navegação: ela só alcança a solicitação do link.
  */
 export function CascaPortal({ eu, link = false, children }: { eu: PortalEu; link?: boolean; children: ReactNode }) {
@@ -61,6 +61,9 @@ export function CascaPortal({ eu, link = false, children }: { eu: PortalEu; link
                                     Contratos
                                 </Link>
                             )}
+                            <Link to="/portal/ajuda" className={`${estiloLink} ml-auto`}>
+                                Ajuda
+                            </Link>
                         </nav>
                     )}
                 </div>

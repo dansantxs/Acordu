@@ -16,6 +16,10 @@ export interface Demonstracao {
     solicitacaoId: string
     clienteId: string
     contratoId: string
+    /** Contato da padaria com acesso ao portal (vê todas as solicitações e os contratos). */
+    contato: { email: string; senha: string }
+    /** Solicitação resolvida esperando a aprovação do contato. */
+    entregaId: string
 }
 
 interface Pessoa {
@@ -45,6 +49,12 @@ async function chamar<T = Record<string, unknown>>(
 }
 
 const id = (r: Record<string, unknown>) => r.id as string
+/** E-mail só com ASCII ("Sérgio" → "sergio"): endereço com acento não chega ao Mailpit. */
+const semAcento = (t: string) =>
+    t
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .toLowerCase()
 
 /** Espera o e-mail chegar ao Mailpit (a outbox envia depois do commit) e devolve o token do link. */
 async function tokenDoEmail(para: string, caminho: string): Promise<string> {
@@ -141,19 +151,20 @@ export async function criarDemonstracao(): Promise<Demonstracao> {
                 observacoes: null,
                 etiquetas,
                 responsavelId: marina.id,
-                email: `contato@${nome.toLowerCase().split(' ')[0]}.exemplo.com`,
+                email: `contato@${semAcento(nome.split(' ')[0]!)}.exemplo.com`,
                 ...cadastro,
             }),
         )
+        const emailContato = `${semAcento(contato.split(' ')[0]!)}.${sufixo}@cliente.exemplo.com`
         const ct = id(
             await chamar(dono, 'POST', `/clientes/${c}/contatos`, {
                 nome: contato,
-                email: `${contato.toLowerCase().split(' ')[0]}.${sufixo}@cliente.exemplo.com`,
+                email: emailContato,
                 telefone: null,
                 cargo: null,
             }),
         )
-        return { id: c, contato: ct }
+        return { id: c, contato: ct, email: emailContato }
     }
     const padaria = await cliente('Padaria Grão Dourado', 'Sérgio Almeida', ['varejo', 'delivery'], {
         razaoSocial: 'Grão Dourado Panificadora Ltda.',
@@ -248,6 +259,29 @@ export async function criarDemonstracao(): Promise<Demonstracao> {
     )
     await chamar(clara.token, 'POST', `/solicitacoes/${sCardapio}/inicio`)
     await chamar(clara.token, 'POST', `/solicitacoes/${sCardapio}/aguardando-cliente`)
+
+    // Entrega esperando a aprovação do contato no portal.
+    const sQrCode = await solicitacao(
+        padaria,
+        cPadaria,
+        'QR code do cardápio nas mesas',
+        'MEDIA',
+        clara.id,
+        melhoria,
+        'Queremos um QR code em cada mesa abrindo o cardápio do site.',
+    )
+    await chamar(clara.token, 'POST', `/solicitacoes/${sQrCode}/inicio`)
+    await chamar(clara.token, 'POST', `/solicitacoes/${sQrCode}/interacoes`, {
+        texto: 'Sérgio, os QR codes estão prontos: mandei o arquivo para a gráfica imprimir os adesivos. Confere se o cardápio abre certinho no seu celular?',
+        visibilidade: 'EXTERNA',
+    })
+    await chamar(clara.token, 'POST', `/solicitacoes/${sQrCode}/resolucao`, {
+        solucao: {
+            problema: null,
+            causa: null,
+            texto: 'QR codes gerados apontando para o cardápio do site e arquivo enviado para a gráfica.',
+        },
+    })
 
     const sEmail = await solicitacao(
         advocacia,
@@ -451,5 +485,23 @@ export async function criarDemonstracao(): Promise<Demonstracao> {
     // O cronômetro da Marina rodando, para aparecer na barra lateral e no Hoje.
     await chamar(dono, 'POST', '/cronometro/inicio', { tarefaId: tConta })
 
-    return { email, senha: SENHA, solicitacaoId: sPdv, clienteId: padaria.id, contratoId: cPadaria }
+    // O Sérgio entra no portal pelo convite (vê todas as solicitações da padaria e os contratos).
+    await chamar(dono, 'POST', `/clientes/${padaria.id}/contatos/${padaria.contato}/acesso-portal`, {
+        escopoPortal: 'TODAS_DO_CLIENTE',
+    })
+    await chamar(null, 'POST', '/auth/portal/convite', {
+        token: await tokenDoEmail(padaria.email, 'portal/convite'),
+        nome: 'Sérgio Almeida',
+        senha: SENHA,
+    })
+
+    return {
+        email,
+        senha: SENHA,
+        solicitacaoId: sPdv,
+        clienteId: padaria.id,
+        contratoId: cPadaria,
+        contato: { email: padaria.email, senha: SENHA },
+        entregaId: sQrCode,
+    }
 }

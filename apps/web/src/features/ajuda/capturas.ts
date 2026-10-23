@@ -18,6 +18,11 @@ export const CAPTURAS = [
     'recorrencias',
     'panorama',
     'configuracoes',
+    // Portal do cliente (M3), com o contato da padaria.
+    'portal-lista',
+    'portal-detalhe',
+    'portal-nova',
+    'portal-contratos',
 ] as const
 
 export type CapturaAjuda = (typeof CAPTURAS)[number]

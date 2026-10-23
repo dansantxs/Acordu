@@ -1,6 +1,6 @@
 import { mkdirSync, readdirSync, rmSync, writeFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
-import { expect, test, type Locator, type Page } from '@playwright/test'
+import { expect, test, type BrowserContext, type Locator, type Page } from '@playwright/test'
 import { CAPTURAS, TAMANHO_CAPTURA, type CapturaAjuda } from '../src/features/ajuda/capturas'
 import { criarDemonstracao, type Demonstracao } from './demonstracao'
 
@@ -19,6 +19,8 @@ interface Receita {
      * proporção, e reduz para o tamanho padrão.
      */
     largura?: number
+    /** Quem está na tela: a Dona (padrão) ou o contato da padaria no portal. */
+    portal?: boolean
 }
 
 const texto = (t: string) => (p: Page) => p.getByText(t).first()
@@ -38,6 +40,14 @@ const RECEITAS: Record<CapturaAjuda, Receita> = {
     recorrencias: { rota: () => '/recorrencias', pronto: texto('Conferir o backup dos processos') },
     panorama: { rota: () => '/panorama', pronto: titulo('Panorama') },
     configuracoes: { rota: () => '/configuracoes/empresa', pronto: titulo('Configurações') },
+    'portal-lista': { rota: () => '/portal', pronto: texto('Caixa não imprime o cupom desde ontem'), portal: true },
+    'portal-detalhe': {
+        rota: (d) => `/portal/solicitacoes/${d.entregaId}`,
+        pronto: (p) => p.getByRole('button', { name: 'Aprovar entrega' }),
+        portal: true,
+    },
+    'portal-nova': { rota: () => '/portal/nova', pronto: titulo('Nova solicitação'), portal: true },
+    'portal-contratos': { rota: () => '/portal/contratos', pronto: texto('Banco de horas'), portal: true },
 }
 
 const PASTA = fileURLToPath(new URL('../public/ajuda/', import.meta.url))
@@ -57,13 +67,11 @@ async function esperarSossego(page: Page, emVoo: Set<string>) {
     await page.waitForTimeout(400)
 }
 
-test('captura as telas do manual', async ({ page, context }) => {
-    test.setTimeout(240_000)
-    mkdirSync(PASTA, { recursive: true })
-    const demo = await criarDemonstracao()
-
+/** Uma aba já logada, no tema claro, que conta as chamadas em voo para `esperarSossego`. */
+async function entrar(contexto: BrowserContext, email: string, senha: string, inicio: RegExp | string) {
     // Tema claro fixo, qualquer que seja a escolha guardada.
-    await context.addInitScript(() => localStorage.setItem('acordu.tema', 'claro'))
+    await contexto.addInitScript(() => localStorage.setItem('acordu.tema', 'claro'))
+    const page = await contexto.newPage()
     const emVoo = new Set<string>()
     page.on('request', (r) => {
         if (r.url().includes('/api/') && !r.url().endsWith('/eventos')) emVoo.add(r.url() + r.method())
@@ -73,10 +81,33 @@ test('captura as telas do manual', async ({ page, context }) => {
     page.on('requestfailed', saiu)
 
     await page.goto('/entrar')
-    await page.getByLabel('E-mail').fill(demo.email)
-    await page.getByLabel('Senha').fill(demo.senha)
+    await page.getByLabel('E-mail').fill(email)
+    await page.getByLabel('Senha').fill(senha)
     await page.getByRole('button', { name: 'Entrar' }).click()
-    await expect(page.getByRole('heading', { level: 1, name: /, Marina$/ })).toBeVisible()
+    await expect(page.getByRole('heading', { level: 1, name: inicio })).toBeVisible()
+    return { page, emVoo }
+}
+
+test('captura as telas do manual', async ({ browser, context }) => {
+    test.setTimeout(300_000)
+    mkdirSync(PASTA, { recursive: true })
+    const demo = await criarDemonstracao()
+
+    const equipe = await entrar(context, demo.email, demo.senha, /, Marina$/)
+    // O portal em outro contexto: cada um com o seu cookie de sessão.
+    const portal = await entrar(
+        await browser.newContext({
+            baseURL: 'http://localhost:5173',
+            locale: 'pt-BR',
+            timezoneId: 'America/Sao_Paulo',
+            colorScheme: 'light',
+            reducedMotion: 'reduce',
+            deviceScaleFactor: 1,
+        }),
+        demo.contato.email,
+        demo.contato.senha,
+        'Solicitações',
+    )
 
     // A conversão para WebP usa o próprio Chromium (canvas), sem dependência de imagem no projeto.
     const conversor = await context.newPage()
@@ -102,6 +133,7 @@ test('captura as telas do manual', async ({ page, context }) => {
     for (const nome of CAPTURAS) {
         const receita = RECEITAS[nome]
         await test.step(nome, async () => {
+            const { page, emVoo } = receita.portal ? portal : equipe
             const largura = receita.largura ?? TAMANHO_CAPTURA.largura
             await page.setViewportSize({
                 width: largura,
