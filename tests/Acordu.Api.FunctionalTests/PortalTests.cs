@@ -191,8 +191,16 @@ public sealed class PortalTests(ApiFixture api)
         await equipe.EsperarAsync(HttpStatusCode.UnprocessableEntity, HttpMethod.Post, $"{rota}/aprovacao", token: contato.Token);
         await Resolver(equipe, solicitacao);
         var resolvida = await equipe.EsperarAsync(HttpStatusCode.OK, HttpMethod.Get, rota, token: contato.Token);
-        resolvida.GetProperty("statusExterno").GetString().Should().Be("CONCLUIDA");
+        // A entrega espera o contato (StatusNoPortal): "Esperando você", não "Concluída".
+        resolvida.GetProperty("statusExterno").GetString().Should().Be("AGUARDANDO_VOCE");
         resolvida.GetProperty("podeAprovar").GetBoolean().Should().BeTrue();
+        var esperando = await equipe.EsperarAsync(
+            HttpStatusCode.OK, HttpMethod.Get, $"{Portal}/solicitacoes?statusExterno=AGUARDANDO_VOCE", token: contato.Token);
+        esperando.GetProperty("itens")[0].GetProperty("id").GetGuid().Should().Be(solicitacao);
+        esperando.GetProperty("itens")[0].GetProperty("statusExterno").GetString().Should().Be("AGUARDANDO_VOCE");
+        var concluidas = await equipe.EsperarAsync(
+            HttpStatusCode.OK, HttpMethod.Get, $"{Portal}/solicitacoes?statusExterno=CONCLUIDA", token: contato.Token);
+        concluidas.GetProperty("total").GetInt32().Should().Be(0);
 
         var semMotivo = await equipe.EsperarAsync(
             HttpStatusCode.BadRequest, HttpMethod.Post, $"{rota}/reprovacao", new { motivo = " " }, contato.Token);
