@@ -15,6 +15,15 @@ export const NOTAS: NotaVersao[] = [
     {
         data: '2026-10-23',
         publico: 'equipe',
+        titulo: 'Primeiros passos no Hoje',
+        itens: [
+            'Para quem configura a empresa, o Hoje mostra os primeiros passos com o progresso: o que já foi feito (empresa, calendário, equipe, clientes, contratos, portal, solicitações, tarefas e recorrências) e o que falta.',
+            'O cartão some quando tudo estiver feito, ou com "Dispensar".',
+        ],
+    },
+    {
+        data: '2026-10-23',
+        publico: 'equipe',
         titulo: 'Manual, novidades e entregas no portal',
         itens: [
             'Ajuda: o manual do Acordu dentro do sistema, com a explicação de cada tela, os primeiros passos e imagens das telas.',

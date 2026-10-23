@@ -16,6 +16,7 @@ import { diaPorExtenso, saudacao } from '@/shared/format/saudacao'
 import type { Perfil } from '@/shared/sessao/perfil'
 import { Pagina } from '@/shared/ui/Pagina'
 import { consultaMinhaSemana, consultaMinhasSolicitacoes, consultaMinhasTarefas } from './consultas'
+import { PrimeirosPassos } from './PrimeirosPassos'
 
 /**
  * Hoje (F6a, protótipo): o início pessoal. O que está na mão (solicitações pelo prazo de SLA e as tarefas do dia ou
@@ -30,6 +31,7 @@ export function TelaHoje({ perfil }: { perfil: Perfil }) {
     return (
         <Pagina ajuda="hoje" titulo={`${saudacao(fuso)}, ${primeiroNome}`} contexto={diaPorExtenso(fuso)}>
             <AvisoConfirmacao perfil={perfil} />
+            <PrimeirosPassos perfil={perfil} />
             <div className="grid gap-6 lg:grid-cols-3">
                 <div className="flex flex-col gap-6 lg:col-span-2">
                     {verSolicitacoes && <SolicitacoesNaMao perfil={perfil} />}

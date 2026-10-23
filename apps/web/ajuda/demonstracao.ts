@@ -18,6 +18,7 @@ export interface Demonstracao {
     contratoId: string
     /** Contato da padaria com acesso ao portal (vê todas as solicitações e os contratos). */
     contato: { email: string; senha: string }
+    tenantId: string
     /** Solicitação resolvida esperando a aprovação do contato. */
     entregaId: string
 }
@@ -502,6 +503,7 @@ export async function criarDemonstracao(): Promise<Demonstracao> {
         clienteId: padaria.id,
         contratoId: cPadaria,
         contato: { email: padaria.email, senha: SENHA },
+        tenantId: (await chamar<{ tenant: { id: string } }>(dono, 'GET', '/auth/eu')).tenant.id,
         entregaId: sQrCode,
     }
 }

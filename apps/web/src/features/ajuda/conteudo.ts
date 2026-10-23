@@ -19,8 +19,21 @@ export interface SecaoAjuda {
     imagens?: { captura: CapturaAjuda; legenda: string }[]
 }
 
+/** O que mostra que o passo foi feito, no cartão do Hoje (M5). Sem chave, o passo é só orientação. */
+export type ChaveProgresso =
+    | 'empresa'
+    | 'calendario'
+    | 'equipe'
+    | 'clientes'
+    | 'contratos'
+    | 'portal'
+    | 'solicitacoes'
+    | 'tarefas'
+    | 'recorrencias'
+
 export interface PassoInicial {
     titulo: string
+    progresso?: ChaveProgresso
     texto: string
     permissoes: string[]
     para: CaminhoNavegacao | '/configuracoes/empresa' | '/configuracoes/calendario' | '/configuracoes/equipe'
@@ -31,6 +44,7 @@ export interface PassoInicial {
 export const PRIMEIROS_PASSOS: PassoInicial[] = [
     {
         titulo: 'Configure a empresa',
+        progresso: 'empresa',
         texto: 'Nome, para onde vão as respostas dos clientes e o SLA padrão dos contratos.',
         permissoes: ['configuracao.gerenciar'],
         para: '/configuracoes/empresa',
@@ -38,6 +52,7 @@ export const PRIMEIROS_PASSOS: PassoInicial[] = [
     },
     {
         titulo: 'Ajuste o calendário',
+        progresso: 'calendario',
         texto: 'Fuso, horário de cada dia e feriados: é com eles que o SLA conta as horas úteis.',
         permissoes: ['configuracao.gerenciar'],
         para: '/configuracoes/calendario',
@@ -45,6 +60,7 @@ export const PRIMEIROS_PASSOS: PassoInicial[] = [
     },
     {
         titulo: 'Convide a equipe',
+        progresso: 'equipe',
         texto: 'Cada pessoa entra com um papel (Dono, Membro, Leitor ou um sob medida) e uma capacidade semanal.',
         permissoes: ['usuario.convidar'],
         para: '/configuracoes/equipe',
@@ -52,6 +68,7 @@ export const PRIMEIROS_PASSOS: PassoInicial[] = [
     },
     {
         titulo: 'Cadastre os clientes',
+        progresso: 'clientes',
         texto: 'Com os contatos de cada um: são eles que recebem os avisos e podem usar o portal.',
         permissoes: ['cliente.gerenciar'],
         para: '/clientes',
@@ -59,6 +76,7 @@ export const PRIMEIROS_PASSOS: PassoInicial[] = [
     },
     {
         titulo: 'Crie os contratos',
+        progresso: 'contratos',
         texto: 'Mensal fixo, banco de horas ou avulso, com os prazos de SLA combinados.',
         permissoes: ['contrato.gerenciar'],
         para: '/contratos',
@@ -66,6 +84,7 @@ export const PRIMEIROS_PASSOS: PassoInicial[] = [
     },
     {
         titulo: 'Convide os contatos para o portal',
+        progresso: 'portal',
         texto: 'Na ficha do cliente, aba Contatos e portal. O cliente passa a abrir e acompanhar solicitações sozinho.',
         permissoes: ['portal.gerenciar_acessos'],
         para: '/clientes',
@@ -73,6 +92,7 @@ export const PRIMEIROS_PASSOS: PassoInicial[] = [
     },
     {
         titulo: 'Atenda as solicitações',
+        progresso: 'solicitacoes',
         texto: 'A fila mostra o que chegou, com o prazo de cada uma. Assuma, converse com o cliente e resolva.',
         permissoes: ['solicitacao.ver'],
         para: '/solicitacoes',
@@ -80,6 +100,7 @@ export const PRIMEIROS_PASSOS: PassoInicial[] = [
     },
     {
         titulo: 'Organize o trabalho em tarefas',
+        progresso: 'tarefas',
         texto: 'Tarefas soltas, de uma solicitação ou de um projeto; o cronômetro aponta as horas ao parar.',
         permissoes: ['tarefa.ver'],
         para: '/tarefas',
@@ -87,6 +108,7 @@ export const PRIMEIROS_PASSOS: PassoInicial[] = [
     },
     {
         titulo: 'Automatize o que se repete',
+        progresso: 'recorrencias',
         texto: 'Recorrências criam sozinhas a tarefa do fechamento do mês, da revisão da semana…',
         permissoes: ['recorrencia.gerenciar'],
         para: '/recorrencias',
@@ -144,6 +166,9 @@ export const SECOES_AJUDA: SecaoAjuda[] = [
             '"Esperando resposta" lembra o que está parado com o cliente ou com terceiros.',
             '"Sua semana" compara as horas planejadas com a sua capacidade, dia a dia.',
             '"Avisos" repete os últimos avisos do sino.',
+        ],
+        dicas: [
+            'Para quem configura a empresa, enquanto ela é nova, o cartão "Primeiros passos" mostra o que já foi feito e o que falta. "Dispensar" esconde o cartão neste navegador; ele também some quando tudo estiver feito.',
         ],
         imagens: [
             {
