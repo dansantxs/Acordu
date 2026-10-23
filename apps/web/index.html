@@ -17,6 +17,14 @@
                     tema = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'escuro' : 'claro'
                 }
                 document.documentElement.dataset.tema = tema
+                // Couro da equipe (Conhaque ou Bordô); o portal fica sempre no Café.
+                var couro = null
+                try {
+                    couro = localStorage.getItem('acordu.couro')
+                } catch (e) {}
+                if ((couro === 'conhaque' || couro === 'bordo') && location.pathname.indexOf('/portal') !== 0) {
+                    document.documentElement.dataset.couro = couro
+                }
             })()
         </script>
     </head>

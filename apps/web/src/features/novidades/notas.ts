@@ -15,6 +15,14 @@ export const NOTAS: NotaVersao[] = [
     {
         data: '2026-10-23',
         publico: 'equipe',
+        titulo: 'Escolha o couro',
+        itens: [
+            'Além do Café, agora dá para usar os couros Conhaque e Bordô, no claro e no escuro. A escolha fica no menu com o seu nome e vale só para você, neste navegador.',
+        ],
+    },
+    {
+        data: '2026-10-23',
+        publico: 'equipe',
         titulo: 'Primeiros passos no Hoje',
         itens: [
             'Para quem configura a empresa, o Hoje mostra os primeiros passos com o progresso: o que já foi feito (empresa, calendário, equipe, clientes, contratos, portal, solicitações, tarefas e recorrências) e o que falta.',

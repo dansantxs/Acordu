@@ -43,4 +43,16 @@ describe('novidades', () => {
         expect(within(novidades).getByText(notasDo('cliente')[0]!.titulo)).toBeInTheDocument()
         expect(await within(portal).findByRole('link', { name: 'Ajuda' })).toBeInTheDocument()
     })
+
+    it('o portal fica no Café mesmo com outro couro escolhido neste navegador', async () => {
+        localStorage.setItem('acordu.couro', 'bordo')
+        document.documentElement.dataset.couro = 'bordo'
+        comContato({
+            'GET /api/v1/portal/solicitacoes': () => json({ itens: [], pagina: 1, tamanhoPagina: 20, total: 0 }),
+        })
+        await abrir('/portal')
+        await screen.findByRole('navigation', { name: 'Portal' })
+        expect(document.documentElement.dataset.couro).toBeUndefined()
+        localStorage.removeItem('acordu.couro')
+    })
 })
