@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react'
 import { pode } from '@/features/casca/navegacao'
 import { contem } from '@/shared/format/texto'
 import type { Perfil } from '@/shared/sessao/perfil'
+import { Captura } from '@/shared/ui/Captura'
 import { Pagina } from '@/shared/ui/Pagina'
 import { caminhoDaCaptura, TAMANHO_CAPTURA } from './capturas'
 import { PRIMEIROS_PASSOS, SECOES_AJUDA, type SecaoAjuda } from './conteudo'
@@ -134,7 +135,13 @@ function Secao({ secao: s, destacada }: { secao: SecaoAjuda; destacada: boolean 
                 </ol>
             )}
             {s.imagens?.map((img) => (
-                <Captura key={img.captura} caminho={caminhoDaCaptura(img.captura)} legenda={img.legenda} />
+                <Captura
+                    key={img.captura}
+                    caminho={caminhoDaCaptura(img.captura)}
+                    legenda={img.legenda}
+                    largura={TAMANHO_CAPTURA.largura}
+                    altura={TAMANHO_CAPTURA.altura}
+                />
             ))}
             {s.dicas && (
                 <ul className="flex list-disc flex-col gap-1 pl-5 text-sm text-suave">
@@ -144,31 +151,5 @@ function Secao({ secao: s, destacada }: { secao: SecaoAjuda; destacada: boolean 
                 </ul>
             )}
         </section>
-    )
-}
-
-/**
- * Captura da tela (M2), com a empresa de demonstração. Clicar abre a imagem inteira em outra aba; se o arquivo faltar
- * (bot ainda não rodou), a figura some em vez de mostrar uma imagem quebrada.
- */
-function Captura({ caminho, legenda }: { caminho: string; legenda: string }) {
-    const [falhou, setFalhou] = useState(false)
-    if (falhou) return null
-    return (
-        <figure className="flex flex-col gap-1.5">
-            <a href={caminho} target="_blank" rel="noreferrer" aria-label={`${legenda} (abre a imagem em outra aba)`}>
-                <img
-                    src={caminho}
-                    alt={legenda}
-                    width={TAMANHO_CAPTURA.largura}
-                    height={TAMANHO_CAPTURA.altura}
-                    loading="lazy"
-                    decoding="async"
-                    onError={() => setFalhou(true)}
-                    className="h-auto w-full rounded-couro border border-linha"
-                />
-            </a>
-            <figcaption className="text-xs text-suave">{legenda}</figcaption>
-        </figure>
     )
 }

@@ -267,7 +267,7 @@ function Conversa({
                     dica={
                         s.statusExterno === 'AGUARDANDO_VOCE' && !s.podeAprovar
                             ? 'A equipe está esperando sua resposta: responder retoma o atendimento.'
-                            : 'A equipe recebe na hora. Ctrl+Enter envia.'
+                            : 'A equipe recebe na hora.'
                     }
                     rotuloEnviar="Enviar"
                     enviar={async ({ texto, anexos }) => {

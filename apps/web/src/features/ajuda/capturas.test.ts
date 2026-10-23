@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { CAPTURAS } from './capturas'
+import { SECOES_AJUDA_PORTAL } from '@/features/portal/ajudaPortal'
 import { SECOES_AJUDA } from './conteudo'
 
 // Só os nomes dos arquivos interessam: o glob preguiçoso não carrega as imagens.
@@ -16,8 +17,10 @@ describe('capturas do manual', () => {
         expect(arquivos.filter((a) => !(CAPTURAS as readonly string[]).includes(a))).toEqual([])
     })
 
-    it('toda captura aparece em alguma seção do manual', () => {
-        const usadas = new Set(SECOES_AJUDA.flatMap((s) => s.imagens?.map((i) => i.captura) ?? []))
+    it('toda captura aparece em alguma seção do manual ou do guia do portal', () => {
+        const usadas = new Set(
+            [...SECOES_AJUDA, ...SECOES_AJUDA_PORTAL].flatMap((s) => s.imagens?.map((i) => i.captura) ?? []),
+        )
         expect(CAPTURAS.filter((c) => !usadas.has(c))).toEqual([])
     })
 })
