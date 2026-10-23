@@ -127,7 +127,7 @@
   - **filtros e página das listas vão no endereço** (`validateSearch` da rota, valores padrão omitidos), para compartilhar e voltar ao mesmo ponto. A busca digitada atualiza o endereço com `replace` depois de 250 ms;
   - **erro ao carregar tela** usa o componente de erro padrão do roteador (`ErroTela`: 403, 404 ou falha, com "Tentar de novo"). Endereço inexistente dentro do app cai na rota `_app/$`, sem sair da casca. Sem rede, uma faixa no topo avisa.
 - **(Acordu, F1) Tema:**
-  - agenda de couro; tokens em `shared/tema/tokens.css`, com o papel por `data-tema` (claro/escuro) e a capa por `data-couro` (Café padrão; Conhaque e Bordô prontos, sem seletor no v1);
+  - agenda de couro; tokens em `shared/tema/tokens.css`, com o papel por `data-tema` (claro/escuro) e a capa por `data-couro` (Café padrão; Conhaque e Bordô por escolha de cada pessoa no menu do usuário, guardada no navegador em `acordu.couro`, só no app da equipe: o portal fica no Café; todo couro tem versão clara e escura com contraste AA);
   - a escolha fica no navegador e, sem ela, vale a do sistema, aplicada antes da primeira pintura;
   - fontes Fraunces (títulos) e Source Sans 3 (texto), hospedadas com o app (`@fontsource`), nunca do Google.
 
