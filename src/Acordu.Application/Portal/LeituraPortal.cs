@@ -61,7 +61,7 @@ public sealed class LeituraPortal
     {
         _contexto.Exigir(Permissoes.PortalSolicitacaoVer);
         var contato = await _portal.ContatoAsync(cancellationToken);
-        var pagina = await _consultas.ListarSolicitacoesAsync(contato, status, paginacao, cancellationToken);
+        var pagina = await _consultas.ListarSolicitacoesAsync(contato, status, PodeAprovar, paginacao, cancellationToken);
         return PodeAprovar ? pagina : pagina with { Itens = [.. pagina.Itens.Select(s => s with { PodeAprovar = false })] };
     }
 
@@ -69,7 +69,7 @@ public sealed class LeituraPortal
     {
         _contexto.Exigir(Permissoes.PortalSolicitacaoVer);
         var contato = await _portal.ContatoAsync(cancellationToken);
-        var solicitacao = await _consultas.DetalharSolicitacaoAsync(contato, id, cancellationToken)
+        var solicitacao = await _consultas.DetalharSolicitacaoAsync(contato, id, PodeAprovar, cancellationToken)
             ?? throw new NaoEncontradoException("Solicitação não encontrada.");
         return PodeAprovar ? solicitacao : solicitacao with { PodeAprovar = false };
     }

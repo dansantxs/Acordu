@@ -57,12 +57,16 @@ public sealed class ConsultasPortal : IConsultasPortal
     }
 
     public async Task<ResultadoPaginado<SolicitacaoPortalResumoDto>> ListarSolicitacoesAsync(
-        ContatoDoPortal contato, IReadOnlyCollection<StatusExterno>? status, Paginacao paginacao, CancellationToken cancellationToken = default)
+        ContatoDoPortal contato,
+        IReadOnlyCollection<StatusExterno>? status,
+        bool podeAprovar,
+        Paginacao paginacao,
+        CancellationToken cancellationToken = default)
     {
         var consulta = Visiveis(contato);
         if (status is { Count: > 0 })
         {
-            var internos = Enum.GetValues<StatusSolicitacao>().Where(s => status.Contains(Solicitacao.ParaExterno(s))).ToList();
+            var internos = Enum.GetValues<StatusSolicitacao>().Where(s => status.Contains(StatusNoPortal.Para(s, podeAprovar))).ToList();
             consulta = consulta.Where(s => internos.Contains(s.Status));
         }
 
@@ -74,14 +78,14 @@ public sealed class ConsultasPortal : IConsultasPortal
             .ToListAsync(cancellationToken);
         return new ResultadoPaginado<SolicitacaoPortalResumoDto>(
             [.. itens.Select(s => new SolicitacaoPortalResumoDto(
-                s.Id, s.Numero, s.Titulo, Solicitacao.ParaExterno(s.Status), s.AbertaEm, s.Status == StatusSolicitacao.Resolvida))],
+                s.Id, s.Numero, s.Titulo, StatusNoPortal.Para(s.Status, podeAprovar), s.AbertaEm, s.Status == StatusSolicitacao.Resolvida))],
             paginacao.Pagina,
             paginacao.TamanhoPagina,
             total);
     }
 
     public async Task<SolicitacaoPortalDto?> DetalharSolicitacaoAsync(
-        ContatoDoPortal contato, Guid id, CancellationToken cancellationToken = default)
+        ContatoDoPortal contato, Guid id, bool podeAprovar, CancellationToken cancellationToken = default)
     {
         var s = await Visiveis(contato).SingleOrDefaultAsync(x => x.Id == id, cancellationToken);
         if (s is null)
@@ -108,7 +112,7 @@ public sealed class ConsultasPortal : IConsultasPortal
             s.Numero,
             s.Titulo,
             s.Descricao,
-            s.StatusExterno,
+            StatusNoPortal.Para(s.Status, podeAprovar),
             s.AbertaEm,
             s.ResponsavelId is { } responsavel ? new ResponsavelPortalDto(nomes.GetValueOrDefault(responsavel, string.Empty)) : null,
             s.Sla is { } sla ? new SlaPortalDto(sla.PrazoResolucao, s.SituacaoSla(agora, calendario), sla.Pausado) : null,

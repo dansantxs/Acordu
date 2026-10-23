@@ -345,6 +345,8 @@ Qualquer transição fora da tabela lança `TransicaoInvalidaException`.
 | RESOLVIDA, FECHADA | CONCLUIDA |
 | CANCELADA | CANCELADA |
 
+No portal, para quem pode aprovar a entrega, a RESOLVIDA aparece como `AGUARDANDO_VOCE` (regra da leitura do portal, `StatusNoPortal`, decidida em 23/10; a função do domínio e os eventos não mudam): a entrega espera a aprovação do contato.
+
 `AGUARDANDO_TERCEIRO` aparece ao cliente como "Em andamento" de propósito: o problema do fornecedor é do prestador, não do cliente — e o relógio do SLA **não** pausa nesse estado.
 
 - **Emite:** `SolicitacaoAberta`, `SolicitacaoStatusAlterado` (em **toda** mudança de status, com status externo anterior e novo), `SolicitacaoResolvida`, `SolicitacaoReaberta`, `SolicitacaoAtribuida`, `PrimeiraRespostaRegistrada`.

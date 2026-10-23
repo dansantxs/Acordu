@@ -8,16 +8,22 @@ namespace Acordu.Application.Portal;
 /// <summary>
 /// Leituras do portal, sempre pelos filtros globais do contato (tenant e cliente) e, nas solicitações, pelo escopo:
 /// PROPRIAS só enxerga aquelas em que é o contato. Solicitação fora do escopo é nula (404), como a de outro cliente.
-/// <c>PodeAprovar</c> sai pelo status; a permissão é aplicada por <see cref="LeituraPortal"/>.
+/// <c>PodeAprovar</c> sai pelo status; a permissão é aplicada por <see cref="LeituraPortal"/>. <c>podeAprovar</c> decide o
+/// status externo da RESOLVIDA (<see cref="StatusNoPortal"/>), no filtro e no DTO.
 /// </summary>
 public interface IConsultasPortal
 {
     Task<PortalEuDto?> EuAsync(ContatoDoPortal contato, CancellationToken cancellationToken = default);
 
     Task<ResultadoPaginado<SolicitacaoPortalResumoDto>> ListarSolicitacoesAsync(
-        ContatoDoPortal contato, IReadOnlyCollection<StatusExterno>? status, Paginacao paginacao, CancellationToken cancellationToken = default);
+        ContatoDoPortal contato,
+        IReadOnlyCollection<StatusExterno>? status,
+        bool podeAprovar,
+        Paginacao paginacao,
+        CancellationToken cancellationToken = default);
 
-    Task<SolicitacaoPortalDto?> DetalharSolicitacaoAsync(ContatoDoPortal contato, Guid id, CancellationToken cancellationToken = default);
+    Task<SolicitacaoPortalDto?> DetalharSolicitacaoAsync(
+        ContatoDoPortal contato, Guid id, bool podeAprovar, CancellationToken cancellationToken = default);
 
     /// <summary>Só as EXTERNAS, em ordem cronológica; nulo se a solicitação não é visível.</summary>
     Task<IReadOnlyList<InteracaoPortalDto>?> InteracoesAsync(
