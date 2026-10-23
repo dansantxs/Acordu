@@ -19,6 +19,7 @@ export const NOTAS: NotaVersao[] = [
         itens: [
             'Para quem configura a empresa, o Hoje mostra os primeiros passos com o progresso: o que já foi feito (empresa, calendário, equipe, clientes, contratos, portal, solicitações, tarefas e recorrências) e o que falta.',
             'O cartão some quando tudo estiver feito, ou com "Dispensar".',
+            'E-mails com acento antes do @ (como "joão@…") agora são recusados no cadastro, nos contatos e nos convites: as mensagens para esses endereços não chegavam.',
         ],
     },
     {
