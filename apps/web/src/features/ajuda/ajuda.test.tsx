@@ -21,6 +21,15 @@ describe('ajuda', () => {
         expect(screen.getByText(/dependem de permissões que o seu papel não tem/)).toBeInTheDocument()
     })
 
+    it('mostra a captura da tela na seção, com legenda e link para a imagem inteira', async () => {
+        comPerfil(['solicitacao.ver'])
+        await abrir('/ajuda')
+        const secao = await screen.findByRole('region', { name: 'Solicitações' })
+        const imagem = within(secao).getByRole('img', { name: 'A fila com o prazo de SLA de cada solicitação.' })
+        expect(imagem).toHaveAttribute('src', '/ajuda/solicitacoes.webp')
+        expect(imagem.closest('a')).toHaveAttribute('href', '/ajuda/solicitacoes.webp')
+    })
+
     it('busca no texto das seções, sem diferenciar acentos', async () => {
         comPerfil(['contrato.ver'])
         await abrir('/ajuda')

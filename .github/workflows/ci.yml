@@ -145,56 +145,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - uses: actions/setup-dotnet@v4
-        with:
-          global-json-file: global.json
-
-      - uses: pnpm/action-setup@v4
-        with:
-          package_json_file: apps/web/package.json
-
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 22
-          cache: pnpm
-          cache-dependency-path: apps/web/pnpm-lock.yaml
-
-      - name: Compilar a API
-        run: |
-          set -o pipefail
-          dotnet tool restore
-          dotnet build src/Acordu.Api --configuration Release 2>&1 | tee build.log
-
-      - name: Aplicar as migrations
-        run: >
-          dotnet ef database update --no-build --configuration Release
-          --project src/Acordu.Infrastructure --startup-project src/Acordu.Api
-
-      - name: Subir a API
-        env:
-          ASPNETCORE_ENVIRONMENT: Development
-          # Login, cadastro e afins passam de 10 por minuto do mesmo IP na fumaça (a renovação já tem limite próprio).
-          RateLimit__Auth__PorMinuto: "1000"
-        run: |
-          nohup dotnet run --project src/Acordu.Api --configuration Release --no-build --no-launch-profile \
-            --urls http://localhost:5080 > api.log 2>&1 &
-          for i in $(seq 1 60); do
-            curl -fsS http://localhost:5080/api/health && exit 0
-            sleep 1
-          done
-          echo "::error::A API não respondeu em 60 s." && cat api.log && exit 1
-
-      - name: Instalar o front
-        working-directory: apps/web
-        run: pnpm install --frozen-lockfile
-
-      - name: Compilar o front
-        working-directory: apps/web
-        run: pnpm build
-
-      - name: Instalar o Chromium do Playwright
-        working-directory: apps/web
-        run: pnpm exec playwright install --with-deps chromium
+      - uses: ./.github/actions/subir-acordu
 
       - name: Fumaça
         working-directory: apps/web
