@@ -33,6 +33,16 @@ export async function aceitarConvite(corpo: { token: string; nome: string | null
     abrirSessao(data as unknown as TokenDeAcesso)
 }
 
+/** Aceite do convite do portal (contrato §2): mesmo corpo e cookie do login; o contato cai no portal. */
+export async function aceitarConvitePortal(corpo: {
+    token: string
+    nome: string | null
+    senha: string
+}): Promise<void> {
+    const { data } = await api.POST('/api/v1/auth/portal/convite', { body: corpo })
+    abrirSessao(data as unknown as TokenDeAcesso)
+}
+
 /**
  * Nova senha pelo link do e-mail. A API revoga todas as sessões da pessoa e apaga o cookie, então aqui a sessão
  * (se houver) também acaba, em todas as abas.

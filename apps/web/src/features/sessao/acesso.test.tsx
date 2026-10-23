@@ -77,9 +77,20 @@ describe('acesso', () => {
         servidor({
             '/api/v1/auth/refresh': () => json({ accessToken: 'a', expiraEm: daquiA(3_600_000) }),
             '/api/v1/auth/eu': () => json({ ...perfil, papel: 'Cliente', clienteId: 'c1', escopoPortal: 'PROPRIAS' }),
+            '/api/v1/portal/eu': () =>
+                json({
+                    contato: { id: 'k1', nome: 'Marta', email: 'm@x.com' },
+                    cliente: { id: 'c1', nome: 'Padaria' },
+                    prestador: { nome: 'Prado', logoUrl: null },
+                    escopoPortal: 'PROPRIAS',
+                    veContratos: false,
+                    solicitacaoId: null,
+                }),
+            '/api/v1/portal/solicitacoes': () => json({ itens: [], pagina: 1, tamanhoPagina: 20, total: 0 }),
         })
-        await abrir('/')
-        expect(await screen.findByRole('heading', { name: 'Portal do cliente' })).toBeInTheDocument()
+        const roteador = await abrir('/')
+        expect(await screen.findByRole('heading', { name: 'Solicitações' })).toBeInTheDocument()
+        expect(roteador.state.location.pathname).toBe('/portal')
     })
     it('se a sessão não pôde ser conferida (429), oferece tentar de novo em vez do login', async () => {
         let tentativas = 0

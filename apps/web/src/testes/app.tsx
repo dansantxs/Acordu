@@ -90,6 +90,25 @@ export function comPerfil(permissoes: string[], rotas: Rotas = {}) {
     })
 }
 
+/** Contato de cliente com sessão de portal (escopo dado), prestador "Prado Consultoria". */
+export function comContato(rotas: Rotas = {}, escopoPortal: 'PROPRIAS' | 'TODAS_DO_CLIENTE' = 'TODAS_DO_CLIENTE') {
+    return servidor({
+        '/api/v1/auth/refresh': comSessao,
+        '/api/v1/auth/eu': () =>
+            json({ ...perfil, nome: 'Marta Souza', papel: 'Cliente', permissoes: [], clienteId: 'c1', escopoPortal }),
+        '/api/v1/portal/eu': () =>
+            json({
+                contato: { id: 'k1', nome: 'Marta Souza', email: 'marta@bomgrao.com' },
+                cliente: { id: 'c1', nome: 'Padaria Bom Grão' },
+                prestador: { nome: 'Prado Consultoria', logoUrl: null },
+                escopoPortal,
+                veContratos: escopoPortal === 'TODAS_DO_CLIENTE',
+                solicitacaoId: null,
+            }),
+        ...rotas,
+    })
+}
+
 export async function abrir(caminho: string) {
     const roteador = createRouter({
         routeTree,

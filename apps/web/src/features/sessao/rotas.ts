@@ -18,7 +18,7 @@ export async function seguirSeJaEntrou(voltar?: string): Promise<void> {
 export function retirarTokenDaUrl(
     tipo: TipoDeLink,
     token: string,
-    destino: '/convite' | '/conta/senha/nova' | '/conta/confirmacao',
+    destino: '/convite' | '/portal/convite' | '/conta/senha/nova' | '/conta/confirmacao',
 ) {
     guardarTokenDeLink(tipo, token)
     return redirect({ to: destino, replace: true })
