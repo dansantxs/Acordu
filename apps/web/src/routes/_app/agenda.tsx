@@ -11,6 +11,7 @@ export const Route = createFileRoute('/_app/agenda')({
                 ? segundaDaSemana(busca.inicio)
                 : undefined,
         faixas: busca.faixas === 'cliente' ? 'cliente' : undefined,
+        vista: busca.vista === 'plano' ? 'plano' : undefined,
     }),
     component: Agenda,
 })
