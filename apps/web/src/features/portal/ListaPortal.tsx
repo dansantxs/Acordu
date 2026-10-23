@@ -5,6 +5,7 @@ import { mensagemDeErro } from '@/shared/api/mensagens'
 import { quando } from '@/shared/format/quando'
 import { Alerta } from '@/shared/ui/Alerta'
 import { EstadoVazio } from '@/shared/ui/EstadoVazio'
+import { Icone } from '@/shared/ui/Icone'
 import { Paginacao } from '@/shared/ui/Paginacao'
 import {
     consultaSolicitacoesPortal,
@@ -40,6 +41,15 @@ export function ListaPortal({ eu, filtros, fuso }: { eu: PortalEu; filtros: Filt
             <TituloPortal
                 titulo="Solicitações"
                 contexto={eu.escopoPortal === 'PROPRIAS' ? `As suas, em ${eu.cliente.nome}` : eu.cliente.nome}
+                acoes={
+                    <Link
+                        to="/portal/nova"
+                        className="inline-flex items-center gap-2 rounded-couro bg-acento px-4 py-2 text-sm font-semibold text-botao-tinta hover:brightness-110"
+                    >
+                        <Icone nome="mais" />
+                        Nova solicitação
+                    </Link>
+                }
             />
             <Tabs
                 selectedKey={grupo}
