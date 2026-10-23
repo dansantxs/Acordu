@@ -158,4 +158,64 @@ describe('agenda: linha do tempo', () => {
         expect(titulos[0]).toBe('Atrasados')
         expect(titulos.some((t) => t?.includes('(hoje)'))).toBe(true)
     })
+
+    it('plano da semana: "Mover para" troca a pessoa, manda o formulário inteiro e desfaz', async () => {
+        const arte = itens[1]!
+        const detalhe = {
+            id: arte.id,
+            titulo: 'Arte do cardápio',
+            descricao: 'Três versões',
+            prazo: dia(4),
+            estimativaMinutos: 120,
+            visivelCliente: true,
+            planejadaPara: null,
+            responsavel: RAFAEL,
+            versao: '7',
+        }
+        const chamadas = comPerfil(['tarefa.ver', 'tarefa.editar', 'solicitacao.ver'], {
+            'GET /api/v1/agenda': () => json(agenda(itens)),
+            [`GET /api/v1/tarefas/${arte.id}`]: () => json(detalhe),
+            [`PATCH /api/v1/tarefas/${arte.id}`]: (corpo) => json({ ...detalhe, ...(corpo as object) }),
+        })
+        const roteador = await abrir('/agenda')
+        const usuario = userEvent.setup()
+        await usuario.click(await screen.findByRole('tab', { name: 'Plano da semana' }))
+        await vi.waitFor(() => expect(roteador.state.location.search).toEqual({ vista: 'plano' }))
+        const plano = await screen.findByRole('table', { name: 'Plano da semana' })
+        // A solicitação aparece, mas não se arrasta.
+        expect(within(plano).getByRole('link', { name: /#128 Banner/ })).toBeInTheDocument()
+        expect(within(plano).queryByRole('button', { name: 'Arrastar Banner' })).not.toBeInTheDocument()
+
+        await usuario.click(within(plano).getByRole('button', { name: 'Mover Arte do cardápio' }))
+        await usuario.click(await screen.findByRole('menuitem', { name: 'Ana Prado' }))
+        expect(await screen.findByText(/"Arte do cardápio" planejada para .* \(Ana Prado\)\./)).toBeInTheDocument()
+        const patch = chamadas.filter((c) => c.metodo === 'PATCH')
+        expect(patch[0]).toMatchObject({
+            ifMatch: '"7"',
+            corpo: {
+                titulo: 'Arte do cardápio',
+                descricao: 'Três versões',
+                prazo: dia(4),
+                estimativaMinutos: 120,
+                visivelCliente: true,
+                planejadaPara: dia(2),
+                responsavelId: 'u1',
+            },
+        })
+
+        await usuario.click(screen.getByRole('button', { name: 'Desfazer' }))
+        await vi.waitFor(() => expect(chamadas.filter((c) => c.metodo === 'PATCH')).toHaveLength(2))
+        expect(chamadas.filter((c) => c.metodo === 'PATCH')[1]?.corpo).toMatchObject({
+            planejadaPara: null,
+            responsavelId: 'u2',
+        })
+    })
+
+    it('plano da semana sem tarefa.editar: só leitura', async () => {
+        comPerfil(['tarefa.ver'], { 'GET /api/v1/agenda': () => json(agenda(itens)) })
+        await abrir('/agenda?vista=plano')
+        const plano = await screen.findByRole('table', { name: 'Plano da semana' })
+        expect(await within(plano).findByText('Arte do cardápio')).toBeInTheDocument()
+        expect(within(plano).queryByRole('button', { name: /Arrastar|Mover/ })).not.toBeInTheDocument()
+    })
 })
