@@ -39,7 +39,7 @@ const LEITURA_AGENDA = ['solicitacao.ver', 'tarefa.ver', 'projeto.ver', 'recorre
 /** Minha conta (decisão 7 do F5): o que é de cada pessoa, não da empresa: e-mails que recebe e a agenda no calendário. */
 export function TelaConta({ perfil }: { perfil: Perfil }) {
     return (
-        <Pagina titulo="Minha conta" contexto={`${perfil.nome} · ${perfil.email}`}>
+        <Pagina ajuda="conta" titulo="Minha conta" contexto={`${perfil.nome} · ${perfil.email}`}>
             <div className="flex max-w-2xl flex-col gap-10">
                 <Emails />
                 {pode(perfil, ...LEITURA_AGENDA) && <Agenda fuso={perfil.tenant.fusoHorario} />}

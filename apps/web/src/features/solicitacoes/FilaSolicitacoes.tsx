@@ -80,6 +80,7 @@ export function FilaSolicitacoes({ perfil, filtros }: { perfil: Perfil; filtros:
 
     return (
         <Pagina
+            ajuda="solicitacoes"
             titulo="Solicitações"
             acoes={
                 pode(perfil, 'solicitacao.criar') && (

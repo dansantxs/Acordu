@@ -88,8 +88,8 @@ function Conteudo({ fuso, aoFechar }: { fuso: string; aoFechar: () => void }) {
     return (
         <div className="flex flex-col gap-4">
             <p className="text-sm text-suave">
-                Fechado, o mês não aceita apontamentos nem ajustes nos contratos. Cada contrato é fechado por vez; se um
-                falhar, os outros seguem.
+                Fechado, o mês não aceita apontamentos novos nem edição dos que já existem. Cada contrato é fechado por
+                vez; se um falhar, os outros seguem.
             </p>
             <div className="flex items-center gap-2">
                 <Botao

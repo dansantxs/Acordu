@@ -26,7 +26,7 @@ describe('casca do app', () => {
         const links = within(capa)
             .getAllByRole('link')
             .map((l) => l.textContent)
-        expect(links).toEqual(['Hoje', 'Agenda', 'Solicitações', 'Tarefas', 'Horas'])
+        expect(links).toEqual(['Hoje', 'Agenda', 'Solicitações', 'Tarefas', 'Horas', 'Ajuda'])
     })
 
     it('marca o destino atual', async () => {

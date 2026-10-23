@@ -68,6 +68,7 @@ export function TelaHoras({ perfil, filtros }: { perfil: Perfil; filtros: Filtro
 
     return (
         <Pagina
+            ajuda="horas"
             titulo="Horas"
             acoes={
                 podeCriar && (

@@ -64,6 +64,7 @@ export function TelaTarefas({ perfil, filtros }: { perfil: Perfil; filtros: Filt
 
     return (
         <Pagina
+            ajuda="tarefas"
             titulo="Tarefas"
             acoes={
                 <div className="flex flex-wrap items-center gap-3">

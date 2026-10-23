@@ -12,7 +12,7 @@ const estiloLink =
 export function TelaConfiguracoes({ perfil, children }: { perfil: Perfil; children: ReactNode }) {
     const secoes = secoesDe(perfil)
     return (
-        <Pagina titulo="Configurações">
+        <Pagina ajuda="configuracoes" titulo="Configurações">
             <div className="flex flex-col gap-6 md:flex-row md:items-start">
                 <nav aria-label="Seções" className="-mx-4 overflow-x-auto px-4 md:mx-0 md:w-48 md:shrink-0 md:px-0">
                     <ul className="flex gap-1 md:flex-col">

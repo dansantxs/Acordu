@@ -52,6 +52,7 @@ export function ListaClientes({ perfil, filtros }: { perfil: Perfil; filtros: Fi
     const filtrando = Boolean(filtros.busca || filtros.etiqueta || filtros.responsavel)
     return (
         <Pagina
+            ajuda="clientes"
             titulo="Clientes"
             acoes={
                 podeGerenciar && (

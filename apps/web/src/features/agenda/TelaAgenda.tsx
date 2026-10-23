@@ -41,6 +41,7 @@ export function TelaAgenda({ perfil, filtros }: { perfil: Perfil; filtros: Filtr
 
     return (
         <Pagina
+            ajuda="agenda"
             titulo="Agenda"
             contexto={`${dataCurta(inicio, hoje)} a ${dataCurta(somarDias(inicio, plano ? 4 : 11), hoje)}`}
             acoes={

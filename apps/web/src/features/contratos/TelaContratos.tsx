@@ -47,6 +47,7 @@ export function TelaContratos({ perfil, filtros }: { perfil: Perfil; filtros: Fi
 
     return (
         <Pagina
+            ajuda="contratos"
             titulo="Contratos"
             acoes={
                 <div className="flex flex-wrap gap-2">

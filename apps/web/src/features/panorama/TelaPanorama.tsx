@@ -31,7 +31,7 @@ export function TelaPanorama({ perfil, filtros }: { perfil: Perfil; filtros: Fil
     const d = painel.data
 
     return (
-        <Pagina titulo="Panorama" contexto={`${dataCurta(de, hoje)} a ${dataCurta(ate, hoje)}`}>
+        <Pagina ajuda="panorama" titulo="Panorama" contexto={`${dataCurta(de, hoje)} a ${dataCurta(ate, hoje)}`}>
             <div className="flex flex-wrap items-end gap-3">
                 <Tabs
                     selectedKey={modo}
