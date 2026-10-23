@@ -4,6 +4,7 @@ import { consultaEu } from '@/features/portal/consultas'
 import { ErroApi } from '@/shared/api/problema'
 import { consultaPerfil, ehContato } from '@/shared/sessao/perfil'
 import { aguardarSessao } from '@/shared/sessao/sessao'
+import { encerrarSessaoLink, sessaoLink } from '@/shared/sessao/sessaoLink'
 import { SessaoIndisponivel } from '@/shared/sessao/SessaoIndisponivel'
 import { NaoEncontrada } from '@/shared/ui/ErroTela'
 import { TelaSemConexao } from '@/shared/ui/TelaSemConexao'
@@ -14,6 +15,11 @@ import { TelaSemConexao } from '@/shared/ui/TelaSemConexao'
  */
 export const Route = createFileRoute('/portal/_contato')({
     beforeLoad: async ({ context, location }) => {
+        // Entrar com conta substitui a sessão por link desta aba (as consultas do portal trocariam de cliente).
+        if (sessaoLink()) {
+            encerrarSessaoLink('saiu')
+            context.consultas.removeQueries({ queryKey: ['portal'] })
+        }
         const estado = await aguardarSessao()
         if (estado.situacao === 'indisponivel') throw new SessaoIndisponivel()
         if (estado.situacao !== 'ativa') throw redirect({ to: '/entrar', search: { voltar: location.href } })
