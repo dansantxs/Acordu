@@ -3,7 +3,7 @@
  * §9: não ficam no histórico nem vão em Referer). Ficam na `sessionStorage` da aba, para a página sobreviver a uma
  * recarga, e são apagados quando usados.
  */
-export type TipoDeLink = 'convite' | 'senha' | 'confirmacao'
+export type TipoDeLink = 'convite' | 'convite-portal' | 'senha' | 'confirmacao'
 
 const memoria = new Map<TipoDeLink, string>()
 const chave = (tipo: TipoDeLink) => `acordu.link.${tipo}`
