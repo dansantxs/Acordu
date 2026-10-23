@@ -59,13 +59,3 @@ export function SecaoProtegida({
         )
     return children
 }
-
-/** Seção que já tem lugar no menu e chega num PR seguinte do F5. */
-export function SecaoEmBreve({ titulo, sobre }: { titulo: string; sobre: string }) {
-    return (
-        <>
-            <CabecalhoSecao titulo={titulo} />
-            <EstadoVazio titulo="Chega em breve">{sobre}</EstadoVazio>
-        </>
-    )
-}
