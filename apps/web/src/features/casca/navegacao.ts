@@ -22,6 +22,7 @@ export type CaminhoNavegacao =
     | '/panorama'
     | '/horas'
     | '/configuracoes'
+    | '/ajuda'
 
 export const NAVEGACAO: ItemNavegacao[] = [
     { rotulo: 'Hoje', para: '/', permissoes: [] },
@@ -50,6 +51,7 @@ export const NAVEGACAO: ItemNavegacao[] = [
             'auditoria.ver',
         ],
     },
+    { rotulo: 'Ajuda', para: '/ajuda', permissoes: [] },
 ]
 
 export function pode(perfil: Perfil, ...permissoes: string[]): boolean {

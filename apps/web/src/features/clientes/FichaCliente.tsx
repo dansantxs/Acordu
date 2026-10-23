@@ -159,6 +159,7 @@ function Ficha({
 
     return (
         <Pagina
+            ajuda="clientes"
             titulo={cliente.nome}
             contexto={
                 <Link to="/clientes" className="hover:underline">

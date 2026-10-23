@@ -85,6 +85,7 @@ function Detalhe({ contrato: c, perfil, mes }: { contrato: Contrato; perfil: Per
 
     return (
         <Pagina
+            ajuda="contratos"
             titulo={`${TIPO_CONTRATO[c.tipo]} · ${c.clienteNome}`}
             contexto={
                 <Link to="/contratos" className="hover:underline">

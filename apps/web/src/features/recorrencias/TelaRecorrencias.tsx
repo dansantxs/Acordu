@@ -46,6 +46,7 @@ export function TelaRecorrencias({ perfil, filtros }: { perfil: Perfil; filtros:
 
     return (
         <Pagina
+            ajuda="recorrencias"
             titulo="Recorrências"
             acoes={
                 gerencia && (

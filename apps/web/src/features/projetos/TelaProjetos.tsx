@@ -41,6 +41,7 @@ export function TelaProjetos({ perfil, filtros }: { perfil: Perfil; filtros: Fil
 
     return (
         <Pagina
+            ajuda="projetos"
             titulo="Projetos"
             acoes={
                 pode(perfil, 'projeto.gerenciar') && (
