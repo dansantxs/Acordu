@@ -73,6 +73,8 @@ public sealed partial class ServicoAutenticacao : IServicoAutenticacao
         var nomeValido = Obrigatorio(nome, Usuario.TamanhoNome, nameof(nome));
         var empresaValida = Obrigatorio(nomeEmpresa, LimitesTexto.Nome, nameof(nomeEmpresa));
         var emailValido = Obrigatorio(email, LimitesTexto.Email, nameof(email));
+        // Mesmo formato dos contatos e convites (sem acento antes do @): a confirmação precisa chegar.
+        _ = Domain.Common.Email.Normalizar(emailValido, nameof(email));
         if (string.IsNullOrEmpty(senha))
             throw new ArgumentException("A senha é obrigatória.", nameof(senha));
 

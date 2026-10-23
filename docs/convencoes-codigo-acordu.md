@@ -53,6 +53,7 @@
 - **(Acordu) Textos:** tamanhos máximos em `Acordu.Domain.Common.LimitesTexto` (fonte única para validação e para `HasMaxLength`); entrada é aparada, obrigatório vazio → `ArgumentException`, opcional vazio → `null`.
 - **(Acordu) Ids:** a raiz recebe o Id na factory (gerado pela Application); entidade filha dentro do agregado (ex.: `ItemChecklist`) tem o Id gerado pela raiz com `Guid.CreateVersion7()`. Referências entre agregados validadas por `Common.Ids` (`Guid.Empty` → `ArgumentException`).
 - **(Acordu) Agregado que precisa validar outro** recebe a raiz como parâmetro somente leitura e copia só o Id (ex.: `AjusteSaldo.Registrar(..., contrato, ...)`); nunca guarda referência de objeto.
+- **(Acordu) E-mails** passam por `Common.Email.Normalizar` (contatos, convites, "responder para" e cadastro): aparado, minúsculo, formato mínimo e **só ASCII antes do @** (endereço com acento exige SMTPUTF8, que o envio não usa; o e-mail nunca chegaria). Domínio com acento (IDN) é aceito.
 
 ---
 
