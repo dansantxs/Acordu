@@ -93,6 +93,18 @@ describe('equipe e papéis', () => {
         expect(await screen.findByText('Convite de bia@prado.com cancelado.')).toBeInTheDocument()
     })
 
+    it('sem papel.gerenciar, o convite não oferece o papel Dono', async () => {
+        app(['usuario.convidar'])
+        await abrir('/configuracoes/equipe')
+        const usuario = userEvent.setup()
+        await usuario.click(await screen.findByRole('button', { name: 'Convidar pessoa' }))
+        const janela = await screen.findByRole('dialog', { name: 'Convidar pessoa' })
+        await usuario.click(within(janela).getByRole('combobox', { name: /Papel/ }))
+        const opcoes = (await screen.findAllByRole('option')).map((o) => o.textContent)
+        expect(opcoes).toContain('Financeiro')
+        expect(opcoes).not.toContain('Dono')
+    })
+
     it('troca papel, capacidade mostra o que vai ficar e remover pede confirmação', async () => {
         const chamadas = app(TUDO, {
             'PATCH /api/v1/usuarios/u2/papel': () => json({ ...pessoas[1], papel: { id: 'p4', nome: 'Financeiro' } }),
