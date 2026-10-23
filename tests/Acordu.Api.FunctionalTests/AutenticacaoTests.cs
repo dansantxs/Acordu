@@ -130,6 +130,18 @@ public sealed class AutenticacaoTests(ApiFixture api)
     }
 
     [Fact]
+    public async Task Registro_EmailComAcentoAntesDaArroba_400NoCampo()
+    {
+        // O e-mail de confirmação não chegaria (SMTPUTF8): recusado como nos contatos e convites.
+        using var resposta = await PostAsync(
+            "/api/v1/auth/registro",
+            new { nome = "Sérgio", email = $"sérgio-{Guid.NewGuid():N}@exemplo.com", senha = Senha, nomeEmpresa = "Padaria" });
+
+        resposta.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+        (await JsonAsync(resposta)).GetProperty("errors").GetProperty("email")[0].GetString().Should().Contain("sem acento");
+    }
+
+    [Fact]
     public async Task Login_CredenciaisCertas_AbreSessao_ErradasDao401()
     {
         var email = NovoEmail();
