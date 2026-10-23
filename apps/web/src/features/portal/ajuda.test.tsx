@@ -13,7 +13,7 @@ describe('portal: ajuda', () => {
     it('abre pelo menu do portal, com o guia e as capturas', async () => {
         comContato({ 'GET /api/v1/portal/solicitacoes': vazia })
         const roteador = await abrir('/portal')
-        await userEvent.setup().click(await screen.findByRole('link', { name: 'Ajuda' }))
+        await userEvent.setup().click(await screen.findByRole('link', { name: /^Ajuda/ }))
         await vi.waitFor(() => expect(roteador.state.location.pathname).toBe('/portal/ajuda'))
         expect(await screen.findByText('Como usar o portal de Prado Consultoria')).toBeInTheDocument()
         const aprovar = screen.getByRole('region', { name: 'Aprovar uma entrega' })

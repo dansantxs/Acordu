@@ -4,6 +4,8 @@ import { Button, Menu, MenuItem, MenuTrigger, Popover } from 'react-aria-compone
 import { sair } from '@/shared/sessao/acoes'
 import { encerrarSessaoLink } from '@/shared/sessao/sessaoLink'
 import { SeletorTema } from '@/shared/tema/SeletorTema'
+import { PontoNovidade } from '@/features/novidades/ListaNotas'
+import { useHaNovidade } from '@/features/novidades/vistas'
 import type { PortalEu } from './consultas'
 
 const estiloLink =
@@ -15,6 +17,7 @@ const estiloLink =
  * (`link`), sem navegação: ela só alcança a solicitação do link.
  */
 export function CascaPortal({ eu, link = false, children }: { eu: PortalEu; link?: boolean; children: ReactNode }) {
+    const haNovidade = useHaNovidade('cliente')
     return (
         <div className="min-h-screen bg-fundo text-tinta">
             <header className="border-b border-linha bg-superficie">
@@ -61,8 +64,9 @@ export function CascaPortal({ eu, link = false, children }: { eu: PortalEu; link
                                     Contratos
                                 </Link>
                             )}
-                            <Link to="/portal/ajuda" className={`${estiloLink} ml-auto`}>
+                            <Link to="/portal/ajuda" className={`${estiloLink} ml-auto flex items-center gap-1.5`}>
                                 Ajuda
+                                {haNovidade && <PontoNovidade />}
                             </Link>
                         </nav>
                     )}

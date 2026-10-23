@@ -102,7 +102,7 @@ describe('hoje', () => {
         expect(await within(horas).findByText(/em 1 apontamento/)).toBeInTheDocument()
     })
 
-    it('sem permissão de solicitações e tarefas, só as horas e as novidades', async () => {
+    it('sem permissão de solicitações e tarefas, só as horas e os avisos', async () => {
         comPerfil([], rotas)
         await abrir('/')
         expect(await screen.findByRole('region', { name: /Apontado hoje/ })).toBeInTheDocument()

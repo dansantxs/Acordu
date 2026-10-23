@@ -4,6 +4,8 @@ import type { Perfil } from '@/shared/sessao/perfil'
 import { Icone } from '@/shared/ui/Icone'
 import { MenuUsuario } from './MenuUsuario'
 import { IndicadorCronometro } from '@/features/cronometro/Cronometro'
+import { PontoNovidade } from '@/features/novidades/ListaNotas'
+import { useHaNovidade } from '@/features/novidades/vistas'
 import { navegacaoDe, pode } from './navegacao'
 import { Sino } from './Sino'
 
@@ -23,6 +25,7 @@ export function CapaLateral({
     aoBuscar: () => void
     aoNavegar?: () => void
 }) {
+    const haNovidade = useHaNovidade('equipe')
     return (
         <nav
             aria-label="Principal"
@@ -49,6 +52,7 @@ export function CapaLateral({
                             onClick={aoNavegar}
                         >
                             {item.rotulo}
+                            {item.para === '/novidades' && haNovidade && <PontoNovidade />}
                         </Link>
                     </li>
                 ))}

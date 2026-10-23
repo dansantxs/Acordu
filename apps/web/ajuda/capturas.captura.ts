@@ -70,7 +70,12 @@ async function esperarSossego(page: Page, emVoo: Set<string>) {
 /** Uma aba já logada, no tema claro, que conta as chamadas em voo para `esperarSossego`. */
 async function entrar(contexto: BrowserContext, email: string, senha: string, inicio: RegExp | string) {
     // Tema claro fixo, qualquer que seja a escolha guardada.
-    await contexto.addInitScript(() => localStorage.setItem('acordu.tema', 'claro'))
+    await contexto.addInitScript(() => {
+        localStorage.setItem('acordu.tema', 'claro')
+        // Novidades já vistas: o ponto do menu não entra nas fotos.
+        localStorage.setItem('acordu.novidades.equipe', '9999-12-31')
+        localStorage.setItem('acordu.novidades.cliente', '9999-12-31')
+    })
     const page = await contexto.newPage()
     const emVoo = new Set<string>()
     page.on('request', (r) => {
