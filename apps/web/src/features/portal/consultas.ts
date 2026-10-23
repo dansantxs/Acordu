@@ -119,3 +119,20 @@ export async function baixarAnexoPortal(id: string): Promise<void> {
     const { url } = (await apiPortal.GET('/api/v1/portal/anexos/{id}/download', { params: { path: { id } } })).data!
     globalThis.location.assign(url)
 }
+
+export type Prioridade = NonNullable<components['schemas']['Prioridade']>
+
+/** Abre pelo portal (contrato §12): JSON sem anexos; com anexos, multipart, e eles viram a primeira mensagem. */
+export async function abrirNoPortal(
+    dados: { titulo: string; descricao: string | null; prioridade: Prioridade },
+    anexos: File[],
+): Promise<SolicitacaoPortal> {
+    if (anexos.length === 0) return (await apiPortal.POST('/api/v1/portal/solicitacoes', { body: dados })).data!
+    const formulario = new FormData()
+    formulario.append('titulo', dados.titulo)
+    if (dados.descricao) formulario.append('descricao', dados.descricao)
+    formulario.append('prioridade', dados.prioridade)
+    anexos.forEach((a) => formulario.append('anexos', a, a.name))
+    // O openapi-fetch manda FormData como está e deixa o navegador pôr o boundary.
+    return (await apiPortal.POST('/api/v1/portal/solicitacoes', { body: formulario as never })).data!
+}
