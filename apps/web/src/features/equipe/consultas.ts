@@ -6,8 +6,9 @@ export type Pessoa = components['schemas']['UsuarioEquipeDto']
 export type ConviteEquipe = components['schemas']['ConviteEquipeDto']
 export type Papel = components['schemas']['PapelDto']
 
-/** Nome do papel padrão que o convite sugere (segurança §3.2). */
+/** Nomes dos papéis padrão (segurança §3.2): o convite sugere Membro; Dono exige `papel.gerenciar`. */
 export const NOME_MEMBRO = 'Membro'
+export const NOME_DONO = 'Dono'
 
 /** Equipe (`GET /usuarios`, contrato §3): só com `usuario.convidar` ou `usuario.remover`. */
 export const consultaPessoas = queryOptions({

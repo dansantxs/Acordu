@@ -8,6 +8,7 @@ import {
     consultaPessoas,
     convidar,
     definirCapacidade,
+    NOME_DONO,
     NOME_MEMBRO,
     removerPessoa,
     revogarConvite,
@@ -193,7 +194,13 @@ export function SecaoEquipe({ perfil }: { perfil: Perfil }) {
                 )}
             </div>
 
-            {convidando && <JanelaConvite papeis={internos} aoFechar={() => setConvidando(false)} />}
+            {convidando && (
+                <JanelaConvite
+                    // Dono pelo convite exige papel.gerenciar (decidido em 23/10).
+                    papeis={gerenciaPapeis ? internos : internos.filter((p) => p.nome !== NOME_DONO)}
+                    aoFechar={() => setConvidando(false)}
+                />
+            )}
             {acao?.tipo === 'papel' && (
                 <JanelaPapel pessoa={acao.pessoa} papeis={internos} aoFechar={() => setAcao(null)} />
             )}

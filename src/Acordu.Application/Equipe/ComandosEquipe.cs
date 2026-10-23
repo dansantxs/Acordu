@@ -60,13 +60,16 @@ public sealed class ComandosEquipe
 
     /// <summary>
     /// Convida com um papel INTERNO (reconvidar revoga o pendente anterior). Papel de cliente ou e-mail que já tem
-    /// vínculo neste tenant → 422.
+    /// vínculo neste tenant → 422; convidar como Dono sem <c>papel.gerenciar</c> → 403.
     /// </summary>
     public async Task<Guid> ConvidarAsync(ConviteEquipeRequest dados, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(dados);
         _contexto.Exigir(Permissoes.UsuarioConvidar);
         var papel = await PapelAsync(dados.PapelId, cancellationToken);
+        // Dar o papel Dono pelo convite é dar todas as permissões: exige também papel.gerenciar (decidido em 23/10).
+        if (papel.EhDono)
+            _contexto.Exigir(Permissoes.PapelGerenciar);
         var agora = _relogio.Agora;
         var convite = ConviteEquipe.Criar(Guid.CreateVersion7(), dados.Email, papel, _contexto.Usuario(), agora);
         if (await _vinculos.EmailJaVinculadoAsync(convite.Email, cancellationToken))
