@@ -53,9 +53,14 @@ export function CascaPortal({ eu, link = false, children }: { eu: PortalEu; link
                     <SeletorTema />
                     {!link && (
                         <nav aria-label="Portal" className="flex w-full gap-1">
-                            <Link to="/portal" activeOptions={{ exact: false }} className={estiloLink}>
+                            <Link to="/portal" activeOptions={{ exact: true }} className={estiloLink}>
                                 Solicitações
                             </Link>
+                            {eu.veContratos && (
+                                <Link to="/portal/contratos" className={estiloLink}>
+                                    Contratos
+                                </Link>
+                            )}
                         </nav>
                     )}
                 </div>
