@@ -39,7 +39,7 @@ export function TelaHoje({ perfil }: { perfil: Perfil }) {
                 <div className="flex flex-col gap-6">
                     {verTarefas && <MinhaSemana perfil={perfil} />}
                     <ApontadoHoje perfil={perfil} />
-                    <Novidades fuso={fuso} />
+                    <Avisos fuso={fuso} />
                 </div>
             </div>
         </Pagina>
@@ -333,12 +333,13 @@ function ApontadoHoje({ perfil }: { perfil: Perfil }) {
     )
 }
 
-function Novidades({ fuso }: { fuso: string }) {
+/** Os avisos recentes do sino (chamava "Novidades" até o M4, que deu esse nome às notas de versão). */
+function Avisos({ fuso }: { fuso: string }) {
     const roteador = useRouter()
     const consulta = useQuery(consultaSino)
     const itens = (consulta.data?.itens ?? []).slice(0, 5)
     return (
-        <Bloco id="hoje-novidades" titulo="Novidades">
+        <Bloco id="hoje-avisos" titulo="Avisos">
             {itens.length === 0 ? (
                 <Estado consulta={consulta} vazio="Nenhum aviso recente." />
             ) : (

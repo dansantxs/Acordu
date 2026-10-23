@@ -22,6 +22,7 @@ export type CaminhoNavegacao =
     | '/panorama'
     | '/horas'
     | '/configuracoes'
+    | '/novidades'
     | '/ajuda'
 
 export const NAVEGACAO: ItemNavegacao[] = [
@@ -51,6 +52,7 @@ export const NAVEGACAO: ItemNavegacao[] = [
             'auditoria.ver',
         ],
     },
+    { rotulo: 'Novidades', para: '/novidades', permissoes: [] },
     { rotulo: 'Ajuda', para: '/ajuda', permissoes: [] },
 ]
 

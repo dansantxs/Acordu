@@ -120,6 +120,18 @@ export const SECOES_AJUDA: SecaoAjuda[] = [
         ],
     },
     {
+        id: 'novidades',
+        titulo: 'Novidades',
+        grupo: 'comecar',
+        permissoes: [],
+        tela: '/novidades',
+        resumo: 'O que muda no Acordu a cada atualização, explicado para quem usa.',
+        dicas: [
+            'Um ponto ao lado de "Novidades", na barra lateral, avisa quando há algo que você ainda não viu. Abrir a tela apaga o ponto.',
+            'O "já vi" fica guardado neste navegador: em outro computador, o ponto aparece de novo.',
+        ],
+    },
+    {
         id: 'hoje',
         titulo: 'Hoje',
         grupo: 'telas',
@@ -131,6 +143,7 @@ export const SECOES_AJUDA: SecaoAjuda[] = [
             '"Tarefas de hoje" junta as que estão em andamento, as planejadas para hoje e as atrasadas.',
             '"Esperando resposta" lembra o que está parado com o cliente ou com terceiros.',
             '"Sua semana" compara as horas planejadas com a sua capacidade, dia a dia.',
+            '"Avisos" repete os últimos avisos do sino.',
         ],
         imagens: [
             {

@@ -25,8 +25,8 @@ describe('casca do app', () => {
         const capa = await screen.findByRole('navigation', { name: 'Principal' })
         const links = within(capa)
             .getAllByRole('link')
-            .map((l) => l.textContent)
-        expect(links).toEqual(['Hoje', 'Agenda', 'Solicitações', 'Tarefas', 'Horas', 'Ajuda'])
+            .map((l) => l.textContent?.replace(', há novidades', ''))
+        expect(links).toEqual(['Hoje', 'Agenda', 'Solicitações', 'Tarefas', 'Horas', 'Novidades', 'Ajuda'])
     })
 
     it('marca o destino atual', async () => {
