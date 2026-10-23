@@ -98,6 +98,11 @@ test('captura as telas do manual', async ({ browser, context }) => {
     mkdirSync(PASTA, { recursive: true })
     const demo = await criarDemonstracao()
 
+    // Cartão de primeiros passos dispensado: as fotos mostram o Hoje do dia a dia.
+    await context.addInitScript(
+        (t) => localStorage.setItem(`acordu.primeiros-passos.${t}`, 'dispensado'),
+        demo.tenantId,
+    )
     const equipe = await entrar(context, demo.email, demo.senha, /, Marina$/)
     // O portal em outro contexto: cada um com o seu cookie de sessão.
     const portal = await entrar(
