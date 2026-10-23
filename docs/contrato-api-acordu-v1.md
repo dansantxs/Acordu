@@ -97,7 +97,7 @@ Superfície de equipe (`/usuarios`, `/convites`, `/papeis`), com o aceite do con
 
 Regras:
 - **Sempre ≥ 1 Dono:** rebaixar ou remover o último vínculo com o papel padrão Dono → `422`. Papel customizado com todas as permissões não conta como Dono.
-- Convite: papel do tipo CLIENTE → `422`; e-mail que já tem vínculo no tenant (equipe ou contato) → `422`; reconvidar o mesmo e-mail revoga o pendente anterior. Token como o do portal (gerado no envio, só o hash no banco, 7 dias).
+- Convite: convidar como Dono exige também `papel.gerenciar` (senão `403`; decidido em 23/10); papel do tipo CLIENTE → `422`; e-mail que já tem vínculo no tenant (equipe ou contato) → `422`; reconvidar o mesmo e-mail revoga o pendente anterior. Token como o do portal (gerado no envio, só o hash no banco, 7 dias).
 - Aceite: em vez de `POST /convites/{id}/aceite`, segue o padrão do portal: só o token, no corpo, em `/auth` (o Id na URL vaza em log e histórico). Conta nova exige `nome` e nasce com e-mail confirmado; conta existente exige a senha dela (`400` em `senha`, conta para o bloqueio). Token inválido, expirado, revogado ou usado → `401`.
 - Pessoa que não é da equipe deste tenant (inexistente, de outro tenant ou contato de cliente) → `404`.
 
