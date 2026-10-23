@@ -19,6 +19,7 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "e2e": "playwright test",
+    "ajuda:capturas": "playwright test --config playwright.ajuda.config.ts",
     "api:tipos": "openapi-typescript ../../openapi/interno.json -o src/shared/api/interno.d.ts && openapi-typescript ../../openapi/portal.json -o src/shared/api/portal.d.ts && prettier --write src/shared/api/*.d.ts"
   },
   "dependencies": {

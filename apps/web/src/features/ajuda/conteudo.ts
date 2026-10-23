@@ -1,4 +1,5 @@
 import type { CaminhoNavegacao } from '@/features/casca/navegacao'
+import type { CapturaAjuda } from './capturas'
 
 /**
  * Conteúdo do manual (marco do manual, decisão 2): texto no código, versionado junto com as telas. Quem muda uma tela
@@ -14,6 +15,8 @@ export interface SecaoAjuda {
     resumo: string
     passos?: string[]
     dicas?: string[]
+    /** Capturas da tela com a empresa de demonstração (geradas pelo bot; ver `capturas.ts`). */
+    imagens?: { captura: CapturaAjuda; legenda: string }[]
 }
 
 export interface PassoInicial {
@@ -129,6 +132,12 @@ export const SECOES_AJUDA: SecaoAjuda[] = [
             '"Esperando resposta" lembra o que está parado com o cliente ou com terceiros.',
             '"Sua semana" compara as horas planejadas com a sua capacidade, dia a dia.',
         ],
+        imagens: [
+            {
+                captura: 'hoje',
+                legenda: 'O Hoje de quem atende: solicitações com você, tarefas do dia, a semana e as horas apontadas.',
+            },
+        ],
     },
     {
         id: 'agenda',
@@ -146,6 +155,10 @@ export const SECOES_AJUDA: SecaoAjuda[] = [
         dicas: [
             'Solicitações seguem o prazo do SLA e recorrências seguem a regra: aparecem, mas não se arrastam.',
             'O que cai no sábado ou domingo aparece na sexta.',
+        ],
+        imagens: [
+            { captura: 'agenda', legenda: 'Linha do tempo com uma faixa por pessoa nas duas semanas úteis.' },
+            { captura: 'agenda-plano', legenda: 'Plano da semana: uma coluna por pessoa, uma linha por dia.' },
         ],
     },
     {
@@ -167,6 +180,10 @@ export const SECOES_AJUDA: SecaoAjuda[] = [
             '"Semelhantes" mostra solicitações já resolvidas parecidas, para reaproveitar a solução.',
             'Para quem não tem conta no portal, "Link do portal" manda um acesso sem senha só àquela solicitação.',
         ],
+        imagens: [
+            { captura: 'solicitacoes', legenda: 'A fila com o prazo de SLA de cada solicitação.' },
+            { captura: 'solicitacao', legenda: 'O painel de uma solicitação, com a conversa e os dados ao lado.' },
+        ],
     },
     {
         id: 'tarefas',
@@ -185,6 +202,7 @@ export const SECOES_AJUDA: SecaoAjuda[] = [
             'Marque "O cliente vê esta tarefa" para ela aparecer como etapa no portal.',
             'Duração aceita "1h30", "1:30" ou "90" (minutos).',
         ],
+        imagens: [{ captura: 'tarefas-quadro', legenda: 'O quadro de tarefas: arraste o cartão para mudar o status.' }],
     },
     {
         id: 'horas',
@@ -202,6 +220,7 @@ export const SECOES_AJUDA: SecaoAjuda[] = [
             'As horas faturáveis consomem do contrato da solicitação (ou da tarefa) e aparecem no extrato do cliente.',
             'Mês fechado não aceita apontamentos novos nem edição.',
         ],
+        imagens: [{ captura: 'horas', legenda: 'A semana de apontamentos, agrupada por dia.' }],
     },
     {
         id: 'clientes',
@@ -218,6 +237,9 @@ export const SECOES_AJUDA: SecaoAjuda[] = [
         dicas: [
             'Inativar um cliente tira o acesso de todos os contatos ao portal; reativar não devolve: é preciso convidar de novo.',
             '"Arquivos" junta os anexos de todas as conversas e comentários do cliente.',
+        ],
+        imagens: [
+            { captura: 'cliente', legenda: 'A ficha de um cliente, com a régua do contrato e o que está em aberto.' },
         ],
     },
     {
@@ -237,6 +259,7 @@ export const SECOES_AJUDA: SecaoAjuda[] = [
             '"Ajustar saldo" registra horas extras compradas, cortesias ou correções, com motivo.',
             'Suspender pausa o contrato; encerrar é definitivo.',
         ],
+        imagens: [{ captura: 'contrato', legenda: 'A página de um contrato de banco de horas, com o consumo do mês.' }],
     },
     {
         id: 'projetos',
@@ -250,6 +273,7 @@ export const SECOES_AJUDA: SecaoAjuda[] = [
             'No painel, acompanhe o progresso (tarefas concluídas e horas apontadas contra a estimativa) e crie as tarefas do projeto.',
             'Conclua ou cancele quando acabar.',
         ],
+        imagens: [{ captura: 'projetos', legenda: 'Os projetos com status, prazo e estimativa.' }],
     },
     {
         id: 'recorrencias',
@@ -265,6 +289,7 @@ export const SECOES_AJUDA: SecaoAjuda[] = [
             'Pause para dar um tempo; encerre quando não fizer mais sentido.',
         ],
         dicas: ['Dia 31 em mês mais curto vira o último dia do mês.'],
+        imagens: [{ captura: 'recorrencias', legenda: 'As recorrências com a regra e a próxima data.' }],
     },
     {
         id: 'panorama',
@@ -276,6 +301,12 @@ export const SECOES_AJUDA: SecaoAjuda[] = [
         passos: [
             'Escolha o período: este mês, o mês passado ou um intervalo.',
             'Cada número leva à lista correspondente (por exemplo, "Sem responsável" abre a fila filtrada).',
+        ],
+        imagens: [
+            {
+                captura: 'panorama',
+                legenda: 'O Panorama do mês: fila, SLA, horas por cliente e consumo dos contratos.',
+            },
         ],
     },
     {
@@ -301,6 +332,7 @@ export const SECOES_AJUDA: SecaoAjuda[] = [
             'Auditoria: quem fez o quê, com filtros e o histórico de cada item.',
         ],
         dicas: ['Mudar o calendário vale para as solicitações novas; as abertas mantêm o prazo que tinham.'],
+        imagens: [{ captura: 'configuracoes', legenda: 'Configurações da empresa, com o menu das seções ao lado.' }],
     },
     {
         id: 'conta',
