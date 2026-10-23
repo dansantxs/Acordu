@@ -140,3 +140,26 @@ export async function abrirNoPortal(
     // O openapi-fetch manda FormData como está e deixa o navegador pôr o boundary.
     return (await portal().POST('/api/v1/portal/solicitacoes', { body: formulario as never })).data!
 }
+
+export type ContratoPortal = components['schemas']['ContratoPortalDto']
+export type ExtratoPortal = components['schemas']['ExtratoPortalDto']
+
+/** Contratos ativos vigentes do cliente (só com `veContratos`; escopo "só as próprias" recebe 403). */
+export const consultaContratosPortal = queryOptions({
+    queryKey: ['portal', 'contratos'],
+    queryFn: async () => (await portal().GET('/api/v1/portal/contratos')).data!,
+})
+
+/** Extrato do mês (`YYYY-MM`): o consumo faturável e as linhas visíveis (contrato §12). */
+export function consultaExtratoPortal(id: string, periodo: string) {
+    return queryOptions({
+        queryKey: ['portal', 'extrato', id, periodo],
+        queryFn: async () =>
+            (
+                await portal().GET('/api/v1/portal/contratos/{id}/extrato', {
+                    params: { path: { id }, query: { periodo } },
+                })
+            ).data!,
+        placeholderData: keepPreviousData,
+    })
+}
