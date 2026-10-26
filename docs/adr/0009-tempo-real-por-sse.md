@@ -1,6 +1,6 @@
 # ADR 0009 — Tempo real por SSE com sinais de mudança
 
-- **Status:** Aceito
+- **Status:** Aceito; emendado em 26/10/2026 pelo ADR 0010 (polling no nível 0).
 - **Data:** 14/10/2026
 - **Contexto do projeto:** Acordu (v1)
 - **Atende:** RF-COL-04 (atualização em tempo real da agenda e do quadro).
@@ -20,7 +20,7 @@ Opções avaliadas:
 
 ## Decisão
 
-1. **SSE em `GET /api/v1/eventos`, lido com `fetch`** (c). É unidirecional, que é o que basta, e passa pelo Caddy sem configuração especial além de não armazenar a resposta. Autenticação igual à das outras rotas e só para a equipe (o portal não recebe).
+1. **SSE em `GET /api/v1/eventos`, lido com `fetch`** (c). É unidirecional, que é o que basta, e passa por proxies sem configuração especial além de não armazenar nem comprimir a resposta. Autenticação igual à das outras rotas e só para a equipe (o portal não recebe).
 2. **Só sinais de "mudou":** `event: mudanca`, `data: { tipo, id }`, com tipo `solicitacao`, `tarefa`, `projeto`, `recorrencia`, `contrato` ou `cliente`. O front invalida e busca de novo pela API, que já aplica permissões e filtros. Nenhum dado de negócio passa pelo canal, e a regra de quem vê o quê continua num lugar só.
 3. **Sinais tirados do change tracker** na `UnitOfWork`: toda raiz incluída, alterada ou excluída que aparece numa tela. Interação e comentário sinalizam o item onde aparecem; apontamento, a tarefa. Os sinais saem **depois do commit**. Eventos de domínio não bastariam, porque editar o prazo ou arrastar o dia planejado não gera evento.
 4. **Difusor em memória** (`DifusorSinais`, singleton): um canal limitado por conexão (256), que descarta o mais antigo quando enche. Uma conexão lenta perde sinal, mas nunca atrasa quem grava.
@@ -28,7 +28,16 @@ Opções avaliadas:
 
 ## Consequências
 
-- Com **uma instância** da API (VM única, ADR 0006), tudo funciona sem infraestrutura nova. Com mais de uma, troca-se o difusor por LISTEN/NOTIFY do PostgreSQL, que já está na stack, mantendo a mesma interface e o mesmo formato de sinal.
+- Com **uma instância** da API, tudo funciona sem infraestrutura nova. Com mais de uma, troca-se o difusor por LISTEN/NOTIFY do PostgreSQL, que já está na stack, mantendo a mesma interface e o mesmo formato de sinal.
 - **Gravações fora da `UnitOfWork` não sinalizam:** sino, seguidores, preferências e o SQL dos jobs. O sino continua por consulta; se precisar, entra um sinal por pessoa depois.
 - **Perder um sinal é tolerável:** o TanStack Query revalida ao focar a janela e o `If-Match` segue protegendo contra sobrescrita.
-- **No Caddy, a rota `/api/v1/eventos` fica fora do `encode`** e usa `flush_interval -1` (deploy §2.1).
+- **No proxy, a rota `/api/v1/eventos` fica sem compressão e sem buffer.**
+
+## Emenda (26/10/2026) — polling no nível 0
+
+No Cloud Run (ADR 0010), a instância é cobrada enquanto uma requisição está aberta. Uma conexão SSE por pessoa com a Agenda aberta esgota em dias a cota gratuita de CPU.
+
+- **Nível 0:** `TempoReal__Sse=false` desliga a rota (404). O SPA, com `VITE_TEMPO_REAL=polling`, revalida as consultas da Agenda e do Quadro a cada 30 s, só com a aba visível, além da revalidação ao focar a janela.
+- **Nível 1 em diante** (`min-instances=1` com cobrança por instância, ou VM): `TempoReal__Sse=true` e `VITE_TEMPO_REAL=sse`, e esta decisão vale como escrita.
+- O código do SSE (difusor, endpoint e leitor do front) continua no repositório e nos testes.
+- Mais de uma instância continua exigindo LISTEN/NOTIFY no lugar do difusor em memória.

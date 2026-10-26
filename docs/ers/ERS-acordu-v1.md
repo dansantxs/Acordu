@@ -4,7 +4,7 @@
 | | |
 |---|---|
 | **Versão** | 0.1 (rascunho para revisão) |
-| **Data** | 06/10/2026 |
+| **Data** | 26/10/2026 |
 | **Produto** | Acordu |
 | **Norma de referência** | ABNT NBR ISO/IEC/IEEE 29148:2018 (estrutura de SRS), forma condensada |
 | **Documento de origem** | `estrategia-produto-acordu.md` (visão, público, posicionamento) |
@@ -38,7 +38,7 @@ Aplicação web (SPA) apoiada por uma API REST, **multi-tenant** desde o início
 | **Leitor** | Estagiário, sócio passivo | Somente leitura interna. |
 | **Contato do cliente** (papel Cliente) | Pessoa da empresa atendida | Apenas o portal, restrito ao **seu** cliente. |
 
-**1.3.4 Limitações.** VM Oracle Cloud Always Free (ARM, 2 OCPU / 12 GB), compartilhada com outros produtos (ADR 0006; plano de escala e plano B no mesmo ADR). Disponibilidade *best-effort* no v1.
+**1.3.4 Limitações.** Planos gratuitos de serviços gerenciados (Cloud Run, Neon, Cloudflare; ADR 0010, com plano de escala). Cold start depois de ociosidade, atualização da agenda e do quadro por consulta a cada 30 s no nível 0 e alertas de SLA com até 15 min de atraso. Disponibilidade *best-effort* no v1.
 
 ### 1.4 Definições
 Ver Apêndice B.
@@ -100,8 +100,8 @@ Convenções: **RF** = requisito funcional, **RNF** = não funcional. Verificaç
 
 ### 3.1 Interfaces externas
 - **Usuário:** SPA responsiva; o **portal do cliente** é uma área da mesma SPA com layout e rotas próprias (`/portal`), otimizada para celular.
-- **Software:** API REST autenticada (JSON); e-mail transacional (Resend); armazenamento de anexos em objeto (S3-compatível — OCI Object Storage).
-- **Dados:** PostgreSQL (banco próprio do Acordu, na instância compartilhada da VM).
+- **Software:** API REST autenticada (JSON); e-mail transacional (Resend); armazenamento de anexos em objeto (S3-compatível — Cloudflare R2).
+- **Dados:** PostgreSQL 17 gerenciado (Neon), banco próprio do Acordu.
 - **Localização:** pt-BR, fuso configurável por tenant (padrão `America/Sao_Paulo`), formatos brasileiros.
 
 ### 3.2 Requisitos funcionais
@@ -253,7 +253,7 @@ Convenções: **RF** = requisito funcional, **RNF** = não funcional. Verificaç
 | RNF-SEG-06 | Link de acesso do portal: token aleatório ≥ 128 bits, armazenado como hash, expiração (padrão 30 dias), revogável, escopo de uma solicitação. | T |
 | RNF-SEG-07 | Anexos: tamanho máximo (padrão 20 MB), lista de tipos permitidos, download só via URL assinada de curta duração após checagem de permissão. | T |
 | RNF-SEG-08 | Rate limiting no login, no portal e no envio de formulários públicos. | T |
-| RNF-SEG-09 | Headers de segurança e HTTPS obrigatório (Caddy). | I |
+| RNF-SEG-09 | Headers de segurança e HTTPS obrigatório (Cloudflare na borda; ADR 0010). | I |
 
 **Auditoria**
 | ID | Requisito | Verif. |
@@ -277,7 +277,7 @@ Convenções: **RF** = requisito funcional, **RNF** = não funcional. Verificaç
 **Portabilidade, disponibilidade e localização**
 | ID | Requisito | Verif. |
 |---|---|---|
-| RNF-POR-01 | Stack vendor-neutra (Docker Compose + PostgreSQL 17 + armazenamento S3-compatível); imagens ARM64; nenhum SDK de provedor no código, configuração só por variável de ambiente; migrations aditivas. | I |
+| RNF-POR-01 | Stack vendor-neutra (API em container OCI padrão + PostgreSQL 17 + armazenamento S3-compatível); nenhum SDK de provedor no código, configuração só por variável de ambiente; migrations aditivas. | I |
 | RNF-DIS-01 | Backup diário do banco e dos anexos para armazenamento de objetos; restore testado. | D |
 | RNF-LOC-01 | Datas persistidas em UTC; exibição e cálculo de SLA no fuso do tenant. | T |
 
@@ -508,13 +508,13 @@ Observações de modelagem:
 ### 3.5 Restrições de projeto
 - Runtime **.NET 10**; **EF Core + Npgsql**; **PostgreSQL 17** (extensões `pg_trgm` e `unaccent` para RF-CON-02).
 - Frontend **React + Vite (TS)**; tipos gerados do OpenAPI.
-- **Docker Compose + Caddy** na VM compartilhada com outros produtos; banco separado; Caddy roteia por domínio.
-- Agendador (recorrências, fechamento automático, alertas de SLA) roda como **endpoints internos idempotentes** (`/internal/jobs/*`, com token), disparados por timer na VM (ADR 0006).
-- CI/CD: GitHub Actions (build ARM64) → GHCR → VPS.
+- API em container no **Cloud Run**, SPA no **Cloudflare Pages** (`acordu.app.br`), API em `api.acordu.app.br` por um Worker; nenhum SDK de provedor no código (ADR 0010).
+- Agendador (recorrências, fechamento automático, alertas de SLA) roda como **endpoints internos idempotentes** (`/internal/jobs/*`, com token), disparados pelo Cloud Scheduler (ADR 0010).
+- CI/CD: GitHub Actions (imagem amd64) → Artifact Registry → Cloud Run, por Workload Identity Federation.
 - Convenções de código, commit e estrutura em `docs/`, prefixo `Acordu.*`.
 
 ### 3.6 Atributos de qualidade
-Prioridade decrescente no v1: **isolamento (tenant e cliente)**, **corretude do tempo e do SLA** (horas apontadas e prazos são a base da cobrança e da confiança), **simplicidade de uso** (implantação em uma tarde), **privacidade (LGPD)**, **desempenho** no envelope compartilhado.
+Prioridade decrescente no v1: **isolamento (tenant e cliente)**, **corretude do tempo e do SLA** (horas apontadas e prazos são a base da cobrança e da confiança), **simplicidade de uso** (implantação em uma tarde), **privacidade (LGPD)**, **desempenho** dentro dos planos gratuitos.
 
 ---
 
@@ -524,25 +524,26 @@ Prioridade decrescente no v1: **isolamento (tenant e cliente)**, **corretude do 
 @startuml
 actor "Equipe do prestador" as eq
 actor "Contato do cliente" as ct
-cloud "OCI Object Storage\n(anexos + backups)" as oss
+cloud "Cloudflare" {
+  component "Pages\nacordu.app.br (SPA)" as spa
+  component "Worker\napi.acordu.app.br" as borda
+  database "R2\n(anexos + backups)" as r2
+}
+cloud "Google Cloud · us-east4" {
+  component "Cloud Run\nAcordu API .NET 10\n+ /internal/jobs" as api
+  component "Cloud Scheduler" as sched
+}
+database "Neon · Postgres 17\naws-us-east-1" as pg
 cloud "Resend" as mail
 
-node "VPS Oracle Always Free · ARM · 2 OCPU / 12 GB" {
-  node "Docker Compose" {
-    component "Caddy de borda\n(roteia por domínio)" as caddy
-    component "Acordu API .NET 10\n+ /internal/jobs (timer na VM)" as api
-    component "Outros produtos" as outros
-    database "PostgreSQL 17\num banco por produto" as pg
-  }
-}
-
-eq --> caddy : HTTPS
-ct --> caddy : HTTPS (/portal)
-caddy --> api : /api
-caddy --> outros
-api --> pg
-outros --> pg
-api --> oss : anexos (URL assinada)
+eq --> spa : HTTPS
+ct --> spa : HTTPS (/portal)
+eq --> borda : HTTPS /api
+ct --> borda : HTTPS /api
+borda --> api : X-Origem-Token
+sched --> borda : /internal/jobs
+api --> pg : endpoint pooled
+api --> r2 : anexos (URL assinada)
 api --> mail : notificações
 @enduml
 ```
@@ -608,8 +609,8 @@ Cada requisito com verificação **T** tem ao menos um teste automatizado associ
 
 ## Apêndice A — Premissas e dependências
 - **Verticais de entrada ainda não escolhidas.** Cenários de referência desta versão: **agência** (projetos + solicitações de ajuste, contrato mensal) e **escritório de contabilidade** (tarefas recorrentes mensais + dúvidas de clientes). Revisar os requisitos quando a validação escolher as verticais.
-- Infra compartilhada com outros produtos; se o consumo de um afetar o Acordu, reavaliar a separação (ADR 0006).
-- Resend como provedor de e-mail (substituível); anexos em OCI Object Storage via API S3-compatível.
+- Planos gratuitos do Cloud Run, Neon e Cloudflare vigentes; ao se aproximar dos limites, subir de nível (ADR 0010).
+- Resend como provedor de e-mail (substituível); anexos no Cloudflare R2 via API S3-compatível.
 - Nada do ASMTasks é reaproveitado (ver `estrategia-produto-acordu.md` §1).
 
 ## Apêndice B — Definições

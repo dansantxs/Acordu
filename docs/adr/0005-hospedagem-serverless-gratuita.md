@@ -1,6 +1,7 @@
 # ADR 0005 — Hospedagem serverless gratuita (Cloud Run + Neon + Cloudflare Pages), com plano de escala
 
 - **Status:** Revogada em 06/10/2026 — conta Oracle recuperada; mantida como plano B. Substituída pelo [ADR 0006](0006-retorno-oracle-always-free.md).
+- **Retomada em 26/10/2026**, com ajustes, pelo [ADR 0010](0010-hospedagem-serverless-produto-unico.md), que é autocontido. Este ADR fica só como histórico.
 - **Data:** 05/10/2026
 - **Contexto do projeto:** Acordu (v1)
 - **Substitui (níveis 0–2):** a hospedagem self-hosted do ADR 0001 e as adaptações de infraestrutura compartilhada (mesma VM, mesmo Postgres, Caddy de borda, OCI Object Storage). O modelo compartilhado volta no **nível 3**.

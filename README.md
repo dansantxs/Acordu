@@ -32,7 +32,7 @@ Construído desde o início como **multi-tenant**.
 | Área | Estado |
 |---|---|
 | Planejamento (ERS, modelo, API, read side, ADRs, segurança) | ✅ concluído |
-| Infraestrutura (VM compartilhada) | ⏳ passos próprios do Acordu pendentes |
+| Infraestrutura (Cloud Run + Neon + Cloudflare) | ⏳ a provisionar (ADR 0010) |
 | Código do v1 | ⏳ a iniciar |
 | CI/CD e deploy | ⏳ planejado |
 
@@ -57,11 +57,10 @@ Construído desde o início como **multi-tenant**.
 | ORM | EF Core + Npgsql |
 | Banco | PostgreSQL 17 (`pg_trgm`, `unaccent`) |
 | Frontend | React + Vite (TypeScript, SPA com app interno e portal) |
-| Arquivos | Object storage S3-compatível (OCI) |
+| Arquivos | Object storage S3-compatível (Cloudflare R2) |
 | E-mail | Resend |
-| Infra | Docker Compose + Caddy |
-| Hospedagem | Oracle Cloud Always Free (Ampere ARM, `us-phoenix-1`), VM compartilhada com outros produtos — ADR 0006 |
-| CI/CD | GitHub Actions → GHCR → VM |
+| Hospedagem | API no Google Cloud Run (`us-east4`), Postgres no Neon (`aws-us-east-1`), SPA no Cloudflare Pages, borda da API num Cloudflare Worker — ADR 0010 |
+| CI/CD | GitHub Actions → Artifact Registry → Cloud Run (WIF); SPA e Worker por `wrangler` |
 
 ---
 
@@ -101,8 +100,8 @@ acordu/
 │  └─ Acordu.Worker/          # (adiado) — jobs são endpoints internos da Api
 ├─ apps/web/              # SPA: features/ (interno) e portal/
 ├─ tests/                 # unit, integração, funcional e arquitetura
-├─ docker/                # Dockerfiles + bloco de site do Caddy
-├─ docker-compose.yml     # prod: acordu-api + acordu-web na rede infra_net
+├─ docker/                # Dockerfile da API (linux/amd64)
+├─ infra/cloudflare/      # Worker da borda da API (api.acordu.app.br)
 ├─ docker-compose.dev.yml # Postgres 17 local
 ├─ Acordu.sln
 └─ README.md
@@ -127,16 +126,19 @@ acordu/
 | `docs/adr/0002-portal-escopo-por-cliente.md` | Portal: contato como usuário com escopo por cliente. |
 | `docs/adr/0003-sla-horas-uteis.md` | SLA em horas úteis, calendário por tenant, pausa. |
 | `docs/adr/0004-tempo-em-minutos-e-consumo-read-model.md` | `Duracao` em minutos; consumo como read model. |
-| `docs/adr/0005-hospedagem-serverless-gratuita.md` | Serverless (Cloud Run + Neon + Cloudflare Pages) — **revogado**, plano B. |
-| `docs/adr/0006-retorno-oracle-always-free.md` | VM Oracle compartilhada, plano de escala (Magalu Cloud SP) e regras de portabilidade. |
+| `docs/adr/0005-hospedagem-serverless-gratuita.md` | Serverless (primeira versão) — histórico, retomado pelo ADR 0010. |
+| `docs/adr/0006-retorno-oracle-always-free.md` | VM Oracle compartilhada — **revogado** em 26/10/2026. |
 | `docs/adr/0007-transporte-da-sessao.md` | Access token em memória (`Bearer`); refresh só em cookie HttpOnly, com rotação. |
+| `docs/adr/0008-trilha-de-auditoria.md` | Trilha de auditoria na unidade de trabalho, retenção de 12 meses. |
+| `docs/adr/0009-tempo-real-por-sse.md` | Tempo real por SSE com sinais de mudança; polling no nível 0. |
+| `docs/adr/0010-hospedagem-serverless-produto-unico.md` | Hospedagem atual: Cloud Run + Neon + Cloudflare (Pages, Worker, R2), jobs no Scheduler, plano de escala. |
 | `docs/estrategia-produto-acordu.md` | Visão, mercado, posicionamento, fases e monetização. |
 | `docs/modelo-de-dominio-acordu.md` | Agregados, máquinas de estado, VOs, serviços, eventos. |
 | `docs/contrato-api-acordu-v1.md` | Endpoints internos e do portal, formatos, erros. |
 | `docs/read-side-acordu-v1.md` | Consumo, extrato, SLA, dashboard, semelhantes, índices. |
 | `docs/seguranca-modelo-acesso-acordu-v1.md` | Identidade, RBAC, escopo do portal, links, anexos, auditoria. |
-| `docs/deploy-ci-acordu-v1.md` | CI/CD e deploy na VM compartilhada. |
-| `docs/setup-infra-oracle-acordu.md` | Runbook na Oracle Cloud (o que é próprio do Acordu). |
+| `docs/deploy-ci-acordu-v1.md` | CI/CD, deploy, jobs e backup. |
+| `docs/setup-infra-acordu.md` | Runbook de provisionamento (Google Cloud, Neon, Cloudflare, Resend). |
 | `docs/estrutura-repositorio-acordu.md` | Estrutura do repositório e ordem de criação. |
 | `docs/convencoes-codigo-acordu.md` | Convenções técnicas de código. |
 | `docs/convencoes-commit-acordu.md` | Conventional Commits e escopos. |
@@ -193,7 +195,7 @@ Obrigatórios: isolamento **entre tenants** e **entre clientes** do mesmo tenant
 
 ## Deploy
 
-Imagens **ARM64** no GitHub Actions → **GHCR** → `docker compose pull && up -d` na VM, com migrations como etapa explícita. Caddy e PostgreSQL 17 ficam numa stack de infraestrutura compartilhada (`/opt/infra`, rede `infra_net`); o Acordu é inquilino em `/opt/acordu`. Jobs agendados (recorrências, fechamento automático, alertas de SLA) são endpoints internos idempotentes (`/internal/jobs/*`, com token), disparados por timer na VM (ADR 0006). Ver `docs/adr/0006-retorno-oracle-always-free.md`, `docs/deploy-ci-acordu-v1.md` e `docs/setup-infra-oracle-acordu.md`.
+Imagem **amd64** no GitHub Actions → **Artifact Registry** → nova revisão no **Cloud Run**, autenticado por Workload Identity Federation, com migrations no endpoint direto do Neon antes da revisão. SPA no Cloudflare Pages e borda da API num Worker (`api.acordu.app.br`). Jobs agendados são endpoints internos idempotentes (`/internal/jobs/*`, com token), disparados pelo Cloud Scheduler: `tick` a cada 15 min no horário comercial e `diario` uma vez por dia. Backup diário com `pg_dump` pelo Actions para o R2. Ver `docs/adr/0010-hospedagem-serverless-produto-unico.md`, `docs/deploy-ci-acordu-v1.md` e `docs/setup-infra-acordu.md`.
 
 ---
 
