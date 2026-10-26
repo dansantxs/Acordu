@@ -20,7 +20,7 @@ Prestadores pequenos trabalham em horário comercial. Um prazo de "8 horas" aber
 
 4. **Pausa:** entrar em AGUARDANDO_CLIENTE congela o prazo de resolução (guarda os minutos úteis restantes); ao retomar, o prazo é recalculado a partir do instante da retomada. AGUARDANDO_TERCEIRO **não** pausa (é responsabilidade do prestador). O prazo de primeira resposta nunca pausa.
 
-5. **Situação:** NO_PRAZO, EM_RISCO (≥ 75% do tempo útil consumido) e VIOLADO, calculada sob demanda a partir do relógio persistido. Alertas de risco/violação saem de um job que roda a cada poucos minutos e é idempotente (marca o alerta como enviado); ele é um endpoint interno (`/internal/jobs/*`) disparado por timer na VM (ADR 0006), não um HostedService.
+5. **Situação:** NO_PRAZO, EM_RISCO (≥ 75% do tempo útil consumido) e VIOLADO, calculada sob demanda a partir do relógio persistido. Alertas de risco/violação saem de um job que roda a cada poucos minutos e é idempotente (marca o alerta como enviado); ele é um endpoint interno (`/internal/jobs/tick`) disparado pelo Cloud Scheduler a cada 15 min no horário comercial (ADR 0010), não um HostedService. O alerta pode chegar até 15 min depois do limiar.
 
 6. **Reabertura:** novo ciclo de resolução com prazo cheio a partir da reabertura.
 

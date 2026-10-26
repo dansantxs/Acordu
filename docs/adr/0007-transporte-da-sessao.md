@@ -30,7 +30,7 @@ As ameaças que pesam:
 4. **Logout e troca de tenant** revogam o refresh atual; o logout apaga o cookie.
 5. **CSRF:** como só as rotas de `/api/v1/auth` recebem o cookie, todas são `POST` e o cookie é `SameSite=Strict`, não há token anti-CSRF no v1. As demais rotas usam `Bearer`, que o navegador não envia sozinho.
 6. **Sessão de link do portal** (RF-POR-08) não tem refresh nem cookie: só um access token de 60 min no corpo. Expirou, o contato usa o link de novo.
-7. **Pré-requisito de deploy:** SPA e API no **mesmo site** (`acordu.app.br`, a API em `/api` pelo Caddy), para o cookie ser first-party. Separar em domínios diferentes exige rever este ADR.
+7. **Pré-requisito de deploy:** SPA e API no **mesmo site**, para o cookie ser first-party. *(Emenda de 26/10/2026, ADR 0010:)* SPA em `acordu.app.br` e API em `api.acordu.app.br`. Como `app.br` é sufixo público, os dois são o mesmo site e o `SameSite=Strict` continua valendo. As origens são diferentes: CORS da API só para `https://acordu.app.br`, com credenciais, e o SPA usa `credentials: 'include'` nas rotas de autenticação. Colocar a API em outro domínio registrável exige rever este ADR.
 
 ## Consequências
 

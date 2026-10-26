@@ -1,6 +1,6 @@
 # ADR 0006 — Retorno à Oracle Always Free, com plano de escala
 
-- **Status:** Aceito
+- **Status:** Revogada em 26/10/2026 — conta Oracle desativada de vez. Substituída pelo [ADR 0010](0010-hospedagem-serverless-produto-unico.md).
 - **Data:** 06/10/2026
 - **Contexto do projeto:** Acordu (v1)
 - **Revoga:** [ADR 0005](0005-hospedagem-serverless-gratuita.md) (hospedagem serverless), que passa a ser o **plano B**.
@@ -84,3 +84,11 @@ Se a VM for perdida **e** não houver capacidade Ampere para recriá-la: executa
 - **Servidor para administrar** (SO, patches, Docker, backup). O runbook e o deploy automatizado reduzem, mas não eliminam, esse trabalho.
 - **Dados nos EUA no nível 0:** a transferência internacional (LGPD, art. 33) precisa constar na política de privacidade; cliente que exija dados no Brasil antecipa o nível 1.
 - **Dependência da conta Oracle:** a VM é ponto único de falha. Mitigação: backups fora da VM, MFA com recuperação e o plano B.
+
+## Revogação (26/10/2026)
+
+**Motivo:** a conta Oracle Cloud foi desativada de vez; uma nova só com CNPJ. A VM deixou de existir, e o Acordu passou a ser o único produto da Nebrys, sem infraestrutura compartilhada.
+
+**O que deixa de valer:** a VM, a stack `/opt/infra` (Caddy + Postgres), os nomes por função da infra compartilhada, o OCI Object Storage, o deploy por SSH com imagens ARM64 e o plano de escala deste ADR.
+
+**O que continua valendo (incorporado ao [ADR 0010](0010-hospedagem-serverless-produto-unico.md)):** as regras do §5 (sem SDK de provedor, configuração por variável de ambiente, migrations aditivas, Postgres 17 em todos os ambientes, backup diário com restore testado, MFA com recuperação) e os jobs como endpoints internos idempotentes.

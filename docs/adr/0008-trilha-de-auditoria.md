@@ -24,7 +24,7 @@ Os eventos não trazem quem agiu e não cobrem tudo (login e convites acontecem 
 4. **Login acontece antes do tenant:** sucesso fica no tenant da sessão emitida (o Dono vê); falha fica **sem tenant**, com o e-mail digitado, o motivo e o IP, invisível pelos filtros globais (só a operação, no banco).
 5. **Tabela fora do domínio** (`auditoria`, Infrastructure): só inclusão; filtros globais de tenant e de contexto Cliente (contato nunca lê).
 6. **Retenção de 12 meses**, por um job diário (`/internal/jobs/expurgo-auditoria`): a trilha guarda IP e e-mail, então fica só o tempo necessário (LGPD).
-7. **IP real atrás do Caddy:** `UseForwardedHeaders` confiando no último salto do `X-Forwarded-For` quando `Proxy__ConfiarEncaminhamento=true` (a API não tem porta exposta; só o Caddy a alcança). Corrige também o rate limit por IP.
+7. **IP real atrás do proxy:** `UseForwardedHeaders` quando `Proxy__ConfiarEncaminhamento=true`. Corrige também o rate limit por IP. *(Emenda de 26/10/2026, ADR 0010:)* na borda atual (Worker do Cloudflare → front do Google → Cloud Run), a API confia em dois saltos (`Proxy__Saltos=2`) e só quando o token de origem do Worker é exigido, para a URL `*.run.app` não aceitar IP forjado.
 
 ## Consequências
 
