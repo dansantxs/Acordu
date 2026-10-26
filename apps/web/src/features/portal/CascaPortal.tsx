@@ -4,6 +4,7 @@ import { Button, Menu, MenuItem, MenuTrigger, Popover } from 'react-aria-compone
 import { sair } from '@/shared/sessao/acoes'
 import { encerrarSessaoLink } from '@/shared/sessao/sessaoLink'
 import { SeletorTema } from '@/shared/tema/SeletorTema'
+import { aplicarCouro } from '@/shared/tema/tema'
 import { PontoNovidade } from '@/features/novidades/ListaNotas'
 import { useHaNovidade } from '@/features/novidades/vistas'
 import type { PortalEu } from './consultas'
@@ -17,6 +18,8 @@ const estiloLink =
  * (`link`), sem navegação: ela só alcança a solicitação do link.
  */
 export function CascaPortal({ eu, link = false, children }: { eu: PortalEu; link?: boolean; children: ReactNode }) {
+    // O portal fica sempre no Café, qualquer que seja o couro escolhido por alguém da equipe neste navegador.
+    useEffect(() => aplicarCouro(null), [])
     const haNovidade = useHaNovidade('cliente')
     return (
         <div className="min-h-screen bg-fundo text-tinta">

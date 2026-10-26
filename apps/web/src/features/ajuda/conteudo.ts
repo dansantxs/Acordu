@@ -137,7 +137,7 @@ export const SECOES_AJUDA: SecaoAjuda[] = [
             'Várias mudanças mostram um aviso com "Desfazer" por alguns segundos: trocar responsável, prioridade, mover no quadro, inativar categoria.',
             'Tudo que se arrasta também tem o menu "⋯ Mover para", para usar pelo teclado ou no celular.',
             'As telas se atualizam sozinhas quando alguém da equipe muda algo: não é preciso recarregar.',
-            'O tema claro ou escuro fica no menu com o seu nome, no pé da barra lateral.',
+            'O tema claro ou escuro e o couro (Café, Conhaque ou Bordô) ficam no menu com o seu nome, no pé da barra lateral. A escolha vale só para você, neste navegador.',
             'O botão "?" no topo de cada tela abre a explicação dela aqui.',
         ],
     },

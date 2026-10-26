@@ -5,15 +5,16 @@ import { Button, Header, Menu, MenuItem, MenuSection, MenuTrigger, Popover, Sepa
 import { avisarErro } from '@/shared/avisos/avisos'
 import { sair, trocarEmpresa } from '@/shared/sessao/acoes'
 import type { Perfil } from '@/shared/sessao/perfil'
-import { escolherTema, temaAtual, type Tema } from '@/shared/tema/tema'
+import { COUROS, couroAtual, escolherCouro, escolherTema, temaAtual, type Couro, type Tema } from '@/shared/tema/tema'
 
 const item =
     'flex cursor-default items-center justify-between gap-3 rounded-couro px-3 py-2 text-sm outline-none data-[focused]:bg-trilho data-[disabled]:text-suave'
 
-/** Pé da capa: quem está usando e em qual empresa; troca de empresa, Minha conta, tema e saída. */
+/** Pé da capa: quem está usando e em qual empresa; troca de empresa, Minha conta, tema, couro e saída. */
 export function MenuUsuario({ perfil }: { perfil: Perfil }) {
     const navegar = useNavigate()
     const [tema, setTema] = useState<Tema>(temaAtual)
+    const [couro, setCouro] = useState<Couro>(couroAtual)
     const troca = useMutation({ mutationFn: trocarEmpresa, onError: avisarErro })
     const outras = perfil.tenants.filter((t) => t.id !== perfil.tenant.id)
 
@@ -35,6 +36,8 @@ export function MenuUsuario({ perfil }: { perfil: Perfil }) {
                         if (chave === 'conta') void navegar({ to: '/conta' })
                         else if (chave === 'tema') setTema(escolherTema(tema === 'escuro' ? 'claro' : 'escuro'))
                         else if (chave === 'sair') void sair()
+                        else if (typeof chave === 'string' && chave.startsWith('couro:'))
+                            setCouro(escolherCouro(chave.slice(6) as Couro))
                         else if (typeof chave === 'string' && chave.startsWith('empresa:')) troca.mutate(chave.slice(8))
                     }}
                 >
@@ -60,6 +63,21 @@ export function MenuUsuario({ perfil }: { perfil: Perfil }) {
                     <MenuItem id="tema" className={item}>
                         {tema === 'escuro' ? 'Tema claro' : 'Tema escuro'}
                     </MenuItem>
+                    <Separator className="my-1 border-t border-linha" />
+                    <MenuSection>
+                        <Header className="px-3 pt-2 pb-1 text-xs font-semibold text-suave">Couro</Header>
+                        {COUROS.map((c) => (
+                            <MenuItem key={c.id} id={`couro:${c.id}`} textValue={`Couro ${c.nome}`} className={item}>
+                                <span>{c.nome}</span>
+                                {c.id === couro && (
+                                    <span aria-label="escolhido" className="text-xs text-acento-texto">
+                                        ✓
+                                    </span>
+                                )}
+                            </MenuItem>
+                        ))}
+                    </MenuSection>
+                    <Separator className="my-1 border-t border-linha" />
                     <MenuItem id="sair" className={item}>
                         Sair
                     </MenuItem>

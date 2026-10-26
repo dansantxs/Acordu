@@ -1,7 +1,8 @@
 import { Outlet } from '@tanstack/react-router'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Button, Dialog, Modal, ModalOverlay } from 'react-aria-components'
 import type { Perfil } from '@/shared/sessao/perfil'
+import { aplicarCouro, couroAtual } from '@/shared/tema/tema'
 import { useTempoReal } from '@/shared/tempoReal/useTempoReal'
 import { FaixaConexao } from '@/shared/ui/FaixaConexao'
 import { Icone } from '@/shared/ui/Icone'
@@ -17,6 +18,8 @@ export function Casca({ perfil }: { perfil: Perfil }) {
     const [paletaAberta, setPaletaAberta] = useAtalhoPaleta()
     const [gaveta, setGaveta] = useState(false)
     useTempoReal(perfil.tenant.id)
+    // O couro escolhido vale no app da equipe (o portal tira; ver CascaPortal).
+    useEffect(() => aplicarCouro(couroAtual()), [])
     const abrirBusca = () => {
         setGaveta(false)
         setPaletaAberta(true)

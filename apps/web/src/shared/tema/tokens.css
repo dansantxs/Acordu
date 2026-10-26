@@ -1,6 +1,7 @@
 /*
  * Tokens do Acordu: agenda física de couro (decidido em 14/10). O papel muda com o tema (claro/escuro); a capa (barra
- * lateral, acento) muda com o couro. Padrão: claro + Café. Conhaque e Bordô ficam prontos, sem seletor no v1.
+ * lateral, acento) muda com o couro. Padrão: claro + Café. Conhaque e Bordô: escolha de cada pessoa, só na equipe
+ * (menu com o nome, 23/10), cada um com a versão clara e a escura.
  * Os nomes seguem o protótipo; o Tailwind só os expõe como utilitários (@theme abaixo).
  */
 :root,
@@ -67,7 +68,7 @@
     color-scheme: dark;
 }
 
-/* Couros alternativos (sem seletor no v1). */
+/* Couros alternativos (escolha de cada pessoa na equipe; o portal fica no Café). */
 :root[data-couro='conhaque'] {
     --lateral: #6b3f22;
     --lateral-linha: #835234;
@@ -88,4 +89,29 @@
     --acento: #2f4f7f;
     --acento-suave: #e1e7f0;
     --acento-texto: #2a4670;
+}
+
+/* Versões escuras dos couros: capa mais funda, acento mais claro e fundos suaves escuros (contraste no papel escuro). */
+:root[data-tema='escuro'][data-couro='conhaque'] {
+    --lateral: #3a2213;
+    --lateral-linha: #4d2e1b;
+    --lateral-cartao: #2e1a0e;
+    --lateral-ativo: #51311c;
+    --costura: #a0754f;
+    --acento: #d08a52;
+    --acento-suave: #3a2618;
+    --acento-texto: #e2a271;
+    --botao-tinta: #1e120a;
+}
+
+:root[data-tema='escuro'][data-couro='bordo'] {
+    --lateral: #34121a;
+    --lateral-linha: #4a1d26;
+    --lateral-cartao: #2a0e14;
+    --lateral-ativo: #52222c;
+    --costura: #a7766a;
+    --acento: #7fa3d9;
+    --acento-suave: #1f2a3d;
+    --acento-texto: #9dbbe8;
+    --botao-tinta: #0f1726;
 }

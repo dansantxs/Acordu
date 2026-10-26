@@ -29,6 +29,21 @@ describe('casca do app', () => {
         expect(links).toEqual(['Hoje', 'Agenda', 'Solicitações', 'Tarefas', 'Horas', 'Novidades', 'Ajuda'])
     })
 
+    it('o couro escolhido no menu vale no app e fica no navegador', async () => {
+        localStorage.removeItem('acordu.couro')
+        app([])
+        await abrir('/')
+        const usuario = userEvent.setup()
+        await usuario.click(await screen.findByRole('button', { name: /Ana Prado/ }))
+        await usuario.click(screen.getByRole('menuitem', { name: /Bordô/ }))
+        expect(document.documentElement.dataset.couro).toBe('bordo')
+        expect(localStorage.getItem('acordu.couro')).toBe('bordo')
+        await usuario.click(screen.getByRole('button', { name: /Ana Prado/ }))
+        expect(within(screen.getByRole('menuitem', { name: /Bordô/ })).getByLabelText('escolhido')).toBeInTheDocument()
+        await usuario.click(screen.getByRole('menuitem', { name: /Café/ }))
+        expect(document.documentElement.dataset.couro).toBeUndefined()
+    })
+
     it('marca o destino atual', async () => {
         app(['cliente.ver'])
         await abrir('/clientes')
