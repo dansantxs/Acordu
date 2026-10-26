@@ -169,8 +169,8 @@ Um usuário Cliente em um tenant e Membro em outro troca de tenant e recebe toke
 
 ## 6. Proteção de dados
 
-- **Em trânsito:** HTTPS obrigatório (Caddy), HSTS.
-- **Em repouso:** volume da OCI criptografado; object storage criptografado pela OCI.
+- **Em trânsito:** HTTPS obrigatório (Cloudflare na borda do SPA e da API; Google entre o Worker e o Cloud Run; TLS até o Neon), HSTS.
+- **Em repouso:** criptografia gerenciada pelos provedores (Neon, R2). Dados hospedados nos EUA (ADR 0010): a transferência internacional consta na política de privacidade.
 - **Coluna:** sem criptografia de coluna no v1 (textos precisam de busca full-text).
 - **LGPD:** o prestador é **controlador** dos dados dos seus clientes; o Acordu é **operador**. Exportação e exclusão por tenant sob solicitação; exclusão de contato anonimiza nome/e-mail nas interações, preservando o histórico do trabalho.
 - **Nada de dado de cliente em log e no Discord:** só identificadores e status.
@@ -185,7 +185,7 @@ Um usuário Cliente em um tenant e Membro em outro troca de tenant e recebe toke
 - **Download:** a API verifica permissão (e visibilidade EXTERNA, no portal) e devolve (`200 { url }`) uma URL pré-assinada de **5 minutos**, que o navegador abre; o bucket recebe a requisição sem o token da API. O bucket é privado.
 - `Content-Disposition: attachment` sempre (evita executar HTML/SVG no navegador).
 - Antivírus fora do v1 (registrado como risco; avaliar ClamAV em container quando houver clientes pagantes).
-- **(Implementação, 10a)** `AWSSDK.S3` no endpoint S3 da OCI (path style, checksums só quando exigidos, upload sem `aws-chunked`). Arquivos validados (quantidade, tamanho, tipo pelo conteúdo) **antes** de enviar qualquer um; enviados antes do commit e removidos (melhor esforço) se a gravação falhar — órfão eventual fica no bucket versionado. Tipos detectados por tabela própria de assinaturas (`TiposDeArquivo`); a extensão só desempata ZIP × Office, OLE × Office antigo e texto × CSV.
+- **(Implementação, 10a)** `AWSSDK.S3` no endpoint S3 configurado (hoje o R2, região `auto`; path style, checksums só quando exigidos, upload sem `aws-chunked`). Arquivos validados (quantidade, tamanho, tipo pelo conteúdo) **antes** de enviar qualquer um; enviados antes do commit e removidos (melhor esforço) se a gravação falhar — órfão eventual fica no bucket (o R2 não tem versionamento; ADR 0010 §8). Tipos detectados por tabela própria de assinaturas (`TiposDeArquivo`); a extensão só desempata ZIP × Office, OLE × Office antigo e texto × CSV.
 
 ---
 
@@ -214,7 +214,7 @@ Quem, tenant, ação, alvo, quando (IP opcional). Não audita leituras. Mecanism
   - As rotas públicas de `/auth` (login, cadastro, convites, recuperação de senha) e o reenvio da confirmação: 10 por minuto por IP (`RateLimit__Auth__PorMinuto`).
   - **Renovação da sessão (`/auth/refresh`): limite próprio, 30 por minuto por refresh token** (`RateLimit__Refresh__PorMinuto`; a partição é o hash do cookie, e sem cookie o IP). Fica fora do limite por IP porque cada carga de página renova: um escritório atrás de um IP só, ou alguém com várias abas, esgotava o limite do login e caía na tela de entrar com a sessão ainda válida (achado da fumaça do F1c3; decidido em 15/10). O risco de abuso é baixo: sem um refresh válido a resposta é 401, e reapresentar um token já trocado revoga as sessões (ADR 0007).
 - **Headers de segurança:** HSTS, CSP (sem `unsafe-inline` no portal), `X-Content-Type-Options`, `Referrer-Policy: same-origin` (o token do link não pode vazar por Referer — a SPA troca o token e remove-o da URL na primeira carga).
-  - **CSP, `connect-src`:** `'self'` e `https://viacep.com.br`. O SPA consulta o CEP direto no ViaCEP para preencher o endereço do cliente (decidido em 16/10). A chamada vai sem cookie e sem Referer, então o serviço só recebe o CEP; se falhar, a pessoa digita o endereço. O script inline do tema em `index.html` entra na CSP por hash, não por `unsafe-inline`. A CSP é aplicada no Caddy junto com o deploy (F7).
+  - **CSP, `connect-src`:** `'self'`, `https://api.acordu.app.br` (a API fica noutra origem do mesmo site, ADR 0010) e `https://viacep.com.br`. O SPA consulta o CEP direto no ViaCEP para preencher o endereço do cliente (decidido em 16/10). A chamada vai sem cookie e sem Referer, então o serviço só recebe o CEP; se falhar, a pessoa digita o endereço. O script inline do tema em `index.html` entra na CSP por hash, não por `unsafe-inline`. A CSP e os demais cabeçalhos do SPA vão no arquivo `_headers` do Cloudflare Pages; os da API, num middleware da própria API.
 - **Testes obrigatórios:**
   - cross-tenant (ADR 0001) e **cross-cliente** (ADR 0002), em integração e API;
   - papel Cliente em rota interna → 403;

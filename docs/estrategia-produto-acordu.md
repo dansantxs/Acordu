@@ -3,7 +3,7 @@
 | | |
 |---|---|
 | **Versão** | 0.2 (documento vivo — revisar conforme validar) |
-| **Data** | 16/10/2026 |
+| **Data** | 26/10/2026 |
 | **Empresa** | Nebrys |
 | **Natureza** | Visão e estratégia. Hipóteses a validar com usuários, não decisões cravadas. |
 
@@ -193,10 +193,10 @@ Implicação arquitetural (ADR 0002):
 
 ## 10. Engenharia e infraestrutura
 
-- **Stack:** .NET 10, EF Core + Npgsql, PostgreSQL, React + Vite (TS), Docker Compose + Caddy, GitHub Actions → GHCR, OCI Always Free (ARM).
+- **Stack:** .NET 10, EF Core + Npgsql, PostgreSQL 17, React + Vite (TS), GitHub Actions; Cloud Run + Neon + Cloudflare (Pages, Worker, R2) nos planos gratuitos.
 - **Convenções:** estrutura de repositório, DDD pragmático em 4 camadas, `convencoes-codigo`, Conventional Commits, ADRs, ERS.
-- **ADRs:** 0001 (decisões de engenharia base), 0002 (portal/escopo por cliente), 0003 (SLA em horas úteis), 0004 (tempo em minutos e consumo como read model), 0005 (hospedagem serverless — revogado, plano B), 0006 (retorno à Oracle Always Free e plano de escala), 0007 (transporte da sessão).
-- **Infra compartilhada:** VM `vps-arm-01` (Oracle Always Free, Phoenix) dividida com outros produtos da Nebrys, Postgres 17 com um banco por produto, Caddy roteando por domínio, stacks em `/opt/infra` e `/opt/acordu` (ADR 0006). Repositório **próprio**.
+- **ADRs:** 0001 (decisões de engenharia base), 0002 (portal/escopo por cliente), 0003 (SLA em horas úteis), 0004 (tempo em minutos e consumo como read model), 0005 (hospedagem serverless — histórico), 0006 (VM Oracle compartilhada — revogado), 0007 (transporte da sessão), 0008 (trilha de auditoria), 0009 (tempo real por SSE), 0010 (hospedagem serverless com o Acordu como único produto e plano de escala).
+- **Infra:** própria do Acordu, sem nada compartilhado: projeto `acordu-prod` no Google, projeto Neon `acordu`, conta Cloudflare da Nebrys (ADR 0010). Ao abrir CNPJ, decidir entre continuar no gerenciado pago ou ir para uma VM. Repositório **próprio**.
 - **Assinatura técnica:** o motor de projeção determinística e explicável.
 
 ---
@@ -245,7 +245,8 @@ Implicação arquitetural (ADR 0002):
 | 30/09/2026 | **Base de conhecimento gerada a partir das solicitações resolvidas**: v1 solução estruturada + semelhantes (sem IA); v2 artigos e portal; v3 rascunho por IA com aprovação humana; sempre isolada por tenant | Hipótese |
 | 02/10/2026 | Estratégia e cronograma ficam **no repositório** (`docs/`), privado; revisar antes de qualquer abertura pública | Decidido |
 | 05/10/2026 | Conta Oracle Cloud inacessível: hospedagem serverless gratuita (Cloud Run + Neon + Cloudflare Pages), projeto e banco próprios por produto, plano de escala até VM no Brasil (ADR 0005) | Revogado em 06/10 |
-| 06/10/2026 | Conta Oracle recuperada: volta à VM Ampere compartilhada com outros produtos; níveis 1 (Magalu Cloud SP) e 2; serverless como plano B (ADR 0006) | Decidido |
+| 06/10/2026 | Conta Oracle recuperada: volta à VM Ampere compartilhada com outros produtos; níveis 1 (Magalu Cloud SP) e 2; serverless como plano B (ADR 0006) | Revogado em 26/10 |
 | 10/10/2026 | Empresa: **Nebrys** (`nebrys.com.br` livre em 10/10/2026; INPI a verificar) | Decidido |
 | 15/10/2026 | Colaboração de autônomos/estudantes ("modo equipe", projeto sem cliente, convidado por projeto) e integrações com GitHub, Notion, Slack/Discord/Teams e agendas: **v2**, fora do v1 para não diluir o foco em prestadores | Hipótese |
 | 16/10/2026 | Verticais: **v1** atende agência, contabilidade, consultoria, manutenção, TI terceirizada e freelancer com equipe; **arquitetura, engenharia e estúdios** precisam de ajustes (contrato por projeto com etapas, limite de revisões, entregas versionadas) e ficam para a **v2**, após validação | Hipótese |
+| 26/10/2026 | Conta Oracle desativada de vez (nova só com CNPJ) e **o Acordu passa a ser o único produto da Nebrys**: serverless gratuito (Cloud Run + Neon + Cloudflare Pages, Worker e R2), API em `api.acordu.app.br`, polling no lugar do SSE no nível 0, tick a cada 15 min no expediente (ADR 0010) | Decidido |

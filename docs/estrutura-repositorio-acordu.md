@@ -4,7 +4,7 @@
 |---|---|
 | **Versão** | 0.1 |
 | **Última atualização** | 06/10/2026 |
-| **Stack** | .NET 10 · EF Core + Npgsql · PostgreSQL 17 · React + Vite (TS) · Docker Compose + Caddy (VM Oracle compartilhada, ADR 0006) |
+| **Stack** | .NET 10 · EF Core + Npgsql · PostgreSQL 17 · React + Vite (TS) · Cloud Run + Neon + Cloudflare (ADR 0010) |
 | **Base** | ADR 0001 (decisões de engenharia base); projetos com prefixo `Acordu.*`. |
 
 ---
@@ -28,7 +28,8 @@ acordu/
 │  └─ workflows/
 │     ├─ ci.yml                        # build + testes a cada push/PR
 │     ├─ migrations.yml                # gera migrations sob demanda
-│     └─ deploy.yml                    # build ARM64 → GHCR → migrations → deploy na VM por SSH
+│     ├─ deploy.yml                    # build amd64 → Artifact Registry → migrations → Cloud Run; Worker e SPA por wrangler
+│     └─ backup.yml                    # pg_dump diário → R2
 ├─ docs/
 │  ├─ ers/
 │  │  └─ ERS-acordu-v1.md
@@ -37,16 +38,19 @@ acordu/
 │  │  ├─ 0002-portal-escopo-por-cliente.md
 │  │  ├─ 0003-sla-horas-uteis.md
 │  │  ├─ 0004-tempo-em-minutos-e-consumo-read-model.md
-│  │  ├─ 0005-hospedagem-serverless-gratuita.md   # revogado — plano B
-│  │  ├─ 0006-retorno-oracle-always-free.md
-│  │  └─ 0007-transporte-da-sessao.md
+│  │  ├─ 0005-hospedagem-serverless-gratuita.md   # histórico, retomado pelo 0010
+│  │  ├─ 0006-retorno-oracle-always-free.md       # revogado
+│  │  ├─ 0007-transporte-da-sessao.md
+│  │  ├─ 0008-trilha-de-auditoria.md
+│  │  ├─ 0009-tempo-real-por-sse.md
+│  │  └─ 0010-hospedagem-serverless-produto-unico.md
 │  ├─ estrategia-produto-acordu.md
 │  ├─ modelo-de-dominio-acordu.md
 │  ├─ contrato-api-acordu-v1.md
 │  ├─ read-side-acordu-v1.md
 │  ├─ seguranca-modelo-acesso-acordu-v1.md
 │  ├─ deploy-ci-acordu-v1.md
-│  ├─ setup-infra-oracle-acordu.md
+│  ├─ setup-infra-acordu.md
 │  ├─ estrutura-repositorio-acordu.md
 │  ├─ convencoes-codigo-acordu.md
 │  └─ convencoes-commit-acordu.md
@@ -87,7 +91,7 @@ acordu/
 │  │  │  ├─ Consultas/                 # SQL do read side (helper com TenantId/ClienteId obrigatórios)
 │  │  │  └─ Migrations/
 │  │  ├─ MultiTenancy/                 # filtros globais por TenantId e ClienteId
-│  │  ├─ Armazenamento/                # object storage S3-compatível (OCI) + URLs assinadas
+│  │  ├─ Armazenamento/                # object storage S3-compatível (R2) + URLs assinadas
 │  │  ├─ Email/                        # Resend + outbox
 │  │  ├─ Agendamento/                  # jobs idempotentes: recorrências, fechamento automático, alertas de SLA
 │  │  ├─ Seguranca/                    # Identity, JWT, tokens de link
@@ -98,7 +102,7 @@ acordu/
 │  │  ├─ Middleware/                   # contexto de tenant/cliente, Problem Details
 │  │  ├─ Program.cs
 │  │  └─ appsettings*.json
-│  └─ Acordu.Worker/                   # (ADIADO) — jobs são endpoints internos da Api, disparados por timer na VM
+│  └─ Acordu.Worker/                   # (ADIADO) — jobs são endpoints internos da Api, disparados pelo Cloud Scheduler
 ├─ apps/
 │  └─ web/                             # React + Vite + TypeScript (SPA)
 │     └─ src/
@@ -114,10 +118,10 @@ acordu/
 │  ├─ Acordu.Api.FunctionalTests/                # WebApplicationFactory
 │  └─ Acordu.ArchitectureTests/                  # NetArchTest: camadas, relógio, filtros, DTOs do portal
 ├─ docker/
-│  ├─ api.Dockerfile
-│  ├─ web.Dockerfile                   # build do SPA + servidor estático interno
-│  └─ Caddyfile.acordu                 # bloco de site do Acordu, incluído no Caddy compartilhado
-├─ docker-compose.yml                  # prod: acordu-api + acordu-web na rede externa infra_net (Caddy e Postgres compartilhados)
+│  └─ api.Dockerfile                   # linux/amd64, aspnet chiseled extra (ICU + tzdata), ReadyToRun
+├─ infra/
+│  └─ cloudflare/
+│     └─ api-borda/                    # Worker de api.acordu.app.br: proxy para o Cloud Run + token de origem
 ├─ docker-compose.dev.yml              # dev local: Postgres 17 na porta 5434 (object storage local entra no marco de anexos)
 ├─ Acordu.sln
 ├─ Directory.Build.props
@@ -185,10 +189,10 @@ Testes obrigatórios nos níveis de integração **e** API: cross-tenant (RNF-SE
 
 ## 7. Infra e deploy
 
-- A VM, o Postgres e o Caddy de borda são **compartilhados com outros produtos** (ADRs 0001 e 0006). Este repositório só entrega as imagens do Acordu e o bloco de site do Caddy.
-- `docker-compose.yml` sobe `acordu-api` e `acordu-web` em `/opt/acordu`, na rede externa `infra_net` da stack de infraestrutura (`/opt/infra`). ADR 0006.
-- Jobs agendados ficam em `Infrastructure/Agendamento` e são expostos pela Api em `/internal/jobs/*`; o disparo é um timer na VM.
-- Detalhes: `deploy-ci-acordu-v1.md` e `setup-infra-oracle-acordu.md`.
+- Nada é compartilhado com outros produtos (ADR 0010). A API vai como imagem para o Cloud Run; o SPA, como estático para o Cloudflare Pages; a borda da API, como Worker.
+- O SPA chama a API em `VITE_URL_API` (`https://api.acordu.app.br` em produção; vazio em dev, com o proxy do Vite).
+- Jobs agendados ficam em `Infrastructure/Agendamento` e são expostos pela Api em `/internal/jobs/*`; o disparo é o Cloud Scheduler.
+- Detalhes: `deploy-ci-acordu-v1.md` e `setup-infra-acordu.md`.
 
 ---
 
@@ -207,7 +211,7 @@ Testes obrigatórios nos níveis de integração **e** API: cross-tenant (RNF-SE
 2. **Domain:** `Duracao`, `Periodo`, `CalendarioUtil` + `CalculadoraSla` (maior risco, primeiro), `Solicitacao` e máquina de estados, `Contrato`, `Tarefa`, `Apontamento`, `RecorrenciaTarefa` + `GeradorDeDatas`. Cada um com testes.
 3. **Infrastructure base:** `AcorduDbContext`, migrations, filtros por tenant **e por cliente**, testes de isolamento (Testcontainers).
 4. **Api + auth:** Identity/JWT (ADR 0001), contexto de tenant/cliente, endpoints de clientes, contratos e solicitações, testes funcionais.
-5. **Esqueleto andante no ar:** criar solicitação interna → tarefa → apontamento → ver consumo; deploy na VM.
+5. **Esqueleto andante no ar:** criar solicitação interna → tarefa → apontamento → ver consumo; deploy no Cloud Run.
 6. **Portal:** convite de contato, rotas `/portal`, extrato, aprovação, link sem senha.
 7. **Restante do v1:** recorrências + agendador, notificações por e-mail (outbox), dashboard, semelhantes.
 8. **Hardening:** `deploy.yml` completo, backup, alertas no Discord.
