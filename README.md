@@ -132,6 +132,8 @@ acordu/
 | `docs/adr/0008-trilha-de-auditoria.md` | Trilha de auditoria na unidade de trabalho, retenção de 12 meses. |
 | `docs/adr/0009-tempo-real-por-sse.md` | Tempo real por SSE com sinais de mudança; polling no nível 0. |
 | `docs/adr/0010-hospedagem-serverless-produto-unico.md` | Hospedagem atual: Cloud Run + Neon + Cloudflare (Pages, Worker, R2), jobs no Scheduler, plano de escala. |
+| `docs/adr/0011-desenvolvimento-guiado-por-spec.md` | Spec versionada por marco, cenários de aceite ligados a testes, `CLAUDE.md` e comandos do Claude Code. |
+| `docs/specs/` | Specs dos marcos (a partir do F8) e template. |
 | `docs/estrategia-produto-acordu.md` | Visão, mercado, posicionamento, fases e monetização. |
 | `docs/modelo-de-dominio-acordu.md` | Agregados, máquinas de estado, VOs, serviços, eventos. |
 | `docs/contrato-api-acordu-v1.md` | Endpoints internos e do portal, formatos, erros. |

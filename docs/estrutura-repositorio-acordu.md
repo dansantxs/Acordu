@@ -24,6 +24,10 @@
 
 ```
 acordu/
+├─ CLAUDE.md                          # regras do projeto para o Claude Code (ADR 0011)
+├─ .claude/
+│  ├─ commands/                        # /spec, /plano, /tarefas
+│  └─ agents/                          # revisor-spec
 ├─ .github/
 │  └─ workflows/
 │     ├─ ci.yml                        # build + testes a cada push/PR
@@ -43,7 +47,9 @@ acordu/
 │  │  ├─ 0007-transporte-da-sessao.md
 │  │  ├─ 0008-trilha-de-auditoria.md
 │  │  ├─ 0009-tempo-real-por-sse.md
-│  │  └─ 0010-hospedagem-serverless-produto-unico.md
+│  │  ├─ 0010-hospedagem-serverless-produto-unico.md
+│  │  └─ 0011-desenvolvimento-guiado-por-spec.md
+│  ├─ specs/                       # uma spec por marco a partir do F8 (ADR 0011) + _template.md
 │  ├─ estrategia-produto-acordu.md
 │  ├─ modelo-de-dominio-acordu.md
 │  ├─ contrato-api-acordu-v1.md

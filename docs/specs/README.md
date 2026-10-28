@@ -1,0 +1,12 @@
+# Specs por marco
+
+Cada marco do Acordu, a partir do F8, começa por uma spec nesta pasta (ADR 0011).
+
+- Uma pasta por marco: `docs/specs/<marco>-<nome-curto>/spec.md` (ex.: `F8-deploy`).
+- Comece por `_template.md` ou pelo comando `/spec <marco>` do Claude Code.
+- O PR da spec é a aprovação do plano. Os PRs de código citam os cenários que entregam.
+- A spec é viva: mudou o comportamento, a spec muda no mesmo PR.
+
+| Marco | Spec | Status |
+|---|---|---|
+| — | — | — |
