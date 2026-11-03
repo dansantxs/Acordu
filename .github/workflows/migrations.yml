@@ -6,7 +6,7 @@ name: Migrations
 #      feature. O workflow gera a migration, apaga o pedido e faz o commit. Para recriar uma migration ainda não
 #      mesclada, apague os arquivos dela (e o snapshot, se for a única) no mesmo commit do pedido.
 #   2. Manual: Actions → Migrations → Run workflow (branch + nome).
-# Commits feitos com o GITHUB_TOKEN não disparam o CI: depois da migration, um push qualquer na branch roda os testes.
+# Commits feitos com o GITHUB_TOKEN não disparam o CI: depois da migration, um push qualquer na branch roda os testes (só com o PR aberto).
 # Localmente: dotnet tool restore && dotnet restore Acordu.sln && dotnet ef migrations add <Nome>
 #             --project src/Acordu.Infrastructure --startup-project src/Acordu.Api --output-dir Persistence/Migrations
 

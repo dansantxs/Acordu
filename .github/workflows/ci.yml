@@ -11,7 +11,8 @@ on:
 
 concurrency:
   group: ci-${{ github.ref }}
-  cancel-in-progress: true
+  # Na main não cancela: dois merges seguidos precisam dos dois runs (base do deploy).
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 permissions:
   contents: read
@@ -26,18 +27,18 @@ jobs:
       backend: ${{ steps.filtro.outputs.backend == 'true' || github.event_name != 'pull_request' }}
       web: ${{ steps.filtro.outputs.web == 'true' || github.event_name != 'pull_request' }}
     steps:
-      - uses: actions/checkout@v4
-        if: github.event_name == 'pull_request'
-
+      # No pull_request o filtro lista os arquivos pela API (pull-requests: read); não precisa de checkout.
       - uses: dorny/paths-filter@v3
         id: filtro
         if: github.event_name == 'pull_request'
         with:
-          # A própria CI e a ação comum fazem tudo rodar: mudar o pipeline é mudar todos os jobs.
+          # A própria CI, a ação comum e as regras de estilo (analisadores do .NET e Prettier) fazem tudo rodar.
           filters: |
             pipeline: &pipeline
               - .github/workflows/ci.yml
               - .github/actions/**
+              - .editorconfig
+              - .gitattributes
             backend:
               - *pipeline
               - src/**
@@ -46,6 +47,8 @@ jobs:
               - global.json
               - Directory.*.props
               - .config/**
+              # O ContratoOpenApiTests confere a API contra openapi/*.json.
+              - openapi/**
             web:
               - *pipeline
               - apps/web/**
@@ -215,3 +218,19 @@ jobs:
           name: relatorio-playwright
           path: apps/web/playwright-report
           if-no-files-found: ignore
+
+  # Um check só para a proteção da main: job pulado conta como verde, então sem este um erro no "O que mudou" deixaria
+  # tudo pulado e o PR aparentemente aprovado.
+  ci-ok:
+    name: CI ok
+    needs: [mudancas, backend, web, e2e]
+    if: always()
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - name: Algum job falhou ou foi cancelado?
+        if: contains(needs.*.result, 'failure') || contains(needs.*.result, 'cancelled')
+        run: |
+          echo "::error::Algum job da CI falhou ou foi cancelado."
+          exit 1
+      - run: echo "CI ok"
