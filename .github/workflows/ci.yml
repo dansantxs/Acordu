@@ -229,8 +229,6 @@ jobs:
           path: apps/web/playwright-report
           if-no-files-found: ignore
 
-  # Um check só para a proteção da main: job pulado conta como verde, então sem este um erro no "O que mudou" deixaria
-  # tudo pulado e o PR aparentemente aprovado.
   imagem:
     name: Imagem da API
     needs: mudancas
@@ -259,15 +257,18 @@ jobs:
           docker run -d --name api -p 8080:8080 \
             -e ConnectionStrings__Acordu="Host=localhost;Database=acordu;Username=fumaca;Password=fumaca" \
             -e Jwt__ChaveAssinatura="chave-da-fumaca-da-imagem-com-mais-de-32-bytes" \
-            -e Jobs__Token="fumaca" \
             acordu-api:ci
           for i in $(seq 1 30); do
             curl -fsS http://localhost:8080/api/health && exit 0
+            # Container que morreu ao subir (fuso ou ICU ausente) não precisa esperar os 30 s.
+            [[ "$(docker inspect -f '{{.State.Running}}' api)" == "true" ]] || break
             sleep 1
           done
-          echo "::error::A imagem não respondeu /api/health em 30 s: $(docker logs api 2>&1 | tail -c 1500 | tr '\n' ' ')"
+          echo "::error::A imagem não respondeu /api/health: $(docker logs api 2>&1 | tail -c 1500 | tr '\n' ' ')"
           exit 1
 
+  # Um check só para a proteção da main: job pulado conta como verde, então sem este um erro no "O que mudou" deixaria
+  # tudo pulado e o PR aparentemente aprovado.
   ci-ok:
     name: CI ok
     needs: [mudancas, backend, web, e2e, imagem]
