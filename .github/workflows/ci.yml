@@ -26,6 +26,7 @@ jobs:
     outputs:
       backend: ${{ steps.filtro.outputs.backend == 'true' || github.event_name != 'pull_request' }}
       web: ${{ steps.filtro.outputs.web == 'true' || github.event_name != 'pull_request' }}
+      imagem: ${{ steps.filtro.outputs.imagem == 'true' || github.event_name != 'pull_request' }}
     steps:
       # No pull_request o filtro lista os arquivos pela API (pull-requests: read); não precisa de checkout.
       - uses: dorny/paths-filter@v3
@@ -53,6 +54,15 @@ jobs:
               - *pipeline
               - apps/web/**
               - openapi/**
+            # A imagem só muda com o código da API ou com o Dockerfile (spec do F8, F8-16).
+            imagem:
+              - *pipeline
+              - src/**
+              - "*.sln"
+              - global.json
+              - Directory.*.props
+              - docker/**
+              - .dockerignore
 
   backend:
     name: Backend (.NET)
@@ -221,9 +231,46 @@ jobs:
 
   # Um check só para a proteção da main: job pulado conta como verde, então sem este um erro no "O que mudou" deixaria
   # tudo pulado e o PR aparentemente aprovado.
+  imagem:
+    name: Imagem da API
+    needs: mudancas
+    if: needs.mudancas.outputs.imagem == 'true'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Construir (linux/amd64)
+        run: docker build --platform linux/amd64 -f docker/api.Dockerfile -t acordu-api:ci .
+
+      - name: Sem root
+        run: |
+          usuario=$(docker image inspect acordu-api:ci --format '{{.Config.User}}')
+          echo "Usuário da imagem: ${usuario:-(vazio)}"
+          if [[ -z "$usuario" || "$usuario" == "root" || "$usuario" == "0" ]]; then
+            echo "::error::A imagem roda como root."
+            exit 1
+          fi
+
+      # Sem banco: /api/health não o consulta. A API confere fuso e ICU ao subir (AmbienteDeExecucao): se faltarem,
+      # ela nem sobe e o health não responde.
+      - name: Fumaça
+        run: |
+          docker run -d --name api -p 8080:8080 \
+            -e ConnectionStrings__Acordu="Host=localhost;Database=acordu;Username=fumaca;Password=fumaca" \
+            -e Jwt__ChaveAssinatura="chave-da-fumaca-da-imagem-com-mais-de-32-bytes" \
+            -e Jobs__Token="fumaca" \
+            acordu-api:ci
+          for i in $(seq 1 30); do
+            curl -fsS http://localhost:8080/api/health && exit 0
+            sleep 1
+          done
+          echo "::error::A imagem não respondeu /api/health em 30 s: $(docker logs api 2>&1 | tail -c 1500 | tr '\n' ' ')"
+          exit 1
+
   ci-ok:
     name: CI ok
-    needs: [mudancas, backend, web, e2e]
+    needs: [mudancas, backend, web, e2e, imagem]
     if: always()
     runs-on: ubuntu-24.04
     timeout-minutes: 5
