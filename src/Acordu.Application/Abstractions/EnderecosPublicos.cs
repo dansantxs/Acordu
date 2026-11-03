@@ -7,13 +7,25 @@ namespace Acordu.Application.Abstractions;
 public sealed class EnderecosPublicos
 {
     private readonly Uri _base;
+    private readonly Uri _baseApi;
 
-    public EnderecosPublicos(Uri baseUrl)
+    /// <param name="baseUrl">Endereço do SPA (<c>App__UrlPublica</c>).</param>
+    /// <param name="baseApi">
+    /// Endereço da API (<c>App__UrlApi</c>), quando ela está em outro host que o SPA (ADR 0010: <c>api.acordu.app.br</c>);
+    /// sem ele, a API fica no mesmo endereço do SPA.
+    /// </param>
+    public EnderecosPublicos(Uri baseUrl, Uri? baseApi = null)
     {
-        ArgumentNullException.ThrowIfNull(baseUrl);
-        if (!baseUrl.IsAbsoluteUri)
-            throw new ArgumentException("O endereço público precisa ser absoluto.", nameof(baseUrl));
-        _base = baseUrl.AbsoluteUri.EndsWith('/') ? baseUrl : new Uri(baseUrl.AbsoluteUri + "/");
+        _base = ComBarra(baseUrl, nameof(baseUrl));
+        _baseApi = baseApi is null ? _base : ComBarra(baseApi, nameof(baseApi));
+    }
+
+    private static Uri ComBarra(Uri endereco, string parametro)
+    {
+        ArgumentNullException.ThrowIfNull(endereco, parametro);
+        if (!endereco.IsAbsoluteUri)
+            throw new ArgumentException("O endereço público precisa ser absoluto.", parametro);
+        return endereco.AbsoluteUri.EndsWith('/') ? endereco : new Uri(endereco.AbsoluteUri + "/");
     }
 
     /// <summary>Solicitação no app da equipe.</summary>
@@ -25,8 +37,8 @@ public sealed class EnderecosPublicos
     /// <summary>Recorrência no app da equipe.</summary>
     public Uri RecorrenciaInterna(Guid recorrenciaId) => new(_base, $"recorrencias/{recorrenciaId}");
 
-    /// <summary>Feed ICS da agenda assinável, servido pela API no mesmo endereço (Caddy encaminha <c>/api</c>).</summary>
-    public Uri AgendaIcs(string token) => new(_base, $"api/v1/agenda/{token}.ics");
+    /// <summary>Feed ICS da agenda assinável: o calendário busca direto na API, então usa o endereço dela.</summary>
+    public Uri AgendaIcs(string token) => new(_baseApi, $"api/v1/agenda/{token}.ics");
 
     /// <summary>Tarefa no app da equipe.</summary>
     public Uri TarefaInterna(Guid tarefaId) => new(_base, $"tarefas/{tarefaId}");
