@@ -6,7 +6,7 @@ name: Ajuda
 #   1. Pedido por arquivo: commitar `.github/ajuda-request` (conteúdo livre) numa branch de feature. O workflow tira as
 #      fotos, apaga o pedido e faz o commit.
 #   2. Manual: Actions → Ajuda → Run workflow (numa branch de feature).
-# Commits feitos com o GITHUB_TOKEN não disparam o CI: depois, um push qualquer na branch roda os testes.
+# Commits feitos com o GITHUB_TOKEN não disparam o CI: depois, um push qualquer na branch roda os testes (só com o PR aberto).
 
 on:
   workflow_dispatch:
