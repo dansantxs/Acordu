@@ -71,7 +71,12 @@ Com `Proxy__TokenOrigem` definido, a API responde 404 a requisição sem o token
 
 ---
 
-## 3. CI (`ci.yml`) — a cada push/PR
+## 3. CI (`ci.yml`) — no PR e na `main`
+
+**Quando roda (economia de minutos, spec do F8, F8a):**
+- Branch de feature roda **só pelo PR** contra a `main`; o push da branch não dispara de novo. Para validar algo antes da revisão, abre-se o PR como rascunho.
+- No PR, o job `O que mudou` (`dorny/paths-filter`) decide: **backend** com `src/`, `tests/`, solução, `global.json`, `Directory.*.props` ou `.config/`; **front** com `apps/web/` ou `openapi/`; **E2E** quando qualquer um dos dois muda. Mudar `ci.yml` ou `.github/actions/` roda tudo. Job pulado conta como verde. PR só de documentos não roda nenhum job pesado.
+- Na `main` (merge) e no disparo manual, roda tudo.
 
 - **Backend:** restore → build → todos os testes (incluindo `ArchitectureTests`); integração com Testcontainers (`postgres:17`, mesma versão do Neon). O teste do object storage usa o emulador Adobe S3Mock (Testcontainers); os testes funcionais usam armazenamento em memória.
 - **Frontend:** install → lint → Vitest → build.
