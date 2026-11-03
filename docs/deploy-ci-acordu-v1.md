@@ -162,7 +162,7 @@ Cada job é um endpoint interno (`POST /internal/jobs/<nome>`): `X-Job-Token` co
 ## 9. Monitoramento
 
 - **UptimeRobot** em `https://api.acordu.app.br/api/health` a cada 5 min (avisa queda e mantém a instância quente parte do tempo).
-- **Pré-aquecimento pela UI:** o SPA chama `/api/health` ao abrir login e portal, sem esperar.
+- **Pré-aquecimento pela UI:** ao carregar qualquer tela o SPA já renova a sessão (`POST /api/v1/auth/refresh`), o que acorda o container da API antes de a pessoa digitar; por isso não há chamada extra ao `/api/health` (F8d). O banco acorda na primeira requisição que o consulta (com cookie, a própria renovação; sem cookie, o login).
 - Logs do Cloud Run (erros), Discord (deploy, jobs, backup), alerta de orçamento (e-mail). Monitoramento de erros de aplicação (Sentry ou OpenTelemetry) fica para decisão própria.
 - **Mensal:** CU-h e armazenamento no Neon; vCPU-s no Cloud Run; requisições/dia no Worker; armazenamento no R2. São os gatilhos dos níveis 1 e 2 do ADR 0010.
 

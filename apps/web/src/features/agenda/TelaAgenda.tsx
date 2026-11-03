@@ -3,6 +3,7 @@ import { useNavigate } from '@tanstack/react-router'
 import { Tab, TabList, Tabs } from 'react-aria-components'
 import { pode } from '@/features/casca/navegacao'
 import { mensagemDeErro } from '@/shared/api/mensagens'
+import { intervaloDePolling } from '@/shared/config/ambiente'
 import { dataCurta, hojeNoFuso, segundaDaSemana, somarDias } from '@/shared/format/datas'
 import type { Perfil } from '@/shared/sessao/perfil'
 import { Alerta } from '@/shared/ui/Alerta'
@@ -25,10 +26,18 @@ export function TelaAgenda({ perfil, filtros }: { perfil: Perfil; filtros: Filtr
     const hoje = hojeNoFuso(perfil.tenant.fusoHorario)
     const estaSemana = segundaDaSemana(hoje)
     const inicio = filtros.inicio ?? estaSemana
-    const agenda = useQuery(consultaAgenda(inicio))
+    const agenda = useQuery({ ...consultaAgenda(inicio), refetchInterval: intervaloDePolling() })
     const verCarga = pode(perfil, 'tarefa.ver')
-    const semana1 = useQuery({ ...consultaCapacidade(inicio), enabled: verCarga })
-    const semana2 = useQuery({ ...consultaCapacidade(somarDias(inicio, 7)), enabled: verCarga })
+    const semana1 = useQuery({
+        ...consultaCapacidade(inicio),
+        enabled: verCarga,
+        refetchInterval: intervaloDePolling(),
+    })
+    const semana2 = useQuery({
+        ...consultaCapacidade(somarDias(inicio, 7)),
+        enabled: verCarga,
+        refetchInterval: intervaloDePolling(),
+    })
     const porCliente = filtros.faixas === 'cliente'
     const plano = filtros.vista === 'plano'
     const ir = (mudanca: Partial<FiltrosAgenda>) =>

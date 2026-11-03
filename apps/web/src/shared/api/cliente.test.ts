@@ -9,12 +9,16 @@ const json = (corpo: unknown, status = 200) =>
 
 /** Responde por caminho; registra o Authorization de cada chamada. */
 function servidor(rotas: Record<string, (() => Response)[]>) {
-    const chamadas: { caminho: string; autorizacao: string | null }[] = []
+    const chamadas: { caminho: string; autorizacao: string | null; credenciais: RequestCredentials }[] = []
     vi.stubGlobal(
         'fetch',
         vi.fn(async (requisicao: Request) => {
             const caminho = new URL(requisicao.url).pathname
-            chamadas.push({ caminho, autorizacao: requisicao.headers.get('Authorization') })
+            chamadas.push({
+                caminho,
+                autorizacao: requisicao.headers.get('Authorization'),
+                credenciais: requisicao.credentials,
+            })
             const fila = rotas[caminho]
             const proxima = fila?.shift()
             if (!proxima) throw new Error(`Sem resposta para ${caminho}`)
@@ -37,6 +41,13 @@ describe('cliente HTTP', () => {
         expect(chamadas[0]?.autorizacao).toBe('Bearer t1')
     })
 
+    it('F8-18: manda o cookie da sessão mesmo com a API em outra origem (credentials include)', async () => {
+        abrirSessao({ accessToken: 't1', expiraEm: daquiA(3_600_000) })
+        const chamadas = servidor({ '/api/v1/auth/eu': [() => json(perfil)] })
+        await api.GET('/api/v1/auth/eu')
+        expect(chamadas[0]?.credenciais).toBe('include')
+    })
+
     it('renova antes de enviar quando o token está vencendo', async () => {
         abrirSessao({ accessToken: 'velho', expiraEm: daquiA(5_000) })
         const chamadas = servidor({
@@ -47,6 +58,8 @@ describe('cliente HTTP', () => {
         expect(chamadas.map((c) => c.caminho)).toEqual(['/api/v1/auth/refresh', '/api/v1/auth/eu'])
         expect(chamadas[0]?.autorizacao).toBeNull()
         expect(chamadas[1]?.autorizacao).toBe('Bearer novo')
+        // F8-17/F8-18: a renovação é a requisição que leva o cookie; vai pela base da API e com credentials include.
+        expect(chamadas[0]?.credenciais).toBe('include')
     })
 
     it('depois de um 401, renova e repete uma vez', async () => {

@@ -177,6 +177,9 @@ jobs:
       - name: Build
         run: pnpm build
 
+      - name: CSP do Pages com o hash do script inline
+        run: pnpm csp:conferir
+
   e2e:
     name: E2E (Playwright)
     needs: mudancas

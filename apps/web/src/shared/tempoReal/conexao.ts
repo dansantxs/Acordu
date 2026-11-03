@@ -1,4 +1,5 @@
 import type { QueryClient } from '@tanstack/react-query'
+import { BASE_API } from '../config/ambiente'
 import { renovar, tokenAtual } from '../sessao/sessao'
 import { chavesAfetadas } from './invalidacao'
 import { LeitorSse } from './sse'
@@ -22,7 +23,7 @@ export interface OpcoesConexao {
  */
 export function conectarTempoReal({
     consultas,
-    url = `${globalThis.location.origin}/api/v1/eventos`,
+    url = `${BASE_API}api/v1/eventos`,
     esperar,
 }: OpcoesConexao): () => void {
     let ativa = true
