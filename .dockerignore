@@ -1,13 +1,13 @@
+# Contexto do build da imagem da API (docker/api.Dockerfile): só o que o publish usa.
 **/bin/
 **/obj/
-**/node_modules/
-**/.vs/
-**/.vscode/
-**/*.user
 .git/
 .github/
+.claude/
+apps/
 docs/
+openapi/
 tests/
+**/*.md
+**/node_modules/
 **/TestResults/
-.env
-.env.*
