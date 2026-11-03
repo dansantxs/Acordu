@@ -61,9 +61,9 @@ A coluna **Teste** é preenchida nos PRs de código. Os cenários de provisionam
 
 | Id | Dado | Quando | Então | Teste |
 |---|---|---|---|---|
-| F8-23 | o Worker com `ORIGEM` e `TOKEN_ORIGEM` | chega uma requisição em `api.acordu.app.br` | repassa método, caminho, query, cabeçalhos e corpo em stream para a origem, com `X-Origem-Token` | — |
-| F8-24 | o cliente manda `X-Forwarded-For` próprio | o Worker repassa | o cabeçalho vira só o `CF-Connecting-IP` (o valor do cliente é descartado) | — |
-| F8-25 | qualquer resposta da API | o Worker devolve | sem cache (`cache: 'no-store'` na origem) e com o corpo em stream (SSE e downloads) | — |
+| F8-23 | o Worker com `ORIGEM` e `TOKEN_ORIGEM` | chega uma requisição em `api.acordu.app.br` | repassa método, caminho, query, cabeçalhos e corpo em stream para a origem, com `X-Origem-Token` | `infra/cloudflare/api-borda/src/index.test.ts › F8-23` (dois testes) |
+| F8-24 | o cliente manda `X-Forwarded-For` próprio | o Worker repassa | o cabeçalho vira só o `CF-Connecting-IP` (o valor do cliente é descartado) | `infra/cloudflare/api-borda/src/index.test.ts › F8-24` |
+| F8-25 | qualquer resposta da API | o Worker devolve | sem cache (`cache: 'no-store'` na origem) e com o corpo em stream (SSE e downloads) | `infra/cloudflare/api-borda/src/index.test.ts › F8-25` |
 
 ### Deploy, jobs e backup
 

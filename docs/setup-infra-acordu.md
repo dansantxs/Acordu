@@ -123,7 +123,7 @@ Projeto **`acordu-web`** (upload direto pelo `wrangler pages deploy`, sem integr
 ### 4. Worker da borda
 1. Script **`acordu-api-borda`** publicado pelo `deploy.yml` (`infra/cloudflare/api-borda`).
 2. Rota/domínio personalizado **`api.acordu.app.br`**.
-3. Variável `ORIGEM` = URL `*.run.app`; segredo `TOKEN_ORIGEM` (gerar 32 bytes aleatórios; o mesmo valor vai para `Proxy__TokenOrigem` da API).
+3. Variável `ORIGEM` = URL `*.run.app`; segredo `TOKEN_ORIGEM` (gerar 32 bytes aleatórios; o mesmo valor vai para `Proxy__TokenOrigem` da API). O `wrangler.toml` tem `keep_vars = true`: os deploys do `deploy.yml` preservam a `ORIGEM` definida no painel.
 
 ---
 

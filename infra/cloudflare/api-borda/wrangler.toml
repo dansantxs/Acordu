@@ -1,0 +1,12 @@
+# Borda da API (ADR 0010 §3, deploy-ci §2.1): api.acordu.app.br → serviço do Cloud Run (*.run.app).
+# ORIGEM (variável) e TOKEN_ORIGEM (segredo: `wrangler secret put TOKEN_ORIGEM`) são definidos no provisionamento
+# (setup-infra-acordu.md); nada sensível fica neste arquivo. keep_vars: sem ele, cada `wrangler deploy` trocaria as
+# variáveis do painel pelas deste arquivo (que não tem nenhuma) e apagaria a ORIGEM.
+# compatibility_date: em 2026-11-17 entra a flag cache_option_preserves_cache_control, que muda o Cache-Control da
+# requisição à origem com `cache: 'no-store'`; ao subir a data, conferir.
+name = "acordu-api-borda"
+main = "src/index.ts"
+compatibility_date = "2025-06-01"
+workers_dev = false
+keep_vars = true
+routes = [{ pattern = "api.acordu.app.br", custom_domain = true }]
