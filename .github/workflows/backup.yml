@@ -64,7 +64,13 @@ jobs:
                   valor, i = texto[i:fim].strip(), fim + 1
               if nome in chaves:
                   pg[chaves[nome]] = valor
-          pg["PGSSLMODE"] = pg.get("PGSSLMODE", "require").lower()
+          # Nomes do Npgsql → libpq (VerifyFull → verify-full); sem SSL Mode, require.
+          modos = {"disable": "disable", "allow": "allow", "prefer": "prefer", "require": "require",
+                   "verifyca": "verify-ca", "verifyfull": "verify-full"}
+          modo = pg.get("PGSSLMODE", "require").lower().replace("-", "").replace(" ", "")
+          if modo not in modos:
+              sys.exit("SSL Mode desconhecido no NEON_MIGRATOR.")
+          pg["PGSSLMODE"] = modos[modo]
           faltam = [v for v in ("PGHOST", "PGDATABASE", "PGUSER", "PGPASSWORD") if not pg.get(v)]
           if faltam:
               sys.exit("NEON_MIGRATOR sem: " + ", ".join(faltam))
@@ -80,7 +86,7 @@ jobs:
           docker run --rm --user "$(id -u):$(id -g)" --env-file "$RUNNER_TEMP/pg.env" -v "$RUNNER_TEMP:/saida" postgres:17 \
             pg_dump -Fc --no-owner --file "/saida/$dia.dump"
           rm -f "$RUNNER_TEMP/pg.env"
-          # Dump ilegível ou vazio não sobe.
+          # Dump ilegível (truncado, corrompido) não sobe.
           docker run --rm --user "$(id -u):$(id -g)" -v "$RUNNER_TEMP:/saida" postgres:17 pg_restore --list "/saida/$dia.dump" > /dev/null
           echo "Dump de $dia: $(du -h "$arquivo" | cut -f1)"
           echo "dia=$dia" >> "$GITHUB_OUTPUT"
