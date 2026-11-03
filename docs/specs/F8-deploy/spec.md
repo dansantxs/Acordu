@@ -19,11 +19,11 @@ A coluna **Teste** é preenchida nos PRs de código. Os cenários de provisionam
 
 | Id | Dado | Quando | Então | Teste |
 |---|---|---|---|---|
-| F8-01 | um PR aberto | chega um push na branch dele | a CI roda uma vez (pelo PR), não duas (push e PR) | verificação no Actions |
-| F8-02 | um PR que só muda `docs/` ou `*.md` | a CI roda | backend, front, E2E e imagem ficam como pulados (contam como verdes) | verificação no Actions |
-| F8-03 | um PR que só muda `apps/web/` | a CI roda | backend e imagem são pulados; front e E2E rodam | verificação no Actions |
-| F8-04 | um PR que muda `src/`, `tests/` ou a solução | a CI roda | backend e E2E rodam; imagem só se mudou o código da API (`src/`, solução, props, `global.json`) ou `docker/`; front só se `apps/web/` ou `openapi/` mudou | verificação no Actions |
-| F8-05 | um push na `main` (merge) | a CI roda | roda tudo, sem filtro, como base para o deploy | verificação no Actions |
+| F8-01 | um PR aberto | chega um push na branch dele | a CI roda uma vez (pelo PR), não duas (push e PR) | verificação no Actions: PR #130, só runs `pull_request` |
+| F8-02 | um PR que só muda `docs/` ou `*.md` | a CI roda | backend, front, E2E e imagem ficam como pulados (contam como verdes) | verificação no Actions: PR #129 |
+| F8-03 | um PR que só muda `apps/web/` | a CI roda | backend e imagem são pulados; front e E2E rodam | verificação no Actions: pendente (próximo PR só de `apps/web/`; o F8d mudou também o `ci.yml`) |
+| F8-04 | um PR que muda `src/`, `tests/` ou a solução | a CI roda | backend e E2E rodam; imagem só se mudou o código da API (`src/`, solução, props, `global.json`) ou `docker/`; front só se `apps/web/` ou `openapi/` mudou | verificação no Actions: PR #126 |
+| F8-05 | um push na `main` (merge) | a CI roda | roda tudo, sem filtro, como base para o deploy | verificação no Actions: run da `main` do merge do #129 |
 
 ### API
 
@@ -69,7 +69,7 @@ A coluna **Teste** é preenchida nos PRs de código. Os cenários de provisionam
 
 | Id | Dado | Quando | Então | Teste |
 |---|---|---|---|---|
-| F8-26 | a infraestrutura provisionada pelo runbook | o `deploy.yml` roda | autentica por WIF, publica a imagem com a tag do commit, aplica as migrations no endpoint direto, cria a revisão, confere o health pela borda e publica Worker e SPA | primeiro deploy |
+| F8-26 | a infraestrutura provisionada pelo runbook | o `deploy.yml` roda | autentica por WIF, publica a imagem com a tag do commit, aplica as migrations no endpoint direto, cria a revisão, confere o health pela borda (no primeiro deploy, direto na URL `*.run.app` com o token de origem, porque a borda ainda não aponta para o serviço) e publica Worker e SPA | primeiro deploy |
 | F8-27 | a migration falha | o `deploy.yml` roda | para antes da nova revisão; a produção segue na anterior | verificação manual |
 | F8-28 | o health da nova revisão falha | o `deploy.yml` roda | o tráfego volta para a revisão anterior e o workflow falha | verificação manual |
 | F8-29 | os jobs no Scheduler | chega o horário | `acordu-tick` e `acordu-diario` respondem 2xx pela borda; resposta fora de 2xx avisa por e-mail | verificação no Scheduler |
@@ -133,6 +133,7 @@ Cada PR contra a `main`, sem empilhar, com testes e CI verde. O provisionamento 
 
 ## 7. Registro
 
+- 03/11 — F8f: `deploy.yml` e `backup.yml`. F8-26 a F8-32 ficam para o primeiro deploy, depois do provisionamento. F8-26 ganhou a exceção do primeiro deploy (health direto no `*.run.app`), a confirmar pelo Daniel no PR do F8f.
 - 03/11 — spec aprovada (PR #124); F8a no PR #125.
 - 03/11 — F8-21 reescrito (decisão do Daniel no PR #128, opção a): sem chamada extra ao `/api/health`; a renovação da sessão ao carregar já acorda o container.
 - 03/11 — rascunho; decisões do Daniel: 1 (a) deploy manual, 2 (a) economia do CI como F8a, 3 (a) só Discord e logs do Cloud Run, 4 (a) ERS ajustada (RNF-DIS-01). Deploy-ci §4, §7 e §9 e a ERS atualizados no PR da spec.

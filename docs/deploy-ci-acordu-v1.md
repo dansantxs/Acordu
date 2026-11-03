@@ -2,8 +2,8 @@
 
 | | |
 |---|---|
-| **Versão** | 0.4 |
-| **Data** | 26/10/2026 |
+| **Versão** | 0.5 |
+| **Data** | 03/11/2026 |
 | **Alvo** | Nível 0 do ADR 0010: SPA no **Cloudflare Pages** (`acordu.app.br`), borda da API num **Worker** (`api.acordu.app.br`), API no **Google Cloud Run** (`us-east4`, projeto `acordu-prod`), banco **Neon** (Postgres 17, `aws-us-east-1`), arquivos no **Cloudflare R2**. |
 | **Base** | ADR 0010. Provisionamento em `setup-infra-acordu.md`. |
 
@@ -93,13 +93,14 @@ Com `Proxy__TokenOrigem` definido, a API responde 404 a requisição sem o token
 **Disparo manual** (`workflow_dispatch`, só na `main`) até haver cliente pagante; depois, automático a cada merge (spec do F8, decisão 1, 03/11/2026). O plano Free com repositório privado não tem aprovação obrigatória em *environments*.
 
 
+0. **CI verde:** sem o check `CI ok` verde no commit da `main`, o deploy não começa (o disparo manual não espera a CI).
 1. **Autenticação** no Google por WIF (`google-github-actions/auth`), restrita a `dansantxs/acordu` na `main`, impersonando `acordu-deployer@acordu-prod`.
 2. **Build e push** para `us-east4-docker.pkg.dev/acordu-prod/acordu/acordu-api`, tag = SHA do commit.
 3. **Migrations:** migration bundle do EF Core no **endpoint direto** do Neon, com `acordu_migrator`. Falhou → para aqui; a revisão em produção continua a anterior.
-4. **Nova revisão** no Cloud Run (`gcloud run deploy --image ...:<sha>`) com as variáveis do §7.
-5. **Healthcheck** `GET /api/health` pela borda; falhou → tráfego de volta à revisão anterior (`gcloud run services update-traffic --to-revisions`).
-6. **Worker:** `wrangler deploy` de `infra/cloudflare/api-borda` (token do Cloudflare restrito a Workers desse script).
-7. **SPA:** build de `apps/web` com `VITE_URL_API=https://api.acordu.app.br` e `VITE_TEMPO_REAL=polling`, publicado no Pages (`wrangler pages deploy`, token restrito ao projeto `acordu-web`).
+4. **Nova revisão** no Cloud Run (`gcloud run deploy --image ...:<sha>`) com as variáveis do §7, num arquivo (`--env-vars-file`) que substitui todas as da revisão anterior; depois, `update-traffic --to-latest`, que desfaz um rollback anterior.
+5. **Healthcheck** `GET /api/health` pela borda; falhou → tráfego de volta à revisão anterior (`gcloud run services update-traffic --to-revisions`). No primeiro deploy não há revisão anterior nem borda apontando para o serviço: confere direto na URL `*.run.app`, com o `X-Origem-Token`.
+6. **Worker:** `wrangler deploy` de `infra/cloudflare/api-borda` (`keep_vars`: `ORIGEM` e `TOKEN_ORIGEM` ficam como estão).
+7. **SPA:** build de `apps/web` com `VITE_URL_API=https://api.acordu.app.br` e `VITE_TEMPO_REAL=polling`, publicado no Pages (`wrangler pages deploy` no projeto `acordu-web`, criado no primeiro deploy). O token do Cloudflare tem o mínimo de conta e zona (runbook C3); o Cloudflare não restringe token a um script ou projeto.
 8. Discord: falha sempre; sucesso com a tag.
 
 ---
@@ -134,7 +135,7 @@ Cada job é um endpoint interno (`POST /internal/jobs/<nome>`): `X-Job-Token` co
 
 ## 7. Segredos e configuração
 
-- **GitHub Actions:** nenhuma chave do Google (WIF). Variáveis `GCP_WIF_PROVIDER` e `GCP_PROJECT_ID`. Secrets: connection string direta do `acordu_migrator`, variáveis da API (abaixo), token do Cloudflare (Pages + Worker), token R2 de backup, webhook do Discord.
+- **GitHub Actions:** nenhuma chave do Google (WIF). Nomes das variáveis e dos secrets no runbook ("Segredos do GitHub"). Variáveis `GCP_WIF_PROVIDER`, `GCP_PROJECT_ID` e `BACKUP_ATIVO`. Secrets: connection string direta do `acordu_migrator`, variáveis da API (abaixo), token do Cloudflare (Pages + Worker), token R2 de backup, webhook do Discord.
 - **Variáveis da API no Cloud Run:**
   - `ConnectionStrings__Acordu` (pooled, `acordu_app`);
   - `Jwt__ChaveAssinatura`; `Jobs__Token`;
@@ -145,7 +146,7 @@ Cada job é um endpoint interno (`POST /internal/jobs/<nome>`): `X-Job-Token` co
   - `Email__ResendChave`, `Email__Remetente` (padrão `nao-responda@send.acordu.app.br`), `Email__NomeRemetente`;
   - `Armazenamento__Endpoint=https://<conta>.r2.cloudflarestorage.com`, `Armazenamento__Regiao=auto`, `Armazenamento__Bucket=acordu-anexos`, `Armazenamento__ChaveAcesso` / `Armazenamento__ChaveSecreta` (token R2 de leitura e escrita só em `acordu-anexos`);
   - limites opcionais (`RateLimit__Auth__PorMinuto` 10, `RateLimit__Refresh__PorMinuto` 30, `RateLimit__Portal__PorMinuto` 10, `RateLimit__Agenda__PorMinuto` 30);
-  - webhook do Discord. (Sentry fora do F8: o SDK é dependência de fornecedor; erros de aplicação ficam nos logs do Cloud Run até uma decisão própria, spec do F8, decisão 3.)
+  - (Sentry fora do F8: o SDK é dependência de fornecedor; erros de aplicação ficam nos logs do Cloud Run até uma decisão própria, spec do F8, decisão 3.)
 - **Segredo do Worker:** `TOKEN_ORIGEM`; variável `ORIGEM` com a URL `*.run.app`.
 - Secret Manager fica como evolução.
 
@@ -153,9 +154,9 @@ Cada job é um endpoint interno (`POST /internal/jobs/<nome>`): `X-Job-Token` co
 
 ## 8. Backup e restore
 
-- **Banco:** `pg_dump -Fc` (imagem `postgres:17` no runner) no endpoint direto → `acordu-backups/db/AAAA-MM-DD.dump` no R2, com token que só escreve nesse bucket. Retenção de 14 dias por lifecycle do bucket.
+- **Banco:** `backup.yml`, às 04:00 (`0 7 * * *` UTC), só com `BACKUP_ATIVO=true`: `pg_dump -Fc` (imagem `postgres:17` no runner, confere o arquivo com `pg_restore --list`) no endpoint direto → `acordu-backups/db/AAAA-MM-DD.dump` no R2, com token que só escreve nesse bucket. Retenção de 14 dias por lifecycle do bucket.
 - **Anexos:** o R2 não tem versionamento. A aplicação só apaga objeto ao trocar o logotipo do portal, e o token da API só alcança `acordu-anexos`. Cópia fora do Cloudflare quando houver cliente pagante (ADR 0010 §8).
-- **Restore testado** antes do primeiro cliente real: `pg_restore` num branch do Neon ou num Postgres 17 local, com a API apontada para ele.
+- **Restore testado** antes do primeiro cliente real: `pg_restore` num branch do Neon ou num Postgres 17 local, com a API apontada para ele (passo a passo no runbook, "Restore").
 - Discord: falha sempre; heartbeat diário de sucesso.
 
 ---
@@ -164,7 +165,7 @@ Cada job é um endpoint interno (`POST /internal/jobs/<nome>`): `X-Job-Token` co
 
 - **UptimeRobot** em `https://api.acordu.app.br/api/health` a cada 5 min (avisa queda e mantém a instância quente parte do tempo).
 - **Pré-aquecimento pela UI:** ao carregar qualquer tela o SPA já renova a sessão (`POST /api/v1/auth/refresh`), o que acorda o container da API antes de a pessoa digitar; por isso não há chamada extra ao `/api/health` (F8d). O banco acorda na primeira requisição que o consulta (com cookie, a própria renovação; sem cookie, o login).
-- Logs do Cloud Run (erros), Discord (deploy, jobs, backup), alerta de orçamento (e-mail). Monitoramento de erros de aplicação (Sentry ou OpenTelemetry) fica para decisão própria.
+- Logs do Cloud Run (erros), Discord (deploy e backup), alerta do Cloud Monitoring para os jobs e de orçamento (e-mail). Monitoramento de erros de aplicação (Sentry ou OpenTelemetry) fica para decisão própria.
 - **Mensal:** CU-h e armazenamento no Neon; vCPU-s no Cloud Run; requisições/dia no Worker; armazenamento no R2. São os gatilhos dos níveis 1 e 2 do ADR 0010.
 
 ---
