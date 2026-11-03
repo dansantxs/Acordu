@@ -1,6 +1,8 @@
 using System.Net;
+using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Text.Json;
+using Acordu.Api.FunctionalTests.Apoio;
 using Acordu.Api.Jobs;
 using Acordu.Api.Seguranca;
 using Acordu.Application.Abstractions;
@@ -84,25 +86,34 @@ public sealed class BordaTests(ApiFixture api)
     }
 
     [Fact]
-    public async Task UrlApi_LinkDaAgendaUsaOEnderecoDaApi()
+    public async Task UrlApi_Configurada_LinkDaAgendaUsaOEnderecoDaApi()
     {
+        // Mesma chave JWT e mesmo banco: o token emitido pela Api do fixture vale na Api com App:UrlApi.
+        var equipe = await Equipe.CriarAsync(api);
         await using var app = await api.NovaApiAsync(new Dictionary<string, string?>
         {
             ["App:UrlPublica"] = "https://acordu.app.br/",
             ["App:UrlApi"] = "https://api.acordu.app.br",
         });
-        await using var semUrlApi = await api.NovaApiAsync(new Dictionary<string, string?> { ["App:UrlPublica"] = "https://acordu.app.br/" });
+        using var http = app.GetTestClient();
+        using var requisicao = new HttpRequestMessage(HttpMethod.Post, new Uri("/api/v1/agenda/assinatura", UriKind.Relative))
+        {
+            Content = JsonContent.Create(new { discreta = false }),
+        };
+        requisicao.Headers.Authorization = new AuthenticationHeaderValue("Bearer", equipe.Dono);
 
-        app.Services.GetRequiredService<EnderecosPublicos>().AgendaIcs("abc").AbsoluteUri
-            .Should().Be("https://api.acordu.app.br/api/v1/agenda/abc.ics");
-        semUrlApi.Services.GetRequiredService<EnderecosPublicos>().AgendaIcs("abc").AbsoluteUri
-            .Should().Be("https://acordu.app.br/api/v1/agenda/abc.ics");
+        using var resposta = await http.SendAsync(requisicao);
+
+        resposta.StatusCode.Should().Be(HttpStatusCode.Created);
+        var link = new Uri((await resposta.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("url").GetString()!);
+        link.Host.Should().Be("api.acordu.app.br");
+        link.AbsolutePath.Should().StartWith("/api/v1/agenda/");
         app.Services.GetRequiredService<EnderecosPublicos>().SolicitacaoInterna(Guid.Empty).Host
             .Should().Be("acordu.app.br", "os links do SPA continuam no endereço público");
     }
 
     [Fact]
-    public async Task SseDesligado_RotaDeEventos404()
+    public async Task Sse_Desligado_RotaDeEventosResponde404()
     {
         await using var app = await api.NovaApiAsync(new Dictionary<string, string?> { ["TempoReal:Sse"] = "false" });
         using var http = app.GetTestClient();

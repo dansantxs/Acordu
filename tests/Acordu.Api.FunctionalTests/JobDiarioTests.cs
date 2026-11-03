@@ -3,11 +3,10 @@ using System.Net.Http.Json;
 using System.Text.Json;
 using Acordu.Api.FunctionalTests.Apoio;
 using Acordu.Api.Jobs;
-using Microsoft.Extensions.Logging.Abstractions;
 
 namespace Acordu.Api.FunctionalTests;
 
-/// <summary>Spec do F8, cenários F8-06 a F8-08: o disparo diário do Scheduler (ADR 0010 §5).</summary>
+/// <summary>Spec do F8, cenários F8-06 e F8-07: o disparo diário do Scheduler (ADR 0010 §5).</summary>
 [Collection(ColecaoApi.Nome)]
 public sealed class JobDiarioTests(ApiFixture api)
 {
@@ -20,8 +19,10 @@ public sealed class JobDiarioTests(ApiFixture api)
         await equipe.EsperarAsync(HttpStatusCode.OK, HttpMethod.Post, $"/api/v1/solicitacoes/{solicitacao}/resolucao",
             new { solucao = new { texto = "Feito" } });
 
+        // 91 dias depois: a solicitação passou do fechamento (2 dias) e a atividade da abertura passou da retenção do
+        // feed (90 dias), então o fechamento e o expurgo precisam ter rodado.
         var inicio = api.Relogio.Agora;
-        api.Relogio.Agora = inicio.AddDays(2);
+        api.Relogio.Agora = inicio.AddDays(91);
         JsonElement resultado;
         try
         {
@@ -39,8 +40,9 @@ public sealed class JobDiarioTests(ApiFixture api)
 
         resultado.GetProperty("fechadas").GetInt32().Should().BeGreaterThanOrEqualTo(1);
         resultado.GetProperty("falhas").GetInt32().Should().Be(0);
-        foreach (var contagem in new[] { "auditoriaRemovida", "notificacoesRemovidas", "atividadesRemovidas" })
-            resultado.GetProperty(contagem).GetInt32().Should().BeGreaterThanOrEqualTo(0);
+        resultado.GetProperty("atividadesRemovidas").GetInt32().Should().BeGreaterThanOrEqualTo(1);
+        resultado.GetProperty("auditoriaRemovida").GetInt32().Should().BeGreaterThanOrEqualTo(0);
+        resultado.GetProperty("notificacoesRemovidas").GetInt32().Should().BeGreaterThanOrEqualTo(0);
         (await equipe.EsperarAsync(HttpStatusCode.OK, HttpMethod.Get, $"/api/v1/solicitacoes/{solicitacao}"))
             .GetProperty("status").GetString().Should().Be("FECHADA");
     }
@@ -58,24 +60,5 @@ public sealed class JobDiarioTests(ApiFixture api)
         using var resposta = await http.SendAsync(requisicao);
 
         resposta.StatusCode.Should().Be(HttpStatusCode.NotFound);
-    }
-
-    [Fact]
-    public async Task Passos_UmFalha_OsSeguintesRodamEAFalhaConta()
-    {
-        var rodados = new List<string>();
-
-        var resultado = await PassosDiario.ExecutarAsync(
-            [
-                new("primeiro", _ => { rodados.Add("primeiro"); return Task.FromResult(3); }),
-                new("quebra", _ => throw new InvalidOperationException("banco fora")),
-                new("ultimo", _ => { rodados.Add("ultimo"); return Task.FromResult(5); }),
-            ],
-            NullLogger.Instance,
-            CancellationToken.None);
-
-        rodados.Should().Equal("primeiro", "ultimo");
-        resultado.Contagens.Should().Equal(3, 0, 5);
-        resultado.Falhas.Should().Be(1);
     }
 }

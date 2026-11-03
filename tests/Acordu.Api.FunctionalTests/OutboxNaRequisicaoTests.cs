@@ -7,7 +7,7 @@ using Microsoft.EntityFrameworkCore;
 namespace Acordu.Api.FunctionalTests;
 
 /// <summary>
-/// ADR 0006: a outbox da requisição é entregue antes da resposta (vale também no plano B serverless); o que falhar
+/// ADR 0010: a outbox da requisição é entregue antes da resposta (no Cloud Run a CPU é estrangulada depois); o que falhar
 /// fica para o job <c>tick</c>.
 /// </summary>
 [Collection(ColecaoApi.Nome)]
