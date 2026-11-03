@@ -22,7 +22,7 @@ A coluna **Teste** é preenchida nos PRs de código. Os cenários de provisionam
 | F8-01 | um PR aberto | chega um push na branch dele | a CI roda uma vez (pelo PR), não duas (push e PR) | verificação no Actions |
 | F8-02 | um PR que só muda `docs/` ou `*.md` | a CI roda | backend, front, E2E e imagem ficam como pulados (contam como verdes) | verificação no Actions |
 | F8-03 | um PR que só muda `apps/web/` | a CI roda | backend e imagem são pulados; front e E2E rodam | verificação no Actions |
-| F8-04 | um PR que muda `src/`, `tests/` ou a solução | a CI roda | backend, E2E e imagem rodam; front roda só se `apps/web/` ou `openapi/` mudou | verificação no Actions |
+| F8-04 | um PR que muda `src/`, `tests/` ou a solução | a CI roda | backend e E2E rodam; imagem só se mudou o código da API (`src/`, solução, props, `global.json`) ou `docker/`; front só se `apps/web/` ou `openapi/` mudou | verificação no Actions |
 | F8-05 | um push na `main` (merge) | a CI roda | roda tudo, sem filtro, como base para o deploy | verificação no Actions |
 
 ### API
