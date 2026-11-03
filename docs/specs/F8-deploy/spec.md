@@ -89,27 +89,31 @@ A coluna **Teste** é preenchida nos PRs de código. Os cenários de provisionam
 ## 4. Decisões que dependem do Daniel
 
 1. **Como o deploy dispara.**
+   - **Decidido em 03/11: (a).**
    - (a) **Manual** (`workflow_dispatch` na `main`) até haver cliente pagante; depois, automático a cada merge. **Recomendado**: o repositório é privado no plano Free, que não tem aprovação obrigatória em *environments*; manual é o jeito gratuito de você decidir o que vai ao ar, e cada deploy gasta minutos.
    - (b) Automático a cada merge na `main` desde o início.
 
 2. **Economia de minutos do CI dentro do F8.**
+   - **Decidido em 03/11: (a).**
    - (a) **Primeiro PR do marco** (F8a): CI só pelo PR (o push da branch não roda de novo), filtros por caminho em cada job e tudo na `main`. **Recomendado**: o bloqueio de 23/10 veio do consumo, e o F8 acrescenta deploy, imagem e backup no Actions.
    - (b) Deixar como está e acompanhar o consumo.
 
 3. **Monitoramento de erros.**
+   - **Decidido em 03/11: (a).**
    - (a) **No F8, só Discord** (falha de deploy, de backup e dos jobs) e os logs do Cloud Run; erro de aplicação com Sentry ou OpenTelemetry vira decisão própria depois. **Recomendado**: o SDK do Sentry é dependência de fornecedor no código (o ADR 0010 §10 pede nenhum SDK de provedor), e o Cloud Run já guarda os logs.
    - (b) Sentry no F8, como está no `deploy-ci` v0.4.
 
 4. **Backup dos anexos (conflito entre a ERS e o ADR 0010).** A RNF-DIS-01 pede backup diário do banco **e dos anexos**; o ADR 0010 §8 deixa os anexos sem cópia até haver cliente pagante.
+   - **Decidido em 03/11: (a).**
    - (a) **Ajustar a ERS** para seguir o ADR (anexos com cópia fora do Cloudflare a partir do primeiro cliente pagante). **Recomendado**: copiar o bucket todo dia no Actions gasta minutos e duplica o armazenamento do R2 sem cliente real.
    - (b) Incluir no `backup.yml` uma cópia diária de `acordu-anexos` para `acordu-backups` (rclone).
 
 ## 5. Impacto nos documentos
 
-- **`deploy-ci-acordu-v1.md`:** §3 (gatilhos e filtros do CI, job de imagem), §4 (disparo do deploy pela decisão 1), §7 e §9 (Sentry, pela decisão 3), §5 (o diário passa a existir).
+- **`deploy-ci-acordu-v1.md`:** §4 (disparo manual) e §7/§9 (sem Sentry) já no PR da spec; §3 (gatilhos e filtros do CI, job de imagem) no F8a e F8c; §5 (o diário passa a existir) no F8b.
 - **`contrato-api-acordu-v1.md`:** nenhum (os jobs e o token de origem ficam fora do OpenAPI).
 - **`seguranca-modelo-acesso-acordu-v1.md`:** confirmar o token de origem, os dois saltos e o CORS com credenciais.
-- **ERS:** RNF-DIS-01, pela decisão 4.
+- **ERS:** RNF-DIS-01, pela decisão 4 (ajustada no PR da spec).
 - **ADR 0010:** nota no §8 se a decisão 4 for (b); nenhuma mudança se for (a).
 - **Convenções:** variáveis `VITE_*` do SPA e o padrão de filtros da CI.
 - **Comentários no código** que ainda citam OCI, Caddy ou VM: `JobsEndpoints`, `ComposicaoSeguranca`, `OrigemDaRequisicao`, `ComposicaoApi`, `ArmazenamentoS3`, `OpcoesArmazenamento`, `EnderecosPublicos` e `vite.config.ts` (vão no PR da área).
@@ -129,4 +133,4 @@ Cada PR contra a `main`, sem empilhar, com testes e CI verde. O provisionamento 
 
 ## 7. Registro
 
-- 03/11 — rascunho.
+- 03/11 — rascunho; decisões do Daniel: 1 (a) deploy manual, 2 (a) economia do CI como F8a, 3 (a) só Discord e logs do Cloud Run, 4 (a) ERS ajustada (RNF-DIS-01). Deploy-ci §4, §7 e §9 e a ERS atualizados no PR da spec.
