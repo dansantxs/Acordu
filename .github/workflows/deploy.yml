@@ -1,0 +1,236 @@
+name: Deploy
+
+# Produção do nível 0 (ADR 0010; deploy-ci-acordu-v1.md §4). Disparo manual, só na main, até haver cliente pagante
+# (spec do F8, decisão 1): Actions → Deploy → Run workflow. Ordem: CI verde no commit → imagem → migrations → nova
+# revisão → health pela borda (falhou: tráfego volta à anterior) → Worker → SPA → Discord.
+# Nomes de variáveis e segredos do repositório: setup-infra-acordu.md, "Segredos do GitHub".
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  checks: read
+  id-token: write
+
+concurrency:
+  group: deploy
+  cancel-in-progress: false
+
+env:
+  REGIAO: us-east4
+  SERVICO: acordu-api
+  BORDA: https://api.acordu.app.br
+
+jobs:
+  deploy:
+    name: Deploy de produção
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - name: Só na main
+        if: github.ref != 'refs/heads/main'
+        run: |
+          echo "::error::O deploy roda só na main."
+          exit 1
+
+      # O disparo manual não espera a CI: sem o "CI ok" verde neste commit, não publica.
+      - name: CI verde neste commit
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          resultado=$(gh api "repos/$GITHUB_REPOSITORY/commits/$GITHUB_SHA/check-runs?check_name=CI%20ok" \
+            --jq '[.check_runs[] | select(.app.slug == "github-actions")][0].conclusion // "ausente"')
+          echo "CI ok em ${GITHUB_SHA:0:7}: $resultado"
+          if [[ "$resultado" != "success" ]]; then
+            echo "::error::A CI deste commit não está verde ($resultado). Espere o run da main terminar."
+            exit 1
+          fi
+
+      - uses: actions/checkout@v4
+
+      - uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ vars.GCP_WIF_PROVIDER }}
+          service_account: acordu-deployer@${{ vars.GCP_PROJECT_ID }}.iam.gserviceaccount.com
+
+      - uses: google-github-actions/setup-gcloud@v2
+
+      - name: Imagem (build e push)
+        id: imagem
+        env:
+          PROJETO: ${{ vars.GCP_PROJECT_ID }}
+        run: |
+          imagem="$REGIAO-docker.pkg.dev/$PROJETO/acordu/acordu-api:$GITHUB_SHA"
+          gcloud auth configure-docker "$REGIAO-docker.pkg.dev" --quiet
+          docker build --platform linux/amd64 -f docker/api.Dockerfile -t "$imagem" .
+          docker push "$imagem"
+          echo "imagem=$imagem" >> "$GITHUB_OUTPUT"
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: global.json
+
+      # Bundle do EF Core no endpoint direto do Neon, com acordu_migrator (a fábrica de design lê ACORDU_CONNECTION).
+      # Falhou: para aqui, e a produção segue na revisão anterior (F8-27).
+      - name: Migrations
+        env:
+          ACORDU_CONNECTION: ${{ secrets.NEON_MIGRATOR }}
+        run: |
+          if [[ -z "$ACORDU_CONNECTION" ]]; then echo "::error::Falta o secret NEON_MIGRATOR."; exit 1; fi
+          dotnet tool restore
+          dotnet ef migrations bundle --project src/Acordu.Infrastructure --startup-project src/Acordu.Api \
+            --configuration Release --output "$RUNNER_TEMP/efbundle" --force
+          "$RUNNER_TEMP/efbundle"
+
+      - name: Revisão em produção antes do deploy
+        id: anterior
+        run: |
+          anterior=$(gcloud run services describe "$SERVICO" --region "$REGIAO" \
+            --format='value(status.traffic[0].revisionName)' 2>/dev/null || true)
+          echo "Revisão anterior: ${anterior:-(nenhuma: primeiro deploy)}"
+          echo "revisao=$anterior" >> "$GITHUB_OUTPUT"
+
+      # Variáveis em arquivo (as connection strings têm ';' e '=' e quebrariam o --set-env-vars). O arquivo substitui
+      # todas as variáveis da revisão: a configuração é a deste workflow, não a do painel.
+      - name: Variáveis da API
+        env:
+          ConnectionStrings__Acordu: ${{ secrets.API_CONNECTION_STRING }}
+          Jwt__ChaveAssinatura: ${{ secrets.API_JWT_CHAVE }}
+          Jobs__Token: ${{ secrets.API_JOBS_TOKEN }}
+          Proxy__TokenOrigem: ${{ secrets.API_TOKEN_ORIGEM }}
+          Email__ResendChave: ${{ secrets.API_RESEND_CHAVE }}
+          Armazenamento__Endpoint: ${{ secrets.R2_ENDPOINT }}
+          Armazenamento__ChaveAcesso: ${{ secrets.API_R2_CHAVE_ACESSO }}
+          Armazenamento__ChaveSecreta: ${{ secrets.API_R2_CHAVE_SECRETA }}
+        run: |
+          python3 - "$RUNNER_TEMP/env-api.yaml" <<'PY'
+          import json, os, sys
+
+          fixas = {
+              "Cors__Origem": "https://acordu.app.br",
+              "App__UrlPublica": "https://acordu.app.br/",
+              "App__UrlApi": "https://api.acordu.app.br/",
+              "Proxy__ConfiarEncaminhamento": "true",
+              "Proxy__Saltos": "2",
+              "TempoReal__Sse": "false",
+              "Armazenamento__Regiao": "auto",
+              "Armazenamento__Bucket": "acordu-anexos",
+          }
+          obrigatorias = ["ConnectionStrings__Acordu", "Jwt__ChaveAssinatura", "Jobs__Token", "Proxy__TokenOrigem",
+                          "Email__ResendChave"]
+          # Sem endpoint do R2, a API sobe sem anexos (ComposicaoApi); com ele, as chaves são obrigatórias.
+          opcionais = ["Armazenamento__Endpoint", "Armazenamento__ChaveAcesso", "Armazenamento__ChaveSecreta"]
+
+          faltam = [n for n in obrigatorias if not os.environ.get(n)]
+          if os.environ.get("Armazenamento__Endpoint"):
+              faltam += [n for n in opcionais[1:] if not os.environ.get(n)]
+          if faltam:
+              sys.exit("Faltam os secrets de: " + ", ".join(faltam))
+
+          variaveis = dict(fixas)
+          variaveis.update({n: os.environ[n] for n in obrigatorias + opcionais if os.environ.get(n)})
+          if "Armazenamento__Endpoint" not in variaveis:
+              for n in ("Armazenamento__Regiao", "Armazenamento__Bucket"):
+                  variaveis.pop(n)
+          caminho = sys.argv[1]
+          with open(os.open(caminho, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600), "w") as f:
+              json.dump(variaveis, f)  # JSON é YAML válido.
+          print("Variáveis:", ", ".join(sorted(variaveis)))
+          PY
+
+      # Parâmetros do deploy-ci §2.2. O --to-latest desfaz um rollback anterior, que fixa o tráfego numa revisão.
+      - name: Nova revisão
+        env:
+          PROJETO: ${{ vars.GCP_PROJECT_ID }}
+          IMAGEM: ${{ steps.imagem.outputs.imagem }}
+        run: |
+          gcloud run deploy "$SERVICO" --image "$IMAGEM" --region "$REGIAO" \
+            --service-account "acordu-api@$PROJETO.iam.gserviceaccount.com" \
+            --cpu 1 --memory 512Mi --min-instances 0 --max-instances 2 --cpu-boost --port 8080 \
+            --allow-unauthenticated --env-vars-file "$RUNNER_TEMP/env-api.yaml" --quiet
+          gcloud run services update-traffic "$SERVICO" --region "$REGIAO" --to-latest --quiet
+          rm -f "$RUNNER_TEMP/env-api.yaml"
+
+      # Pela borda (F8-26, F8-28). No primeiro deploy a borda ainda não aponta para o serviço (ORIGEM é definida
+      # depois dele, runbook C4): confere direto na URL *.run.app, com o token de origem.
+      - name: Health
+        env:
+          ANTERIOR: ${{ steps.anterior.outputs.revisao }}
+          TOKEN_ORIGEM: ${{ secrets.API_TOKEN_ORIGEM }}
+        run: |
+          if [[ -n "$ANTERIOR" ]]; then
+            url="$BORDA/api/health"; cabecalho=()
+          else
+            url="$(gcloud run services describe "$SERVICO" --region "$REGIAO" --format='value(status.url)')/api/health"
+            cabecalho=(-H "X-Origem-Token: $TOKEN_ORIGEM")
+          fi
+          for i in $(seq 1 10); do
+            curl -fsS --max-time 20 "${cabecalho[@]}" "$url" && exit 0
+            sleep 5
+          done
+          echo "::error::$url não respondeu."
+          if [[ -n "$ANTERIOR" ]]; then
+            gcloud run services update-traffic "$SERVICO" --region "$REGIAO" --to-revisions "$ANTERIOR=100" --quiet
+            echo "::error::Tráfego de volta para $ANTERIOR."
+          fi
+          exit 1
+
+      - uses: pnpm/action-setup@v4
+        with:
+          package_json_file: infra/cloudflare/api-borda/package.json
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+          cache-dependency-path: |
+            infra/cloudflare/api-borda/pnpm-lock.yaml
+            apps/web/pnpm-lock.yaml
+
+      # keep_vars no wrangler.toml: ORIGEM e TOKEN_ORIGEM, definidos no painel, ficam como estão.
+      - name: Worker da borda
+        working-directory: infra/cloudflare/api-borda
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          pnpm install --frozen-lockfile
+          pnpm exec wrangler deploy
+
+      - name: SPA (build)
+        working-directory: apps/web
+        env:
+          VITE_URL_API: https://api.acordu.app.br
+          VITE_TEMPO_REAL: polling
+        run: |
+          pnpm install --frozen-lockfile
+          pnpm build
+
+      # Usa o wrangler da borda (versão travada no lockfile dela). O projeto é criado no primeiro deploy.
+      - name: SPA (Pages)
+        working-directory: infra/cloudflare/api-borda
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          if ! pnpm exec wrangler pages project list | grep -q 'acordu-web'; then
+            pnpm exec wrangler pages project create acordu-web --production-branch main
+          fi
+          pnpm exec wrangler pages deploy "$GITHUB_WORKSPACE/apps/web/dist" --project-name acordu-web \
+            --branch main --commit-hash "$GITHUB_SHA"
+
+      - name: Discord
+        if: always()
+        env:
+          WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
+          STATUS: ${{ job.status }}
+          RUN: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          [[ -z "$WEBHOOK" ]] && { echo "Sem DISCORD_WEBHOOK; aviso pulado."; exit 0; }
+          if [[ "$STATUS" == "success" ]]; then
+            texto="Deploy ok: ${GITHUB_SHA:0:7}"
+          else
+            texto="Deploy falhou ($STATUS) em ${GITHUB_SHA:0:7}: $RUN"
+          fi
+          jq -n --arg t "$texto" '{content: $t}' | curl -fsS -H 'Content-Type: application/json' -d @- "$WEBHOOK"
