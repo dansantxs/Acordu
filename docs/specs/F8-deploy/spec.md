@@ -44,7 +44,7 @@ A coluna **Teste** é preenchida nos PRs de código. Os cenários de provisionam
 
 | Id | Dado | Quando | Então | Teste |
 |---|---|---|---|---|
-| F8-16 | `docker/api.Dockerfile` | a CI constrói a imagem `linux/amd64` | o container sobe como não-root na porta 8080, responde `200` em `/api/health` e resolve `America/Sao_Paulo` | job de fumaça da imagem |
+| F8-16 | `docker/api.Dockerfile` | a CI constrói a imagem `linux/amd64` | o container sobe como não-root na porta 8080, responde `200` em `/api/health` e resolve `America/Sao_Paulo` | job `Imagem da API` na CI (build, sem root, health); fuso e ICU conferidos ao subir por `AmbienteDeExecucao` |
 
 ### SPA
 
