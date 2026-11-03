@@ -6,9 +6,10 @@ using Amazon.S3.Model;
 namespace Acordu.Infrastructure.Armazenamento;
 
 /// <summary>
-/// <see cref="IArmazenamentoArquivos"/> sobre o AWSSDK.S3, apontado para o endpoint S3 da OCI (ou o MinIO nos testes).
-/// Ajustes de compatibilidade: path style, checksums só quando exigidos e upload sem <c>aws-chunked</c> (o endpoint da
-/// OCI não aceita os padrões novos do SDK v4).
+/// <see cref="IArmazenamentoArquivos"/> sobre o AWSSDK.S3 (só como cliente do protocolo), apontado para o Cloudflare R2
+/// em produção (ADR 0010) ou para o S3Mock nos testes e no desenvolvimento. Ajustes de compatibilidade: path style,
+/// checksums só quando exigidos e upload sem <c>aws-chunked</c> (provedores compatíveis com S3 nem sempre aceitam os
+/// padrões novos do SDK v4).
 /// </summary>
 public sealed class ArmazenamentoS3 : IArmazenamentoArquivos, IDisposable
 {

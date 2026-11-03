@@ -6,7 +6,7 @@ using Acordu.Application.Abstractions;
 namespace Acordu.Infrastructure.Email;
 
 /// <summary>
-/// Envio pela API HTTP do Resend (<c>POST /emails</c>), sem SDK (ADR 0006). Texto e HTML do mesmo conteúdo: o HTML é o
+/// Envio pela API HTTP do Resend (<c>POST /emails</c>), sem SDK (ADR 0010). Texto e HTML do mesmo conteúdo: o HTML é o
 /// texto escapado, com quebras de linha e links clicáveis. Resposta fora de 2xx lança exceção (a outbox tenta de novo),
 /// sem o corpo da mensagem no erro.
 /// </summary>
