@@ -1,0 +1,8 @@
+# Borda da API (ADR 0010 §3, deploy-ci §2.1): api.acordu.app.br → serviço do Cloud Run (*.run.app).
+# ORIGEM (variável) e TOKEN_ORIGEM (segredo: `wrangler secret put TOKEN_ORIGEM`) são definidos no provisionamento
+# (setup-infra-acordu.md); nada sensível fica neste arquivo.
+name = "acordu-api-borda"
+main = "src/index.ts"
+compatibility_date = "2025-06-01"
+workers_dev = false
+routes = [{ pattern = "api.acordu.app.br", custom_domain = true }]
