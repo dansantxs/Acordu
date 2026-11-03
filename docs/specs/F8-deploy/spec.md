@@ -50,12 +50,12 @@ A coluna **Teste** é preenchida nos PRs de código. Os cenários de provisionam
 
 | Id | Dado | Quando | Então | Teste |
 |---|---|---|---|---|
-| F8-17 | `VITE_URL_API=https://api.acordu.app.br` no build | o SPA chama a API, renova a sessão ou abre o SSE | usa essa base; sem a variável, a mesma origem (dev com o proxy do Vite) | — |
-| F8-18 | base da API em outra origem | o SPA chama `/api/v1/auth/*` | envia `credentials: 'include'` (o cookie `acordu_refresh` vai e volta) | — |
-| F8-19 | `VITE_TEMPO_REAL=polling` | a pessoa abre qualquer tela | nenhuma conexão SSE é aberta | — |
-| F8-20 | `VITE_TEMPO_REAL=polling` e a aba visível | a Agenda ou o Quadro de tarefas está aberto | os dados recarregam a cada 30 s; com a aba escondida, param | — |
-| F8-21 | — | a pessoa abre o login, o cadastro ou o portal | o SPA dispara `GET /api/health` sem esperar a resposta (pré-aquecimento) | — |
-| F8-22 | o build publicado no Pages | o navegador pede qualquer rota do SPA | recebe o `index.html` com CSP (`connect-src 'self' https://api.acordu.app.br https://viacep.com.br`) e HSTS | — |
+| F8-17 | `VITE_URL_API=https://api.acordu.app.br` no build | o SPA chama a API, renova a sessão ou abre o SSE | usa essa base; sem a variável, a mesma origem (dev com o proxy do Vite) | `web/src/shared/config/ambiente.test.ts › F8-17` |
+| F8-18 | base da API em outra origem | o SPA chama `/api/v1/auth/*` | envia `credentials: 'include'` (o cookie `acordu_refresh` vai e volta) | `web/src/shared/api/cliente.test.ts › F8-18` (`credentials: include` em todos os clientes; o caminho do cookie o limita a `/api/v1/auth`) |
+| F8-19 | `VITE_TEMPO_REAL=polling` | a pessoa abre qualquer tela | nenhuma conexão SSE é aberta | `web/src/shared/tempoReal/useTempoReal.test.tsx › F8-19` |
+| F8-20 | `VITE_TEMPO_REAL=polling` e a aba visível | a Agenda ou o Quadro de tarefas está aberto | os dados recarregam a cada 30 s; com a aba escondida, param | `web/src/shared/config/ambiente.test.ts › F8-20` (`refetchInterval` na Agenda e no Quadro; aba escondida não recarrega, padrão do TanStack Query) |
+| F8-21 | — | a pessoa abre qualquer tela (login, cadastro, portal) | a primeira requisição do SPA, a renovação da sessão, já acorda o container da API; não há chamada extra ao `/api/health`, que também não toca o banco (proposta do F8d, a confirmar no PR #128) | `web/src/shared/sessao/sessao.test.ts › recupera a sessão pelo cookie na primeira carga` (a renovação é a primeira chamada; `Aplicacao.tsx` chama `iniciarSessao()` ao carregar) |
+| F8-22 | o build publicado no Pages | o navegador pede qualquer rota do SPA | recebe o `index.html` com CSP (`connect-src 'self' https://api.acordu.app.br https://viacep.com.br`) e HSTS | `pnpm csp:conferir` na CI (hashes do script de tema e dos dois `<style>` do React Aria no `_headers`); o fallback para o `index.html` é o padrão do Pages sem `404.html`; cabeçalhos conferidos no primeiro deploy |
 
 ### Borda (Worker)
 
