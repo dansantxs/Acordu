@@ -65,7 +65,7 @@
 4. No repositório: variáveis `GCP_WIF_PROVIDER` e `GCP_PROJECT_ID` (ver "Segredos do GitHub").
 
 ### 5. Cloud Run
-Criado pelo primeiro deploy (Actions → **Deploy** → Run workflow, na `main`; `deploy-ci-acordu-v1.md` §4), com os parâmetros do §2.2 de lá. Anotar a URL `*.run.app` para a variável `ORIGEM` do Worker. Nesse primeiro deploy o health é conferido direto na URL `*.run.app` (com o token de origem), porque a borda ainda não aponta para o serviço; do segundo em diante, pela borda.
+Criado pelo primeiro deploy (Actions → **Deploy** → Run workflow, na `main`; `deploy-ci-acordu-v1.md` §4), com os parâmetros do §2.2 de lá. Anotar a URL `*.run.app` para a variável `ORIGEM` do Worker. Enquanto a variável `BORDA_ATIVA` não for `true`, o deploy confere o health direto na URL `*.run.app` (com o token de origem), porque a borda ainda não aponta para o serviço; depois de C4, pela borda.
 
 ### 6. Cloud Scheduler (depois do primeiro deploy e do Worker)
 Fuso `America/Sao_Paulo`, região `us-east4`, cabeçalho `X-Job-Token` (o valor do secret `API_JOBS_TOKEN`), retry com backoff curto:
@@ -129,7 +129,8 @@ Conferir no primeiro deploy; se o `wrangler` pedir outra permissão, acrescentá
 ### 4. Worker da borda
 1. Script **`acordu-api-borda`** publicado pelo `deploy.yml` (`infra/cloudflare/api-borda`).
 2. Rota/domínio personalizado **`api.acordu.app.br`**.
-3. Variável `ORIGEM` = URL `*.run.app`; segredo `TOKEN_ORIGEM` (gerar 32 bytes aleatórios; o mesmo valor vai no secret `API_TOKEN_ORIGEM`, que o deploy grava em `Proxy__TokenOrigem` da API). O `wrangler.toml` tem `keep_vars = true`: os deploys do `deploy.yml` preservam a `ORIGEM` definida no painel.
+3. Variável `ORIGEM` = URL `*.run.app`; segredo `TOKEN_ORIGEM` com **o mesmo valor** do secret `API_TOKEN_ORIGEM`, gerado antes do primeiro deploy (o deploy o grava em `Proxy__TokenOrigem` da API): `pnpm exec wrangler secret put TOKEN_ORIGEM` em `infra/cloudflare/api-borda`, ou pelo painel. O `wrangler.toml` tem `keep_vars = true`: os deploys do `deploy.yml` preservam a `ORIGEM` definida no painel.
+4. Conferir `curl https://api.acordu.app.br/api/health` e criar a variável do repositório `BORDA_ATIVA=true`: daí em diante o health do deploy passa pela borda.
 
 ---
 
@@ -158,12 +159,13 @@ Repositório → Settings → Secrets and variables → Actions. Só os nomes fi
 |---|---|---|
 | Variável | `GCP_WIF_PROVIDER` | Nome completo do provider `acordu-repo` (A4) |
 | Variável | `GCP_PROJECT_ID` | `acordu-prod` |
+| Variável | `BORDA_ATIVA` | `true` depois de C4; o health do deploy passa a ir pela borda |
 | Variável | `BACKUP_ATIVO` | `true` quando Neon e R2 estiverem prontos; liga o agendamento do `backup.yml` |
 | Secret | `NEON_MIGRATOR` | String direta, `acordu_migrator` (B4) |
 | Secret | `API_CONNECTION_STRING` | String pooled, `acordu_app` (B4) |
 | Secret | `API_JWT_CHAVE` | 64 bytes aleatórios (`Jwt__ChaveAssinatura`) |
 | Secret | `API_JOBS_TOKEN` | 32 bytes aleatórios (`Jobs__Token`; o mesmo no Scheduler) |
-| Secret | `API_TOKEN_ORIGEM` | O mesmo `TOKEN_ORIGEM` do Worker (C4) |
+| Secret | `API_TOKEN_ORIGEM` | 32 bytes aleatórios; o mesmo valor vai no `TOKEN_ORIGEM` do Worker (C4) |
 | Secret | `API_RESEND_CHAVE` | Chave do Resend (D3) |
 | Secret | `R2_ENDPOINT` | Endpoint S3 do R2 (C2) |
 | Secret | `API_R2_CHAVE_ACESSO`, `API_R2_CHAVE_SECRETA` | Token `acordu-api-anexos` (C2) |
@@ -177,10 +179,20 @@ O `deploy.yml` recusa publicar se faltar algum obrigatório; sem `R2_ENDPOINT`, 
 
 ## Restore (antes do primeiro cliente; F8-31)
 
-1. Baixar o dump do dia com o token `acordu-backup`: `aws s3 cp s3://acordu-backups/db/AAAA-MM-DD.dump . --endpoint-url <R2_ENDPOINT>` (região `auto`).
-2. Subir o Postgres 17 local (`docker compose -f docker-compose.dev.yml up -d`, porta 5434) e criar um banco vazio: `createdb -h localhost -p 5434 -U acordu acordu_restore`.
-3. `pg_restore -h localhost -p 5434 -U acordu -d acordu_restore --no-owner --no-privileges AAAA-MM-DD.dump`.
-4. Subir a API com `ConnectionStrings__Acordu` apontando para `acordu_restore` e conferir login e dados de uma empresa.
+1. Baixar o dump do dia com o token `acordu-backup` (as mesmas variáveis do `backup.yml`):
+   ```
+   AWS_ACCESS_KEY_ID=... AWS_SECRET_ACCESS_KEY=... AWS_DEFAULT_REGION=auto \
+   AWS_REQUEST_CHECKSUM_CALCULATION=when_required AWS_RESPONSE_CHECKSUM_VALIDATION=when_required \
+   aws s3 cp s3://acordu-backups/db/AAAA-MM-DD.dump . --endpoint-url <R2_ENDPOINT>
+   ```
+2. Subir o Postgres 17 local (`docker compose -f docker-compose.dev.yml up -d`, porta 5434). Com o cliente 17 da imagem, sem instalar nada:
+   ```
+   docker run --rm --network host -e PGPASSWORD=acordu_dev -v "$PWD:/d" postgres:17 \
+     createdb -h localhost -p 5434 -U acordu acordu_restore
+   docker run --rm --network host -e PGPASSWORD=acordu_dev -v "$PWD:/d" postgres:17 \
+     pg_restore -h localhost -p 5434 -U acordu -d acordu_restore --no-owner --no-privileges /d/AAAA-MM-DD.dump
+   ```
+3. Subir a API com `ConnectionStrings__Acordu` apontando para `acordu_restore` e conferir login e dados de uma empresa.
 
 ---
 
@@ -196,8 +208,10 @@ B.  Neon: projeto, banco, roles → secrets do GitHub
 C1. Domínios → Cloudflare
 C2. R2: buckets + tokens → secrets do GitHub
 D.  Resend (SPF/DKIM/DMARC)
+C3. Token do Cloudflare
+→ Segredos do GitHub: todos os da tabela (gerar API_JWT_CHAVE, API_JOBS_TOKEN e API_TOKEN_ORIGEM), menos BORDA_ATIVA e BACKUP_ATIVO
 → primeiro deploy (cria o serviço Cloud Run, o Worker e o Pages)
-C3/C4. Domínios do Pages e do Worker; ORIGEM e TOKEN_ORIGEM
+C3/C4. Domínios do Pages e do Worker; ORIGEM e TOKEN_ORIGEM (= API_TOKEN_ORIGEM) → BORDA_ATIVA=true
 A6. Cloud Scheduler (tick e diário) + alerta de falha
 E.  UptimeRobot + Discord
 → BACKUP_ATIVO=true; primeiro backup

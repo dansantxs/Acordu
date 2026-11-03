@@ -98,7 +98,7 @@ Com `Proxy__TokenOrigem` definido, a API responde 404 a requisição sem o token
 2. **Build e push** para `us-east4-docker.pkg.dev/acordu-prod/acordu/acordu-api`, tag = SHA do commit.
 3. **Migrations:** migration bundle do EF Core no **endpoint direto** do Neon, com `acordu_migrator`. Falhou → para aqui; a revisão em produção continua a anterior.
 4. **Nova revisão** no Cloud Run (`gcloud run deploy --image ...:<sha>`) com as variáveis do §7, num arquivo (`--env-vars-file`) que substitui todas as da revisão anterior; depois, `update-traffic --to-latest`, que desfaz um rollback anterior.
-5. **Healthcheck** `GET /api/health` pela borda; falhou → tráfego de volta à revisão anterior (`gcloud run services update-traffic --to-revisions`). No primeiro deploy não há revisão anterior nem borda apontando para o serviço: confere direto na URL `*.run.app`, com o `X-Origem-Token`.
+5. **Healthcheck** `GET /api/health` pela borda; falhou → tráfego de volta à revisão anterior (`gcloud run services update-traffic --to-revisions`). Até a borda apontar para o serviço (variável `BORDA_ATIVA=true`, runbook C4), confere direto na URL `*.run.app`, com o `X-Origem-Token`. Só "serviço não existe" conta como primeiro deploy; outro erro ao ler o serviço para o deploy, para não desligar o rollback.
 6. **Worker:** `wrangler deploy` de `infra/cloudflare/api-borda` (`keep_vars`: `ORIGEM` e `TOKEN_ORIGEM` ficam como estão).
 7. **SPA:** build de `apps/web` com `VITE_URL_API=https://api.acordu.app.br` e `VITE_TEMPO_REAL=polling`, publicado no Pages (`wrangler pages deploy` no projeto `acordu-web`, criado no primeiro deploy). O token do Cloudflare tem o mínimo de conta e zona (runbook C3); o Cloudflare não restringe token a um script ou projeto.
 8. Discord: falha sempre; sucesso com a tag.
@@ -148,6 +148,7 @@ Cada job é um endpoint interno (`POST /internal/jobs/<nome>`): `X-Job-Token` co
   - limites opcionais (`RateLimit__Auth__PorMinuto` 10, `RateLimit__Refresh__PorMinuto` 30, `RateLimit__Portal__PorMinuto` 10, `RateLimit__Agenda__PorMinuto` 30);
   - (Sentry fora do F8: o SDK é dependência de fornecedor; erros de aplicação ficam nos logs do Cloud Run até uma decisão própria, spec do F8, decisão 3.)
 - **Segredo do Worker:** `TOKEN_ORIGEM`; variável `ORIGEM` com a URL `*.run.app`.
+- **Risco aceito (nível 0):** os secrets de produção são do repositório, não de um *environment* com restrição de branch (o plano Free com repositório privado não oferece). O WIF limita o Google à `main`, mas um workflow alterado em qualquer branch do próprio repositório alcança Neon (migrator), R2 e Cloudflare. A guarda `if: github.ref == 'refs/heads/main'` do `deploy.yml` evita engano, não abuso. Mitigação: só o Daniel tem escrita no repositório, com MFA; PRs de fork não recebem secrets. Revisar quando houver outro colaborador ou cliente pagante (environment protegido ou Secret Manager).
 - Secret Manager fica como evolução.
 
 ---
@@ -182,6 +183,7 @@ Cada job é um endpoint interno (`POST /internal/jobs/<nome>`): `X-Job-Token` co
 - [ ] CORS só para `https://acordu.app.br`; login, refresh e logout funcionando entre os subdomínios.
 - [ ] `TempoReal__Sse=false` e polling ativo no SPA.
 - [ ] WIF restrito a `dansantxs/acordu` na `main`; nenhuma chave JSON de service account.
+- [ ] Escrita no repositório só do Daniel (secrets de repositório, risco aceito no §7).
 - [ ] `acordu_app` sem DDL; app só no endpoint pooled.
 - [ ] Tokens R2 separados (anexos para a API, escrita em backups para o Actions).
 - [ ] Backup diário + restore testado.
