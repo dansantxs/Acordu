@@ -4,8 +4,9 @@ namespace Acordu.Api.Composicao;
 
 /// <summary>
 /// Filtro das rotas de negócio: depois do caso de uso (já commitado) e antes de escrever a resposta, entrega as mensagens
-/// de outbox que esta requisição gravou. Não depende de trabalho depois da resposta, para valer também no plano B
-/// serverless, onde a CPU é estrangulada após a resposta (ADR 0006). Falha aqui não muda a resposta: a mensagem fica na fila e o job <c>tick</c> tenta de novo.
+/// de outbox que esta requisição gravou. Não depende de trabalho depois da resposta: no Cloud Run a CPU é estrangulada
+/// fora da requisição (ADR 0010). Falha aqui não muda a resposta: a mensagem fica na fila e o job <c>tick</c> tenta de
+/// novo.
 /// </summary>
 internal static partial class DespachoOutbox
 {
