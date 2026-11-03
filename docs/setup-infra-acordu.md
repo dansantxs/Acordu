@@ -2,8 +2,8 @@
 
 | | |
 |---|---|
-| **Versão** | 0.3 |
-| **Data** | 26/10/2026 |
+| **Versão** | 0.4 |
+| **Data** | 03/11/2026 |
 | **Objetivo** | Provisionar o nível 0 do ADR 0010: Google Cloud (Cloud Run, Artifact Registry, Scheduler), Neon, Cloudflare (DNS, Pages, Worker, R2) e Resend. |
 | **Natureza** | Runbook operacional (ordem de execução) + registro do estado provisionado (ver fim). |
 
@@ -62,13 +62,13 @@
 1. Pool **`github`** com provider OIDC **`acordu-repo`** (`https://token.actions.githubusercontent.com`).
 2. Condição: `assertion.repository == 'dansantxs/acordu' && assertion.ref == 'refs/heads/main'`.
 3. `roles/iam.workloadIdentityUser` em `acordu-deployer` para o principal do provider.
-4. No repositório: variáveis `GCP_WIF_PROVIDER` e `GCP_PROJECT_ID`.
+4. No repositório: variáveis `GCP_WIF_PROVIDER` e `GCP_PROJECT_ID` (ver "Segredos do GitHub").
 
 ### 5. Cloud Run
-Criado pelo primeiro deploy (`deploy-ci-acordu-v1.md` §4), com os parâmetros do §2.2 de lá. Anotar a URL `*.run.app` para a variável `ORIGEM` do Worker.
+Criado pelo primeiro deploy (Actions → **Deploy** → Run workflow, na `main`; `deploy-ci-acordu-v1.md` §4), com os parâmetros do §2.2 de lá. Anotar a URL `*.run.app` para a variável `ORIGEM` do Worker. Enquanto a variável `BORDA_ATIVA` não for `true`, o deploy confere o health direto na URL `*.run.app` (com o token de origem), porque a borda ainda não aponta para o serviço; depois de C4, pela borda.
 
 ### 6. Cloud Scheduler (depois do primeiro deploy e do Worker)
-Fuso `America/Sao_Paulo`, região `us-east4`, cabeçalho `X-Job-Token`, retry com backoff curto:
+Fuso `America/Sao_Paulo`, região `us-east4`, cabeçalho `X-Job-Token` (o valor do secret `API_JOBS_TOKEN`), retry com backoff curto:
 - **`acordu-tick`:** `*/15 7-19 * * 1-6` → `POST https://api.acordu.app.br/internal/jobs/tick`.
 - **`acordu-diario`:** `40 6 * * *` → `POST https://api.acordu.app.br/internal/jobs/diario`.
 
@@ -91,9 +91,9 @@ Política de alerta do Cloud Monitoring sobre tentativas falhas dos dois jobs, c
    ALTER DEFAULT PRIVILEGES FOR ROLE acordu_migrator IN SCHEMA public
      GRANT USAGE, SELECT ON SEQUENCES TO acordu_app;
    ```
-4. Connection strings, ambas com `SSL Mode=Require`:
-   - **direta** (host sem `-pooler`) com `acordu_migrator` → secret do Actions (migrations e `pg_dump`);
-   - **pooled** (host com `-pooler`) com `acordu_app` → variável da API.
+4. Connection strings no formato do Npgsql (`Host=...;Database=acordu;Username=...;Password=...;SSL Mode=Require`), não a URI `postgresql://` do console:
+   - **direta** (host sem `-pooler`) com `acordu_migrator` → secret `NEON_MIGRATOR` (migrations e `pg_dump`; o `backup.yml` converte para a libpq);
+   - **pooled** (host com `-pooler`) com `acordu_app` e `Maximum Pool Size=10` → secret `API_CONNECTION_STRING`.
 
 ---
 
@@ -112,18 +112,25 @@ Dois buckets **privados**, sem domínio público nem `r2.dev`:
 | `acordu-backups` | Dumps diários do banco | Lifecycle: apagar objetos com mais de 14 dias. |
 
 Tokens de API do R2 (S3):
-- **`acordu-api-anexos`:** *Object Read & Write* só em `acordu-anexos` → variáveis `Armazenamento__ChaveAcesso` / `__ChaveSecreta` da API.
-- **`acordu-backup`:** *Object Read & Write* só em `acordu-backups` → secret do Actions.
+- **`acordu-api-anexos`:** *Object Read & Write* só em `acordu-anexos` → secrets `API_R2_CHAVE_ACESSO` / `API_R2_CHAVE_SECRETA`.
+- **`acordu-backup`:** *Object Read & Write* só em `acordu-backups` → secrets `R2_BACKUP_CHAVE_ACESSO` / `R2_BACKUP_CHAVE_SECRETA`.
 
-Endpoint S3: `https://<id-da-conta>.r2.cloudflarestorage.com`, região `auto`. Conferir no primeiro deploy que a URL pré-assinada de download funciona (teste manual de anexo).
+Endpoint S3: `https://<id-da-conta>.r2.cloudflarestorage.com` (secret `R2_ENDPOINT`), região `auto`. Conferir no primeiro deploy que a URL pré-assinada de download funciona (teste manual de anexo).
 
 ### 3. Pages
-Projeto **`acordu-web`** (upload direto pelo `wrangler pages deploy`, sem integração Git), domínio `acordu.app.br`. Token do Cloudflare restrito a Pages desse projeto e Workers do script `acordu-api-borda`.
+Projeto **`acordu-web`** (upload direto pelo `wrangler pages deploy`, sem integração Git; o primeiro deploy o cria), domínio `acordu.app.br`.
+
+Token de API do Cloudflare para o `deploy.yml` (secret `CLOUDFLARE_API_TOKEN`; o ID da conta vai em `CLOUDFLARE_ACCOUNT_ID`). O Cloudflare não restringe token a um script ou projeto, só a conta e zona; o mínimo é:
+- conta: *Workers Scripts: Edit* e *Cloudflare Pages: Edit*;
+- zona `acordu.app.br`: *Workers Routes: Edit* e *DNS: Edit* (o domínio personalizado `api.acordu.app.br` do Worker cria o registro).
+
+Conferir no primeiro deploy; se o `wrangler` pedir outra permissão, acrescentá-la aqui.
 
 ### 4. Worker da borda
 1. Script **`acordu-api-borda`** publicado pelo `deploy.yml` (`infra/cloudflare/api-borda`).
 2. Rota/domínio personalizado **`api.acordu.app.br`**.
-3. Variável `ORIGEM` = URL `*.run.app`; segredo `TOKEN_ORIGEM` (gerar 32 bytes aleatórios; o mesmo valor vai para `Proxy__TokenOrigem` da API). O `wrangler.toml` tem `keep_vars = true`: os deploys do `deploy.yml` preservam a `ORIGEM` definida no painel.
+3. Variável `ORIGEM` = URL `*.run.app`; segredo `TOKEN_ORIGEM` com **o mesmo valor** do secret `API_TOKEN_ORIGEM`, gerado antes do primeiro deploy (o deploy o grava em `Proxy__TokenOrigem` da API): `pnpm exec wrangler secret put TOKEN_ORIGEM` em `infra/cloudflare/api-borda`, ou pelo painel. O `wrangler.toml` tem `keep_vars = true`: os deploys do `deploy.yml` preservam a `ORIGEM` definida no painel.
+4. Conferir `curl https://api.acordu.app.br/api/health` e criar a variável do repositório `BORDA_ATIVA=true`: daí em diante o health do deploy passa pela borda.
 
 ---
 
@@ -132,14 +139,60 @@ Projeto **`acordu-web`** (upload direto pelo `wrangler pages deploy`, sem integr
 O Acordu envia e-mail para os **clientes dos clientes**: reputação de domínio importa.
 1. Adicionar `send.acordu.app.br` no Resend; criar no Cloudflare os registros indicados (SPF, DKIM, MX de retorno).
 2. **DMARC:** `TXT _dmarc.acordu.app.br "v=DMARC1; p=none; rua=mailto:<seu-email>"` (subir para `quarantine` após algumas semanas).
-3. Remetente `nao-responda@send.acordu.app.br`; chave de API exclusiva do Acordu.
+3. Remetente `nao-responda@send.acordu.app.br`; chave de API exclusiva do Acordu → secret `API_RESEND_CHAVE`.
 
 ---
 
 ## Parte E — Monitoramento
 
 - **UptimeRobot:** monitor HTTP em `https://api.acordu.app.br/api/health`, 5 min, alerta por e-mail.
-- Sentry (projeto `acordu`) e webhook do Discord.
+- **Discord:** webhook num canal privado → secret `DISCORD_WEBHOOK` (deploy e backup avisam por ele; sem o secret, só pulam o aviso).
+- Sem Sentry no F8 (spec do F8, decisão 3): erros de aplicação ficam nos logs do Cloud Run.
+
+---
+
+## Segredos do GitHub
+
+Repositório → Settings → Secrets and variables → Actions. Só os nomes ficam aqui; os valores, nunca.
+
+| Tipo | Nome | Conteúdo |
+|---|---|---|
+| Variável | `GCP_WIF_PROVIDER` | Nome completo do provider `acordu-repo` (A4) |
+| Variável | `GCP_PROJECT_ID` | `acordu-prod` |
+| Variável | `BORDA_ATIVA` | `true` depois de C4; o health do deploy passa a ir pela borda |
+| Variável | `BACKUP_ATIVO` | `true` quando Neon e R2 estiverem prontos; liga o agendamento do `backup.yml` |
+| Secret | `NEON_MIGRATOR` | String direta, `acordu_migrator` (B4) |
+| Secret | `API_CONNECTION_STRING` | String pooled, `acordu_app` (B4) |
+| Secret | `API_JWT_CHAVE` | 64 bytes aleatórios (`Jwt__ChaveAssinatura`) |
+| Secret | `API_JOBS_TOKEN` | 32 bytes aleatórios (`Jobs__Token`; o mesmo no Scheduler) |
+| Secret | `API_TOKEN_ORIGEM` | 32 bytes aleatórios; o mesmo valor vai no `TOKEN_ORIGEM` do Worker (C4) |
+| Secret | `API_RESEND_CHAVE` | Chave do Resend (D3) |
+| Secret | `R2_ENDPOINT` | Endpoint S3 do R2 (C2) |
+| Secret | `API_R2_CHAVE_ACESSO`, `API_R2_CHAVE_SECRETA` | Token `acordu-api-anexos` (C2) |
+| Secret | `R2_BACKUP_CHAVE_ACESSO`, `R2_BACKUP_CHAVE_SECRETA` | Token `acordu-backup` (C2) |
+| Secret | `CLOUDFLARE_API_TOKEN`, `CLOUDFLARE_ACCOUNT_ID` | Token do deploy e ID da conta (C3) |
+| Secret | `DISCORD_WEBHOOK` | Webhook do canal de avisos (E) |
+
+O `deploy.yml` recusa publicar se faltar algum obrigatório; sem `R2_ENDPOINT`, a API sobe sem anexos. Os valores aleatórios: `openssl rand -base64 48`.
+
+---
+
+## Restore (antes do primeiro cliente; F8-31)
+
+1. Baixar o dump do dia com o token `acordu-backup` (as mesmas variáveis do `backup.yml`):
+   ```
+   AWS_ACCESS_KEY_ID=... AWS_SECRET_ACCESS_KEY=... AWS_DEFAULT_REGION=auto \
+   AWS_REQUEST_CHECKSUM_CALCULATION=when_required AWS_RESPONSE_CHECKSUM_VALIDATION=when_required \
+   aws s3 cp s3://acordu-backups/db/AAAA-MM-DD.dump . --endpoint-url <R2_ENDPOINT>
+   ```
+2. Subir o Postgres 17 local (`docker compose -f docker-compose.dev.yml up -d`, porta 5434). Com o cliente 17 da imagem, sem instalar nada:
+   ```
+   docker run --rm --network host -e PGPASSWORD=acordu_dev -v "$PWD:/d" postgres:17 \
+     createdb -h localhost -p 5434 -U acordu acordu_restore
+   docker run --rm --network host -e PGPASSWORD=acordu_dev -v "$PWD:/d" postgres:17 \
+     pg_restore -h localhost -p 5434 -U acordu -d acordu_restore --no-owner --no-privileges /d/AAAA-MM-DD.dump
+   ```
+3. Subir a API com `ConnectionStrings__Acordu` apontando para `acordu_restore` e conferir login e dados de uma empresa.
 
 ---
 
@@ -155,10 +208,13 @@ B.  Neon: projeto, banco, roles → secrets do GitHub
 C1. Domínios → Cloudflare
 C2. R2: buckets + tokens → secrets do GitHub
 D.  Resend (SPF/DKIM/DMARC)
+C3. Token do Cloudflare
+→ Segredos do GitHub: todos os da tabela (gerar API_JWT_CHAVE, API_JOBS_TOKEN e API_TOKEN_ORIGEM), menos BORDA_ATIVA e BACKUP_ATIVO
 → primeiro deploy (cria o serviço Cloud Run, o Worker e o Pages)
-C3/C4. Domínios do Pages e do Worker; ORIGEM e TOKEN_ORIGEM
+C3/C4. Domínios do Pages e do Worker; ORIGEM e TOKEN_ORIGEM (= API_TOKEN_ORIGEM) → BORDA_ATIVA=true
 A6. Cloud Scheduler (tick e diário) + alerta de falha
-E.  UptimeRobot + Sentry + Discord
+E.  UptimeRobot + Discord
+→ BACKUP_ATIVO=true; primeiro backup
 → restore testado
 ```
 
@@ -177,7 +233,7 @@ E.  UptimeRobot + Sentry + Discord
 - [ ] Login e refresh funcionando de `acordu.app.br` para `api.acordu.app.br`.
 - [ ] `acordu-tick` e `acordu-diario` no Scheduler, com alerta de falha.
 - [ ] Resend verificado + DMARC.
-- [ ] UptimeRobot ativo.
+- [ ] UptimeRobot ativo; webhook do Discord recebendo deploy e backup.
 - [ ] Backup diário rodando e restore testado.
 
 ---

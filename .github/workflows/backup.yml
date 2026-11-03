@@ -1,0 +1,130 @@
+name: Backup
+
+# Backup diário do banco (deploy-ci-acordu-v1.md §8; F8-30): pg_dump -Fc (cliente 17) do endpoint direto do Neon para
+# acordu-backups/db/AAAA-MM-DD.dump no R2. Retenção de 14 dias pelo lifecycle do bucket. Não chama a API.
+# O agendamento só roda com a variável BACKUP_ATIVO=true no repositório (ligada no provisionamento); sem ela, o
+# disparo diário é pulado em vez de falhar. Manual: Actions → Backup → Run workflow.
+
+on:
+  schedule:
+    - cron: "0 7 * * *" # 04:00 em São Paulo (UTC-3, sem horário de verão)
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: backup
+  cancel-in-progress: false
+
+jobs:
+  backup:
+    name: Backup do banco
+    if: github.event_name == 'workflow_dispatch' || vars.BACKUP_ATIVO == 'true'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      # O secret está no formato do Npgsql (o mesmo das migrations); o pg_dump lê as variáveis PG* da libpq.
+      - name: Conexão
+        env:
+          NEON_MIGRATOR: ${{ secrets.NEON_MIGRATOR }}
+        run: |
+          python3 - "$RUNNER_TEMP/pg.env" <<'PY'
+          import os, sys
+
+          texto = os.environ.get("NEON_MIGRATOR", "")
+          if not texto:
+              sys.exit("Falta o secret NEON_MIGRATOR.")
+          chaves = {"host": "PGHOST", "server": "PGHOST", "port": "PGPORT", "database": "PGDATABASE",
+                    "username": "PGUSER", "user id": "PGUSER", "user": "PGUSER", "password": "PGPASSWORD",
+                    "ssl mode": "PGSSLMODE", "sslmode": "PGSSLMODE"}
+          # chave=valor separados por ';'; valor entre aspas pode ter ';' e '=' (aspas dobradas escapam).
+          pg, i = {}, 0
+          while i < len(texto):
+              fim = texto.find("=", i)
+              if fim < 0:
+                  break
+              nome, i = texto[i:fim].strip().strip(";").strip().lower(), fim + 1
+              while i < len(texto) and texto[i] == " ":
+                  i += 1
+              if i < len(texto) and texto[i] in "\"'":
+                  aspa, valor, i = texto[i], "", i + 1
+                  while i < len(texto):
+                      if texto[i] == aspa and texto[i + 1:i + 2] == aspa:
+                          valor, i = valor + aspa, i + 2
+                      elif texto[i] == aspa:
+                          i += 1
+                          break
+                      else:
+                          valor, i = valor + texto[i], i + 1
+                  i = texto.find(";", i) + 1 or len(texto)
+              else:
+                  fim = texto.find(";", i)
+                  fim = len(texto) if fim < 0 else fim
+                  valor, i = texto[i:fim].strip(), fim + 1
+              if nome in chaves:
+                  pg[chaves[nome]] = valor
+          # Nomes do Npgsql → libpq (VerifyFull → verify-full); sem SSL Mode, require.
+          modos = {"disable": "disable", "allow": "allow", "prefer": "prefer", "require": "require",
+                   "verifyca": "verify-ca", "verifyfull": "verify-full"}
+          modo = pg.get("PGSSLMODE", "require").lower().replace("-", "").replace(" ", "")
+          if modo not in modos:
+              sys.exit("SSL Mode desconhecido no NEON_MIGRATOR.")
+          pg["PGSSLMODE"] = modos[modo]
+          faltam = [v for v in ("PGHOST", "PGDATABASE", "PGUSER", "PGPASSWORD") if not pg.get(v)]
+          if faltam:
+              sys.exit("NEON_MIGRATOR sem: " + ", ".join(faltam))
+          with open(os.open(sys.argv[1], os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600), "w") as f:
+              f.writelines(f"{k}={v}\n" for k, v in pg.items())
+          PY
+
+      - name: pg_dump
+        id: dump
+        run: |
+          dia=$(TZ=America/Sao_Paulo date +%F)
+          arquivo="$RUNNER_TEMP/$dia.dump"
+          docker run --rm --user "$(id -u):$(id -g)" --env-file "$RUNNER_TEMP/pg.env" -v "$RUNNER_TEMP:/saida" postgres:17 \
+            pg_dump -Fc --no-owner --file "/saida/$dia.dump"
+          rm -f "$RUNNER_TEMP/pg.env"
+          # Dump ilegível (truncado, corrompido) não sobe.
+          docker run --rm --user "$(id -u):$(id -g)" -v "$RUNNER_TEMP:/saida" postgres:17 pg_restore --list "/saida/$dia.dump" > /dev/null
+          echo "Dump de $dia: $(du -h "$arquivo" | cut -f1)"
+          echo "dia=$dia" >> "$GITHUB_OUTPUT"
+          echo "arquivo=$arquivo" >> "$GITHUB_OUTPUT"
+
+      # Token acordu-backup (só o bucket acordu-backups). Checksums só quando exigidos: o R2 não aceita todos os do
+      # AWS CLI recente.
+      - name: Enviar ao R2
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.R2_BACKUP_CHAVE_ACESSO }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.R2_BACKUP_CHAVE_SECRETA }}
+          AWS_DEFAULT_REGION: auto
+          AWS_REQUEST_CHECKSUM_CALCULATION: when_required
+          AWS_RESPONSE_CHECKSUM_VALIDATION: when_required
+          ENDPOINT: ${{ secrets.R2_ENDPOINT }}
+          ARQUIVO: ${{ steps.dump.outputs.arquivo }}
+          DIA: ${{ steps.dump.outputs.dia }}
+        run: |
+          if [[ -z "$ENDPOINT" || -z "$AWS_ACCESS_KEY_ID" || -z "$AWS_SECRET_ACCESS_KEY" ]]; then
+            echo "::error::Faltam R2_ENDPOINT, R2_BACKUP_CHAVE_ACESSO ou R2_BACKUP_CHAVE_SECRETA."
+            exit 1
+          fi
+          aws s3 cp "$ARQUIVO" "s3://acordu-backups/db/$DIA.dump" --endpoint-url "$ENDPOINT" --only-show-errors
+          echo "Enviado: acordu-backups/db/$DIA.dump"
+
+      # Falha sempre; sucesso como heartbeat diário (deploy-ci §8).
+      - name: Discord
+        if: always()
+        env:
+          WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
+          STATUS: ${{ job.status }}
+          DIA: ${{ steps.dump.outputs.dia }}
+          RUN: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          [[ -z "$WEBHOOK" ]] && { echo "Sem DISCORD_WEBHOOK; aviso pulado."; exit 0; }
+          if [[ "$STATUS" == "success" ]]; then
+            texto="Backup ok: db/$DIA.dump"
+          else
+            texto="Backup falhou ($STATUS): $RUN"
+          fi
+          jq -n --arg t "$texto" '{content: $t}' | curl -fsS -H 'Content-Type: application/json' -d @- "$WEBHOOK"
