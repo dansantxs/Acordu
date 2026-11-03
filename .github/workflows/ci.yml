@@ -27,6 +27,7 @@ jobs:
       backend: ${{ steps.filtro.outputs.backend == 'true' || github.event_name != 'pull_request' }}
       web: ${{ steps.filtro.outputs.web == 'true' || github.event_name != 'pull_request' }}
       imagem: ${{ steps.filtro.outputs.imagem == 'true' || github.event_name != 'pull_request' }}
+      borda: ${{ steps.filtro.outputs.borda == 'true' || github.event_name != 'pull_request' }}
     steps:
       # No pull_request o filtro lista os arquivos pela API (pull-requests: read); não precisa de checkout.
       - uses: dorny/paths-filter@v3
@@ -63,6 +64,10 @@ jobs:
               - Directory.*.props
               - docker/**
               - .dockerignore
+            # Worker de api.acordu.app.br (spec do F8, F8-23 a F8-25).
+            borda:
+              - *pipeline
+              - infra/cloudflare/**
 
   backend:
     name: Backend (.NET)
@@ -270,11 +275,46 @@ jobs:
           echo "::error::A imagem não respondeu /api/health: $(docker logs api 2>&1 | tail -c 1500 | tr '\n' ' ')"
           exit 1
 
+  borda:
+    name: Borda (Worker)
+    needs: mudancas
+    if: needs.mudancas.outputs.borda == 'true'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: infra/cloudflare/api-borda
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          package_json_file: infra/cloudflare/api-borda/package.json
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+          cache-dependency-path: infra/cloudflare/api-borda/pnpm-lock.yaml
+
+      - name: Instalar
+        run: pnpm install --frozen-lockfile
+
+      - name: Tipos
+        run: pnpm typecheck
+
+      - name: Testes
+        run: pnpm test
+
+      # Empacota como no deploy, sem publicar (não precisa de credencial).
+      - name: Empacotar
+        run: pnpm exec wrangler deploy --dry-run --outdir dist
+
   # Um check só para a proteção da main: job pulado conta como verde, então sem este um erro no "O que mudou" deixaria
   # tudo pulado e o PR aparentemente aprovado.
   ci-ok:
     name: CI ok
-    needs: [mudancas, backend, web, e2e, imagem]
+    needs: [mudancas, backend, web, e2e, imagem, borda]
     if: always()
     runs-on: ubuntu-24.04
     timeout-minutes: 5
