@@ -82,6 +82,9 @@ Com `Proxy__TokenOrigem` definido, a API responde 404 a requisição sem o token
 
 ## 4. Deploy (`deploy.yml`) — na `main`
 
+**Disparo manual** (`workflow_dispatch`, só na `main`) até haver cliente pagante; depois, automático a cada merge (spec do F8, decisão 1, 03/11/2026). O plano Free com repositório privado não tem aprovação obrigatória em *environments*.
+
+
 1. **Autenticação** no Google por WIF (`google-github-actions/auth`), restrita a `dansantxs/acordu` na `main`, impersonando `acordu-deployer@acordu-prod`.
 2. **Build e push** para `us-east4-docker.pkg.dev/acordu-prod/acordu/acordu-api`, tag = SHA do commit.
 3. **Migrations:** migration bundle do EF Core no **endpoint direto** do Neon, com `acordu_migrator`. Falhou → para aqui; a revisão em produção continua a anterior.
@@ -134,7 +137,7 @@ Cada job é um endpoint interno (`POST /internal/jobs/<nome>`): `X-Job-Token` co
   - `Email__ResendChave`, `Email__Remetente` (padrão `nao-responda@send.acordu.app.br`), `Email__NomeRemetente`;
   - `Armazenamento__Endpoint=https://<conta>.r2.cloudflarestorage.com`, `Armazenamento__Regiao=auto`, `Armazenamento__Bucket=acordu-anexos`, `Armazenamento__ChaveAcesso` / `Armazenamento__ChaveSecreta` (token R2 de leitura e escrita só em `acordu-anexos`);
   - limites opcionais (`RateLimit__Auth__PorMinuto` 10, `RateLimit__Refresh__PorMinuto` 30, `RateLimit__Portal__PorMinuto` 10, `RateLimit__Agenda__PorMinuto` 30);
-  - DSN do Sentry, webhook do Discord.
+  - webhook do Discord. (Sentry fora do F8: o SDK é dependência de fornecedor; erros de aplicação ficam nos logs do Cloud Run até uma decisão própria, spec do F8, decisão 3.)
 - **Segredo do Worker:** `TOKEN_ORIGEM`; variável `ORIGEM` com a URL `*.run.app`.
 - Secret Manager fica como evolução.
 
@@ -153,7 +156,7 @@ Cada job é um endpoint interno (`POST /internal/jobs/<nome>`): `X-Job-Token` co
 
 - **UptimeRobot** em `https://api.acordu.app.br/api/health` a cada 5 min (avisa queda e mantém a instância quente parte do tempo).
 - **Pré-aquecimento pela UI:** o SPA chama `/api/health` ao abrir login e portal, sem esperar.
-- Sentry (erros), Discord (deploy, jobs, backup), alerta de orçamento (e-mail).
+- Logs do Cloud Run (erros), Discord (deploy, jobs, backup), alerta de orçamento (e-mail). Monitoramento de erros de aplicação (Sentry ou OpenTelemetry) fica para decisão própria.
 - **Mensal:** CU-h e armazenamento no Neon; vCPU-s no Cloud Run; requisições/dia no Worker; armazenamento no R2. São os gatilhos dos níveis 1 e 2 do ADR 0010.
 
 ---
