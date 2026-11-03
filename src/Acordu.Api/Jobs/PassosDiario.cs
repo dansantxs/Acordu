@@ -8,7 +8,7 @@ internal sealed record ResultadoDiario(IReadOnlyList<int> Contagens, int Falhas)
 
 /// <summary>
 /// Roda os passos do job diário em sequência (ADR 0010 §5). Um passo que falha é logado, conta 0 e entra em
-/// <c>Falhas</c>, sem impedir os seguintes; cancelamento interrompe tudo.
+/// <c>Falhas</c>, sem impedir os seguintes; o cancelamento da requisição interrompe tudo.
 /// </summary>
 internal static partial class PassosDiario
 {
@@ -23,7 +23,8 @@ internal static partial class PassosDiario
             {
                 contagens[i] = await passos[i].Executar(cancellationToken);
             }
-            catch (Exception ex) when (ex is not OperationCanceledException)
+            // Só o cancelamento da própria requisição interrompe; outro (timeout de comando) conta como falha do passo.
+            catch (Exception ex) when (ex is not OperationCanceledException || !cancellationToken.IsCancellationRequested)
             {
                 falhas++;
                 PassoFalhou(logger, ex, passos[i].Nome);
