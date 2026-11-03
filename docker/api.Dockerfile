@@ -11,7 +11,8 @@ COPY src/Acordu.Domain/Acordu.Domain.csproj src/Acordu.Domain/
 COPY src/Acordu.Application/Acordu.Application.csproj src/Acordu.Application/
 COPY src/Acordu.Infrastructure/Acordu.Infrastructure.csproj src/Acordu.Infrastructure/
 COPY src/Acordu.Api/Acordu.Api.csproj src/Acordu.Api/
-RUN dotnet restore src/Acordu.Api/Acordu.Api.csproj -r linux-x64
+# O crossgen2 do ReadyToRun só é baixado se o restore também recebe PublishReadyToRun (NETSDK1094).
+RUN dotnet restore src/Acordu.Api/Acordu.Api.csproj -r linux-x64 -p:PublishReadyToRun=true
 
 COPY src/ src/
 RUN dotnet publish src/Acordu.Api/Acordu.Api.csproj \
@@ -22,8 +23,8 @@ FROM mcr.microsoft.com/dotnet/aspnet:10.0-noble-chiseled-extra AS final
 WORKDIR /app
 COPY --from=build /app .
 
-# A imagem chiseled já roda como o usuário sem privilégios "app"; a porta é a que o Cloud Run espera.
-USER app
+# Usuário sem privilégios da imagem ("app", UID numérico em APP_UID); a porta é a que o Cloud Run espera.
+USER $APP_UID
 ENV ASPNETCORE_HTTP_PORTS=8080
 EXPOSE 8080
 ENTRYPOINT ["dotnet", "Acordu.Api.dll"]
