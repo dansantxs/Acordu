@@ -7,7 +7,7 @@ using DotNet.Testcontainers.Containers;
 namespace Acordu.Infrastructure.IntegrationTests;
 
 /// <summary>
-/// Emulador S3 (Adobe S3Mock) por classe: o mesmo protocolo do OCI Object Storage, com os ajustes de compatibilidade do
+/// Emulador S3 (Adobe S3Mock) por classe: o mesmo protocolo do Cloudflare R2, com os ajustes de compatibilidade do
 /// cliente. (As imagens públicas do MinIO deixaram de ser distribuídas.)
 /// </summary>
 public sealed class EmuladorS3Fixture : IAsyncLifetime

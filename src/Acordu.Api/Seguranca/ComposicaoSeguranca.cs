@@ -58,8 +58,9 @@ internal static class ComposicaoSeguranca
             });
         services.AddAuthorization(Politicas.Registrar);
 
-        // IP do cliente para auditoria e rate limit. Atrás do Caddy (rede Docker interna, API sem porta exposta), confia
-        // no último salto do X-Forwarded-For; sem a chave, o IP é o da conexão.
+        // IP do cliente para auditoria e rate limit (ADR 0010 §3). Com Proxy__ConfiarEncaminhamento, confia no
+        // X-Forwarded-For: um salto por padrão; Proxy__Saltos (2 no Cloud Run: Worker + front do Google) só vale com o token
+        // de origem ativo, senão quem chamasse a URL *.run.app direto escolheria o próprio IP. Sem a chave, o da conexão.
         services.AddHttpContextAccessor();
         services.Replace(ServiceDescriptor.Scoped<IOrigemRequisicao, OrigemDaRequisicao>());
         if (configuracao.GetValue("Proxy:ConfiarEncaminhamento", false))
@@ -67,7 +68,9 @@ internal static class ComposicaoSeguranca
             services.Configure<ForwardedHeadersOptions>(opcoes =>
             {
                 opcoes.ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto;
-                opcoes.ForwardLimit = 1;
+                opcoes.ForwardLimit = TokenDeOrigem.Configurado(configuracao) is null
+                    ? 1
+                    : Math.Max(1, configuracao.GetValue("Proxy:Saltos", 1));
                 opcoes.KnownIPNetworks.Clear();
                 opcoes.KnownProxies.Clear();
             });
@@ -115,9 +118,12 @@ internal static class ComposicaoSeguranca
         return "refresh:" + Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(token)));
     }
 
-    /// <summary>Cabeçalhos do proxy, CORS, autenticação, contexto de tenant, rate limit e autorização, nessa ordem.</summary>
+    /// <summary>
+    /// Token de origem, cabeçalhos do proxy, CORS, autenticação, contexto de tenant, rate limit e autorização, nessa ordem.
+    /// </summary>
     public static void UseSegurancaApi(this WebApplication app)
     {
+        app.UseTokenDeOrigem();
         app.UseForwardedHeaders();
         app.UseCors();
         app.UseAuthentication();

@@ -2,7 +2,7 @@ namespace Acordu.Infrastructure.Persistence.Outbox;
 
 /// <summary>
 /// Ids das mensagens de outbox gravadas (e commitadas) neste escopo. A Api as despacha no fim da própria requisição:
-/// assim nada depende de trabalho em segundo plano, o que vale também no plano B serverless (ADR 0006).
+/// assim nada depende de trabalho em segundo plano, o que é obrigatório no Cloud Run (ADR 0010).
 /// </summary>
 public sealed class MensagensDaRequisicao
 {

@@ -20,8 +20,10 @@ namespace Acordu.Api.Composicao;
 
 /// <summary>
 /// Composição única da Api, usada pelo <c>Program</c> e pelos testes funcionais (que montam o mesmo pipeline e penduram
-/// endpoints de teste nos grupos). Configuração só por variáveis de ambiente (ADR 0006): <c>ConnectionStrings__Acordu</c>,
-/// <c>Jwt__ChaveAssinatura</c>, <c>Jobs__Token</c>, <c>Cors__Origem</c>, <c>App__UrlPublica</c> (links dos e-mails) e
+/// endpoints de teste nos grupos). Configuração só por variáveis de ambiente (ADR 0010 §10): <c>ConnectionStrings__Acordu</c>,
+/// <c>Jwt__ChaveAssinatura</c>, <c>Jobs__Token</c>, <c>Cors__Origem</c>, <c>App__UrlPublica</c> (links dos e-mails),
+/// <c>App__UrlApi</c> (feed ICS, quando a API tem host próprio), <c>Proxy__*</c> (borda, ver <see cref="Seguranca.TokenDeOrigem"/>),
+/// <c>TempoReal__Sse</c> (padrão ligado; ADR 0010 §4) e
 /// <c>Email__ResendChave</c>, <c>Email__Remetente</c>, <c>Email__NomeRemetente</c> e <c>Email__Smtp__Host</c>/<c>Email__Smtp__Porta</c> (Mailpit, só em desenvolvimento), <c>Email__RegistrarConteudo</c> (só em
 /// desenvolvimento).
 /// </summary>
@@ -51,7 +53,10 @@ internal static class ComposicaoApi
         services.AddInfrastructure(conexao);
         services.AddSegurancaApi(configuracao);
         services.AddCasosDeUso();
-        services.AddSingleton(new EnderecosPublicos(new Uri(configuracao["App:UrlPublica"] ?? UrlPublicaPadrao)));
+        var urlApi = configuracao["App:UrlApi"];
+        services.AddSingleton(new EnderecosPublicos(
+            new Uri(configuracao["App:UrlPublica"] ?? UrlPublicaPadrao),
+            string.IsNullOrEmpty(urlApi) ? null : new Uri(urlApi)));
         AdicionarEmail(services, configuracao);
         AdicionarArmazenamento(services, configuracao);
 
@@ -121,7 +126,7 @@ internal static class ComposicaoApi
     }
 
     /// <summary>
-    /// Object storage S3 (OCI) quando há <c>Armazenamento__Endpoint</c>; senão, anexos indisponíveis. TryAdd: os testes
+    /// Object storage S3 (R2 em produção) quando há <c>Armazenamento__Endpoint</c>; senão, anexos indisponíveis. TryAdd: os testes
     /// registram antes um armazenamento em memória.
     /// </summary>
     private static void AdicionarArmazenamento(IServiceCollection services, IConfiguration configuracao)
@@ -160,7 +165,7 @@ internal static class ComposicaoApi
                 .AddDocument(DocumentoPortal, "Acordu — portal"));
         }
 
-        // Não toca o banco: é chamado pelo uptime externo e pelo healthcheck do deploy (ADR 0006).
+        // Não toca o banco: é chamado pelo uptime externo e pelo healthcheck do deploy (ADR 0010 §6).
         app.MapGet("/api/health", () => Results.Ok(new { status = "ok" })).ExcludeFromDescription();
         app.MapJobs(app.Configuration);
 
@@ -187,7 +192,9 @@ internal static class ComposicaoApi
         grupos.Interno.MapSeguidores();
         grupos.Interno.MapAgenda();
         grupos.Interno.MapNotificacoes();
-        grupos.Interno.MapEventos();
+        // Nível 0 do ADR 0010 (§4): SSE desligado por configuração; sem a rota, /eventos responde 404.
+        if (app.Configuration.GetValue("TempoReal:Sse", true))
+            grupos.Interno.MapEventos();
         grupos.Interno.MapAtividades();
         grupos.Portal.MapPortal();
         return grupos;

@@ -1,7 +1,7 @@
 namespace Acordu.Infrastructure.Email;
 
 /// <summary>
-/// Configuração do e-mail (ADR 0006: só variáveis de ambiente). Com <see cref="ChaveResend"/>, envia pelo Resend; sem
+/// Configuração do e-mail (ADR 0010: só variáveis de ambiente). Com <see cref="ChaveResend"/>, envia pelo Resend; sem
 /// ela e com <see cref="SmtpHost"/>, entrega por SMTP (no desenvolvimento, ao Mailpit do docker-compose.dev); sem
 /// nenhum dos dois, só registra em log. <see cref="Remetente"/> é o endereço do domínio verificado
 /// (ex.: <c>nao-responda@send.acordu.app.br</c>).
