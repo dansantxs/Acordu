@@ -67,6 +67,14 @@ describe('borda da API (spec do F8)', () => {
         expect(devolvida).toBe(fluxo)
     })
 
+    it.each(['//outro.example/x?a=1', '/\\outro.example/x?a=1', '//outro.example'])(
+        'F8-23: caminho %s não muda o host de destino (o token não sai da origem)',
+        async (caminho) => {
+            const { url } = await naOrigem(new Request(`https://api.acordu.app.br${caminho}`))
+            expect(new URL(url).host).toBe('acordu-api-xyz-uk.a.run.app')
+        },
+    )
+
     it('sem configuração, recusa em vez de repassar sem o token', async () => {
         const buscar = vi.fn()
         const resposta = await repassar(

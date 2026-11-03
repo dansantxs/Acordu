@@ -22,8 +22,12 @@ const DESCARTADOS = ['host', 'x-forwarded-for', CABECALHO_TOKEN.toLowerCase()]
 export async function repassar(requisicao: Request, env: Env, buscar: typeof fetch = fetch): Promise<Response> {
     if (!env.ORIGEM || !env.TOKEN_ORIGEM) return new Response('Borda sem configuração.', { status: 500 })
 
+    // Caminho e query copiados para a URL da origem, campo a campo: montar com `new URL(caminho, ORIGEM)` deixaria
+    // `//outro.host/x` (ou `/\\outro.host/x`) virar URL relativa ao protocolo e levar o token para fora.
     const entrada = new URL(requisicao.url)
-    const destino = new URL(entrada.pathname + entrada.search, env.ORIGEM)
+    const destino = new URL(env.ORIGEM)
+    destino.pathname = entrada.pathname
+    destino.search = entrada.search
 
     const cabecalhos = new Headers(requisicao.headers)
     for (const nome of DESCARTADOS) cabecalhos.delete(nome)
