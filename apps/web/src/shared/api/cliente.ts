@@ -2,6 +2,7 @@ import createClient, { type Middleware } from 'openapi-fetch'
 import { definirRenovador, encerrarSessao, renovar, tokenAtual, tokenVencendo } from '../sessao/sessao'
 import type { paths as PathsInterno } from './interno'
 import type { paths as PathsPortal } from './portal'
+import { BASE_API } from '../config/ambiente'
 import { lerProblema } from './problema'
 import { encerrarSessaoLink, sessaoLink } from '../sessao/sessaoLink'
 
@@ -17,8 +18,14 @@ const ROTAS_SEM_RENOVACAO = /^\/api\/v1\/auth\/(?!eu$|tenant-ativo$|confirmacao-
 // Pela global a cada chamada (e não a capturada na criação), para os testes poderem trocar o fetch.
 const buscar = (requisicao: Request) => globalThis.fetch(requisicao)
 
-// Absoluta: o `Request` exige URL completa fora do navegador (testes); no navegador é a mesma origem do SPA.
-const base = `${globalThis.location.origin}/`
+// Absoluta: o `Request` exige URL completa fora do navegador (testes). Em produção a API fica em outra origem do mesmo
+// site (ADR 0010 §3): `VITE_URL_API`.
+const base = BASE_API
+
+// Com a API em outra origem, o cookie da sessão (`acordu_refresh`, restrito a `/api/v1/auth`) só vai com `include`; nas
+// demais rotas o caminho do cookie já impede que ele seja enviado. Com a mesma origem, `include` equivale a
+// `same-origin`.
+const credenciais: RequestCredentials = 'include'
 
 const copias = new Map<string, Request>()
 
@@ -60,11 +67,11 @@ export function seVersao(versao: string): { headers: { 'If-Match': string } } {
     return { headers: { 'If-Match': `"${versao}"` } }
 }
 
-export const api = createClient<PathsInterno>({ baseUrl: base, fetch: buscar })
+export const api = createClient<PathsInterno>({ baseUrl: base, fetch: buscar, credentials: credenciais })
 api.use(autenticacao)
 
 /** O portal tem cliente próprio, só com as rotas `/api/v1/portal` (estrutura §6). */
-export const apiPortal = createClient<PathsPortal>({ baseUrl: base, fetch: buscar })
+export const apiPortal = createClient<PathsPortal>({ baseUrl: base, fetch: buscar, credentials: credenciais })
 apiPortal.use(autenticacao)
 
 /**
@@ -84,13 +91,13 @@ const autenticacaoLink: Middleware = {
     },
 }
 
-export const apiLink = createClient<PathsPortal>({ baseUrl: base, fetch: buscar })
+export const apiLink = createClient<PathsPortal>({ baseUrl: base, fetch: buscar, credentials: credenciais })
 apiLink.use(autenticacaoLink)
 
 // O refresh vai sem Bearer (só o cookie) e por fora do middleware: um 401 aqui é a resposta, não motivo para renovar.
 definirRenovador(async () => {
     const resposta = await buscar(
-        new Request(`${base}api/v1/auth/refresh`, { method: 'POST', credentials: 'same-origin' }),
+        new Request(`${base}api/v1/auth/refresh`, { method: 'POST', credentials: credenciais }),
     )
     if (resposta.status === 401) return null
     if (!resposta.ok) throw await lerProblema(resposta)

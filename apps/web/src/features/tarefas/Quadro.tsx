@@ -13,6 +13,7 @@ import {
 import { useNavigate } from '@tanstack/react-router'
 import { mensagemDeErro } from '@/shared/api/mensagens'
 import { avisar, avisarErro } from '@/shared/avisos/avisos'
+import { intervaloDePolling } from '@/shared/config/ambiente'
 import { Alerta } from '@/shared/ui/Alerta'
 import {
     consultaQuadro,
@@ -38,7 +39,7 @@ type Pagina = { itens: TarefaResumo[]; total: number | string }
 export function Quadro({ filtros, hoje, podeEditar }: { filtros: FiltrosTarefas; hoje: string; podeEditar: boolean }) {
     const consultas = useQueryClient()
     const consulta = consultaQuadro(filtros)
-    const quadro = useQuery(consulta)
+    const quadro = useQuery({ ...consulta, refetchInterval: intervaloDePolling() })
 
     function colocar(id: string, status: Coluna) {
         consultas.setQueryData<Pagina>(consulta.queryKey, (atual) =>
@@ -49,7 +50,11 @@ export function Quadro({ filtros, hoje, podeEditar }: { filtros: FiltrosTarefas;
     const movimento = useMutation({
         mutationFn: ({ tarefa, para }: { tarefa: TarefaResumo; para: Coluna; desfazendo?: boolean }) =>
             moverTarefa(tarefa.id, tarefa.status as Coluna, para),
-        onMutate: ({ tarefa, para }) => colocar(tarefa.id, para),
+        onMutate: async ({ tarefa, para }) => {
+            // Um recarregamento em andamento (polling ou foco) não pode desfazer na tela a movimentação otimista.
+            await consultas.cancelQueries({ queryKey: consulta.queryKey })
+            colocar(tarefa.id, para)
+        },
         onSuccess: (_, { tarefa, para, desfazendo }) => {
             void consultas.invalidateQueries({ queryKey: ['tarefas'] })
             if (desfazendo) return
