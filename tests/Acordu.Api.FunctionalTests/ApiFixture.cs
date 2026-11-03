@@ -53,9 +53,31 @@ public sealed class ApiFixture : IAsyncLifetime
         await using (var db = new AcorduDbContext(opcoes.Options, new ContextoTenant()))
             await db.Database.MigrateAsync();
 
+        _app = Construir(new Dictionary<string, string?>());
+        MapearEndpointsDeTeste(_app.UseAcorduApi());
+        await _app.StartAsync();
+    }
+
+    /// <summary>
+    /// Outra Api sobre o mesmo banco, com configuração extra (borda, SSE desligado, endereços): para os cenários que
+    /// dependem de chave lida na montagem. Quem chama descarta.
+    /// </summary>
+    internal async Task<WebApplication> NovaApiAsync(
+        IReadOnlyDictionary<string, string?> extras, Action<GruposApi>? mapear = null, Action<WebApplication>? antes = null)
+    {
+        var app = Construir(extras);
+        antes?.Invoke(app);
+        var grupos = app.UseAcorduApi();
+        mapear?.Invoke(grupos);
+        await app.StartAsync();
+        return app;
+    }
+
+    private WebApplication Construir(IReadOnlyDictionary<string, string?> extras)
+    {
         var builder = WebApplication.CreateBuilder(new WebApplicationOptions { EnvironmentName = "Development" });
         builder.WebHost.UseTestServer();
-        builder.Configuration.AddInMemoryCollection(new Dictionary<string, string?>
+        var configuracao = new Dictionary<string, string?>
         {
             ["ConnectionStrings:Acordu"] = _postgres.GetConnectionString(),
             ["Jobs:Token"] = TokenJobs,
@@ -63,17 +85,17 @@ public sealed class ApiFixture : IAsyncLifetime
             ["RateLimit:Auth:PorMinuto"] = "100000",
             ["RateLimit:Refresh:PorMinuto"] = "100000",
             ["RateLimit:Portal:PorMinuto"] = "100000",
-        });
+        };
+        foreach (var (chave, valor) in extras)
+            configuracao[chave] = valor;
+        builder.Configuration.AddInMemoryCollection(configuracao);
         builder.Services.AddSingleton<TimeProvider>(Relogio);
         builder.Services.AddSingleton(Entregas);
         builder.Services.AddSingleton<IEnviadorEmail>(Emails);
         builder.Services.AddSingleton<IArmazenamentoArquivos>(Arquivos);
         builder.Services.AddScoped<IManipuladorPosCommit<SolicitacaoAberta>, ManipuladorDeTeste>();
         builder.Services.AddAcorduApi(builder.Configuration);
-
-        _app = builder.Build();
-        MapearEndpointsDeTeste(_app.UseAcorduApi());
-        await _app.StartAsync();
+        return builder.Build();
     }
 
     public async Task DisposeAsync()
