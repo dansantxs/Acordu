@@ -67,7 +67,8 @@ Com `Proxy__TokenOrigem` definido, a API responde 404 a requisição sem o token
 
 - `docker/api.Dockerfile`: build com SDK, `PublishReadyToRun=true`, `linux-x64`; base final `aspnet:10.0` **chiseled extra** (traz ICU e tzdata, exigidos pelo SLA com fusos IANA como `America/Sao_Paulo`), usuário não-root, porta `8080`.
 - Plataforma **`linux/amd64`**: o Cloud Run não executa ARM, e o runner do Actions já é x64 (sem QEMU).
-- Teste de fumaça no CI: o container resolve `America/Sao_Paulo` e responde `/api/health`.
+- **A API confere o ambiente ao subir** (`AmbienteDeExecucao`): o fuso `America/Sao_Paulo` (tzdata) e a cultura `pt-BR` (ICU). Se faltar algum, ela nem sobe, e o healthcheck do deploy volta para a revisão anterior.
+- Teste de fumaça no CI (job **Imagem da API**): build `linux/amd64`, usuário da imagem diferente de root e `/api/health` respondendo sem banco (o que também prova fuso e ICU, pela conferência acima).
 
 ---
 
@@ -75,7 +76,7 @@ Com `Proxy__TokenOrigem` definido, a API responde 404 a requisição sem o token
 
 **Quando roda (economia de minutos, spec do F8, F8a):**
 - Branch de feature roda **só pelo PR** contra a `main`; o push da branch não dispara de novo. Para validar algo antes da revisão, abre-se o PR como rascunho.
-- No PR, o job `O que mudou` (`dorny/paths-filter`) decide: **backend** com `src/`, `tests/`, `openapi/` (o `ContratoOpenApiTests`), solução, `global.json`, `Directory.*.props` ou `.config/`; **front** com `apps/web/` ou `openapi/`; **E2E** quando qualquer um dos dois muda. Mudar `ci.yml`, `.github/actions/`, `.editorconfig` ou `.gitattributes` roda tudo. Job pulado conta como verde; o job **`CI ok`** falha se algum job falhou ou foi cancelado, e é o check a exigir na proteção da `main`. PR só de documentos não roda nenhum job pesado.
+- No PR, o job `O que mudou` (`dorny/paths-filter`) decide: **backend** com `src/`, `tests/`, `openapi/` (o `ContratoOpenApiTests`), solução, `global.json`, `Directory.*.props` ou `.config/`; **front** com `apps/web/` ou `openapi/`; **E2E** quando qualquer um dos dois muda; **imagem** com o código da API (`src/`, solução, `global.json`, `Directory.*.props`), `docker/` ou `.dockerignore`. Mudar `ci.yml`, `.github/actions/`, `.editorconfig` ou `.gitattributes` roda tudo. Job pulado conta como verde; o job **`CI ok`** falha se algum job falhou ou foi cancelado, e é o check a exigir na proteção da `main`. PR só de documentos não roda nenhum job pesado.
 - Na `main`, um run não cancela o anterior (no PR, sim).
 - Na `main` (merge) e no disparo manual, roda tudo.
 
