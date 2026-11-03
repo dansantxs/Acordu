@@ -11,6 +11,7 @@
     "dev": "vite",
     "build": "tsr generate && tsc -b && vite build",
     "preview": "vite preview",
+    "csp:conferir": "node scripts/conferir-csp.mjs",
     "rotas": "tsr generate",
     "typecheck": "tsr generate && tsc -b",
     "lint": "eslint .",
