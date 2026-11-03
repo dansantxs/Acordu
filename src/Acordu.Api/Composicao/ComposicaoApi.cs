@@ -48,6 +48,7 @@ internal static class ComposicaoApi
     public static IServiceCollection AddAcorduApi(this IServiceCollection services, IConfiguration configuracao)
     {
         ArgumentNullException.ThrowIfNull(configuracao);
+        AmbienteDeExecucao.Conferir();
         var conexao = configuracao.GetConnectionString("Acordu")
             ?? throw new InvalidOperationException("Connection string 'Acordu' não configurada (ConnectionStrings__Acordu).");
         services.AddInfrastructure(conexao);
