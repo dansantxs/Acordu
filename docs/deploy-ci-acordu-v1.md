@@ -49,7 +49,7 @@ Proxy fino, sem lógica de negócio:
 - não armazena em cache nenhuma resposta da API;
 - código em `infra/cloudflare/api-borda/` (TypeScript, `wrangler`), publicado pelo `deploy.yml`.
 
-Com `Proxy__TokenOrigem` definido, a API responde 404 a requisição sem o token. A URL `*.run.app` deixa de ser porta de entrada.
+Com `Proxy__TokenOrigem` definido, a API responde 404 a requisição sem o token (inclusive `/api/health` e `/internal/jobs/*`), antes de proxy, autenticação e rate limit, e retira o cabeçalho depois de conferir. A URL `*.run.app` deixa de ser porta de entrada. `Proxy__Saltos` só passa de 1 com o token ativo.
 
 ### 2.2 Configuração do serviço Cloud Run
 
@@ -109,7 +109,7 @@ Cada job é um endpoint interno (`POST /internal/jobs/<nome>`): `X-Job-Token` co
 | Job do Scheduler | Agenda (`America/Sao_Paulo`) | Endpoint | Faz |
 |---|---|---|---|
 | `acordu-tick` | `*/15 7-19 * * 1-6` | `/internal/jobs/tick` | Tarefas recorrentes, outbox pendente e alertas de SLA. Responde `{ tarefasRecorrentes, outboxProcessadas, alertasSla, falhas }`. |
-| `acordu-diario` | `40 6 * * *` | `/internal/jobs/diario` (**a implementar**) | Roda em sequência `fechamento-automatico`, `expurgo-auditoria` e `expurgo-notificacoes` (que apaga também o feed de atividade com mais de 90 dias) e soma as contagens. |
+| `acordu-diario` | `40 6 * * *` | `/internal/jobs/diario` | Roda em sequência `fechamento-automatico`, `expurgo-auditoria` e `expurgo-notificacoes` (que apaga também o feed de atividade com mais de 90 dias). Responde `{ fechadas, auditoriaRemovida, notificacoesRemovidas, atividadesRemovidas, falhas }`; um passo que falha é logado, conta em `falhas` e não impede os seguintes. |
 
 - Os endpoints diários individuais continuam existindo para disparo manual.
 - Retry do Scheduler com backoff curto; o próximo disparo cobre o anterior.
