@@ -31,13 +31,13 @@ A coluna **Teste** é preenchida nos PRs de código. Os cenários de provisionam
 |---|---|---|---|---|
 | F8-06 | `Jobs__Token` configurado | `POST /internal/jobs/diario` com o token | roda fechamento automático, expurgo da auditoria e expurgo das notificações, nessa ordem, e responde a soma (`fechadas`, `auditoriaRemovida`, `notificacoesRemovidas`, `atividadesRemovidas`, `falhas`) | `Api.FunctionalTests/JobDiarioTests › Diario_ComToken_FechaExpurgaESomaAsContagens` |
 | F8-07 | `Jobs__Token` configurado | `POST /internal/jobs/diario` sem token ou com token errado | 404 | `Api.FunctionalTests/JobDiarioTests › Diario_SemTokenOuComTokenErrado_404` |
-| F8-08 | um dos três passos do diário falha | o diário roda | os outros passos rodam mesmo assim e a falha entra em `falhas` | `Api.FunctionalTests/JobDiarioTests › Passos_UmFalha_OsSeguintesRodamEAFalhaConta` |
+| F8-08 | um dos três passos do diário falha | o diário roda | os outros passos rodam mesmo assim e a falha entra em `falhas` | `Api.FunctionalTests/PassosDiarioTests › ExecutarAsync_UmPassoFalha_OsSeguintesRodamEAFalhaConta` |
 | F8-09 | `Proxy__TokenOrigem` configurado | chega qualquer requisição sem `X-Origem-Token` (inclusive `/api/health` e `/internal/jobs/*`) | 404, sem passar por autenticação nem rate limit | `Api.FunctionalTests/BordaTests › TokenDeOrigem_SemCabecalho_404EmQualquerRota` |
 | F8-10 | `Proxy__TokenOrigem` configurado | chega uma requisição com o token certo | segue normalmente; o cabeçalho não chega aos logs | `Api.FunctionalTests/BordaTests › TokenDeOrigem_ComCabecalho_SegueSemLevarOCabecalhoAdiante` |
 | F8-11 | token de origem ativo, `Proxy__ConfiarEncaminhamento=true` e `Proxy__Saltos=2` | chega `X-Forwarded-For: <cliente>, <worker>` | o IP usado na auditoria e no rate limit é o `<cliente>` | `Api.FunctionalTests/BordaTests › DoisSaltos_ComTokenDeOrigem_UsaOIpDoCliente` |
 | F8-12 | `Proxy__Saltos=2` **sem** token de origem | a API sobe | vale 1 salto (o cliente não forja o IP pulando a borda) | `Api.FunctionalTests/BordaTests › DoisSaltos_SemTokenDeOrigem_ValeUmSalto` |
-| F8-13 | `App__UrlApi` configurado | a equipe gera o link da agenda (ICS) | o link usa `App__UrlApi`; sem a chave, usa `App__UrlPublica` como hoje | `Api.FunctionalTests/BordaTests › UrlApi_LinkDaAgendaUsaOEnderecoDaApi` |
-| F8-14 | `TempoReal__Sse=false` | `GET /api/v1/eventos` | 404; sem a chave, o SSE funciona como hoje | `Api.FunctionalTests/BordaTests › SseDesligado_RotaDeEventos404` |
+| F8-13 | `App__UrlApi` configurado | a equipe gera o link da agenda (ICS) | o link usa `App__UrlApi`; sem a chave, usa `App__UrlPublica` como hoje | `Api.FunctionalTests/BordaTests › UrlApi_Configurada_LinkDaAgendaUsaOEnderecoDaApi` |
+| F8-14 | `TempoReal__Sse=false` | `GET /api/v1/eventos` | 404; sem a chave, o SSE funciona como hoje | `Api.FunctionalTests/BordaTests › Sse_Desligado_RotaDeEventosResponde404` |
 | F8-15 | `Cors__Origem=https://acordu.app.br` | preflight de `https://acordu.app.br` para `/api/v1/auth/refresh` | permitido com credenciais; de outra origem, sem os cabeçalhos de CORS | `Api.FunctionalTests/BordaTests › Cors_SoAOrigemDoSpa_ComCredenciais` |
 
 ### Imagem
