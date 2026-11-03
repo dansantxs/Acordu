@@ -47,7 +47,8 @@ Proxy fino, sem lógica de negócio:
 - repassa método, caminho, query, corpo e cabeçalhos para `https://<serviço>.run.app`, sem buffer (o corpo vai em stream; uploads de até 20 MB);
 - acrescenta `X-Origem-Token` (segredo do Worker) e grava `CF-Connecting-IP` em `X-Forwarded-For`, descartando o que o cliente mandou nesse cabeçalho;
 - não armazena em cache nenhuma resposta da API;
-- código em `infra/cloudflare/api-borda/` (TypeScript, `wrangler`), publicado pelo `deploy.yml`.
+- código em `infra/cloudflare/api-borda/` (TypeScript, `wrangler`), publicado pelo `deploy.yml`; `ORIGEM` (variável) e `TOKEN_ORIGEM` (segredo) definidos no provisionamento; sem eles, o Worker responde 500 em vez de repassar sem o token;
+- testado na CI (job **Borda (Worker)**: tipos, testes do repasse e empacotamento com `wrangler deploy --dry-run`).
 
 Com `Proxy__TokenOrigem` definido, a API responde 404 a requisição sem o token (inclusive `/api/health` e `/internal/jobs/*`), antes de proxy, autenticação e rate limit, e retira o cabeçalho depois de conferir. A URL `*.run.app` deixa de ser porta de entrada. `Proxy__Saltos` só passa de 1 com o token ativo.
 
@@ -76,7 +77,7 @@ Com `Proxy__TokenOrigem` definido, a API responde 404 a requisição sem o token
 
 **Quando roda (economia de minutos, spec do F8, F8a):**
 - Branch de feature roda **só pelo PR** contra a `main`; o push da branch não dispara de novo. Para validar algo antes da revisão, abre-se o PR como rascunho.
-- No PR, o job `O que mudou` (`dorny/paths-filter`) decide: **backend** com `src/`, `tests/`, `openapi/` (o `ContratoOpenApiTests`), solução, `global.json`, `Directory.*.props` ou `.config/`; **front** com `apps/web/` ou `openapi/`; **E2E** quando qualquer um dos dois muda; **imagem** com o código da API (`src/`, solução, `global.json`, `Directory.*.props`), `docker/` ou `.dockerignore`. Mudar `ci.yml`, `.github/actions/`, `.editorconfig` ou `.gitattributes` roda tudo. Job pulado conta como verde; o job **`CI ok`** falha se algum job falhou ou foi cancelado, e é o check a exigir na proteção da `main`. PR só de documentos não roda nenhum job pesado.
+- No PR, o job `O que mudou` (`dorny/paths-filter`) decide: **backend** com `src/`, `tests/`, `openapi/` (o `ContratoOpenApiTests`), solução, `global.json`, `Directory.*.props` ou `.config/`; **front** com `apps/web/` ou `openapi/`; **E2E** quando qualquer um dos dois muda; **imagem** com o código da API (`src/`, solução, `global.json`, `Directory.*.props`), `docker/` ou `.dockerignore`; **borda** com `infra/cloudflare/`. Mudar `ci.yml`, `.github/actions/`, `.editorconfig` ou `.gitattributes` roda tudo. Job pulado conta como verde; o job **`CI ok`** falha se algum job falhou ou foi cancelado, e é o check a exigir na proteção da `main`. PR só de documentos não roda nenhum job pesado.
 - Na `main`, um run não cancela o anterior (no PR, sim).
 - Na `main` (merge) e no disparo manual, roda tudo.
 

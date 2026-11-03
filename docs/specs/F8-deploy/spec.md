@@ -19,11 +19,11 @@ A coluna **Teste** é preenchida nos PRs de código. Os cenários de provisionam
 
 | Id | Dado | Quando | Então | Teste |
 |---|---|---|---|---|
-| F8-01 | um PR aberto | chega um push na branch dele | a CI roda uma vez (pelo PR), não duas (push e PR) | verificação no Actions |
-| F8-02 | um PR que só muda `docs/` ou `*.md` | a CI roda | backend, front, E2E e imagem ficam como pulados (contam como verdes) | verificação no Actions |
-| F8-03 | um PR que só muda `apps/web/` | a CI roda | backend e imagem são pulados; front e E2E rodam | verificação no Actions |
-| F8-04 | um PR que muda `src/`, `tests/` ou a solução | a CI roda | backend e E2E rodam; imagem só se mudou o código da API (`src/`, solução, props, `global.json`) ou `docker/`; front só se `apps/web/` ou `openapi/` mudou | verificação no Actions |
-| F8-05 | um push na `main` (merge) | a CI roda | roda tudo, sem filtro, como base para o deploy | verificação no Actions |
+| F8-01 | um PR aberto | chega um push na branch dele | a CI roda uma vez (pelo PR), não duas (push e PR) | PRs #125 em diante: um run por push (só `pull_request`); antes, cada job aparecia duas vezes |
+| F8-02 | um PR que só muda `docs/` ou `*.md` | a CI roda | backend, front, E2E e imagem ficam como pulados (contam como verdes) | PR #129 (só docs): backend, front, E2E e imagem pulados; `CI ok` verde |
+| F8-03 | um PR que só muda `apps/web/` | a CI roda | backend e imagem são pulados; front e E2E rodam | conferido no primeiro PR só de `apps/web` (o #128 também mudou o `ci.yml`, que roda tudo) |
+| F8-04 | um PR que muda `src/`, `tests/` ou a solução | a CI roda | backend e E2E rodam; imagem só se mudou o código da API (`src/`, solução, props, `global.json`) ou `docker/`; front só se `apps/web/` ou `openapi/` mudou | PR #126 (API): backend e E2E rodaram, front pulado |
+| F8-05 | um push na `main` (merge) | a CI roda | roda tudo, sem filtro, como base para o deploy | runs da `main` após cada merge: todos os jobs |
 
 ### API
 
@@ -61,9 +61,9 @@ A coluna **Teste** é preenchida nos PRs de código. Os cenários de provisionam
 
 | Id | Dado | Quando | Então | Teste |
 |---|---|---|---|---|
-| F8-23 | o Worker com `ORIGEM` e `TOKEN_ORIGEM` | chega uma requisição em `api.acordu.app.br` | repassa método, caminho, query, cabeçalhos e corpo em stream para a origem, com `X-Origem-Token` | — |
-| F8-24 | o cliente manda `X-Forwarded-For` próprio | o Worker repassa | o cabeçalho vira só o `CF-Connecting-IP` (o valor do cliente é descartado) | — |
-| F8-25 | qualquer resposta da API | o Worker devolve | sem cache (`cache: 'no-store'` na origem) e com o corpo em stream (SSE e downloads) | — |
+| F8-23 | o Worker com `ORIGEM` e `TOKEN_ORIGEM` | chega uma requisição em `api.acordu.app.br` | repassa método, caminho, query, cabeçalhos e corpo em stream para a origem, com `X-Origem-Token` | `infra/cloudflare/api-borda/src/index.test.ts › F8-23` (dois testes) |
+| F8-24 | o cliente manda `X-Forwarded-For` próprio | o Worker repassa | o cabeçalho vira só o `CF-Connecting-IP` (o valor do cliente é descartado) | `infra/cloudflare/api-borda/src/index.test.ts › F8-24` |
+| F8-25 | qualquer resposta da API | o Worker devolve | sem cache (`cache: 'no-store'` na origem) e com o corpo em stream (SSE e downloads) | `infra/cloudflare/api-borda/src/index.test.ts › F8-25` |
 
 ### Deploy, jobs e backup
 
