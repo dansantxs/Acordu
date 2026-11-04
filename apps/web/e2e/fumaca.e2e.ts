@@ -24,7 +24,12 @@ test('cria a conta, mantém a sessão, navega e sai', async ({ page }) => {
     await page.getByRole('button', { name: 'Criar conta' }).click()
 
     await expect(saudacao(page)).toBeVisible()
-    await expect(page.getByText(`Confirme seu e-mail: mandamos um link para ${conta.email}.`)).toBeVisible()
+    // Conta nova: a empresa ainda não envia a terceiros, e a casca explica (RF-AUT-06, F9-42).
+    await expect(
+        page.getByText(
+            `Confirme seu e-mail para liberar convites, links do portal e avisos por e-mail aos clientes. Mandamos o link para ${conta.email}.`,
+        ),
+    ).toBeVisible()
     await eventos
 
     // Recarregar recupera a sessão pelo cookie HttpOnly (ADR 0007).
