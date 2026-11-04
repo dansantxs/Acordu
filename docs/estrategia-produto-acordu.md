@@ -3,7 +3,7 @@
 | | |
 |---|---|
 | **Versão** | 0.2 (documento vivo — revisar conforme validar) |
-| **Data** | 26/10/2026 |
+| **Data** | 04/11/2026 |
 | **Empresa** | Nebrys |
 | **Natureza** | Visão e estratégia. Hipóteses a validar com usuários, não decisões cravadas. |
 
@@ -163,6 +163,7 @@ Implicação arquitetural (ADR 0002):
 - **Base de conhecimento:** artigos internos/externos, publicação no portal, "transformar solução em artigo".
 - Projeção do contrato (§7.4).
 - Relatório mensal de prestação de contas (PDF) por cliente.
+- **Rascunho da NFS-e** (passo intermediário da §8.1): ao fechar o mês de um contrato, montar os dados da nota (tomador, descrição, valor, código do serviço) para o prestador copiar no emissor nacional ou mandar ao contador. Sem emissão nem certificado.
 - Integração WhatsApp (API oficial via provedor).
 - **Colaboração entre autônomos e equipes informais** (estudantes, freelancers parceiros):
   - "modo equipe" escolhido no cadastro, que esconde clientes, contratos e SLA e troca "empresa" por "espaço";
@@ -177,8 +178,26 @@ Implicação arquitetural (ADR 0002):
   - **Princípio:** o Acordu é a fonte da verdade do trabalho e das horas, e as integrações levam e trazem sinais sem exigir conta do outro lado.
 
 **v3+:**
-- Faturamento/cobrança (gateway, NFS-e) — ou integração com sistemas financeiros.
+- Faturamento/cobrança e **emissão de NFS-e** (§8.1) — ou integração com sistemas financeiros.
 - IA (via API externa), nunca no caminho crítico: rascunho automático de artigo a partir de solicitações resolvidas (revisão humana obrigatória), triagem e resumo.
+
+### 8.1 Faturamento e NFS-e (registrado em 04/11/2026)
+
+**Por quê:** fecha o fluxo que o produto já cobre (contrato → horas → fechamento do mês → fatura → nota) e leva a nota ao portal do cliente, no mesmo espírito de transparência. Para quem presta serviço a nota é a NFS-e (NF-e é de mercadoria).
+
+**Cenário (conferido em 04/11/2026; reconferir antes da spec):**
+- Desde 01/11/2026, ME e EPP do Simples Nacional que prestam serviço sujeito a ISS emitem pela **NFS-e de padrão nacional** (Resolução CGSN 191/2026, que adiou de 01/09/2026). O MEI já usa o emissor nacional.
+- O ambiente nacional tem API para sistemas, além do portal web e do aplicativo: para o público do Acordu (quase todo Simples ou MEI), é uma integração só, e não uma por município.
+- A reforma tributária está acrescentando IBS/CBS à NFS-e por notas técnicas do padrão nacional: é a parte que ainda muda.
+
+**Caminho:**
+1. **v2 — rascunho da nota** (acima, em v2): dados prontos para copiar, sem emitir.
+2. **v3 — emissão por gateway** (Focus NFe, NFE.io, PlugNotas/Tecnospeed ou similar): o gateway guarda o certificado digital, assina, acompanha layout e reforma e cobre municípios fora do padrão nacional. Custo por nota ou mensal, repassável no plano. Integração atrás de uma interface própria (`IEmissorNfse`), por HTTP, sem SDK (ADR 0010); a escolha do gateway vira ADR.
+3. **Depois, com volume e CNPJ próprio — direto na API nacional:** sem custo por nota, mas o Acordu passa a guardar o certificado A1 de cada prestador e assinar o XML; responsabilidade de segurança alta e cada nota técnica vira trabalho próprio. Decidir em ADR.
+
+**Pré-requisitos no produto:** valores monetários (`Dinheiro`: mensalidade, valor-hora) e fatura por contrato e mês; dados fiscais do prestador (regime: MEI, Simples, Presumido; código do serviço pela LC 116 / código nacional; alíquota de ISS; retenções); tomador com CNPJ/CPF e endereço (RF-CLI-01 e RF-CLI-08 já cobrem); nota visível no portal.
+
+**Antes da spec:** revisão por contador das regras fiscais (regimes, retenções, campos de IBS/CBS) — não é algo para decidir só pela documentação.
 
 ---
 
@@ -187,6 +206,7 @@ Implicação arquitetural (ADR 0002):
 - **Freemium enxuto** ou **trial + plano pago** — decidir após validação.
 - Cobrança **por usuário interno** (atendente/executor) ou **por faixa** (até N usuários), com **portal de clientes ilimitado** — o contraponto direto ao "preço por agente + add-ons".
 - Canal WhatsApp como add-on transparente (custo repassado da Meta/provedor), nunca surpresa.
+- Emissão de NFS-e (§8.1) com o custo do gateway embutido no plano ou como add-on transparente por faixa de notas.
 - Referência de faixa a validar: abaixo de Movidesk (R$700/mês) para equipes pequenas.
 
 ---
@@ -227,6 +247,7 @@ Implicação arquitetural (ADR 0002):
 - Qual vertical de entrada responde melhor (agência? contabilidade? manutenção?)
 - Pagariam por equipe interna com portal ilimitado? Em qual faixa?
 - WhatsApp é requisito de compra desde o início ou pode esperar a v2?
+- Emitir a NFS-e pelo Acordu é motivo de compra, ou o prestador prefere deixar a nota com o contador? O rascunho (v2) basta para quantos?
 
 ---
 
@@ -250,3 +271,4 @@ Implicação arquitetural (ADR 0002):
 | 15/10/2026 | Colaboração de autônomos/estudantes ("modo equipe", projeto sem cliente, convidado por projeto) e integrações com GitHub, Notion, Slack/Discord/Teams e agendas: **v2**, fora do v1 para não diluir o foco em prestadores | Hipótese |
 | 16/10/2026 | Verticais: **v1** atende agência, contabilidade, consultoria, manutenção, TI terceirizada e freelancer com equipe; **arquitetura, engenharia e estúdios** precisam de ajustes (contrato por projeto com etapas, limite de revisões, entregas versionadas) e ficam para a **v2**, após validação | Hipótese |
 | 26/10/2026 | Conta Oracle desativada de vez (nova só com CNPJ) e **o Acordu passa a ser o único produto da Nebrys**: serverless gratuito (Cloud Run + Neon + Cloudflare Pages, Worker e R2), API em `api.acordu.app.br`, polling no lugar do SSE no nível 0, tick a cada 15 min no expediente (ADR 0010) | Decidido |
+| 04/11/2026 | **Faturamento e NFS-e** (§8.1): v2 rascunho da nota; v3 emissão por gateway atrás de `IEmissorNfse`; API nacional direta só com volume e CNPJ próprio; regras fiscais revisadas por contador antes da spec | Hipótese |
