@@ -462,7 +462,7 @@ Regras:
 
 ### 4.11.2 Criador e liberação do envio (RF-AUT-06, F9)
 - `Tenant.CriadoPorUsuarioId`: quem registrou a empresa (`Criar(id, nome, agora, criadoPor)`). Sem FK: a identidade fica fora do domínio. Nulo só em empresa anterior ao F9 sem Dono.
-- `Tenant.EnvioLiberadoEm` (e `EnvioLiberado`): a primeira vez que o e-mail do criador ficou confirmado, pelo link de confirmação ou pela redefinição de senha. `LiberarEnvio(agora)` guarda só a primeira data; nunca volta a nulo, nem se o criador sair ou mudar de papel. Sem ela, convites e links são recusados (`EnvioATerceiros` na Application).
+- `Tenant.EnvioLiberadoEm` (e `EnvioLiberado`): a primeira vez que o e-mail do criador ficou confirmado, pelo link de confirmação ou pela redefinição de senha. Gravada só na primeira vez (a Infrastructure atualiza com `EnvioLiberadoEm IS NULL`, fora do rastreamento: a confirmação é rota pública); nunca volta a nulo, nem se o criador sair ou mudar de papel. Sem ela, convites e links são recusados (`EnvioATerceiros` na Application).
 
 ### 4.12 Categoria
 - Nome obrigatório (≤ 100); `Renomear`, `Inativar`, `Reativar`. Inativa some da escolha em novas solicitações, mas continua nas antigas.
