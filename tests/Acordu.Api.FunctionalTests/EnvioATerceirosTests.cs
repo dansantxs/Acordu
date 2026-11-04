@@ -17,7 +17,7 @@ public sealed class EnvioATerceirosTests(ApiFixture api)
     private const string TipoBloqueio = "https://acordu.app.br/erros/email-nao-confirmado";
 
     [Fact]
-    public async Task EmpresaNova_NaoLiberada_NoEu() // F9-09
+    public async Task Eu_EmpresaRecemCadastrada_NaoLiberada() // F9-09
     {
         var equipe = await Equipe.CriarAsync(api, confirmar: false);
 
@@ -28,7 +28,7 @@ public sealed class EnvioATerceirosTests(ApiFixture api)
     }
 
     [Fact]
-    public async Task SemPermissao_403VemAntesDoBloqueio() // F9-10
+    public async Task Convites_SemPermissaoNaEmpresaNaoLiberada_Retorna403() // F9-10
     {
         var equipe = await Equipe.CriarAsync(api, confirmar: false);
         var cliente = await Cenarios.ClienteAsync(equipe);
@@ -48,7 +48,7 @@ public sealed class EnvioATerceirosTests(ApiFixture api)
     }
 
     [Fact]
-    public async Task ConviteDaEquipe_Recusado_SemGravarNemEnviar() // F9-11
+    public async Task ConvidarEquipe_EmpresaNaoLiberada_Retorna422SemGravarNemEnviar() // F9-11
     {
         var equipe = await Equipe.CriarAsync(api, confirmar: false);
         var email = NovoEmail();
@@ -64,7 +64,7 @@ public sealed class EnvioATerceirosTests(ApiFixture api)
     }
 
     [Fact]
-    public async Task ConviteDoPortal_Recusado_SemAcessoNemEmail() // F9-12
+    public async Task ConvidarPortal_EmpresaNaoLiberada_Retorna422SemAcessoNemEmail() // F9-12
     {
         var equipe = await Equipe.CriarAsync(api, confirmar: false);
         var cliente = await Cenarios.ClienteAsync(equipe);
@@ -84,7 +84,7 @@ public sealed class EnvioATerceirosTests(ApiFixture api)
     [Theory]
     [InlineData(true)]
     [InlineData(false)]
-    public async Task LinkDeAcesso_Recusado_ComOuSemEmail(bool enviarEmail) // F9-13
+    public async Task EmitirLink_EmpresaNaoLiberada_Retorna422ComOuSemEmail(bool enviarEmail) // F9-13
     {
         var equipe = await Equipe.CriarAsync(api, confirmar: false);
         var cliente = await Cenarios.ClienteAsync(equipe);
@@ -102,7 +102,7 @@ public sealed class EnvioATerceirosTests(ApiFixture api)
     }
 
     [Fact]
-    public async Task AlterarEscopo_NaoEnviaEmail_SegueFuncionando() // F9-14
+    public async Task AlterarEscopo_EmpresaNaoLiberada_SegueFuncionando() // F9-14
     {
         var equipe = await Equipe.CriarAsync(api);
         var cliente = await Cenarios.ClienteAsync(equipe);
@@ -117,7 +117,7 @@ public sealed class EnvioATerceirosTests(ApiFixture api)
     }
 
     [Fact]
-    public async Task EmailsDaConta_SaemNaEmpresaNaoLiberada() // F9-18
+    public async Task EmailsDaConta_EmpresaNaoLiberada_Saem() // F9-18
     {
         var (email, token) = await RegistrarAsync();
         var antes = api.Emails.Para(email).Count;
@@ -133,7 +133,7 @@ public sealed class EnvioATerceirosTests(ApiFixture api)
     }
 
     [Fact]
-    public async Task ConfirmarOEmail_LiberaConvitesELinks() // F9-19
+    public async Task ConfirmarEmail_EmpresaNaoLiberada_LiberaConvitesELinks() // F9-19
     {
         var equipe = await Equipe.CriarAsync(api, confirmar: false);
         var emailDono = (await equipe.EsperarAsync(HttpStatusCode.OK, HttpMethod.Get, "/api/v1/auth/eu")).GetProperty("email").GetString()!;
@@ -153,10 +153,14 @@ public sealed class EnvioATerceirosTests(ApiFixture api)
         var solicitacao = await Cenarios.SolicitacaoAsync(equipe, cliente);
         await equipe.EsperarAsync(
             HttpStatusCode.Created, HttpMethod.Post, $"/api/v1/solicitacoes/{solicitacao}/acessos-portal", new { contatoId = contato.Id });
+        await equipe.EsperarAsync(
+            HttpStatusCode.Accepted, HttpMethod.Post, $"/api/v1/clientes/{cliente}/contatos/{contato.Id}/acesso-portal",
+            new { escopoPortal = "PROPRIAS" });
+        api.Emails.TokenDoConvite(contato.Email).Should().NotBeNullOrEmpty();
     }
 
     [Fact]
-    public async Task RedefinirASenha_TambemLibera() // F9-20
+    public async Task RedefinirSenha_EmpresaNaoLiberada_Libera() // F9-20
     {
         var (email, _) = await RegistrarAsync();
         using (var esqueci = await PostAsync("/api/v1/auth/senha/esqueci", new { email }))
@@ -178,7 +182,7 @@ public sealed class EnvioATerceirosTests(ApiFixture api)
     }
 
     [Fact]
-    public async Task Liberada_ContinuaLiberada_QuandoOCriadorMudaDePapel() // F9-22
+    public async Task TrocarPapel_CriadorRebaixado_EmpresaContinuaLiberada() // F9-22
     {
         var equipe = await Equipe.CriarAsync(api);
         var outroDono = await equipe.ComPapelAsync(Papel.NomeDono);
@@ -196,7 +200,7 @@ public sealed class EnvioATerceirosTests(ApiFixture api)
     }
 
     [Fact]
-    public async Task ContaCriadaPorConvite_NasceConfirmada() // F9-23
+    public async Task AceitarConvite_ContaNova_NasceConfirmada() // F9-23
     {
         var equipe = await Equipe.CriarAsync(api);
         var email = NovoEmail();
@@ -214,7 +218,7 @@ public sealed class EnvioATerceirosTests(ApiFixture api)
     }
 
     [Fact]
-    public async Task BloqueioEhPorEmpresa() // F9-24
+    public async Task Envios_EmpresaLiberadaAoLadoDeBloqueada_SaemSoNaLiberada() // F9-24
     {
         var bloqueada = await Equipe.CriarAsync(api, confirmar: false);
         var liberada = await Equipe.CriarAsync(api);
@@ -225,10 +229,26 @@ public sealed class EnvioATerceirosTests(ApiFixture api)
         await liberada.EsperarAsync(
             HttpStatusCode.Accepted, HttpMethod.Post, "/api/v1/convites",
             new { email = NovoEmail(), papelId = await PapelAsync(liberada, Papel.NomeMembro) });
+        // Convite do portal e link: recusados na bloqueada, aceitos na liberada.
+        foreach (var (equipe, convite, link) in new[]
+        {
+            (bloqueada, HttpStatusCode.UnprocessableEntity, HttpStatusCode.UnprocessableEntity),
+            (liberada, HttpStatusCode.Accepted, HttpStatusCode.Created),
+        })
+        {
+            var cliente = await Cenarios.ClienteAsync(equipe);
+            var contato = await ContatoAsync(equipe, cliente);
+            var solicitacao = await Cenarios.SolicitacaoAsync(equipe, cliente);
+            await equipe.EsperarAsync(
+                convite, HttpMethod.Post, $"/api/v1/clientes/{cliente}/contatos/{contato.Id}/acesso-portal",
+                new { escopoPortal = "PROPRIAS" });
+            await equipe.EsperarAsync(
+                link, HttpMethod.Post, $"/api/v1/solicitacoes/{solicitacao}/acessos-portal", new { contatoId = contato.Id });
+        }
     }
 
     [Fact]
-    public async Task UsuarioNaoConfirmado_EnviaPelaEmpresaLiberadaEmQueEsta() // F9-25
+    public async Task Convidar_UsuarioNaoConfirmadoEmEmpresaLiberada_Envia() // F9-25
     {
         var liberada = await Equipe.CriarAsync(api);
         // A pessoa registrou a própria empresa (sem confirmar) e tem vínculo de Dono na liberada.

@@ -59,6 +59,8 @@ public sealed class MigrationsTests(BancoFixture banco)
                 $"UPDATE tenants SET criado_por_usuario_id = NULL, envio_liberado_em = NULL WHERE id = {tenant}");
         }
 
+        // O script é o da migration e roda no banco inteiro: libera todos os tenants do banco de testes. Nenhum teste de
+        // integração depende de empresa não liberada (os do bloqueio são funcionais, com banco próprio).
         await using (var sistema = banco.Contexto(Quem.Sistema()))
             await sistema.Database.ExecuteSqlRawAsync(ScriptsDeDados.PreencherCriadorELiberacao);
 

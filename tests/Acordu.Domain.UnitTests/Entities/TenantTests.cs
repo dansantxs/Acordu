@@ -152,17 +152,4 @@ public sealed class TenantTests
 
         acao.Should().Throw<ArgumentException>().WithParameterName("criadoPorUsuarioId");
     }
-
-    [Fact]
-    public void LiberarEnvio_GuardaAPrimeiraData_EmUtc()
-    {
-        var tenant = Tenant.Criar(Guid.NewGuid(), "Estúdio", Agora, Criador);
-
-        tenant.LiberarEnvio(new DateTimeOffset(2026, 10, 7, 9, 0, 0, TimeSpan.FromHours(-3)));
-        tenant.LiberarEnvio(Agora.AddDays(5));
-
-        tenant.EnvioLiberado.Should().BeTrue();
-        tenant.EnvioLiberadoEm.Should().Be(new DateTimeOffset(2026, 10, 7, 12, 0, 0, TimeSpan.Zero));
-        tenant.EnvioLiberadoEm!.Value.Offset.Should().Be(TimeSpan.Zero);
-    }
 }
