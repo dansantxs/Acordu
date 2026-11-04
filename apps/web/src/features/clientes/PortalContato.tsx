@@ -1,6 +1,7 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
-import { useState } from 'react'
+import { useId, useState } from 'react'
 import { Button, Form, Radio, RadioGroup } from 'react-aria-components'
+import { SEM_ENVIO } from '@/features/sessao/AvisoConfirmacao'
 import { mensagemDeErro } from '@/shared/api/mensagens'
 import { avisar } from '@/shared/avisos/avisos'
 import { dataHora } from '@/shared/format/prazo'
@@ -43,8 +44,18 @@ type Janelas = 'convite' | 'escopo' | 'revogacao' | null
  * Ações do portal de um contato ativo (decisão 4 do F4: o convite sugere "Só as próprias"). Sem acesso: convidar;
  * convidado: reenviar (o link anterior deixa de valer) ou cancelar; com acesso: mudar o escopo ou revogar.
  */
-export function AcoesPortal({ cliente, contato }: { cliente: Cliente; contato: Contato }) {
+export function AcoesPortal({
+    cliente,
+    contato,
+    envioLiberado,
+}: {
+    cliente: Cliente
+    contato: Contato
+    /** Falso: convidar e reenviar ficam desabilitados até a confirmação do e-mail (RF-AUT-06). */
+    envioLiberado: boolean
+}) {
     const [aberta, setAberta] = useState<Janelas>(null)
+    const motivo = useId()
     const acesso = contato.acessoPortal
     const consultas = useQueryClient()
     const revogacao = useMutation({
@@ -63,22 +74,38 @@ export function AcoesPortal({ cliente, contato }: { cliente: Cliente; contato: C
     return (
         <>
             {!acesso ? (
-                <Button
-                    onPress={() => setAberta('convite')}
-                    aria-label={`Convidar ${contato.nome} para o portal`}
-                    className={botao}
-                >
-                    Convidar para o portal
-                </Button>
+                <>
+                    <Button
+                        onPress={() => setAberta('convite')}
+                        aria-label={`Convidar ${contato.nome} para o portal`}
+                        className={`${botao} disabled:text-suave disabled:no-underline`}
+                        isDisabled={!envioLiberado}
+                        aria-describedby={envioLiberado ? undefined : motivo}
+                    >
+                        Convidar para o portal
+                    </Button>
+                    {!envioLiberado && (
+                        <span id={motivo} className="text-xs text-suave">
+                            {SEM_ENVIO}
+                        </span>
+                    )}
+                </>
             ) : acesso.situacao === 'CONVIDADO' ? (
                 <>
                     <Button
                         onPress={() => setAberta('convite')}
                         aria-label={`Reenviar convite de ${contato.nome}`}
-                        className={botao}
+                        className={`${botao} disabled:text-suave disabled:no-underline`}
+                        isDisabled={!envioLiberado}
+                        aria-describedby={envioLiberado ? undefined : motivo}
                     >
                         Reenviar convite
                     </Button>
+                    {!envioLiberado && (
+                        <span id={motivo} className="text-xs text-suave">
+                            {SEM_ENVIO}
+                        </span>
+                    )}
                     <Button
                         onPress={() => setAberta('revogacao')}
                         aria-label={`Cancelar convite de ${contato.nome}`}

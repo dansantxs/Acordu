@@ -22,6 +22,14 @@ export const modoTempoReal = (valor: string | undefined): ModoTempoReal => (valo
 export const MODO_TEMPO_REAL = modoTempoReal(import.meta.env.VITE_TEMPO_REAL)
 
 /**
+ * Chave do site do Cloudflare Turnstile (`VITE_TURNSTILE_CHAVE`, pública; RNF-SEG-10). Sem ela, o cadastro não mostra o
+ * desafio: em dev, testes e E2E a API também fica sem o segredo (spec do F9, decisão 5).
+ */
+export const chaveTurnstile = (valor: string | undefined): string | undefined => valor?.trim() || undefined
+
+export const CHAVE_TURNSTILE = chaveTurnstile(import.meta.env.VITE_TURNSTILE_CHAVE)
+
+/**
  * `refetchInterval` das telas que acompanham a equipe ao vivo (Agenda e Quadro). O TanStack Query não recarrega com a
  * aba escondida (`refetchIntervalInBackground` falso por padrão).
  */

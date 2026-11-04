@@ -1,7 +1,8 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { useState } from 'react'
+import { useId, useState } from 'react'
 import { Button, Form } from 'react-aria-components'
 import { pode } from '@/features/casca/navegacao'
+import { SEM_ENVIO } from '@/features/sessao/AvisoConfirmacao'
 import {
     consultaConvites,
     consultaPapeis,
@@ -45,6 +46,7 @@ export function SecaoEquipe({ perfil }: { perfil: Perfil }) {
     const consultas = useQueryClient()
     const verPessoas = pode(perfil, 'usuario.convidar', 'usuario.remover')
     const podeConvidar = pode(perfil, 'usuario.convidar')
+    const motivoConvite = useId()
     const gerenciaPapeis = pode(perfil, 'papel.gerenciar')
     const podeRemover = pode(perfil, 'usuario.remover')
     const pessoas = useQuery({ ...consultaPessoas, enabled: verPessoas })
@@ -89,10 +91,21 @@ export function SecaoEquipe({ perfil }: { perfil: Perfil }) {
                     Quem trabalha na empresa, com o papel e as horas por semana que entram no planejamento.
                 </CabecalhoSecao>
                 {podeConvidar && (
-                    <Botao onPress={() => setConvidando(true)}>
-                        <Icone nome="mais" />
-                        Convidar pessoa
-                    </Botao>
+                    <div className="flex flex-col items-end gap-1">
+                        <Botao
+                            onPress={() => setConvidando(true)}
+                            isDisabled={!perfil.tenant.envioLiberado}
+                            aria-describedby={perfil.tenant.envioLiberado ? undefined : motivoConvite}
+                        >
+                            <Icone nome="mais" />
+                            Convidar pessoa
+                        </Botao>
+                        {!perfil.tenant.envioLiberado && (
+                            <p id={motivoConvite} className="text-xs text-suave">
+                                {SEM_ENVIO}
+                            </p>
+                        )}
+                    </div>
                 )}
             </div>
             <div className="flex flex-col gap-8">

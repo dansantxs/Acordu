@@ -5,4 +5,6 @@ interface ImportMetaEnv {
     readonly VITE_URL_API?: string
     /** `polling` no nível 0 do ADR 0010; sem ela, `sse`. */
     readonly VITE_TEMPO_REAL?: string
+    /** Chave do site do Turnstile no cadastro (pública). Sem ela, sem desafio. */
+    readonly VITE_TURNSTILE_CHAVE?: string
 }

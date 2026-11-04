@@ -4,6 +4,12 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { reiniciarParaTestes } from '@/shared/sessao/sessao'
 import { abrir, daquiA, json, perfil, servidor } from '@/testes/app'
 
+// Build sem a chave do Turnstile, independente do .env.local de quem roda (F9-40).
+vi.mock('@/shared/config/ambiente', async (original) => ({
+    ...(await original<typeof import('@/shared/config/ambiente')>()),
+    CHAVE_TURNSTILE: undefined,
+}))
+
 describe('acesso', () => {
     beforeEach(() => reiniciarParaTestes())
     afterEach(() => vi.unstubAllGlobals())
@@ -108,5 +114,25 @@ describe('acesso', () => {
 
         await userEvent.setup().click(screen.getByRole('button', { name: 'Tentar de novo' }))
         expect(await screen.findByRole('heading', { level: 1, name: /, Ana$/ })).toBeInTheDocument()
+    })
+
+    it('sem a chave do Turnstile, o cadastro não mostra desafio nem manda token (F9-40)', async () => {
+        const turnstile = { render: vi.fn(() => 'w1'), reset: vi.fn(), remove: vi.fn() }
+        vi.stubGlobal('turnstile', turnstile)
+        const chamadas = servidor({
+            '/api/v1/auth/refresh': () => new Response(null, { status: 401 }),
+            '/api/v1/auth/registro': () =>
+                json({ type: 'https://acordu.app.br/erros/validacao', status: 400, errors: { email: ['x'] } }, 400),
+        })
+        await abrir('/cadastro')
+        const usuario = userEvent.setup()
+        await usuario.type(await screen.findByLabelText('Seu nome'), 'Ana')
+        await usuario.type(screen.getByLabelText('E-mail'), 'ana@exemplo.com')
+        await usuario.type(screen.getByLabelText('Senha'), 'umasenhaboa')
+        await usuario.type(screen.getByLabelText('Nome da empresa'), 'Prado')
+        await usuario.click(screen.getByRole('button', { name: 'Criar conta' }))
+        await screen.findByText('x')
+        expect(turnstile.render).not.toHaveBeenCalled()
+        expect(chamadas.find((c) => c.caminho === '/api/v1/auth/registro')?.corpo).not.toHaveProperty('tokenTurnstile')
     })
 })

@@ -2,7 +2,7 @@ import { screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { reiniciarParaTestes } from '@/shared/sessao/sessao'
-import { abrir, comPerfil, json, type Rotas } from '@/testes/app'
+import { abrir, comPerfil, json, perfil, type Rotas } from '@/testes/app'
 
 const DONO = { id: 'p1', nome: 'Dono' }
 const MEMBRO = { id: 'p2', nome: 'Membro' }
@@ -187,5 +187,36 @@ describe('equipe e papéis', () => {
         const confirmacao = await screen.findByRole('dialog', { name: 'Excluir o papel "Financeiro"?' })
         await usuario.click(within(confirmacao).getByRole('button', { name: 'Excluir papel' }))
         expect(await within(confirmacao).findByText(/Troque o papel delas na seção Equipe/)).toBeInTheDocument()
+    })
+
+    it('empresa não liberada: convidar fica desabilitado, com a explicação (F9-43)', async () => {
+        app(TUDO, {
+            '/api/v1/auth/eu': () =>
+                json({ ...perfil, permissoes: TUDO, tenant: { ...perfil.tenant, envioLiberado: false } }),
+        })
+        await abrir('/configuracoes/equipe')
+        expect(await screen.findByRole('button', { name: 'Convidar pessoa' })).toBeDisabled()
+        expect(screen.getByText('Disponível depois que você confirmar seu e-mail.')).toBeInTheDocument()
+    })
+
+    it('mostra a mensagem da API quando o convite é recusado por e-mail não confirmado (F9-44)', async () => {
+        app(TUDO, {
+            'POST /api/v1/convites': () =>
+                json(
+                    {
+                        type: 'https://acordu.app.br/erros/email-nao-confirmado',
+                        status: 422,
+                        detail: 'Confirme o e-mail de quem criou a empresa para enviar convites e links.',
+                    },
+                    422,
+                ),
+        })
+        await abrir('/configuracoes/equipe')
+        const usuario = userEvent.setup()
+        await usuario.click(await screen.findByRole('button', { name: 'Convidar pessoa' }))
+        const janela = await screen.findByRole('dialog', { name: 'Convidar pessoa' })
+        await usuario.type(within(janela).getByRole('textbox', { name: /E-mail/ }), 'caio@prado.com')
+        await usuario.click(within(janela).getByRole('button', { name: 'Enviar convite' }))
+        expect(await within(janela).findByText(/Confirme o e-mail de quem criou a empresa/)).toBeInTheDocument()
     })
 })

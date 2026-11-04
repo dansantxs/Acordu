@@ -136,4 +136,30 @@ describe('casca do app', () => {
         expect(await screen.findByText('Página não encontrada')).toBeInTheDocument()
         expect(screen.getByRole('navigation', { name: 'Principal' })).toBeInTheDocument()
     })
+
+    it('empresa não liberada: toda tela explica o que fica parado e reenvia o link (F9-42)', async () => {
+        const chamadas = app([], {
+            '/api/v1/auth/eu': () =>
+                json({
+                    ...perfil,
+                    permissoes: [],
+                    emailConfirmado: false,
+                    tenant: { ...perfil.tenant, envioLiberado: false },
+                }),
+            '/api/v1/auth/confirmacao-email/reenvio': () => new Response(null, { status: 202 }),
+        })
+        await abrir('/ajuda')
+        const aviso = await screen.findByText(/Confirme seu e-mail para liberar convites, links do portal/)
+        expect(aviso).toBeInTheDocument()
+        await userEvent.setup().click(screen.getByRole('button', { name: 'Reenviar link' }))
+        expect(await screen.findByText(/Enviamos um link novo/)).toBeInTheDocument()
+        expect(chamadas.some((c) => c.caminho === '/api/v1/auth/confirmacao-email/reenvio')).toBe(true)
+    })
+
+    it('conta não confirmada em empresa liberada: sem o aviso de envio parado (F9-26)', async () => {
+        app([], { '/api/v1/auth/eu': () => json({ ...perfil, permissoes: [], emailConfirmado: false }) })
+        await abrir('/ajuda')
+        await screen.findByRole('heading', { name: 'Ajuda' })
+        expect(screen.queryByText(/Confirme seu e-mail para liberar/)).not.toBeInTheDocument()
+    })
 })

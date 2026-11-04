@@ -7,7 +7,13 @@ export async function entrar(email: string, senha: string): Promise<void> {
     abrirSessao(data!)
 }
 
-export async function cadastrar(corpo: { nome: string; email: string; senha: string; nomeEmpresa: string }) {
+export async function cadastrar(corpo: {
+    nome: string
+    email: string
+    senha: string
+    nomeEmpresa: string
+    tokenTurnstile?: string | null
+}) {
     const { data } = await api.POST('/api/v1/auth/registro', { body: corpo })
     abrirSessao(data!)
 }
