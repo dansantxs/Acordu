@@ -145,7 +145,8 @@ Cada job é um endpoint interno (`POST /internal/jobs/<nome>`): `X-Job-Token` co
   - `TempoReal__Sse=false`;
   - `Email__ResendChave`, `Email__Remetente` (padrão `nao-responda@send.acordu.app.br`), `Email__NomeRemetente`;
   - `Armazenamento__Endpoint=https://<conta>.r2.cloudflarestorage.com`, `Armazenamento__Regiao=auto`, `Armazenamento__Bucket=acordu-anexos`, `Armazenamento__ChaveAcesso` / `Armazenamento__ChaveSecreta` (token R2 de leitura e escrita só em `acordu-anexos`);
-  - limites opcionais (`RateLimit__Auth__PorMinuto` 10, `RateLimit__Refresh__PorMinuto` 30, `RateLimit__Portal__PorMinuto` 10, `RateLimit__Agenda__PorMinuto` 30);
+  - limites opcionais (`RateLimit__Auth__PorMinuto` 10, `RateLimit__Refresh__PorMinuto` 30, `RateLimit__Portal__PorMinuto` 10, `RateLimit__Agenda__PorMinuto` 30, `RateLimit__Registro__PorHora` 3);
+  - `Turnstile__Segredo` (proteção do cadastro, RNF-SEG-10; o `deploy.yml` passa a exigir no F9f);
   - (Sentry fora do F8: o SDK é dependência de fornecedor; erros de aplicação ficam nos logs do Cloud Run até uma decisão própria, spec do F8, decisão 3.)
 - **Segredo do Worker:** `TOKEN_ORIGEM`; variável `ORIGEM` com a URL `*.run.app`.
 - **Risco aceito (nível 0):** os secrets de produção são do repositório, não de um *environment* com restrição de branch (o plano Free com repositório privado não oferece). O WIF limita o Google à `main`, mas um workflow alterado em qualquer branch do próprio repositório alcança Neon (migrator), R2 e Cloudflare. A guarda `if: github.ref == 'refs/heads/main'` do `deploy.yml` evita engano, não abuso. Mitigação: só o Daniel tem escrita no repositório, com MFA; PRs de fork não recebem secrets. Revisar quando houver outro colaborador ou cliente pagante (environment protegido ou Secret Manager).

@@ -19,14 +19,14 @@ Abrir o cadastro ao público sem que ele vire um canal de envio em massa com o d
 
 | Id | Dado | Quando | Então | Teste |
 |---|---|---|---|---|
-| F9-01 | Turnstile ligado (segredo configurado) | `POST /auth/registro` com `tokenTurnstile` que o `siteverify` aprova (ação `registro`) | `201`, como hoje: usuário, empresa e sessão criados | — |
-| F9-02 | Turnstile ligado | o registro vem sem `tokenTurnstile` ou com um que o `siteverify` recusa | `400 validacao` em `errors.tokenTurnstile`; nada é criado e nenhum e-mail sai | — |
-| F9-03 | Turnstile ligado | o `siteverify` não responde a tempo ou responde erro | cadastro recusado (decisão 5c), sem criar nada | — |
-| F9-04 | Turnstile ligado | o `siteverify` aprova um token de outro hostname ou de outra ação | `400` em `errors.tokenTurnstile` | — |
-| F9-05 | Turnstile desligado (sem segredo: dev, testes, E2E) | o registro vem sem `tokenTurnstile` | `201`; o servidor não chama o `siteverify` | — |
-| F9-06 | 3 cadastros do mesmo IP na última hora | chega o 4º | `429 limite-requisicoes`; outro IP cadastra normalmente | — |
-| F9-07 | o limite de cadastro do IP esgotado | o mesmo IP faz login, renova a sessão ou pede redefinição de senha | segue pelo limite próprio de cada rota; o do cadastro não interfere | — |
-| F9-08 | um IP | faz 3 tentativas de cadastro recusadas (Turnstile ou validação) e uma 4ª válida | a 4ª recebe `429`: tentativa recusada também conta | — |
+| F9-01 | Turnstile ligado (segredo configurado) | `POST /auth/registro` com `tokenTurnstile` que o `siteverify` aprova (ação `registro`) | `201`, como hoje: usuário, empresa e sessão criados | `ProtecaoCadastroTests › Registro_TokenAprovado_Cria_EEnviaOSegredoEOIp` |
+| F9-02 | Turnstile ligado | o registro vem sem `tokenTurnstile` ou com um que o `siteverify` recusa | `400 validacao` em `errors.tokenTurnstile`; nada é criado e nenhum e-mail sai | `ProtecaoCadastroTests › Registro_SemToken_400SemChamarOCloudflare`; `ProtecaoCadastroTests › Registro_TokenRecusado_400ENadaCriado` |
+| F9-03 | Turnstile ligado | o `siteverify` não responde a tempo ou responde erro | cadastro recusado (decisão 5c), sem criar nada | `ProtecaoCadastroTests › Registro_CloudflareForaDoAr_RecusaPedindoNovaTentativa`; `ProtecaoCadastroTests › Registro_CloudflareRespondeErro_Recusa` |
+| F9-04 | Turnstile ligado | o `siteverify` aprova um token de outro hostname ou de outra ação | `400` em `errors.tokenTurnstile` | `ProtecaoCadastroTests › Registro_TokenDeOutroSiteOuOutraAcao_Recusa` |
+| F9-05 | Turnstile desligado (sem segredo: dev, testes, E2E) | o registro vem sem `tokenTurnstile` | `201`; o servidor não chama o `siteverify` | `ProtecaoCadastroTests › Registro_TurnstileDesligado_CriaSemToken` |
+| F9-06 | 3 cadastros do mesmo IP na última hora | chega o 4º | `429 limite-requisicoes`; outro IP cadastra normalmente | `ProtecaoCadastroTests › Registro_QuartoDoMesmoIpNaHora_429_OutroIpSegue` |
+| F9-07 | o limite de cadastro do IP esgotado | o mesmo IP faz login, renova a sessão ou pede redefinição de senha | segue pelo limite próprio de cada rota; o do cadastro não interfere | `ProtecaoCadastroTests › LimiteDoCadastroEsgotado_LoginERecuperacaoSeguem` |
+| F9-08 | um IP | faz 3 tentativas de cadastro recusadas (Turnstile ou validação) e uma 4ª válida | a 4ª recebe `429`: tentativa recusada também conta | `ProtecaoCadastroTests › TentativasRecusadas_TambemContamNoLimite` |
 
 ### Envio a terceiros (RF-AUT-06)
 
@@ -167,6 +167,7 @@ Ordem: F9a primeiro (criador, liberação, `422` e `envioLiberado`); depois F9b 
 
 ## 7. Registro
 
+- 04/11 — F9d na main (PR #136). F9c: `IVerificacaoHumana` (Turnstile por HTTP na Infrastructure; desligada sem segredo), conferida no endpoint antes de tudo; política `registro` com o limite de `/auth` encadeado ao por hora.
 - 04/11 — F9d, revisão: transação serializável e a empresa apagada primeiro com a condição repetida (corrida com a confirmação); conta mantida se houver rastro em outra empresa; papel não padrão conta como dado; logotipo removido; F9-37 com teste.
 - 04/11 — F9b na main (PR #135). F9d: `ExpurgoCadastros` no diário (`cadastrosRemovidos`); vínculo de outra pessoa conta como dado; a classificação é conferida contra o modelo do EF num teste de integração.
 - 04/11 — F9a na main (PR #134). F9b: avisos barrados em `EnvioATerceiros.PodeAvisarAsync`, chamado por `AvisosAoContato` (antes de gerar o link) e `AvisoInterno` (exceto o criador); RF-AUT-06 da ERS com a redação da decisão 8.
