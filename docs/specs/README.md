@@ -10,4 +10,4 @@ Cada marco do Acordu, a partir do F8, começa por uma spec nesta pasta (ADR 0011
 | Marco | Spec | Status |
 |---|---|---|
 | F8 | [Deploy no nível 0](F8-deploy/spec.md) | Em implementação |
-| F9 | [Proteção do cadastro](F9-protecao-cadastro/spec.md) | Em implementação |
+| F9 | [Proteção do cadastro](F9-protecao-cadastro/spec.md) | Concluída (deploy pendente) |
