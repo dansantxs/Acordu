@@ -112,6 +112,8 @@ jobs:
           Proxy__TokenOrigem: ${{ secrets.API_TOKEN_ORIGEM }}
           Email__ResendChave: ${{ secrets.API_RESEND_CHAVE }}
           Turnstile__Segredo: ${{ secrets.API_TURNSTILE_SEGREDO }}
+          # Só conferida aqui (vai para o build do SPA, não para a API): falta dela barra o deploy antes de publicar.
+          TURNSTILE_CHAVE_SITE: ${{ vars.TURNSTILE_CHAVE_SITE }}
           Armazenamento__Endpoint: ${{ secrets.R2_ENDPOINT }}
           Armazenamento__ChaveAcesso: ${{ secrets.API_R2_CHAVE_ACESSO }}
           Armazenamento__ChaveSecreta: ${{ secrets.API_R2_CHAVE_SECRETA }}
@@ -135,11 +137,13 @@ jobs:
           # Sem endpoint do R2, a API sobe sem anexos (ComposicaoApi); com ele, as chaves são obrigatórias.
           opcionais = ["Armazenamento__Endpoint", "Armazenamento__ChaveAcesso", "Armazenamento__ChaveSecreta"]
 
-          faltam = [n for n in obrigatorias if not os.environ.get(n)]
+          faltam = [n for n in obrigatorias if not os.environ.get(n, "").strip()]
+          if not os.environ.get("TURNSTILE_CHAVE_SITE", "").strip():
+              faltam.append("TURNSTILE_CHAVE_SITE (variável, runbook C5)")
           if os.environ.get("Armazenamento__Endpoint"):
               faltam += [n for n in opcionais[1:] if not os.environ.get(n)]
           if faltam:
-              sys.exit("Faltam os secrets de: " + ", ".join(faltam))
+              sys.exit("Faltam: " + ", ".join(faltam))
 
           variaveis = dict(fixas)
           variaveis.update({n: os.environ[n] for n in obrigatorias + opcionais if os.environ.get(n)})
@@ -216,13 +220,9 @@ jobs:
         env:
           VITE_URL_API: https://api.acordu.app.br
           VITE_TEMPO_REAL: polling
-          # Chave do site do Turnstile (pública): sem ela o SPA não mostra o desafio e a API recusa todo cadastro.
+          # Chave do site do Turnstile (pública), conferida no passo "Variáveis da API", antes de publicar.
           VITE_TURNSTILE_CHAVE: ${{ vars.TURNSTILE_CHAVE_SITE }}
         run: |
-          if [[ -z "$VITE_TURNSTILE_CHAVE" ]]; then
-            echo "::error::Falta a variável TURNSTILE_CHAVE_SITE (runbook C5)."
-            exit 1
-          fi
           pnpm install --frozen-lockfile
           pnpm build
 
