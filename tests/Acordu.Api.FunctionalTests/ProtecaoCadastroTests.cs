@@ -3,6 +3,9 @@ using System.Net.Http.Json;
 using System.Text;
 using System.Text.Json;
 using Acordu.Api.Composicao;
+using Acordu.Api.Seguranca;
+using Acordu.Application.Autenticacao;
+using Acordu.Infrastructure.Seguranca;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.TestHost;
 using Microsoft.Extensions.DependencyInjection;
@@ -19,7 +22,7 @@ public sealed class ProtecaoCadastroTests(ApiFixture api)
     private const string CabecalhoIp = "X-Teste-Ip";
 
     [Fact]
-    public async Task Registro_TokenAprovado_Cria_EEnviaOSegredoEOIp() // F9-01
+    public async Task Registro_TokenAprovado_CriaEEnviaSegredoEIp() // F9-01
     {
         using var siteverify = new SiteverifyFalso(Aprovado());
         await using var app = await ApiComTurnstileAsync(siteverify);
@@ -73,6 +76,29 @@ public sealed class ProtecaoCadastroTests(ApiFixture api)
     }
 
     [Fact]
+    public async Task Registro_CloudflareEstouraOTempo_RecusaPedindoNovaTentativa() // F9-03
+    {
+        // O que o HttpClient lança quando passam os 5 s.
+        using var siteverify = new SiteverifyFalso(_ => throw new TaskCanceledException("tempo esgotado", new TimeoutException()));
+        await using var app = await ApiComTurnstileAsync(siteverify);
+
+        using var resposta = await RegistrarAsync(app, "token-bom");
+
+        await ConferirRecusaAsync(resposta, "Tente de novo");
+    }
+
+    [Fact]
+    public async Task Registro_SegredoDoServidorRecusado_TrataComoIndisponivel() // F9-03
+    {
+        using var siteverify = new SiteverifyFalso("""{"success":false,"error-codes":["invalid-input-secret"]}""");
+        await using var app = await ApiComTurnstileAsync(siteverify);
+
+        using var resposta = await RegistrarAsync(app, "token-bom");
+
+        await ConferirRecusaAsync(resposta, "Tente de novo");
+    }
+
+    [Fact]
     public async Task Registro_CloudflareRespondeErro_Recusa() // F9-03
     {
         using var siteverify = new SiteverifyFalso(_ => new HttpResponseMessage(HttpStatusCode.BadGateway));
@@ -105,6 +131,9 @@ public sealed class ProtecaoCadastroTests(ApiFixture api)
         using var resposta = await http.PostAsJsonAsync(new Uri("/api/v1/auth/registro", UriKind.Relative), Corpo(NovoEmail(), null));
 
         resposta.StatusCode.Should().Be(HttpStatusCode.Created);
+        using var escopo = api.App.Services.CreateScope();
+        escopo.ServiceProvider.GetRequiredService<IVerificacaoHumana>().Should().BeOfType<VerificacaoHumanaDesligada>(
+            "sem segredo, ninguém chama o Cloudflare");
     }
 
     [Fact]
@@ -120,7 +149,7 @@ public sealed class ProtecaoCadastroTests(ApiFixture api)
     }
 
     [Fact]
-    public async Task LimiteDoCadastroEsgotado_LoginERecuperacaoSeguem() // F9-07
+    public async Task OutrasRotasDeAuth_LimiteDoCadastroEsgotado_Seguem() // F9-07
     {
         await using var app = await ApiComLimiteAsync();
         const string Ip = "198.51.100.3";
@@ -132,10 +161,12 @@ public sealed class ProtecaoCadastroTests(ApiFixture api)
             .Should().Be(HttpStatusCode.Unauthorized, "o limite do cadastro não vale para o login");
         (await EnviarAsync(http, Ip, "/api/v1/auth/senha/esqueci", new { email = NovoEmail() }))
             .Should().Be(HttpStatusCode.Accepted);
+        (await EnviarAsync(http, Ip, "/api/v1/auth/refresh", new { }))
+            .Should().Be(HttpStatusCode.Unauthorized, "a renovação tem limite próprio");
     }
 
     [Fact]
-    public async Task TentativasRecusadas_TambemContamNoLimite() // F9-08
+    public async Task Registro_TentativasRecusadas_ContamNoLimite() // F9-08
     {
         await using var app = await ApiComLimiteAsync();
         const string Ip = "198.51.100.4";
@@ -150,8 +181,38 @@ public sealed class ProtecaoCadastroTests(ApiFixture api)
         (await StatusAsync(app, Ip)).Should().Be(HttpStatusCode.TooManyRequests);
     }
 
-    private Task<WebApplication> ApiComTurnstileAsync(SiteverifyFalso siteverify) => api.NovaApiAsync(
-        new Dictionary<string, string?> { ["Turnstile:Segredo"] = "segredo-dos-testes", ["App:UrlPublica"] = "https://acordu.app.br/" },
+    [Fact]
+    public async Task Registro_RecusasDoTurnstile_ContamNoLimite() // F9-08
+    {
+        using var siteverify = new SiteverifyFalso(Aprovado());
+        await using var app = await ApiComTurnstileAsync(siteverify, limitePorHora: "3");
+        const string Ip = "198.51.100.5";
+
+        for (var i = 0; i < 3; i++)
+        {
+            using var recusada = await RegistrarAsync(app, token: null, ip: Ip);
+            recusada.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+        }
+
+        using var quarta = await RegistrarAsync(app, "token-bom", ip: Ip);
+        quarta.StatusCode.Should().Be(HttpStatusCode.TooManyRequests);
+    }
+
+    [Theory]
+    [InlineData("203.0.113.9", "203.0.113.9")]
+    [InlineData("::ffff:203.0.113.9", "203.0.113.9")]
+    [InlineData("2001:db8:1:2:aaaa:bbbb:cccc:dddd", "2001:db8:1:2::/64")]
+    [InlineData("2001:db8:1:2::1", "2001:db8:1:2::/64")]
+    public void ChaveDoIp_Ipv4OuIpv6_AgrupaIpv6Por64(string ip, string chave) =>
+        ComposicaoSeguranca.ChaveDoIp(IPAddress.Parse(ip)).Should().Be(chave);
+
+    private Task<WebApplication> ApiComTurnstileAsync(SiteverifyFalso siteverify, string? limitePorHora = null) => api.NovaApiAsync(
+        new Dictionary<string, string?>
+        {
+            ["Turnstile:Segredo"] = "segredo-dos-testes",
+            ["App:UrlPublica"] = "https://acordu.app.br/",
+            ["RateLimit:Registro:PorHora"] = limitePorHora ?? "100000",
+        },
         antes: IpDoCabecalho,
         servicos: s => s.AddHttpClient(ComposicaoApi.NomeClienteTurnstile).ConfigurePrimaryHttpMessageHandler(() => siteverify));
 
