@@ -4,7 +4,22 @@
  */
 export const digitos = (texto: string): string => texto.replace(/\D/g, '')
 
-/** Aplica um molde (`#` = dígito) até onde houver dígitos, sem deixar separador pendurado no fim. */
+/**
+ * Caracteres de um CPF ou CNPJ, em maiúsculas: dígitos e, só nas 12 primeiras posições, letras (CNPJ alfanumérico,
+ * IN RFB 2.229/2024). Letra depois disso ou além de 14 caracteres é descartada.
+ */
+export function caracteresDoDocumento(texto: string): string {
+    // Texto colado de nota ou e-mail ("CNPJ: 11.222…", "CPF nº 529…"): o rótulo não pode virar letras do CNPJ.
+    const semRotulo = texto.replace(/^[^:]*:/, '').replace(/^\s*(CNPJ|CPF)\b[\s.]*(N[º°O.]*\s*)?/i, '')
+    let saida = ''
+    for (const c of semRotulo.toUpperCase()) {
+        if (saida.length >= 14) break
+        if (/\d/.test(c) || (/[A-Z]/.test(c) && saida.length < 12)) saida += c
+    }
+    return saida
+}
+
+/** Aplica um molde (`#` = um caractere) até onde houver caracteres, sem deixar separador pendurado no fim. */
 function moldar(numeros: string, molde: string): string {
     let saida = ''
     let i = 0
@@ -16,10 +31,14 @@ function moldar(numeros: string, molde: string): string {
     return saida
 }
 
-/** CPF (`000.000.000-00`) até 11 dígitos; CNPJ (`00.000.000/0000-00`) a partir do 12º. */
+/**
+ * CPF (`000.000.000-00`) até 11 dígitos; CNPJ (`00.000.000/0000-00`) a partir do 12º ou com qualquer letra (o CPF só
+ * tem dígitos; o CNPJ alfanumérico fica `12.ABC.345/01DE-35`).
+ */
 export function formatarDocumento(texto: string): string {
-    const numeros = digitos(texto).slice(0, 14)
-    return numeros.length <= 11 ? moldar(numeros, '###.###.###-##') : moldar(numeros, '##.###.###/####-##')
+    const caracteres = caracteresDoDocumento(texto)
+    const cpf = caracteres.length <= 11 && !/[A-Z]/.test(caracteres)
+    return cpf ? moldar(caracteres, '###.###.###-##') : moldar(caracteres, '##.###.###/####-##')
 }
 
 /**
@@ -40,15 +59,19 @@ export function formatarCep(texto: string): string {
 export type Mascara = (texto: string) => string
 
 /**
- * Onde deixar o cursor depois de formatar: logo após o mesmo número de dígitos que havia antes dele. Assim, apagar ou
- * digitar no meio não joga o cursor para o fim.
+ * Onde deixar o cursor depois de formatar: logo após o mesmo número de caracteres significativos (dígitos; no
+ * documento, também letras) que havia antes dele. Assim, apagar ou digitar no meio não joga o cursor para o fim.
  */
-export function posicaoDoCursor(formatado: string, digitosAntesDoCursor: number): number {
-    if (digitosAntesDoCursor <= 0) return 0
+export function posicaoDoCursor(
+    formatado: string,
+    antesDoCursor: number,
+    significativo: (caractere: string) => boolean = (c) => /\d/.test(c),
+): number {
+    if (antesDoCursor <= 0) return 0
     let vistos = 0
     for (let i = 0; i < formatado.length; i++) {
-        if (/\d/.test(formatado[i]!)) vistos++
-        if (vistos === digitosAntesDoCursor) return i + 1
+        if (significativo(formatado[i]!)) vistos++
+        if (vistos === antesDoCursor) return i + 1
     }
     return formatado.length
 }

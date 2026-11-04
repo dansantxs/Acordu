@@ -29,10 +29,14 @@ public sealed class ConsultasCliente : IConsultasCliente
         if (!string.IsNullOrWhiteSpace(busca))
         {
             var termo = $"%{busca.Trim().Replace("\\", "\\\\", StringComparison.Ordinal).Replace("%", "\\%", StringComparison.Ordinal).Replace("_", "\\_", StringComparison.Ordinal)}%";
-            var digitos = string.Concat(busca.Where(char.IsAsciiDigit));
+            // O documento fica sem pontuação e em maiúsculas (CNPJ alfanumérico): a busca compara do mesmo jeito. Só termo
+            // com algum dígito é comparado ao documento, para "de" ou "abc" não trazerem clientes pelas letras do CNPJ.
+            var documento = busca.Any(char.IsAsciiDigit)
+                ? string.Concat(busca.Where(char.IsAsciiLetterOrDigit)).ToUpperInvariant()
+                : string.Empty;
             consulta = consulta.Where(c => EF.Functions.ILike(c.Nome, termo)
                 || (c.RazaoSocial != null && EF.Functions.ILike(c.RazaoSocial, termo))
-                || (digitos.Length > 0 && c.Documento != null && c.Documento.Contains(digitos)));
+                || (documento.Length > 0 && c.Documento != null && c.Documento.Contains(documento)));
         }
 
         if (!string.IsNullOrWhiteSpace(etiqueta))

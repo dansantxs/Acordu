@@ -12,6 +12,13 @@ interface Props extends Omit<TextFieldProps, 'children' | 'value' | 'onChange' |
     onChange?: (valor: string) => void
     /** Controlado por fora (ex.: preenchido pelo CEP). */
     value?: string
+    /**
+     * Caracteres que contam para o cursor (padrão: só dígitos). O documento passa `caracteresDoDocumento`, que aceita as
+     * letras do CNPJ alfanumérico; com ele, o teclado do celular deixa de ser só numérico.
+     */
+    caracteres?: (texto: string) => string
+    /** Teclado do celular (padrão: numérico). Campo que aceita letras passa `text`. */
+    teclado?: 'numeric' | 'text'
 }
 
 /**
@@ -25,6 +32,8 @@ export function CampoMascarado({
     defaultValue,
     value,
     onChange,
+    caracteres = digitos,
+    teclado = 'numeric',
     className,
     ...props
 }: Props) {
@@ -41,9 +50,9 @@ export function CampoMascarado({
 
     function mudar(evento: ChangeEvent<HTMLInputElement>) {
         const bruto = evento.target.value
-        const antes = digitos(bruto.slice(0, evento.target.selectionStart ?? bruto.length)).length
+        const antes = caracteres(bruto.slice(0, evento.target.selectionStart ?? bruto.length)).length
         const formatado = mascara(bruto)
-        cursor.current = posicaoDoCursor(formatado, antes)
+        cursor.current = posicaoDoCursor(formatado, antes, (c) => caracteres(c).length === 1)
         if (value === undefined) setInterno(formatado)
         onChange?.(formatado)
     }
@@ -57,7 +66,7 @@ export function CampoMascarado({
             <Rotulo texto={rotulo} obrigatorio={props.isRequired} />
             <Input
                 ref={entrada}
-                inputMode="numeric"
+                inputMode={teclado}
                 onChange={mudar}
                 className="rounded-couro border border-linha bg-superficie px-3 py-2 text-tinta tabular-nums placeholder:text-suave data-[invalid]:border-vermelho"
             />

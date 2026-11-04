@@ -145,6 +145,7 @@ Cadastro ampliado (decidido em 16/10, RF-CLI-01, 06 e 07):
 - O `PATCH` recebe o formulário inteiro, como antes: campo ausente ou nulo apaga.
 - O detalhe devolve os mesmos campos, com `responsavel` como `{ id, nome }` em vez do Id. A lista devolve também `razaoSocial`, `responsavel` e `etiquetas`.
 - Validação, com o erro no campo:
+  - `documento`: CPF (11 dígitos) ou CNPJ (14 caracteres; os 12 primeiros podem ter letras, IN RFB 2.229/2024), com os dígitos verificadores conferidos; a pontuação é opcional e a API guarda sem ela, em maiúsculas (`12.abc.345/01de-35` → `12ABC34501DE35`). A busca da lista acha o cliente por um trecho do documento com ao menos um dígito, com ou sem pontuação, em qualquer caixa;
   - `endereco`: quando presente, exige CEP (8 dígitos), logradouro, cidade e UF válida; o erro vem com o caminho aninhado (`endereco.cep`);
   - `inscricaoEstadual`: números e pontuação, ou `ISENTO`;
   - `email`: formato mínimo;

@@ -35,7 +35,7 @@ skinparam classAttributeIconSize 0
 class Cliente <<aggregate root>> {
   +Id, TenantId
   +Nome: string
-  +Documento: string? (CPF/CNPJ, só dígitos)
+  +Documento: string? (CPF/CNPJ, sem pontuação, maiúsculas)
   +Observacoes: string?
   +Ativo: bool
   +RazaoSocial, InscricaoEstadual, Email, Telefone: string?
@@ -283,7 +283,7 @@ Sequencial por tenant, gerado na Infrastructure (`IGeradorProtocolo`: tabela `co
 ## 4. Agregados em detalhe
 
 ### 4.1 Cliente
-- **Invariantes:** nome obrigatório; documento opcional, CPF ou CNPJ com dígitos verificadores válidos, guardado só com dígitos; e-mail de contato válido, normalizado em minúsculas e único entre contatos ativos do cliente (`EmailDuplicadoException`; o e-mail de um contato inativo pode ser reutilizado); contato inativo não pode ser vinculado a usuário, nem um contato já vinculado a outro usuário (`TransicaoInvalidaException`).
+- **Invariantes:** nome obrigatório; documento opcional, CPF ou CNPJ com dígitos verificadores válidos, guardado sem pontuação e em maiúsculas (o CNPJ alfanumérico, IN RFB 2.229/2024, tem letras nas 12 primeiras posições; o valor de cada caractere no cálculo dos verificadores é o código ASCII menos 48); e-mail de contato válido, normalizado em minúsculas e único entre contatos ativos do cliente (`EmailDuplicadoException`; o e-mail de um contato inativo pode ser reutilizado); contato inativo não pode ser vinculado a usuário, nem um contato já vinculado a outro usuário (`TransicaoInvalidaException`).
 - Campos do ERS: `Observacoes` no cliente (RF-CLI-01) e `Cargo` no contato (RF-CLI-02). O Id do contato é gerado pelo cliente.
 - `VincularUsuarioAoContato` é chamado quando o contato aceita o convite do portal (RF-CLI-03); `DesvincularUsuarioDoContato`, quando o acesso é revogado (o contato pode ser convidado de novo, inclusive com outra conta).
 - Inativar cliente não apaga histórico; a Application bloqueia novas solicitações para cliente inativo.

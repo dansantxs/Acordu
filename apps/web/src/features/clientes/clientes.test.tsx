@@ -353,4 +353,41 @@ describe('clientes', () => {
         )
         expect(await screen.findByText('Pedro foi reativado.')).toBeInTheDocument()
     })
+
+    it('documento com dígito errado mostra o erro no campo e não salva (F10-22)', async () => {
+        const chamadas = app(GERENCIAR, { 'GET /api/v1/clientes': () => pagina([]) })
+        await abrir('/clientes')
+        const usuario = userEvent.setup()
+        await usuario.click(await screen.findByRole('button', { name: 'Novo cliente' }))
+        const janela = await screen.findByRole('dialog', { name: 'Novo cliente' })
+        await usuario.type(within(janela).getByLabelText('Nome'), 'Padaria Bom Grão')
+        await usuario.type(within(janela).getByLabelText('CPF ou CNPJ'), '11222333000180')
+        await usuario.tab()
+        expect(await within(janela).findByText('CPF ou CNPJ inválido.')).toBeInTheDocument()
+        await usuario.click(within(janela).getByRole('button', { name: 'Criar cliente' }))
+        expect(await within(janela).findByText('CPF ou CNPJ inválido.')).toBeInTheDocument()
+        expect(chamadas.some((c) => c.metodo === 'POST' && c.caminho === '/api/v1/clientes')).toBe(false)
+    })
+
+    it('aceita CNPJ alfanumérico, com letras em maiúsculas (F10-24)', async () => {
+        app(GERENCIAR, { 'GET /api/v1/clientes': () => pagina([]) })
+        await abrir('/clientes')
+        const usuario = userEvent.setup()
+        await usuario.click(await screen.findByRole('button', { name: 'Novo cliente' }))
+        const janela = await screen.findByRole('dialog', { name: 'Novo cliente' })
+        await usuario.type(within(janela).getByLabelText('CPF ou CNPJ'), '12abc34501de35')
+        expect(within(janela).getByLabelText('CPF ou CNPJ')).toHaveValue('12.ABC.345/01DE-35')
+    })
+
+    it('lista e ficha mostram o CNPJ alfanumérico formatado, com as letras (F10-27)', async () => {
+        const alfanumerico = { ...padaria, documento: '12ABC34501DE35' }
+        app(VER, {
+            'GET /api/v1/clientes': () => pagina([alfanumerico]),
+            'GET /api/v1/clientes/c1': () => json(alfanumerico),
+        })
+        await abrir('/clientes')
+        expect(await screen.findByText('12.ABC.345/01DE-35', { exact: false })).toBeInTheDocument()
+        await abrir('/clientes/c1')
+        expect(await screen.findByText('12.ABC.345/01DE-35', { exact: false })).toBeInTheDocument()
+    })
 })

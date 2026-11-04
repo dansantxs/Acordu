@@ -4,7 +4,14 @@ import { Form } from 'react-aria-components'
 import { errosDeCampo, mensagemDeErro } from '@/shared/api/mensagens'
 import { buscarCep } from '@/shared/api/viaCep'
 import { consultaEquipe } from '@/shared/equipe/consultaEquipe'
-import { digitos, formatarCep, formatarDocumento, formatarTelefone } from '@/shared/format/mascaras'
+import { validarDocumento } from '@/shared/format/documento'
+import {
+    caracteresDoDocumento,
+    digitos,
+    formatarCep,
+    formatarDocumento,
+    formatarTelefone,
+} from '@/shared/format/mascaras'
 import { Alerta } from '@/shared/ui/Alerta'
 import { Botao } from '@/shared/ui/Botao'
 import { CampoEtiquetas } from '@/shared/ui/CampoEtiquetas'
@@ -214,6 +221,9 @@ function JanelaClienteAberta({
                         name="documento"
                         rotulo="CPF ou CNPJ"
                         mascara={formatarDocumento}
+                        caracteres={caracteresDoDocumento}
+                        teclado="text"
+                        validate={validarDocumento}
                         defaultValue={cliente?.documento}
                     />
                     <CampoTexto

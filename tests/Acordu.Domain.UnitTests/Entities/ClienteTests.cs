@@ -34,7 +34,11 @@ public sealed class ClienteTests
         [InlineData("529.982.247-25", "52998224725")]
         [InlineData("52998224725", "52998224725")]
         [InlineData("11.222.333/0001-81", "11222333000181")]
-        public void DocumentoValido_GuardaSoDigitos(string documento, string esperado)
+        // CNPJ alfanumérico: exemplo da Receita; minúsculas viram maiúsculas.
+        [InlineData("12.ABC.345/01DE-35", "12ABC34501DE35")]
+        [InlineData("12.abc.345/01de-35", "12ABC34501DE35")]
+        [InlineData("12ABC34501DE35", "12ABC34501DE35")]
+        public void DocumentoValido_GuardaSemPontuacaoEmMaiusculas(string documento, string esperado)
         {
             Criar(documento).Documento.Should().Be(esperado);
         }
@@ -45,6 +49,10 @@ public sealed class ClienteTests
         [InlineData("11.222.333/0001-80")]
         [InlineData("1234567")]
         [InlineData("529.982.247-2A")]
+        [InlineData("12.ABC.345/01DE-36")]
+        [InlineData("12.ABC.345/01DE-3A")]
+        [InlineData("ABC.DEF.GHI-JK")]
+        [InlineData("12.ABC.345/01DE-35!")]
         public void DocumentoInvalido_LancaExcecao(string documentoInformado)
         {
             var acao = () => Criar(documentoInformado);
