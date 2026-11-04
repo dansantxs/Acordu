@@ -792,8 +792,11 @@ Sem rota própria: saem depois do commit quando a solicitação tem contato ativ
 
 - Remetente com o nome do prestador. A resposta do próprio contato não gera e-mail para ele.
 - Link: contato com conta → `{App__UrlPublica}/portal/solicitacoes/{id}`; sem conta → link de acesso sem senha (30 dias) **novo a cada e-mail**, revogando o anterior da mesma solicitação e contato. Solicitação fechada ou cancelada não ganha link novo.
+- **Empresa não liberada (RF-AUT-06, F9b):** nenhum desses e-mails sai e nenhum link é gerado; o aviso é descartado (fica no log só a categoria), não adiado: depois da liberação, saem só os novos. A operação que causou o aviso segue normalmente.
 
 ## 12b. E-mails internos (RF-NOT-02, 7c2)
+
+Empresa não liberada (RF-AUT-06, F9b): o sino recebe tudo como sempre; o e-mail sai só para o criador da empresa, e os dos demais são descartados.
 
 | Quando | Para quem |
 |---|---|

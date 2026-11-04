@@ -38,13 +38,13 @@ Abrir o cadastro ao público sem que ele vire um canal de envio em massa com o d
 | F9-12 | empresa não liberada | alguém com `portal.gerenciar_acessos` convida (ou reconvida) um contato para o portal: `POST /clientes/{id}/contatos/{contatoId}/acesso-portal` | `422 email-nao-confirmado`; acesso não criado, nenhum e-mail | `EnvioATerceirosTests › ConvidarPortal_EmpresaNaoLiberada_Retorna422SemAcessoNemEmail` |
 | F9-13 | empresa não liberada | alguém emite link de acesso de uma solicitação (`POST /solicitacoes/{id}/acessos-portal`), com ou sem `enviarEmail` | `422 email-nao-confirmado`; nenhum link emitido, nem só na resposta | `EnvioATerceirosTests › EmitirLink_EmpresaNaoLiberada_Retorna422ComOuSemEmail` |
 | F9-14 | empresa não liberada | alguém altera o escopo de um acesso ao portal (`PATCH …/acesso-portal`, não envia e-mail) | segue funcionando como hoje | `EnvioATerceirosTests › AlterarEscopo_EmpresaNaoLiberada_SegueFuncionando` |
-| F9-15 | empresa não liberada, cliente com contato | a equipe abre uma solicitação para o contato | a solicitação é criada; o contato não recebe e-mail e nenhum link de acesso é gerado | — |
-| F9-16 | empresa não liberada | um aviso automático ao contato seria enviado (mensagem externa, aguardando você, resolvida) | não sai e-mail nem link; a operação que o causou não falha | — |
-| F9-17 | empresa não liberada | um aviso interno é para o próprio criador (ex.: SLA em risco, consumo de contrato) | sino sempre; e-mail conforme a decisão 8 | — |
+| F9-15 | empresa não liberada, cliente com contato | a equipe abre uma solicitação para o contato | a solicitação é criada; o contato não recebe e-mail e nenhum link de acesso é gerado | `AvisosBloqueadosTests › AbrirSolicitacao_EmpresaNaoLiberada_CriaSemAvisarNemGerarLink` |
+| F9-16 | empresa não liberada | um aviso automático ao contato seria enviado (mensagem externa, aguardando você, resolvida) | não sai e-mail nem link; a operação que o causou não falha | `AvisosBloqueadosTests › AvisosAoContato_EmpresaNaoLiberada_OperacoesSeguemSemEmail` |
+| F9-17 | empresa não liberada | um aviso interno é para o próprio criador (ex.: SLA em risco, consumo de contrato) | sino sempre; e-mail conforme a decisão 8 | `AvisosBloqueadosTests › AvisoInterno_EmpresaNaoLiberada_SoOCriadorRecebeEmail_SinoParaTodos` |
 | F9-18 | empresa não liberada | o criador pede o reenvio da confirmação ou a redefinição de senha | os e-mails da conta saem normalmente: são para ele mesmo | `EnvioATerceirosTests › EmailsDaConta_EmpresaNaoLiberada_Saem` |
 | F9-19 | empresa não liberada | o criador confirma o e-mail pelo link | `envioLiberado: true` em `/auth/eu`; convites, links e avisos voltam a sair a partir daí | `EnvioATerceirosTests › ConfirmarEmail_EmpresaNaoLiberada_LiberaConvitesELinks` |
 | F9-20 | empresa não liberada | o criador redefine a senha pelo link do e-mail (que já confirma o e-mail, contrato §2) | a empresa fica liberada, como na confirmação | `EnvioATerceirosTests › RedefinirSenha_EmpresaNaoLiberada_Libera` |
-| F9-21 | avisos automáticos bloqueados antes da confirmação | o criador confirma o e-mail | os avisos bloqueados não saem depois (decisão 6) | — |
+| F9-21 | avisos automáticos bloqueados antes da confirmação | o criador confirma o e-mail | os avisos bloqueados não saem depois (decisão 6) | `AvisosBloqueadosTests › ConfirmarEmail_DepoisDeAvisosBloqueados_NaoEntregaOsAntigos` |
 | F9-22 | empresa liberada | o criador deixa a equipe (há outro Dono) ou muda de papel | a empresa continua liberada (decisão 2) | `EnvioATerceirosTests › TrocarPapel_CriadorRebaixado_EmpresaContinuaLiberada` |
 | F9-23 | pessoa sem conta | aceita um convite da equipe ou do portal | a conta nasce com `emailConfirmado: true` (regressão: já é assim) | `EnvioATerceirosTests › AceitarConvite_ContaNova_NasceConfirmada` |
 | F9-24 | empresa A não liberada e empresa B liberada | B convida, emite link e avisa contatos | B envia normalmente; o bloqueio é por empresa | `EnvioATerceirosTests › Envios_EmpresaLiberadaAoLadoDeBloqueada_SaemSoNaLiberada` |
@@ -167,5 +167,6 @@ Ordem: F9a primeiro (criador, liberação, `422` e `envioLiberado`); depois F9b 
 
 ## 7. Registro
 
+- 04/11 — F9a na main (PR #134). F9b: avisos barrados em `EnvioATerceiros.PodeAvisarAsync`, chamado por `AvisosAoContato` (antes de gerar o link) e `AvisoInterno` (exceto o criador); RF-AUT-06 da ERS com a redação da decisão 8.
 - 04/11 — spec aprovada (PR #133, todas as recomendações da §4); F9a em implementação.
 - 04/11 — rascunho. Requisitos do PR #132. Revisão: liberação também pela redefinição de senha, precedência 403/422, rota real do convite do portal, aviso da casca pelo estado da empresa, decisão 8 (e-mail ao próprio criador), ordem dos PRs.

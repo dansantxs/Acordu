@@ -114,7 +114,7 @@ Convenções: **RF** = requisito funcional, **RNF** = não funcional. Verificaç
 | RF-AUT-03 | Toda requisição resolve o `TenantId` **ativo** do token e restringe o acesso aos dados desse tenant. | T |
 | RF-AUT-04 | Confirmação de e-mail, política de senha e lockout. | T |
 | RF-AUT-05 | Usuário com vínculos em vários tenants troca o tenant ativo, com reemissão do token. | T |
-| RF-AUT-06 | **Envio a terceiros exige e-mail confirmado** (04/11): enquanto quem criou a empresa não confirmar o e-mail, a empresa não envia e-mail a ninguém além dele. Convites da equipe e do portal e link do portal são recusados com erro próprio; avisos automáticos a contatos e à equipe não saem. O login e o uso do sistema continuam liberados (decisão de 09/10). | T |
+| RF-AUT-06 | **Envio a terceiros exige e-mail confirmado** (04/11): enquanto quem criou a empresa não confirmar o e-mail, a empresa não envia e-mail a ninguém além dele. Convites da equipe e do portal e link do portal são recusados com erro próprio; avisos automáticos por e-mail a contatos e à equipe não saem, exceto os do próprio criador (decisão 8 da spec do F9, 04/11); o sino interno não muda. O login e o uso do sistema continuam liberados (decisão de 09/10). | T |
 | RF-AUT-07 | **Expurgo de cadastro abandonado** (04/11): empresa cujo criador não confirmou o e-mail em 7 dias e que não tem nenhum dado cadastrado além do que o registro cria é apagada, com o usuário, se ele não tiver vínculo com outra empresa. Roda no job diário. | T |
 | RF-USR-01 | Convidar usuário interno por e-mail com um papel; aceitar cria conta ou adiciona vínculo. | T |
 | RF-USR-02 | Remover usuário e alterar papel; garantir **≥ 1 Dono** por tenant. | T |
