@@ -1,10 +1,11 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { useRef, useState, type ReactNode } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from 'react'
 import { Form } from 'react-aria-components'
 import { errosDeCampo, mensagemDeErro } from '@/shared/api/mensagens'
+import { buscarCnpj, formaDeTitulo, type EmpresaDoCnpj } from '@/shared/api/cnpj'
 import { buscarCep } from '@/shared/api/viaCep'
 import { consultaEquipe } from '@/shared/equipe/consultaEquipe'
-import { validarDocumento } from '@/shared/format/documento'
+import { cnpjCompleto, validarDocumento } from '@/shared/format/documento'
 import {
     caracteresDoDocumento,
     digitos,
@@ -75,6 +76,22 @@ function enderecoParaEnvio(campos: CamposEndereco): Endereco | null {
     }
 }
 
+/** "Na Receita, este CNPJ está BAIXADA desde 12/03/2024." (decisão 4a: só no formulário, não bloqueia). */
+function avisoDeSituacao(empresa: EmpresaDoCnpj): string | null {
+    if (empresa.situacao === 'ATIVA') return null
+    const desde = empresa.situacaoDesde ? ` desde ${empresa.situacaoDesde.split('-').reverse().join('/')}` : ''
+    return `Na Receita, este CNPJ está ${empresa.situacao}${desde}. Dá para salvar mesmo assim.`
+}
+
+const DESCRICAO_CNPJ = {
+    parado: undefined,
+    buscando: 'Buscando os dados na Receita…',
+    preencheu:
+        'Preenchido com os dados da Receita. Telefone e e-mail podem ser do escritório de contabilidade; confira antes de salvar.',
+    'nao-encontrado': 'Não encontramos este CNPJ na Receita. Preencha à mão.',
+    falhou: 'Não deu para buscar os dados agora. Preencha à mão.',
+} as const
+
 function Secao({ titulo, nota, children }: { titulo: string; nota?: string; children: ReactNode }) {
     return (
         <fieldset className="grid gap-4 border-t border-linha pt-4 sm:grid-cols-2">
@@ -128,6 +145,29 @@ function JanelaClienteAberta({
     const [cep, setCep] = useState<'parado' | 'buscando' | 'achou' | 'nao-achou'>('parado')
     const ultimoCep = useRef(digitos(endereco.cep))
     const numero = useRef<HTMLInputElement>(null)
+    // Nome, razão social, documento, e-mail e telefone são controlados para o CNPJ preencher os vazios (F10a).
+    const [nome, setNome] = useState(cliente?.nome ?? '')
+    const [razaoSocial, setRazaoSocial] = useState(cliente?.razaoSocial ?? '')
+    const [documento, setDocumento] = useState(cliente?.documento ?? '')
+    const [email, setEmail] = useState(cliente?.email ?? '')
+    const [telefone, setTelefone] = useState(cliente?.telefone ?? '')
+    const [cnpj, setCnpj] = useState<keyof typeof DESCRICAO_CNPJ>('parado')
+    const [situacao, setSituacao] = useState<string | null>(null)
+    // Na edição, o CNPJ que o cliente já tinha não é consultado (decisão 3a, F10-10).
+    const cnpjSalvo = useRef(cnpjCompleto(cliente?.documento ?? ''))
+    const ultimoCnpj = useRef<string | null>(null)
+    // Fechar a janela desmonta o formulário: a consulta em andamento é abandonada sem aplicar nada (F10-09).
+    const desmontado = useRef<AbortController | null>(null)
+    useEffect(() => {
+        const controle = new AbortController()
+        desmontado.current = controle
+        return () => controle.abort()
+    }, [])
+    // A resposta chega depois de um `await`: o preenchimento olha os valores de agora, não os de quando a consulta saiu.
+    const atuais = useRef({ nome, razaoSocial, email, telefone, endereco })
+    useLayoutEffect(() => {
+        atuais.current = { nome, razaoSocial, email, telefone, endereco }
+    })
 
     const envio = useMutation({
         mutationFn: (dados: DadosCliente) => (cliente ? editarCliente(cliente, dados) : criarCliente(dados)),
@@ -163,6 +203,54 @@ function JanelaClienteAberta({
             uf: achado.uf,
         }))
         numero.current?.focus()
+    }
+
+    async function mudarDocumento(valor: string) {
+        setDocumento(valor)
+        const completo = cnpjCompleto(valor)
+        if (completo === ultimoCnpj.current) return
+        // Trocou ou apagou o CNPJ: some o que era do anterior (F10-14), e uma resposta atrasada dele é ignorada (F10-08).
+        ultimoCnpj.current = completo
+        setSituacao(null)
+        setCnpj('parado')
+        if (!completo || completo === cnpjSalvo.current) return // CPF ou incompleto não consulta (F10-19)
+        setCnpj('buscando')
+        const sinal = desmontado.current?.signal
+        const resultado = await buscarCnpj(completo, sinal)
+        if (sinal?.aborted || ultimoCnpj.current !== completo) return
+        if (resultado.tipo !== 'achou') {
+            setCnpj(resultado.tipo)
+            return
+        }
+        setSituacao(avisoDeSituacao(resultado.empresa))
+        // A frase do F10-06 só aparece quando algum campo foi de fato preenchido.
+        setCnpj(preencher(resultado.empresa) ? 'preencheu' : 'parado')
+    }
+
+    /**
+     * Só os campos vazios (F10-03); o endereço só como bloco, e só se estiver todo vazio (F10-04). Diz se preencheu algo.
+     */
+    function preencher(empresa: EmpresaDoCnpj): boolean {
+        const agora = atuais.current
+        const vazio = (v: string) => v.trim() === ''
+        let preencheu = false
+        const seVazio = (atual: string, novo: string, mudar: (v: string) => void) => {
+            if (!vazio(atual) || vazio(novo)) return
+            mudar(novo)
+            preencheu = true
+        }
+        seVazio(agora.nome, empresa.nomeFantasia || formaDeTitulo(empresa.razaoSocial), setNome)
+        seVazio(agora.razaoSocial, empresa.razaoSocial, setRazaoSocial)
+        seVazio(agora.email, empresa.email, setEmail)
+        seVazio(agora.telefone, empresa.telefone, setTelefone)
+        const veio = empresa.endereco
+        if (veio && Object.values(agora.endereco).every(vazio)) {
+            // O CEP veio da Receita: o ViaCEP não é chamado para ele (F10-05).
+            ultimoCep.current = digitos(veio.cep)
+            setEndereco(veio)
+            preencheu = true
+        }
+        return preencheu
     }
 
     // Endereço é opcional; começou a preencher, o mínimo (CEP, logradouro, cidade, UF) passa a ser obrigatório.
@@ -212,11 +300,17 @@ function JanelaClienteAberta({
                         name="nome"
                         rotulo="Nome"
                         descricao="Como a equipe chama o cliente."
-                        defaultValue={cliente?.nome}
+                        value={nome}
+                        onChange={setNome}
                         isRequired
                         autoFocus
                     />
-                    <CampoTexto name="razaoSocial" rotulo="Razão social" defaultValue={cliente?.razaoSocial ?? ''} />
+                    <CampoTexto
+                        name="razaoSocial"
+                        rotulo="Razão social"
+                        value={razaoSocial}
+                        onChange={setRazaoSocial}
+                    />
                     <CampoMascarado
                         name="documento"
                         rotulo="CPF ou CNPJ"
@@ -224,7 +318,9 @@ function JanelaClienteAberta({
                         caracteres={caracteresDoDocumento}
                         teclado="text"
                         validate={validarDocumento}
-                        defaultValue={cliente?.documento}
+                        value={documento}
+                        onChange={(v) => void mudarDocumento(v)}
+                        descricao={DESCRICAO_CNPJ[cnpj]}
                     />
                     <CampoTexto
                         name="inscricaoEstadual"
@@ -232,16 +328,22 @@ function JanelaClienteAberta({
                         descricao="Número ou ISENTO."
                         defaultValue={cliente?.inscricaoEstadual ?? ''}
                     />
+                    {situacao && (
+                        <div className="sm:col-span-2">
+                            <Alerta tom="aviso">{situacao}</Alerta>
+                        </div>
+                    )}
                 </div>
 
                 <Secao titulo="Contato da empresa">
-                    <CampoTexto name="email" type="email" rotulo="E-mail" defaultValue={cliente?.email ?? ''} />
+                    <CampoTexto name="email" type="email" rotulo="E-mail" value={email} onChange={setEmail} />
                     <CampoMascarado
                         name="telefone"
                         type="tel"
                         rotulo="Telefone"
                         mascara={formatarTelefone}
-                        defaultValue={cliente?.telefone}
+                        value={telefone}
+                        onChange={setTelefone}
                     />
                 </Secao>
 

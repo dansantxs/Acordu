@@ -15,6 +15,16 @@ export const NOTAS: NotaVersao[] = [
     {
         data: '2026-11-04',
         publico: 'equipe',
+        titulo: 'Cliente pelo CNPJ',
+        itens: [
+            'Ao digitar o CNPJ de um cliente, o Acordu busca os dados abertos da Receita e preenche o que estiver vazio: nome, razão social, endereço, telefone e e-mail. O que você já digitou não muda.',
+            'Se a empresa estiver baixada, inapta, suspensa ou nula na Receita, aparece um aviso. Dá para salvar mesmo assim.',
+            'Telefone e e-mail da Receita costumam ser do escritório de contabilidade: confira antes de salvar.',
+        ],
+    },
+    {
+        data: '2026-11-04',
+        publico: 'equipe',
         titulo: 'CNPJ com letras',
         itens: [
             'O cadastro do cliente aceita o novo CNPJ com letras (como 12.ABC.345/01DE-35), e a busca da lista também o encontra.',

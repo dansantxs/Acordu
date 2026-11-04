@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| **Status** | Em implementação |
+| **Status** | Concluída |
 | **Data** | 04/11/2026 |
 | **Requisitos** | RF-CLI-08 (decidido em 04/11), RF-CLI-01 |
 | **ADRs** | 0010 (sem SDK de provedor), 0011 |
@@ -19,42 +19,42 @@ Ao digitar o CNPJ no cadastro do cliente, o formulário busca os dados abertos d
 
 | Id | Dado | Quando | Então | Teste |
 |---|---|---|---|---|
-| F10-01 | formulário de cliente novo, vazio | a pessoa completa um CNPJ válido de empresa ativa com nome fantasia | preenche razão social, nome (= nome fantasia) e o endereço (CEP, logradouro, número, complemento, bairro, cidade, UF), e telefone e e-mail se vierem (decisão 2) | — |
-| F10-02 | formulário de cliente novo, vazio | o CNPJ é de empresa sem nome fantasia | o nome recebe a razão social (decisão 2) | — |
-| F10-03 | nome, razão social, e-mail ou telefone já digitados | a consulta responde | o que já foi digitado fica como está; só os campos vazios recebem dados | — |
-| F10-04 | algum campo do endereço já preenchido (inclusive pelo CEP) | a consulta responde | o endereço inteiro fica como está: não mistura endereço digitado com o da Receita | — |
-| F10-05 | o endereço veio do CNPJ | a pessoa não mexe no CEP | o ViaCEP não é chamado de novo para esse CEP e não sobrescreve o que veio da Receita | — |
-| F10-06 | a consulta preencheu campos | a pessoa olha o formulário | uma linha discreta diz o que veio da Receita ("Preenchido com os dados da Receita. Telefone e e-mail podem ser do escritório de contabilidade; confira antes de salvar.") | — |
-| F10-07 | um CNPJ completo | a consulta está em andamento | o campo mostra que está buscando, como o CEP | — |
-| F10-08 | um CNPJ sendo consultado | a pessoa troca o CNPJ antes da resposta | só a resposta do CNPJ atual é aplicada | — |
-| F10-09 | um CNPJ sendo consultado | a pessoa fecha a janela | nada é aplicado e nenhum erro aparece | — |
-| F10-10 | edição de um cliente que já tem CNPJ | o formulário abre | nada é consultado (decisão 3) | — |
-| F10-11 | edição de um cliente | a pessoa troca o CNPJ por outro válido | consulta e preenche só os campos vazios, como no F10-03 e F10-04 | — |
+| F10-01 | formulário de cliente novo, vazio | a pessoa completa um CNPJ válido de empresa ativa com nome fantasia | preenche razão social, nome (= nome fantasia) e o endereço (CEP, logradouro, número, complemento, bairro, cidade, UF), e telefone e e-mail se vierem (decisão 2) | `clientes.test › CNPJ completo preenche nome, razão social, contato e endereço` |
+| F10-02 | formulário de cliente novo, vazio | o CNPJ é de empresa sem nome fantasia | o nome recebe a razão social (decisão 2) | `clientes.test › sem nome fantasia, o nome recebe a razão social` |
+| F10-03 | nome, razão social, e-mail ou telefone já digitados | a consulta responde | o que já foi digitado fica como está; só os campos vazios recebem dados | `clientes.test › o que já foi digitado fica` |
+| F10-04 | algum campo do endereço já preenchido (inclusive pelo CEP) | a consulta responde | o endereço inteiro fica como está: não mistura endereço digitado com o da Receita | `clientes.test › o que já foi digitado fica` |
+| F10-05 | o endereço veio do CNPJ | a pessoa não mexe no CEP | o ViaCEP não é chamado de novo para esse CEP e não sobrescreve o que veio da Receita | `clientes.test › CNPJ completo preenche…` (ViaCEP não chamado) |
+| F10-06 | a consulta preencheu campos | a pessoa olha o formulário | uma linha discreta diz o que veio da Receita ("Preenchido com os dados da Receita. Telefone e e-mail podem ser do escritório de contabilidade; confira antes de salvar.") | `clientes.test › CNPJ completo preenche…` |
+| F10-07 | um CNPJ completo | a consulta está em andamento | o campo mostra que está buscando, como o CEP | `clientes.test › mostra que está buscando, e só a resposta do CNPJ atual vale` |
+| F10-08 | um CNPJ sendo consultado | a pessoa troca o CNPJ antes da resposta | só a resposta do CNPJ atual é aplicada | `clientes.test › mostra que está buscando, e só a resposta do CNPJ atual vale` |
+| F10-09 | um CNPJ sendo consultado | a pessoa fecha a janela | nada é aplicado e nenhum erro aparece | `clientes.test › fechar a janela durante a consulta abandona tudo` |
+| F10-10 | edição de um cliente que já tem CNPJ | o formulário abre | nada é consultado (decisão 3) | `clientes.test › na edição, o CNPJ salvo não é consultado` |
+| F10-11 | edição de um cliente | a pessoa troca o CNPJ por outro válido | consulta e preenche só os campos vazios, como no F10-03 e F10-04 | `clientes.test › na edição, o CNPJ salvo não é consultado` |
 
 ### Situação cadastral (F10a)
 
 | Id | Dado | Quando | Então | Teste |
 |---|---|---|---|---|
-| F10-12 | CNPJ de empresa baixada, inapta, suspensa ou nula | a consulta responde | preenche como no F10-01 e mostra um aviso perto do CNPJ, com a situação e a data (decisão 4) | — |
-| F10-13 | o aviso de situação na tela | a pessoa salva | o cliente é salvo normalmente: o aviso não bloqueia | — |
-| F10-14 | o aviso de situação na tela | a pessoa troca o CNPJ ou o apaga | o aviso some | — |
+| F10-12 | CNPJ de empresa baixada, inapta, suspensa ou nula | a consulta responde | preenche como no F10-01 e mostra um aviso perto do CNPJ, com a situação e a data (decisão 4) | `clientes.test › empresa baixada: avisa sem bloquear` |
+| F10-13 | o aviso de situação na tela | a pessoa salva | o cliente é salvo normalmente: o aviso não bloqueia | `clientes.test › empresa baixada: avisa sem bloquear` |
+| F10-14 | o aviso de situação na tela | a pessoa troca o CNPJ ou o apaga | o aviso some | `clientes.test › empresa baixada: avisa sem bloquear` |
 
 ### Falhas (F10a)
 
 | Id | Dado | Quando | Então | Teste |
 |---|---|---|---|---|
-| F10-15 | CNPJ válido sem cadastro no provedor | a consulta responde 404 | "Não encontramos este CNPJ na Receita. Preencha à mão." Nada é preenchido; salvar funciona | — |
-| F10-16 | provedor com erro 5xx, limite atingido (429), outro 4xx (ex.: um CNPJ alfanumérico que ele ainda não conhece) ou CORS recusado (`TypeError` no fetch) | a pessoa completa o CNPJ | "Não deu para buscar os dados agora. Preencha à mão." Nada é preenchido; salvar funciona | — |
-| F10-17 | provedor lento | passa o tempo máximo (4 s, como o do ViaCEP) | a consulta é abandonada com a mesma mensagem do F10-16 | — |
-| F10-18 | resposta fora do formato esperado (JSON estranho, campos ausentes) | a consulta responde | tratada como o F10-16, sem quebrar a tela | — |
-| F10-19 | o campo CPF ou CNPJ | a pessoa completa um CPF válido | nenhuma chamada sai do navegador; nada é preenchido | — |
+| F10-15 | CNPJ válido sem cadastro no provedor | a consulta responde 404 | "Não encontramos este CNPJ na Receita. Preencha à mão." Nada é preenchido; salvar funciona | `cnpj.test › 404 é CNPJ sem cadastro`; `clientes.test › sem cadastro` |
+| F10-16 | provedor com erro 5xx, limite atingido (429), outro 4xx (ex.: um CNPJ alfanumérico que ele ainda não conhece) ou CORS recusado (`TypeError` no fetch) | a pessoa completa o CNPJ | "Não deu para buscar os dados agora. Preencha à mão." Nada é preenchido; salvar funciona | `cnpj.test › fora do ar, limite, outro 4xx, CORS`; `clientes.test › provedor com erro` |
+| F10-17 | provedor lento | passa o tempo máximo (4 s, como o do ViaCEP) | a consulta é abandonada com a mesma mensagem do F10-16 | `cnpj.test › espera no máximo 4 s`, `tempo esgotado` |
+| F10-18 | resposta fora do formato esperado (JSON estranho, campos ausentes) | a consulta responde | tratada como o F10-16, sem quebrar a tela | `cnpj.test › JSON estranho`, `sem razão social`, `não é JSON` |
+| F10-19 | o campo CPF ou CNPJ | a pessoa completa um CPF válido | nenhuma chamada sai do navegador; nada é preenchido | `clientes.test › CPF, CNPJ incompleto ou com dígito errado não consultam` |
 
 ### Privacidade e CSP (F10a)
 
 | Id | Dado | Quando | Então | Teste |
 |---|---|---|---|---|
-| F10-20 | uma consulta de CNPJ | ela sai do navegador | `credentials: 'omit'`, `referrerPolicy: 'no-referrer'` e só o CNPJ na URL, como no ViaCEP | — |
-| F10-21 | o build do SPA | roda `pnpm csp:conferir` | o `connect-src` tem a origem do provedor (e a da reserva, se a decisão 1 for b) e a do ViaCEP, sem curinga; o `apps/web/scripts/conferir-csp.mjs` passa a conferir o `connect-src`, que hoje não confere | — |
+| F10-20 | uma consulta de CNPJ | ela sai do navegador | `credentials: 'omit'`, `referrerPolicy: 'no-referrer'` e só o CNPJ na URL, como no ViaCEP | `cnpj.test › traduz a resposta, sem cookie nem Referer` |
+| F10-21 | o build do SPA | roda `pnpm csp:conferir` | o `connect-src` tem a origem do provedor (e a da reserva, se a decisão 1 for b) e a do ViaCEP, sem curinga; o `apps/web/scripts/conferir-csp.mjs` passa a conferir o `connect-src`, que hoje não confere | `pnpm csp:conferir` (CI, job Web) |
 
 ### Validação e CNPJ alfanumérico (F10b)
 
@@ -85,7 +85,7 @@ Permissão e isolamento: sem cenário novo. Não há rota nova; o formulário se
 
 | Provedor | Limite grátis | CORS do navegador | Campos úteis |
 |---|---|---|---|
-| BrasilAPI (`brasilapi.com.br/api/cnpj/v1/{cnpj}`) | sem número publicado; os termos pedem uso no ritmo de uma pessoa e proíbem varredura | não documentado; é um projeto pensado para front (o README cita a falta de CORS dos Correios como motivo de existir) | `razao_social`, `nome_fantasia`, `descricao_situacao_cadastral`, `data_situacao_cadastral`, `cep`, `descricao_tipo_logradouro`, `logradouro`, `numero`, `complemento`, `bairro`, `municipio`, `uf`, `ddd_telefone_1`; e-mail não aparece na tipagem da biblioteca Rust consultada (confirmar) |
+| BrasilAPI (`brasilapi.com.br/api/cnpj/v1/{cnpj}`) | sem número publicado; os termos pedem uso no ritmo de uma pessoa e proíbem varredura | não documentado; é um projeto pensado para front (o README cita a falta de CORS dos Correios como motivo de existir) | `razao_social`, `nome_fantasia`, `descricao_situacao_cadastral`, `data_situacao_cadastral`, `cep`, `descricao_tipo_de_logradouro`, `logradouro`, `numero`, `complemento`, `bairro`, `municipio`, `uf`, `ddd_telefone_1` e `email` (confirmado no F10a) |
 | CNPJá aberta (`open.cnpja.com/office/{cnpj}`) | 5 consultas por minuto por IP | não documentado | razão social, fantasia, situação, endereço, telefones e e-mails (lista na referência deles) |
 | ReceitaWS pública (`receitaws.com.br/v1/cnpj/{cnpj}`) | 3 por minuto por IP (a CNPJ.ws, parecida, também é 3/min e bloqueia o IP por uma hora com muitos 429) | não documentado | `nome`, `fantasia`, `situacao`, endereço, `telefone`, `email` |
 
@@ -144,3 +144,5 @@ Ordem: F10b primeiro (corrige um defeito que já existe e não depende de nada);
 
 - 04/11 — rascunho. Requisito do PR #139. Provedores não verificados daqui (rede bloqueada); CORS conferido no início do F10a. Revisão: decisão 6 com a fonte (IN RFB 2.229/2024) e o alcance real no código, F10b antes do F10a com a validação do front, cenários de 4xx, CORS, ViaCEP, fechamento da janela e "buscando".
 - 04/11 — F10b implementado (CNPJ alfanumérico na API e no front, validação no front). O read side não descreve a busca de clientes; a regra nova ficou no contrato §4. Revisão: erro também ao sair do campo, rótulo colado ("CNPJ: …") ignorado na máscara, busca só compara o documento quando o termo tem dígito, teste de tela da lista e da ficha, nota em Novidades.
+- 04/11 — F10a. CORS da BrasilAPI conferido no navegador do Daniel (resposta com `razao_social`) e no código dela (`origin: '*'`); os campos vêm do Minha Receita, inclusive `email`. A Receita manda tudo em maiúsculas e sem acento: razão social fica como vem (nome oficial); nome, logradouro (tipo + nome), complemento, bairro e cidade vão em forma de título com as preposições em minúsculas, sem recuperar acentos (opção recomendada, assumida sem resposta do Daniel). Aviso de situação abaixo da linha do documento e da inscrição estadual, ocupando a largura.
+- 04/11 — revisão do F10a: siglas de tipo de empresa (ME, EPP, S/A…) e números romanos ficam em maiúsculas, hífen e apóstrofo começam palavra, "e" no fim fica maiúsculo; a frase do F10-06 só aparece se algum campo foi preenchido; e-mail fora do formato vem vazio; ajuda da tela de clientes atualizada.
