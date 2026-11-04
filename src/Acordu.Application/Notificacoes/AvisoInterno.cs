@@ -18,14 +18,14 @@ public sealed class AvisoInterno
     public AvisoInterno(
         INotificacoes notificacoes, IPreferenciasNotificacao preferencias, IEnviadorEmail email, EnvioATerceiros envio)
     {
-        ArgumentNullException.ThrowIfNull(envio);
-        _envio = envio;
         ArgumentNullException.ThrowIfNull(notificacoes);
         ArgumentNullException.ThrowIfNull(preferencias);
         ArgumentNullException.ThrowIfNull(email);
+        ArgumentNullException.ThrowIfNull(envio);
         _notificacoes = notificacoes;
         _preferencias = preferencias;
         _email = email;
+        _envio = envio;
     }
 
     /// <param name="chave">Identifica o aviso para a idempotência do sino (ex.: <c>solicitacao-aberta:{id}</c>).</param>

@@ -52,8 +52,6 @@ public sealed class AvisosAoContato :
         IUnitOfWork unidade,
         EnvioATerceiros envio)
     {
-        ArgumentNullException.ThrowIfNull(envio);
-        _envio = envio;
         ArgumentNullException.ThrowIfNull(solicitacoes);
         ArgumentNullException.ThrowIfNull(clientes);
         ArgumentNullException.ThrowIfNull(interacoes);
@@ -65,6 +63,7 @@ public sealed class AvisosAoContato :
         ArgumentNullException.ThrowIfNull(enderecos);
         ArgumentNullException.ThrowIfNull(relogio);
         ArgumentNullException.ThrowIfNull(unidade);
+        ArgumentNullException.ThrowIfNull(envio);
         _solicitacoes = solicitacoes;
         _clientes = clientes;
         _interacoes = interacoes;
@@ -76,6 +75,7 @@ public sealed class AvisosAoContato :
         _enderecos = enderecos;
         _relogio = relogio;
         _unidade = unidade;
+        _envio = envio;
     }
 
     public Task TratarAsync(SolicitacaoAberta evento, CancellationToken cancellationToken)
