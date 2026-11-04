@@ -49,7 +49,7 @@ Abrir o cadastro ao público sem que ele vire um canal de envio em massa com o d
 | F9-23 | pessoa sem conta | aceita um convite da equipe ou do portal | a conta nasce com `emailConfirmado: true` (regressão: já é assim) | `EnvioATerceirosTests › AceitarConvite_ContaNova_NasceConfirmada` |
 | F9-24 | empresa A não liberada e empresa B liberada | B convida, emite link e avisa contatos | B envia normalmente; o bloqueio é por empresa | `EnvioATerceirosTests › Envios_EmpresaLiberadaAoLadoDeBloqueada_SaemSoNaLiberada` |
 | F9-25 | usuário com vínculo em A (não liberada, ele é o criador) e em B (liberada, convidado) | ele age em B | B envia normalmente; o estado de A não vaza para B | `EnvioATerceirosTests › Convidar_UsuarioNaoConfirmadoEmEmpresaLiberada_Envia` |
-| F9-26 | o mesmo usuário do F9-25 | ele abre o sistema em B | não vê o texto de envio bloqueado (B está liberada); o lembrete de confirmar o e-mail continua, porque é da conta | `casca.test.tsx › conta não confirmada em empresa liberada: sem o aviso de envio parado (F9-26)` |
+| F9-26 | o mesmo usuário do F9-25 | ele abre o sistema em B | não vê o texto de envio bloqueado (B está liberada); o lembrete de confirmar o e-mail continua, porque é da conta | `casca.test.tsx › conta não confirmada em empresa liberada: sem o aviso de envio parado`; `conta.test.tsx › no app, lembra de confirmar o e-mail e reenvia o link`; `› empresa não liberada: só a faixa da casca, sem repetir o lembrete na Hoje` |
 | F9-27 | empresas que já existiam antes do F9 | a migration roda | ficam liberadas e com o criador preenchido (o Dono mais antigo) | `MigrationsTests › PreenchimentoDoF9_CriadorEhODonoMaisAntigo_EEmpresaFicaLiberada` |
 
 ### Expurgo (RF-AUT-07)
@@ -72,13 +72,13 @@ Abrir o cadastro ao público sem que ele vire um canal de envio em massa com o d
 
 | Id | Dado | Quando | Então | Teste |
 |---|---|---|---|---|
-| F9-39 | `VITE_TURNSTILE_CHAVE` definida | a tela de cadastro abre | mostra o desafio; o botão só envia com o token; o token vai em `tokenTurnstile` | `turnstile.test.tsx › desenha o desafio com a chave e manda o token no cadastro`; `› sem o token, o botão não envia` |
+| F9-39 | `VITE_TURNSTILE_CHAVE` definida | a tela de cadastro abre | mostra o desafio; o botão só envia com o token; o token vai em `tokenTurnstile` | `turnstile.test.tsx › desenha o desafio com a chave e manda o token no cadastro`; `› sem o token, o botão não envia`; `› Enter num campo sem o token não envia o cadastro`; `› token vencido volta a travar o botão`; `› ao sair da tela, o widget é removido`; `› script do Cloudflare que não carrega avisa na tela` |
 | F9-40 | sem `VITE_TURNSTILE_CHAVE` | a tela de cadastro abre | sem desafio; o cadastro funciona como hoje | `acesso.test.tsx › sem a chave do Turnstile, o cadastro não mostra desafio nem manda token` |
 | F9-41 | `400` em `tokenTurnstile` ou `429` no cadastro | a resposta chega | mensagem no formulário; o desafio é renovado | `turnstile.test.tsx › token recusado mostra a mensagem e renova o desafio`; `› limite de cadastros explica que é por hora e renova o desafio` |
 | F9-42 | empresa não liberada (`tenant.envioLiberado: false`) | qualquer tela interna abre | o aviso da casca explica que convites, links e avisos a clientes ficam parados até a confirmação, com o "Reenviar link" | `casca.test.tsx › empresa não liberada: toda tela explica o que fica parado e reenvia o link` |
-| F9-43 | empresa não liberada | a tela da equipe, do contato ou da solicitação abre | os botões de convidar, convidar para o portal e gerar link ficam desabilitados, com a explicação ao lado (decisão 4) | `equipe.test.tsx`, `clientes/portal.test.tsx` e `detalhe.test.tsx › empresa não liberada: … desabilitado, com a explicação` |
+| F9-43 | empresa não liberada | a tela da equipe, do contato ou da solicitação abre | os botões de convidar, convidar para o portal e gerar link ficam desabilitados, com a explicação ao lado (decisão 4) | `equipe.test.tsx`, `clientes/portal.test.tsx` (convidar e reenviar) e `detalhe.test.tsx › empresa não liberada: … desabilitado, com a explicação` (ligada ao botão por `aria-describedby`) |
 | F9-44 | empresa não liberada e uma resposta `422 email-nao-confirmado` mesmo assim | a resposta chega | a mensagem da API aparece, sem quebrar a tela | `equipe.test.tsx › mostra a mensagem da API quando o convite é recusado por e-mail não confirmado` |
-| F9-45 | o build do SPA | roda `pnpm csp:conferir` | a CSP permite o Turnstile (`script-src` e `frame-src` com `https://challenges.cloudflare.com`) e continua sem `unsafe-inline` | `pnpm csp:conferir` na CI (Cloudflare em `script-src` e `frame-src`, sem `unsafe-inline`) |
+| F9-45 | o build do SPA | roda `pnpm csp:conferir` | a CSP permite o Turnstile (`script-src` e `frame-src` com `https://challenges.cloudflare.com`) e continua sem `unsafe-inline` | `pnpm csp:conferir` na CI (Cloudflare em `script-src` e `frame-src`; sem `unsafe-inline`, `unsafe-eval` nem `*` em `script-src`) |
 
 ### Infra
 
@@ -167,6 +167,7 @@ Ordem: F9a primeiro (criador, liberação, `422` e `envioLiberado`); depois F9b 
 
 ## 7. Registro
 
+- 04/11 — F9e, revisão: explicação ligada aos botões por `aria-describedby` (inclusive "Criar conta" sem o token); reenviar convite com a explicação; testes do script que falha, do token vencido e da desmontagem. A conferir no primeiro deploy (F9f, C5): o hostname que o Turnstile devolve com `Referrer-Policy: same-origin` no SPA.
 - 04/11 — F9c na main (PR #137). F9e: aviso da empresa não liberada na casca (o lembrete de confirmar a conta segue na Hoje), botões de convite e link desabilitados com a explicação, desafio no cadastro com renovação a cada recusa e mensagem própria para o limite por hora; CSP com o Cloudflare.
 - 04/11 — F9c, revisão: limite do cadastro numa janela só (o encadeado criava timers por IP sem descarte), IPv6 por /64, segredo recusado vira indisponível com log de erro, hostname com o padrão dos links.
 - 04/11 — F9d na main (PR #136). F9c: `IVerificacaoHumana` (Turnstile por HTTP na Infrastructure; desligada sem segredo), conferida no endpoint antes de tudo; política `registro` com o limite de `/auth` encadeado ao por hora.
