@@ -21,6 +21,7 @@ using Acordu.Application.Recorrencias;
 using Acordu.Application.Solicitacoes;
 using Acordu.Application.Tarefas;
 using Acordu.Infrastructure.Agendamento;
+using Acordu.Infrastructure.Email;
 using Acordu.Infrastructure.MultiTenancy;
 using Acordu.Infrastructure.Persistence;
 using Acordu.Infrastructure.Persistence.Agenda;
@@ -78,6 +79,7 @@ public static class DependencyInjection
         services.AddSingleton<ExpurgoAuditoria>();
         services.AddScoped<INotificacoes, RegistroNotificacoes>();
         services.AddScoped<IPreferenciasNotificacao, PreferenciasNotificacao>();
+        services.AddScoped<IEnviosBloqueados, EnviosBloqueados>();
         services.AddScoped<ISeguidores, RegistroSeguidores>();
         services.AddScoped<IAssinaturasAgenda, AssinaturasAgenda>();
         services.AddScoped<IAtividades, RegistroAtividades>();

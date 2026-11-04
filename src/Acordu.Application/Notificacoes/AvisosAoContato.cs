@@ -11,7 +11,8 @@ namespace Acordu.Application.Notificacoes;
 /// <summary>
 /// E-mails ao contato da solicitação (RF-NOT-01), depois do commit: recebida (com o protocolo), mensagem externa da
 /// equipe, aguardando você e resolvida (com o pedido de aprovação). Sem contato, ou com contato/cliente inativo, nada
-/// sai; o que o próprio contato fez (a resposta dele) não gera e-mail para ele.
+/// sai; o que o próprio contato fez (a resposta dele) não gera e-mail para ele. Empresa não liberada (RF-AUT-06): o
+/// aviso é descartado, sem gerar link.
 /// </summary>
 /// <remarks>
 /// Link do e-mail (decidido em 13/10): contato com conta recebe o link da solicitação no portal; sem conta, um link de
@@ -35,6 +36,7 @@ public sealed class AvisosAoContato :
     private readonly EnderecosPublicos _enderecos;
     private readonly RelogioDoTenant _relogio;
     private readonly IUnitOfWork _unidade;
+    private readonly EnvioATerceiros _envio;
 
     public AvisosAoContato(
         IRepositorio<Solicitacao> solicitacoes,
@@ -47,7 +49,8 @@ public sealed class AvisosAoContato :
         IEnviadorEmail email,
         EnderecosPublicos enderecos,
         RelogioDoTenant relogio,
-        IUnitOfWork unidade)
+        IUnitOfWork unidade,
+        EnvioATerceiros envio)
     {
         ArgumentNullException.ThrowIfNull(solicitacoes);
         ArgumentNullException.ThrowIfNull(clientes);
@@ -60,6 +63,7 @@ public sealed class AvisosAoContato :
         ArgumentNullException.ThrowIfNull(enderecos);
         ArgumentNullException.ThrowIfNull(relogio);
         ArgumentNullException.ThrowIfNull(unidade);
+        ArgumentNullException.ThrowIfNull(envio);
         _solicitacoes = solicitacoes;
         _clientes = clientes;
         _interacoes = interacoes;
@@ -71,6 +75,7 @@ public sealed class AvisosAoContato :
         _enderecos = enderecos;
         _relogio = relogio;
         _unidade = unidade;
+        _envio = envio;
     }
 
     public Task TratarAsync(SolicitacaoAberta evento, CancellationToken cancellationToken)
@@ -152,6 +157,9 @@ public sealed class AvisosAoContato :
         var cliente = await _clientes.ObterPorIdAsync(solicitacao.ClienteId, cancellationToken);
         var contato = cliente?.Contatos.FirstOrDefault(c => c.Id == contatoId);
         if (cliente is null || contato is null || !cliente.Ativo || !contato.Ativo)
+            return;
+        // Empresa não liberada (RF-AUT-06, F9b): nem e-mail nem link de acesso; a operação que causou o aviso segue.
+        if (!await _envio.PodeAvisarAsync(categoria, null, cancellationToken))
             return;
 
         var tenant = await _tenant.ObterAsync(cancellationToken);
