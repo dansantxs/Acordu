@@ -43,7 +43,8 @@ public sealed class Tenant
 
     /// <summary>
     /// Quando a empresa passou a poder enviar e-mail a terceiros (convites, links, avisos): a primeira vez que o e-mail
-    /// do criador ficou confirmado. Nunca volta a nulo (spec do F9, decisão 2).
+    /// do criador ficou confirmado. Nunca volta a nulo (spec do F9, decisão 2). Gravada pela Infrastructure na
+    /// confirmação, por atualização direta: a rota é pública e não tem o contexto da empresa (convenções §1).
     /// </summary>
     public DateTimeOffset? EnvioLiberadoEm { get; private set; }
 
@@ -78,9 +79,6 @@ public sealed class Tenant
             Texto.Obrigatorio(nome, LimitesTexto.Nome, nameof(nome)),
             agora.ToUniversalTime(),
             Ids.Obrigatorio(criadoPorUsuarioId, nameof(criadoPorUsuarioId)));
-
-    /// <summary>Libera o envio a terceiros; idempotente (a primeira data fica).</summary>
-    public void LiberarEnvio(DateTimeOffset agora) => EnvioLiberadoEm ??= agora.ToUniversalTime();
 
     public void Renomear(string nome) => Nome = Texto.Obrigatorio(nome, LimitesTexto.Nome, nameof(nome));
 
