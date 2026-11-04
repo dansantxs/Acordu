@@ -122,8 +122,21 @@ describe('telas de conta', () => {
         })
         await abrir('/')
         const usuario = userEvent.setup()
+        expect(await screen.findByText(/Confirme seu e-mail: mandamos um link/)).toBeInTheDocument()
         await usuario.click(await screen.findByRole('button', { name: 'Reenviar link' }))
         await waitFor(() => expect(screen.getByText(/Enviamos um link novo/)).toBeInTheDocument())
         expect(chamadas.some((c) => c.caminho === '/api/v1/auth/confirmacao-email/reenvio')).toBe(true)
+    })
+
+    it('empresa não liberada: só a faixa da casca, sem repetir o lembrete na Hoje (F9-26)', async () => {
+        servidor({
+            '/api/v1/auth/refresh': comSessao,
+            '/api/v1/auth/eu': () =>
+                json({ ...perfil, emailConfirmado: false, tenant: { ...perfil.tenant, envioLiberado: false } }),
+        })
+        await abrir('/')
+        expect(await screen.findByText(/Confirme seu e-mail para liberar convites/)).toBeInTheDocument()
+        expect(screen.queryByText(/Confirme seu e-mail: mandamos um link/)).not.toBeInTheDocument()
+        expect(screen.getAllByRole('button', { name: 'Reenviar link' })).toHaveLength(1)
     })
 })

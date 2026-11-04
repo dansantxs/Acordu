@@ -4,6 +4,12 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { reiniciarParaTestes } from '@/shared/sessao/sessao'
 import { abrir, daquiA, json, perfil, servidor } from '@/testes/app'
 
+// Build sem a chave do Turnstile, independente do .env.local de quem roda (F9-40).
+vi.mock('@/shared/config/ambiente', async (original) => ({
+    ...(await original<typeof import('@/shared/config/ambiente')>()),
+    CHAVE_TURNSTILE: undefined,
+}))
+
 describe('acesso', () => {
     beforeEach(() => reiniciarParaTestes())
     afterEach(() => vi.unstubAllGlobals())

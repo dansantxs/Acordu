@@ -212,4 +212,23 @@ describe('ficha: portal, arquivos e movimentos', () => {
         expect(await screen.findByRole('button', { name: 'Convidar Marta Souza para o portal' })).toBeDisabled()
         expect(screen.getByText('Disponível depois que você confirmar seu e-mail.')).toBeInTheDocument()
     })
+
+    it('empresa não liberada: reenviar o convite também fica desabilitado, com a explicação (F9-43)', async () => {
+        app(PORTAL, {
+            '/api/v1/auth/eu': () =>
+                json({ ...perfil, permissoes: PORTAL, tenant: { ...perfil.tenant, envioLiberado: false } }),
+            [`GET /api/v1/clientes/${C}`]: () =>
+                json(
+                    cliente({
+                        situacao: 'CONVIDADO',
+                        escopoPortal: 'PROPRIAS',
+                        conviteExpiraEm: '2099-01-01T12:00:00Z',
+                    }),
+                ),
+        })
+        await abrir(`/clientes/${C}?secao=contatos`)
+        const reenviar = await screen.findByRole('button', { name: 'Reenviar convite de Marta Souza' })
+        expect(reenviar).toBeDisabled()
+        expect(reenviar).toHaveAccessibleDescription('Disponível depois que você confirmar seu e-mail.')
+    })
 })

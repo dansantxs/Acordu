@@ -1,4 +1,4 @@
-import { screen, waitFor } from '@testing-library/react'
+import { act, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { reiniciarParaTestes } from '@/shared/sessao/sessao'
@@ -101,5 +101,56 @@ describe('cadastro com Turnstile', () => {
 
         expect(await screen.findByText(/Muitos cadastros a partir desta rede/)).toBeInTheDocument()
         expect(turnstile.reset).toHaveBeenCalled()
+    })
+
+    it('Enter num campo sem o token não envia o cadastro (F9-39)', async () => {
+        vi.stubGlobal('turnstile', { render: vi.fn(() => 'w1'), reset: vi.fn(), remove: vi.fn() })
+        const chamadas = servidor({ '/api/v1/auth/refresh': () => new Response(null, { status: 401 }) })
+        await abrir('/cadastro')
+        const usuario = await preencher()
+        await usuario.type(screen.getByLabelText('Nome da empresa'), '{Enter}')
+        expect(screen.getByRole('button', { name: 'Criar conta' })).toHaveAccessibleDescription(
+            'Conclua a verificação acima para criar a conta.',
+        )
+        expect(chamadas.some((c) => c.caminho === '/api/v1/auth/registro')).toBe(false)
+    })
+
+    it('token vencido volta a travar o botão (F9-39)', async () => {
+        let opcoes: Parameters<ApiTurnstile['render']>[1] | undefined
+        vi.stubGlobal('turnstile', {
+            render: vi.fn((_: HTMLElement, o: Parameters<ApiTurnstile['render']>[1]) => {
+                opcoes = o
+                o.callback('token-do-desafio')
+                return 'w1'
+            }),
+            reset: vi.fn(),
+            remove: vi.fn(),
+        })
+        servidor({ '/api/v1/auth/refresh': () => new Response(null, { status: 401 }) })
+        await abrir('/cadastro')
+        await preencher()
+        await waitFor(() => expect(screen.getByRole('button', { name: 'Criar conta' })).toBeEnabled())
+        act(() => opcoes!['expired-callback']())
+        expect(screen.getByRole('button', { name: 'Criar conta' })).toBeDisabled()
+    })
+
+    it('ao sair da tela, o widget é removido (F9-39)', async () => {
+        const turnstile = turnstileFalso()
+        servidor({ '/api/v1/auth/refresh': () => new Response(null, { status: 401 }) })
+        await abrir('/cadastro')
+        await waitFor(() => expect(turnstile.render).toHaveBeenCalled())
+        await userEvent.setup().click(screen.getByRole('link', { name: 'Já tenho conta' }))
+        await waitFor(() => expect(turnstile.remove).toHaveBeenCalledWith('w1'))
+    })
+
+    it('script do Cloudflare que não carrega avisa na tela (F9-39)', async () => {
+        servidor({ '/api/v1/auth/refresh': () => new Response(null, { status: 401 }) })
+        await abrir('/cadastro')
+        await screen.findByLabelText('Seu nome')
+        const script = document.head.querySelector<HTMLScriptElement>('script[src*="challenges.cloudflare.com"]')
+        expect(script).not.toBeNull()
+        act(() => script!.dispatchEvent(new Event('error')))
+        expect(await screen.findByText(/Não deu para carregar a verificação/)).toBeInTheDocument()
+        expect(document.head.querySelector('script[src*="challenges.cloudflare.com"]')).toBeNull()
     })
 })
