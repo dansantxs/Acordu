@@ -20,6 +20,7 @@ import { errosDeCampo, mensagemDeErro } from '@/shared/api/mensagens'
 import { avisar, avisarErro } from '@/shared/avisos/avisos'
 import { formatarDuracao, lerDuracao } from '@/shared/format/duracao'
 import { dataHora } from '@/shared/format/prazo'
+import { SEM_ENVIO } from '@/features/sessao/AvisoConfirmacao'
 import type { Perfil } from '@/shared/sessao/perfil'
 import { Alerta } from '@/shared/ui/Alerta'
 import { Botao } from '@/shared/ui/Botao'
@@ -89,10 +90,13 @@ export function SecaoEquipe({ perfil }: { perfil: Perfil }) {
                     Quem trabalha na empresa, com o papel e as horas por semana que entram no planejamento.
                 </CabecalhoSecao>
                 {podeConvidar && (
-                    <Botao onPress={() => setConvidando(true)}>
-                        <Icone nome="mais" />
-                        Convidar pessoa
-                    </Botao>
+                    <div className="flex flex-col items-end gap-1">
+                        <Botao onPress={() => setConvidando(true)} isDisabled={!perfil.tenant.envioLiberado}>
+                            <Icone nome="mais" />
+                            Convidar pessoa
+                        </Botao>
+                        {!perfil.tenant.envioLiberado && <p className="text-xs text-suave">{SEM_ENVIO}</p>}
+                    </div>
                 )}
             </div>
             <div className="flex flex-col gap-8">

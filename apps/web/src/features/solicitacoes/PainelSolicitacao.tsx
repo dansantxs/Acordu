@@ -1,3 +1,4 @@
+import { SEM_ENVIO } from '@/features/sessao/AvisoConfirmacao'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Link, useNavigate } from '@tanstack/react-router'
 import { useCallback, useEffect, useRef, useState } from 'react'
@@ -175,9 +176,17 @@ function Detalhe({
                         {s.titulo}
                     </h2>
                     {pode(perfil, 'portal.gerenciar_acessos') && !final && (
-                        <Botao variante="discreto" onPress={() => setJanelaLink(true)} className="!px-0">
-                            Link do portal
-                        </Botao>
+                        <>
+                            <Botao
+                                variante="discreto"
+                                onPress={() => setJanelaLink(true)}
+                                className="!px-0"
+                                isDisabled={!perfil.tenant.envioLiberado}
+                            >
+                                Link do portal
+                            </Botao>
+                            {!perfil.tenant.envioLiberado && <span className="text-xs text-suave">{SEM_ENVIO}</span>}
+                        </>
                     )}
                     {editavel && (
                         <Botao variante="discreto" onPress={() => setEditando(true)} className="!px-0">

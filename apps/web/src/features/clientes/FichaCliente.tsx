@@ -292,7 +292,13 @@ function Ficha({
                                         </span>
                                         {(editavel || portal) && (
                                             <span className="flex flex-wrap gap-3 text-sm">
-                                                {portal && <AcoesPortal cliente={cliente} contato={contato} />}
+                                                {portal && (
+                                                    <AcoesPortal
+                                                        cliente={cliente}
+                                                        contato={contato}
+                                                        envioLiberado={perfil.tenant.envioLiberado}
+                                                    />
+                                                )}
                                                 {editavel && (
                                                     <>
                                                         <Button

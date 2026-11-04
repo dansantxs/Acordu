@@ -1,6 +1,7 @@
 import { Outlet } from '@tanstack/react-router'
 import { useEffect, useState } from 'react'
 import { Button, Dialog, Modal, ModalOverlay } from 'react-aria-components'
+import { AvisoEnvioBloqueado } from '@/features/sessao/AvisoConfirmacao'
 import type { Perfil } from '@/shared/sessao/perfil'
 import { aplicarCouro, couroAtual } from '@/shared/tema/tema'
 import { useTempoReal } from '@/shared/tempoReal/useTempoReal'
@@ -50,7 +51,8 @@ export function Casca({ perfil }: { perfil: Perfil }) {
                         <Icone nome="busca" className="size-5" />
                     </Button>
                 </div>
-                <main id="conteudo" className="flex-1 px-4 py-6 sm:px-7">
+                <main id="conteudo" className="flex flex-1 flex-col gap-4 px-4 py-6 sm:px-7">
+                    <AvisoEnvioBloqueado perfil={perfil} />
                     <Outlet />
                 </main>
             </div>
