@@ -19,14 +19,14 @@ Abrir o cadastro ao público sem que ele vire um canal de envio em massa com o d
 
 | Id | Dado | Quando | Então | Teste |
 |---|---|---|---|---|
-| F9-01 | Turnstile ligado (segredo configurado) | `POST /auth/registro` com `tokenTurnstile` que o `siteverify` aprova (ação `registro`) | `201`, como hoje: usuário, empresa e sessão criados | `ProtecaoCadastroTests › Registro_TokenAprovado_Cria_EEnviaOSegredoEOIp` |
+| F9-01 | Turnstile ligado (segredo configurado) | `POST /auth/registro` com `tokenTurnstile` que o `siteverify` aprova (ação `registro`) | `201`, como hoje: usuário, empresa e sessão criados | `ProtecaoCadastroTests › Registro_TokenAprovado_CriaEEnviaSegredoEIp` |
 | F9-02 | Turnstile ligado | o registro vem sem `tokenTurnstile` ou com um que o `siteverify` recusa | `400 validacao` em `errors.tokenTurnstile`; nada é criado e nenhum e-mail sai | `ProtecaoCadastroTests › Registro_SemToken_400SemChamarOCloudflare`; `ProtecaoCadastroTests › Registro_TokenRecusado_400ENadaCriado` |
-| F9-03 | Turnstile ligado | o `siteverify` não responde a tempo ou responde erro | cadastro recusado (decisão 5c), sem criar nada | `ProtecaoCadastroTests › Registro_CloudflareForaDoAr_RecusaPedindoNovaTentativa`; `ProtecaoCadastroTests › Registro_CloudflareRespondeErro_Recusa` |
+| F9-03 | Turnstile ligado | o `siteverify` não responde a tempo ou responde erro | cadastro recusado (decisão 5c), sem criar nada | `ProtecaoCadastroTests › Registro_CloudflareForaDoAr_RecusaPedindoNovaTentativa`; `ProtecaoCadastroTests › Registro_CloudflareEstouraOTempo_RecusaPedindoNovaTentativa`; `ProtecaoCadastroTests › Registro_CloudflareRespondeErro_Recusa`; `ProtecaoCadastroTests › Registro_SegredoDoServidorRecusado_TrataComoIndisponivel` |
 | F9-04 | Turnstile ligado | o `siteverify` aprova um token de outro hostname ou de outra ação | `400` em `errors.tokenTurnstile` | `ProtecaoCadastroTests › Registro_TokenDeOutroSiteOuOutraAcao_Recusa` |
 | F9-05 | Turnstile desligado (sem segredo: dev, testes, E2E) | o registro vem sem `tokenTurnstile` | `201`; o servidor não chama o `siteverify` | `ProtecaoCadastroTests › Registro_TurnstileDesligado_CriaSemToken` |
-| F9-06 | 3 cadastros do mesmo IP na última hora | chega o 4º | `429 limite-requisicoes`; outro IP cadastra normalmente | `ProtecaoCadastroTests › Registro_QuartoDoMesmoIpNaHora_429_OutroIpSegue` |
-| F9-07 | o limite de cadastro do IP esgotado | o mesmo IP faz login, renova a sessão ou pede redefinição de senha | segue pelo limite próprio de cada rota; o do cadastro não interfere | `ProtecaoCadastroTests › LimiteDoCadastroEsgotado_LoginERecuperacaoSeguem` |
-| F9-08 | um IP | faz 3 tentativas de cadastro recusadas (Turnstile ou validação) e uma 4ª válida | a 4ª recebe `429`: tentativa recusada também conta | `ProtecaoCadastroTests › TentativasRecusadas_TambemContamNoLimite` |
+| F9-06 | 3 cadastros do mesmo IP na última hora | chega o 4º | `429 limite-requisicoes`; outro IP cadastra normalmente | `ProtecaoCadastroTests › Registro_QuartoDoMesmoIpNaHora_429_OutroIpSegue`; `ProtecaoCadastroTests › ChaveDoIp_Ipv4OuIpv6_AgrupaIpv6Por64` |
+| F9-07 | o limite de cadastro do IP esgotado | o mesmo IP faz login, renova a sessão ou pede redefinição de senha | segue pelo limite próprio de cada rota; o do cadastro não interfere | `ProtecaoCadastroTests › OutrasRotasDeAuth_LimiteDoCadastroEsgotado_Seguem` |
+| F9-08 | um IP | faz 3 tentativas de cadastro recusadas (Turnstile ou validação) e uma 4ª válida | a 4ª recebe `429`: tentativa recusada também conta | `ProtecaoCadastroTests › Registro_TentativasRecusadas_ContamNoLimite`; `ProtecaoCadastroTests › Registro_RecusasDoTurnstile_ContamNoLimite` |
 
 ### Envio a terceiros (RF-AUT-06)
 
@@ -116,7 +116,7 @@ Abrir o cadastro ao público sem que ele vire um canal de envio em massa com o d
    - (b) Só o aviso da casca; os botões continuam ativos e o `422` explica ao clicar. Menos código, mas a pessoa preenche o formulário do convite para descobrir no fim.
 
 5. **Turnstile em dev, testes e E2E, e onde ficam as chaves.**
-   - a) **Desligado por configuração**: sem `Turnstile__Segredo`, a API não exige token (F9-05); sem `VITE_TURNSTILE_CHAVE`, o SPA não mostra o desafio. Testes, E2E e o bot das capturas ficam sem rede externa. O validador é testado com um `HttpMessageHandler` falso, inclusive com as respostas das chaves de teste do Cloudflare — **recomendado**.
+   - a) **Desligado por configuração**: sem `Turnstile__Segredo`, a API não exige token (F9-05); sem `VITE_TURNSTILE_CHAVE`, o SPA não mostra o desafio. Testes, E2E e o bot das capturas ficam sem rede externa. O validador é testado com um `HttpMessageHandler` falso (as chaves de teste do Cloudflare ficaram de fora: a resposta delas traz outro hostname e seria recusada pela conferência) — **recomendado**.
    - b) Chaves de teste do Cloudflare (sempre aprovam) em dev e na CI. Exercita o caminho real, mas os testes passam a depender de `challenges.cloudflare.com`.
    - **Onde ficam** (nas duas): a chave do site é pública e vai como variável do repositório `TURNSTILE_CHAVE_SITE`, usada no build do Pages (`VITE_TURNSTILE_CHAVE`). O segredo vai no secret `API_TURNSTILE_SEGREDO` e chega ao Cloud Run como `Turnstile__Segredo`, obrigatório no `deploy.yml` (F9-46). O widget é criado no painel do Cloudflare com o hostname `acordu.app.br`, num passo próprio do runbook (C5). Também entram no deploy-ci §7 e na tabela de segredos do runbook.
    - **`siteverify` fora do ar (5c):** recusar o cadastro (fail-closed), porque aceitar sem conferir abriria a porta justo quando o Cloudflare está com problema. Como recusar:
@@ -158,7 +158,7 @@ Cada PR contra a `main`, sem empilhar, com testes e CI verde. A migration sai pe
 |---|---|---|
 | F9a | API: `Tenant.CriadoPorUsuarioId` e `EnvioLiberadoEm` (migration com o preenchimento das empresas existentes), liberação ao confirmar o e-mail (link e redefinição), `422` nos convites e no link, `envioLiberado` em `/auth/eu`, contrato e OpenAPI | F9-09 a F9-14, F9-18 a F9-20, F9-22 a F9-25, F9-27 |
 | F9b | API: avisos automáticos a terceiros barrados num ponto só (antes do envio), sem link de acesso; avisos ao próprio criador seguem | F9-15 a F9-17, F9-21 |
-| F9c | API: Turnstile (validador HTTP, desligado sem segredo, fail-closed) e limite de cadastro por IP, encadeado com o limite de `/auth` (o ASP.NET aplica uma política por endpoint: `PartitionedRateLimiter.CreateChained`) | F9-01 a F9-08 |
+| F9c | API: Turnstile (validador HTTP, desligado sem segredo, fail-closed) e limite de cadastro por IP, próprio e no lugar do de `/auth` nessa rota (o ASP.NET aplica uma política por rota; os 3/h já são mais restritos) | F9-01 a F9-08 |
 | F9d | Job: expurgo no diário, classificação das entidades e teste de arquitetura | F9-28 a F9-38 |
 | F9e | Front: desafio no cadastro, aviso da casca, botões desabilitados, `422` tratado, CSP | F9-26, F9-39 a F9-45 |
 | F9f | Infra: `deploy.yml` (segredo obrigatório, chave do site no build), runbook e deploy-ci | F9-46, F9-47 |
@@ -167,6 +167,7 @@ Ordem: F9a primeiro (criador, liberação, `422` e `envioLiberado`); depois F9b 
 
 ## 7. Registro
 
+- 04/11 — F9c, revisão: limite do cadastro numa janela só (o encadeado criava timers por IP sem descarte), IPv6 por /64, segredo recusado vira indisponível com log de erro, hostname com o padrão dos links.
 - 04/11 — F9d na main (PR #136). F9c: `IVerificacaoHumana` (Turnstile por HTTP na Infrastructure; desligada sem segredo), conferida no endpoint antes de tudo; política `registro` com o limite de `/auth` encadeado ao por hora.
 - 04/11 — F9d, revisão: transação serializável e a empresa apagada primeiro com a condição repetida (corrida com a confirmação); conta mantida se houver rastro em outra empresa; papel não padrão conta como dado; logotipo removido; F9-37 com teste.
 - 04/11 — F9b na main (PR #135). F9d: `ExpurgoCadastros` no diário (`cadastrosRemovidos`); vínculo de outra pessoa conta como dado; a classificação é conferida contra o modelo do EF num teste de integração.
