@@ -22,6 +22,9 @@ namespace Acordu.Infrastructure.Persistence.Migrations
                 table: "tenants",
                 type: "timestamp with time zone",
                 nullable: true);
+
+            // Empresas anteriores ao F9: criador = Dono mais antigo e envio liberado, como já funcionavam (F9-27).
+            migrationBuilder.Sql(ScriptsDeDados.PreencherCriadorELiberacao);
         }
 
         /// <inheritdoc />
