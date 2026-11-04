@@ -3,6 +3,7 @@ import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { reiniciarParaTestes } from '@/shared/sessao/sessao'
 import { abrir, comPerfil, json, type Rotas } from '@/testes/app'
+import { respostaDaReceita } from '@/testes/receita'
 
 const VER = ['cliente.ver']
 const GERENCIAR = ['cliente.ver', 'cliente.gerenciar']
@@ -43,6 +44,38 @@ const padaria = {
         },
     ],
 }
+
+type Provedor = (url: string, opcoes?: RequestInit) => Response | Promise<Response>
+
+/**
+ * ViaCEP e BrasilAPI respondem pelas funções dadas; o resto vai ao servidor falso da API. Sem função, o provedor
+ * responde 404 (e o teste que não esperava chamada confere pelo espião).
+ */
+function provedores({ viaCep, brasilApi }: { viaCep?: Provedor; brasilApi?: Provedor }) {
+    const fetchDaApi = globalThis.fetch
+    const espioes = {
+        viaCep: vi.fn(viaCep ?? (() => new Response(null, { status: 404 }))),
+        brasilApi: vi.fn(brasilApi ?? (() => new Response(null, { status: 404 }))),
+    }
+    vi.stubGlobal('fetch', (alvo: Request | string, opcoes?: RequestInit) => {
+        if (typeof alvo === 'string' && alvo.startsWith('https://viacep.com.br')) return espioes.viaCep(alvo, opcoes)
+        if (typeof alvo === 'string' && alvo.startsWith('https://brasilapi.com.br'))
+            return espioes.brasilApi(alvo, opcoes)
+        return fetchDaApi(alvo as Request, opcoes)
+    })
+    return espioes
+}
+
+async function novoCliente() {
+    await abrir('/clientes')
+    const usuario = userEvent.setup()
+    await usuario.click(await screen.findByRole('button', { name: 'Novo cliente' }))
+    const janela = await screen.findByRole('dialog', { name: 'Novo cliente' })
+    return { usuario, janela, campo: (rotulo: string) => within(janela).getByLabelText(rotulo) }
+}
+
+const PREENCHIDO =
+    'Preenchido com os dados da Receita. Telefone e e-mail podem ser do escritório de contabilidade; confira antes de salvar.'
 
 describe('clientes', () => {
     beforeEach(() => reiniciarParaTestes())
@@ -389,5 +422,204 @@ describe('clientes', () => {
         expect(await screen.findByText('12.ABC.345/01DE-35', { exact: false })).toBeInTheDocument()
         await abrir('/clientes/c1')
         expect(await screen.findByText('12.ABC.345/01DE-35', { exact: false })).toBeInTheDocument()
+    })
+
+    describe('preenchimento pelo CNPJ (F10a)', () => {
+        const receita =
+            (dados: object = {}) =>
+            () =>
+                Response.json({ ...respostaDaReceita, ...dados })
+
+        it('CNPJ completo preenche nome, razão social, contato e endereço, sem chamar o ViaCEP (F10-01, F10-05, F10-06)', async () => {
+            const chamadas = app(GERENCIAR, {
+                'GET /api/v1/clientes': () => pagina([]),
+                'POST /api/v1/clientes': () => json(padaria, 201),
+                'GET /api/v1/clientes/c1': () => json(padaria),
+            })
+            const espioes = provedores({
+                brasilApi: receita({ nome_fantasia: 'OKBR', email: 'CONTATO@OK.ORG.BR' }),
+            })
+            const { usuario, janela, campo } = await novoCliente()
+            await usuario.type(campo('CPF ou CNPJ'), '19131243000197')
+            expect(await within(janela).findByText(PREENCHIDO)).toBeInTheDocument()
+            expect(campo('Nome')).toHaveValue('Okbr')
+            expect(campo('Razão social')).toHaveValue('OPEN KNOWLEDGE BRASIL')
+            expect(campo('E-mail')).toHaveValue('contato@ok.org.br')
+            expect(campo('Telefone')).toHaveValue('(11) 2385-1939')
+            expect(campo('CEP')).toHaveValue('01311-902')
+            expect(campo('Logradouro')).toHaveValue('Avenida Paulista 37')
+            expect(campo('Número')).toHaveValue('37')
+            expect(campo('Complemento')).toHaveValue('Andar 4')
+            expect(campo('Bairro')).toHaveValue('Bela Vista')
+            expect(campo('Cidade')).toHaveValue('Sao Paulo')
+            expect(within(janela).getByRole('combobox', { name: 'UF' })).toHaveValue('SP')
+            expect(within(janela).queryByText(/Na Receita/)).not.toBeInTheDocument()
+            expect(espioes.brasilApi).toHaveBeenCalledTimes(1)
+            expect(espioes.viaCep).not.toHaveBeenCalled()
+
+            await usuario.click(within(janela).getByRole('button', { name: 'Criar cliente' }))
+            await screen.findByRole('heading', { level: 1, name: 'Padaria Bom Grão' })
+            expect(chamadas.find((c) => c.metodo === 'POST' && c.caminho === '/api/v1/clientes')?.corpo).toMatchObject({
+                nome: 'Okbr',
+                razaoSocial: 'OPEN KNOWLEDGE BRASIL',
+                documento: '19.131.243/0001-97',
+                email: 'contato@ok.org.br',
+                telefone: '(11) 2385-1939',
+                endereco: { cep: '01311-902', logradouro: 'Avenida Paulista 37', cidade: 'Sao Paulo', uf: 'SP' },
+            })
+        })
+
+        it('sem nome fantasia, o nome recebe a razão social (F10-02)', async () => {
+            app(GERENCIAR, { 'GET /api/v1/clientes': () => pagina([]) })
+            provedores({ brasilApi: receita() })
+            const { usuario, janela, campo } = await novoCliente()
+            await usuario.type(campo('CPF ou CNPJ'), '19131243000197')
+            await within(janela).findByText(PREENCHIDO)
+            expect(campo('Nome')).toHaveValue('Open Knowledge Brasil')
+        })
+
+        it('o que já foi digitado fica, e o endereço começado não se mistura com o da Receita (F10-03, F10-04)', async () => {
+            app(GERENCIAR, { 'GET /api/v1/clientes': () => pagina([]) })
+            provedores({
+                viaCep: () =>
+                    Response.json({ logradouro: 'Rua das Flores', bairro: 'Centro', localidade: 'Bastos', uf: 'SP' }),
+                brasilApi: receita({ email: 'contato@ok.org.br' }),
+            })
+            const { usuario, janela, campo } = await novoCliente()
+            await usuario.type(campo('Nome'), 'Padaria Bom Grão')
+            await usuario.type(campo('E-mail'), 'oi@bomgrao.com.br')
+            await usuario.type(campo('CEP'), '19700000')
+            await vi.waitFor(() => expect(campo('Logradouro')).toHaveValue('Rua das Flores'))
+            await usuario.type(campo('CPF ou CNPJ'), '19131243000197')
+            await within(janela).findByText(PREENCHIDO)
+            expect(campo('Nome')).toHaveValue('Padaria Bom Grão')
+            expect(campo('E-mail')).toHaveValue('oi@bomgrao.com.br')
+            expect(campo('Razão social')).toHaveValue('OPEN KNOWLEDGE BRASIL')
+            expect(campo('Telefone')).toHaveValue('(11) 2385-1939')
+            expect(campo('CEP')).toHaveValue('19700-000')
+            expect(campo('Logradouro')).toHaveValue('Rua das Flores')
+            expect(campo('Cidade')).toHaveValue('Bastos')
+            expect(campo('Número')).toHaveValue('')
+        })
+
+        it('mostra que está buscando, e só a resposta do CNPJ atual vale (F10-07, F10-08)', async () => {
+            app(GERENCIAR, { 'GET /api/v1/clientes': () => pagina([]) })
+            let responderPrimeiro: (r: Response) => void = () => {}
+            provedores({
+                brasilApi: (url) =>
+                    url.endsWith('19131243000197')
+                        ? new Promise<Response>((resolver) => (responderPrimeiro = resolver))
+                        : Response.json({ ...respostaDaReceita, razao_social: 'SEGUNDA LTDA', cep: '' }),
+            })
+            const { usuario, janela, campo } = await novoCliente()
+            await usuario.type(campo('CPF ou CNPJ'), '19131243000197')
+            expect(within(janela).getByText('Buscando os dados na Receita…')).toBeInTheDocument()
+            await usuario.clear(campo('CPF ou CNPJ'))
+            await usuario.type(campo('CPF ou CNPJ'), '11222333000181')
+            await vi.waitFor(() => expect(campo('Razão social')).toHaveValue('SEGUNDA LTDA'))
+            responderPrimeiro(Response.json(respostaDaReceita))
+            await new Promise((r) => setTimeout(r, 50))
+            expect(campo('Razão social')).toHaveValue('SEGUNDA LTDA')
+            expect(campo('Nome')).toHaveValue('Segunda Ltda')
+        })
+
+        it('fechar a janela durante a consulta abandona tudo, sem erro (F10-09)', async () => {
+            app(GERENCIAR, { 'GET /api/v1/clientes': () => pagina([]) })
+            let sinal: AbortSignal | undefined
+            provedores({
+                brasilApi: (_, opcoes) => {
+                    sinal = opcoes?.signal ?? undefined
+                    return new Promise<Response>((_, falhar) =>
+                        sinal?.addEventListener('abort', () => falhar(new DOMException('Abortado', 'AbortError'))),
+                    )
+                },
+            })
+            const { usuario, janela, campo } = await novoCliente()
+            await usuario.type(campo('CPF ou CNPJ'), '19131243000197')
+            await usuario.click(within(janela).getByRole('button', { name: 'Cancelar' }))
+            await vi.waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument())
+            expect(sinal?.aborted).toBe(true)
+            expect(screen.queryByText(/Não deu para buscar|Algo deu errado/)).not.toBeInTheDocument()
+        })
+
+        it('empresa baixada: avisa sem bloquear, e o aviso some ao trocar o CNPJ (F10-12, F10-13, F10-14)', async () => {
+            const chamadas = app(GERENCIAR, {
+                'GET /api/v1/clientes': () => pagina([]),
+                'POST /api/v1/clientes': () => json(padaria, 201),
+                'GET /api/v1/clientes/c1': () => json(padaria),
+            })
+            provedores({
+                brasilApi: receita({ descricao_situacao_cadastral: 'BAIXADA', data_situacao_cadastral: '2024-03-12' }),
+            })
+            const { usuario, janela, campo } = await novoCliente()
+            await usuario.type(campo('CPF ou CNPJ'), '19131243000197')
+            const aviso = 'Na Receita, este CNPJ está BAIXADA desde 12/03/2024. Dá para salvar mesmo assim.'
+            expect(await within(janela).findByText(aviso)).toBeInTheDocument()
+            await usuario.type(campo('CPF ou CNPJ'), '{Backspace}')
+            expect(within(janela).queryByText(aviso)).not.toBeInTheDocument()
+            await usuario.type(campo('CPF ou CNPJ'), '7')
+            expect(await within(janela).findByText(aviso)).toBeInTheDocument()
+            await usuario.click(within(janela).getByRole('button', { name: 'Criar cliente' }))
+            await screen.findByRole('heading', { level: 1, name: 'Padaria Bom Grão' })
+            expect(chamadas.some((c) => c.metodo === 'POST' && c.caminho === '/api/v1/clientes')).toBe(true)
+        })
+
+        it.each([
+            ['sem cadastro (F10-15)', 404, 'Não encontramos este CNPJ na Receita. Preencha à mão.'],
+            ['provedor com erro (F10-16)', 503, 'Não deu para buscar os dados agora. Preencha à mão.'],
+        ])('%s: avisa, não preenche e salva', async (_, status, mensagem) => {
+            const chamadas = app(GERENCIAR, {
+                'GET /api/v1/clientes': () => pagina([]),
+                'POST /api/v1/clientes': () => json(padaria, 201),
+                'GET /api/v1/clientes/c1': () => json(padaria),
+            })
+            provedores({ brasilApi: () => new Response(null, { status }) })
+            const { usuario, janela, campo } = await novoCliente()
+            await usuario.type(campo('CPF ou CNPJ'), '11222333000181')
+            expect(await within(janela).findByText(mensagem)).toBeInTheDocument()
+            expect(campo('Nome')).toHaveValue('')
+            expect(campo('Razão social')).toHaveValue('')
+            await usuario.type(campo('Nome'), 'Padaria Bom Grão')
+            await usuario.click(within(janela).getByRole('button', { name: 'Criar cliente' }))
+            await screen.findByRole('heading', { level: 1, name: 'Padaria Bom Grão' })
+            expect(chamadas.some((c) => c.metodo === 'POST' && c.caminho === '/api/v1/clientes')).toBe(true)
+        })
+
+        it('CPF, CNPJ incompleto ou com dígito errado não consultam (F10-19)', async () => {
+            app(GERENCIAR, { 'GET /api/v1/clientes': () => pagina([]) })
+            const espioes = provedores({ brasilApi: receita() })
+            const { usuario, campo } = await novoCliente()
+            await usuario.type(campo('CPF ou CNPJ'), '52998224725')
+            await usuario.clear(campo('CPF ou CNPJ'))
+            await usuario.type(campo('CPF ou CNPJ'), '1122233300018')
+            await usuario.type(campo('CPF ou CNPJ'), '0')
+            expect(espioes.brasilApi).not.toHaveBeenCalled()
+        })
+
+        it('na edição, o CNPJ salvo não é consultado; trocar por outro preenche só os vazios (F10-10, F10-11)', async () => {
+            const comCnpj = { ...padaria, documento: '11222333000181', razaoSocial: null, telefone: '1833330000' }
+            app(GERENCIAR, { 'GET /api/v1/clientes/c1': () => json(comCnpj) })
+            const espioes = provedores({ brasilApi: receita() })
+            await abrir('/clientes/c1')
+            const usuario = userEvent.setup()
+            await usuario.click(await screen.findByRole('button', { name: 'Editar' }))
+            const janela = await screen.findByRole('dialog', { name: 'Editar cliente' })
+            const campo = (rotulo: string) => within(janela).getByLabelText(rotulo)
+            expect(campo('CPF ou CNPJ')).toHaveValue('11.222.333/0001-81')
+            expect(espioes.brasilApi).not.toHaveBeenCalled()
+
+            await usuario.clear(campo('CPF ou CNPJ'))
+            await usuario.type(campo('CPF ou CNPJ'), '19131243000197')
+            await within(janela).findByText(PREENCHIDO)
+            expect(espioes.brasilApi).toHaveBeenCalledTimes(1)
+            expect(campo('Nome')).toHaveValue('Padaria Bom Grão')
+            expect(campo('Razão social')).toHaveValue('OPEN KNOWLEDGE BRASIL')
+            expect(campo('Telefone')).toHaveValue('(18) 3333-0000')
+            expect(campo('Logradouro')).toHaveValue('Avenida Paulista 37')
+
+            await usuario.clear(campo('CPF ou CNPJ'))
+            await usuario.type(campo('CPF ou CNPJ'), '11222333000181')
+            expect(espioes.brasilApi).toHaveBeenCalledTimes(1)
+        })
     })
 })
