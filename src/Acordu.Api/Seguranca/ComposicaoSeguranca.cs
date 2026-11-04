@@ -25,6 +25,12 @@ internal static class ComposicaoSeguranca
     /// <summary>Abertura de solicitação pelo portal (segurança §9): por usuário, ou por IP sem usuário.</summary>
     public const string LimitePortal = "portal";
 
+    /// <summary>
+    /// Cadastro (RNF-SEG-10): por IP, o limite de <see cref="LimiteAuth"/> encadeado com um próprio por hora (padrão 3).
+    /// O ASP.NET aplica uma política por rota, então as duas janelas ficam num limitador encadeado.
+    /// </summary>
+    public const string LimiteRegistro = "registro";
+
     /// <summary>Feed ICS da agenda assinável, por IP (os calendários buscam de tempos em tempos).</summary>
     public const string LimiteAgenda = "agenda";
 
@@ -80,6 +86,7 @@ internal static class ComposicaoSeguranca
         var limiteRenovacao = configuracao.GetValue("RateLimit:Refresh:PorMinuto", 30);
         var limitePortal = configuracao.GetValue("RateLimit:Portal:PorMinuto", 10);
         var limiteAgenda = configuracao.GetValue("RateLimit:Agenda:PorMinuto", 30);
+        var limiteRegistro = configuracao.GetValue("RateLimit:Registro:PorHora", 3);
         services.AddRateLimiter(opcoes =>
         {
             opcoes.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
@@ -92,6 +99,11 @@ internal static class ComposicaoSeguranca
             opcoes.AddPolicy(LimiteRenovacao, http => RateLimitPartition.GetFixedWindowLimiter(
                 ChaveDaRenovacao(http),
                 _ => new FixedWindowRateLimiterOptions { PermitLimit = limiteRenovacao, Window = TimeSpan.FromMinutes(1), QueueLimit = 0 }));
+            opcoes.AddPolicy(LimiteRegistro, http => RateLimitPartition.Get(
+                http.Connection.RemoteIpAddress?.ToString() ?? "desconhecido",
+                _ => RateLimiter.CreateChained(
+                    new FixedWindowRateLimiter(new FixedWindowRateLimiterOptions { PermitLimit = limite, Window = TimeSpan.FromMinutes(1), QueueLimit = 0 }),
+                    new FixedWindowRateLimiter(new FixedWindowRateLimiterOptions { PermitLimit = limiteRegistro, Window = TimeSpan.FromHours(1), QueueLimit = 0 }))));
             opcoes.AddPolicy(LimiteAuth, http => RateLimitPartition.GetFixedWindowLimiter(
                 http.Connection.RemoteIpAddress?.ToString() ?? "desconhecido",
                 _ => new FixedWindowRateLimiterOptions { PermitLimit = limite, Window = TimeSpan.FromMinutes(1), QueueLimit = 0 }));
