@@ -56,6 +56,10 @@ public sealed class ClientesTests(ApiFixture api)
                 .Should().Contain(c => c.GetProperty("id").GetGuid() == cliente.GetProperty("id").GetGuid(), "busca por {0}", trecho);
         }
 
+        var soLetras = await equipe.EsperarAsync(HttpStatusCode.OK, HttpMethod.Get, "/api/v1/clientes?busca=abc");
+        soLetras.GetProperty("itens").EnumerateArray()
+            .Should().NotContain(c => c.GetProperty("id").GetGuid() == cliente.GetProperty("id").GetGuid(), "termo sem dígito não compara o documento");
+
         await equipe.EsperarAsync(
             HttpStatusCode.BadRequest, HttpMethod.Post, "/api/v1/clientes", new { nome = "Errada", documento = "12.ABC.345/01DE-36" });
     }
