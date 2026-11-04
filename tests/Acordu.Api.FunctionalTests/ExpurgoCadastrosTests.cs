@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Net;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
@@ -5,6 +6,10 @@ using System.Text.Json;
 using Acordu.Api.FunctionalTests.Apoio;
 using Acordu.Api.Jobs;
 using Acordu.Domain.Entities;
+using Acordu.Infrastructure.Persistence.Atividades;
+using Acordu.Infrastructure.Persistence.Auditoria;
+using Acordu.Infrastructure.Persistence.Outbox;
+using Acordu.Infrastructure.Seguranca;
 using Microsoft.EntityFrameworkCore;
 
 namespace Acordu.Api.FunctionalTests;
@@ -23,6 +28,7 @@ public sealed class ExpurgoCadastrosTests(ApiFixture api)
 
         var resultado = await DiarioAsync(TimeSpan.FromDays(7));
 
+        // ">= 1": a coleção compartilha o banco, e cadastros abandonados de outros testes também vencem.
         resultado.GetProperty("cadastrosRemovidos").GetInt32().Should().BeGreaterThanOrEqualTo(1);
         resultado.GetProperty("falhas").GetInt32().Should().Be(0);
         await using var db = api.DaEquipe(cadastro.TenantId);
@@ -31,6 +37,9 @@ public sealed class ExpurgoCadastrosTests(ApiFixture api)
         (await db.Vinculos.AnyAsync()).Should().BeFalse();
         (await db.Calendarios.AnyAsync()).Should().BeFalse();
         (await db.Users.AnyAsync(u => u.Id == cadastro.UsuarioId)).Should().BeFalse();
+        (await db.Set<RefreshToken>().AnyAsync(r => r.UsuarioId == cadastro.UsuarioId)).Should().BeFalse();
+        (await db.Set<TokenConta>().AnyAsync(t => t.UsuarioId == cadastro.UsuarioId)).Should().BeFalse("o token da confirmação sai junto");
+        (await db.Set<MensagemOutbox>().IgnoreQueryFilters().AnyAsync(m => m.TenantId == cadastro.TenantId)).Should().BeFalse();
     }
 
     [Fact]
@@ -127,6 +136,8 @@ public sealed class ExpurgoCadastrosTests(ApiFixture api)
         var outra = await Equipe.CriarAsync(api);
         var cliente = await Cenarios.ClienteAsync(outra);
         var solicitacao = await Cenarios.SolicitacaoAsync(outra, cliente);
+        var antes = await RastrosAsync(outra.TenantId);
+        var dono = (await outra.EsperarAsync(HttpStatusCode.OK, HttpMethod.Get, "/api/v1/auth/eu")).GetProperty("usuarioId").GetGuid();
 
         await DiarioAsync(TimeSpan.FromDays(8));
 
@@ -138,14 +149,50 @@ public sealed class ExpurgoCadastrosTests(ApiFixture api)
         {
             (await db.Papeis.CountAsync()).Should().Be(4);
             (await db.Vinculos.CountAsync()).Should().Be(1);
+            (await db.Users.AnyAsync(u => u.Id == dono)).Should().BeTrue();
         }
+
+        (await RastrosAsync(outra.TenantId)).Should().Be(antes, "auditoria, feed e sino da outra empresa ficam");
+    }
+
+    [Fact]
+    public async Task Diario_ExpurgoDeUmaEmpresaFalha_ContaEmFalhasESegueComAsDemais() // F9-37
+    {
+        var quebrada = await RegistrarAsync();
+        var normal = await RegistrarAsync();
+        // Falha forçada só na empresa "quebrada": apagar os papéis dela dispara um erro no banco.
+        await using (var db = api.DaEquipe(quebrada.TenantId))
+        {
+            await db.Database.ExecuteSqlRawAsync(string.Format(CultureInfo.InvariantCulture, """
+                CREATE OR REPLACE FUNCTION teste_f9_falha() RETURNS trigger AS $$ BEGIN RAISE EXCEPTION 'falha forçada'; END $$ LANGUAGE plpgsql;
+                CREATE TRIGGER teste_f9_falha BEFORE DELETE ON papeis FOR EACH ROW WHEN (OLD.tenant_id = '{0}') EXECUTE FUNCTION teste_f9_falha();
+                """, quebrada.TenantId));
+        }
+
+        JsonElement resultado;
+        try
+        {
+            resultado = await DiarioAsync(TimeSpan.FromDays(8));
+        }
+        finally
+        {
+            await using var db = api.DaEquipe(quebrada.TenantId);
+            await db.Database.ExecuteSqlRawAsync("DROP TRIGGER teste_f9_falha ON papeis; DROP FUNCTION teste_f9_falha();");
+        }
+
+        resultado.GetProperty("falhas").GetInt32().Should().BeGreaterThanOrEqualTo(1);
+        resultado.GetProperty("cadastrosRemovidos").GetInt32().Should().BeGreaterThanOrEqualTo(1);
+        await using (var db = api.DaEquipe(quebrada.TenantId))
+            (await db.Tenants.AnyAsync()).Should().BeTrue("a transação da empresa que falhou foi desfeita");
+        await using (var db = api.DaEquipe(normal.TenantId))
+            (await db.Tenants.AnyAsync()).Should().BeFalse("a falha de uma não para as demais");
     }
 
     [Fact]
     public async Task Diario_RodadoDeNovo_NaoRemoveMais() // F9-36
     {
         await RegistrarAsync();
-        await DiarioAsync(TimeSpan.FromDays(8));
+        (await DiarioAsync(TimeSpan.FromDays(8))).GetProperty("cadastrosRemovidos").GetInt32().Should().BeGreaterThanOrEqualTo(1);
 
         var segundo = await DiarioAsync(TimeSpan.FromDays(8));
 
@@ -171,6 +218,13 @@ public sealed class ExpurgoCadastrosTests(ApiFixture api)
         {
             api.Relogio.Agora = inicio;
         }
+    }
+
+    private async Task<(int Auditoria, int Atividades, int Notificacoes)> RastrosAsync(Guid tenantId)
+    {
+        await using var db = api.DaEquipe(tenantId);
+        return (await db.Set<RegistroAuditoria>().CountAsync(), await db.Set<Atividade>().CountAsync(),
+            await db.Set<Infrastructure.Persistence.Notificacoes.Notificacao>().CountAsync());
     }
 
     private async Task<Cadastro> RegistrarAsync()
