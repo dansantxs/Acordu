@@ -13,7 +13,7 @@ export interface ApiTurnstile {
             'expired-callback': () => void
             'error-callback': () => void
         },
-    ): string
+    ): string | undefined
     reset(id: string): void
     remove(id: string): void
 }
@@ -72,7 +72,7 @@ export function DesafioTurnstile({
         carregarTurnstile()
             .then(() => {
                 if (!ativo || !elemento.current || !window.turnstile) return
-                widget.current = window.turnstile.render(elemento.current, {
+                const id = window.turnstile.render(elemento.current, {
                     sitekey: chave,
                     action: 'registro',
                     language: 'pt-br',
@@ -80,6 +80,8 @@ export function DesafioTurnstile({
                     'expired-callback': () => retorno.current(null),
                     'error-callback': () => retorno.current(null),
                 })
+                widget.current = id ?? null
+                if (!id) setFalhou(true)
             })
             .catch(() => ativo && setFalhou(true))
         return () => {

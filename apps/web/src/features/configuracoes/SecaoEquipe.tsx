@@ -1,7 +1,8 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { useState } from 'react'
+import { useId, useState } from 'react'
 import { Button, Form } from 'react-aria-components'
 import { pode } from '@/features/casca/navegacao'
+import { SEM_ENVIO } from '@/features/sessao/AvisoConfirmacao'
 import {
     consultaConvites,
     consultaPapeis,
@@ -20,7 +21,6 @@ import { errosDeCampo, mensagemDeErro } from '@/shared/api/mensagens'
 import { avisar, avisarErro } from '@/shared/avisos/avisos'
 import { formatarDuracao, lerDuracao } from '@/shared/format/duracao'
 import { dataHora } from '@/shared/format/prazo'
-import { SEM_ENVIO } from '@/features/sessao/AvisoConfirmacao'
 import type { Perfil } from '@/shared/sessao/perfil'
 import { Alerta } from '@/shared/ui/Alerta'
 import { Botao } from '@/shared/ui/Botao'
@@ -46,6 +46,7 @@ export function SecaoEquipe({ perfil }: { perfil: Perfil }) {
     const consultas = useQueryClient()
     const verPessoas = pode(perfil, 'usuario.convidar', 'usuario.remover')
     const podeConvidar = pode(perfil, 'usuario.convidar')
+    const motivoConvite = useId()
     const gerenciaPapeis = pode(perfil, 'papel.gerenciar')
     const podeRemover = pode(perfil, 'usuario.remover')
     const pessoas = useQuery({ ...consultaPessoas, enabled: verPessoas })
@@ -91,11 +92,19 @@ export function SecaoEquipe({ perfil }: { perfil: Perfil }) {
                 </CabecalhoSecao>
                 {podeConvidar && (
                     <div className="flex flex-col items-end gap-1">
-                        <Botao onPress={() => setConvidando(true)} isDisabled={!perfil.tenant.envioLiberado}>
+                        <Botao
+                            onPress={() => setConvidando(true)}
+                            isDisabled={!perfil.tenant.envioLiberado}
+                            aria-describedby={perfil.tenant.envioLiberado ? undefined : motivoConvite}
+                        >
                             <Icone nome="mais" />
                             Convidar pessoa
                         </Botao>
-                        {!perfil.tenant.envioLiberado && <p className="text-xs text-suave">{SEM_ENVIO}</p>}
+                        {!perfil.tenant.envioLiberado && (
+                            <p id={motivoConvite} className="text-xs text-suave">
+                                {SEM_ENVIO}
+                            </p>
+                        )}
                     </div>
                 )}
             </div>

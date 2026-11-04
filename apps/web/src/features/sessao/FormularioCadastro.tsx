@@ -1,6 +1,6 @@
 import { useMutation } from '@tanstack/react-query'
 import { Link, useNavigate } from '@tanstack/react-router'
-import { useState } from 'react'
+import { useId, useState } from 'react'
 import { Form } from 'react-aria-components'
 import { errosDeCampo, mensagemDeErro } from '@/shared/api/mensagens'
 import { ErroApi } from '@/shared/api/problema'
@@ -29,6 +29,8 @@ export function FormularioCadastro({ chaveTurnstile = CHAVE_TURNSTILE }: { chave
     const navegar = useNavigate()
     const [token, setToken] = useState<string | null>(null)
     const [versaoDesafio, setVersaoDesafio] = useState(0)
+    const motivo = useId()
+    const aguardandoDesafio = Boolean(chaveTurnstile) && !token
     const envio = useMutation({
         mutationFn: cadastrar,
         onSuccess: () => navegar({ to: '/' }),
@@ -83,11 +85,21 @@ export function FormularioCadastro({ chaveTurnstile = CHAVE_TURNSTILE }: { chave
                 isRequired
             />
             {chaveTurnstile && <DesafioTurnstile chave={chaveTurnstile} versao={versaoDesafio} aoMudar={setToken} />}
+            {aguardandoDesafio && (
+                <p id={motivo} className="text-sm text-suave">
+                    Conclua a verificação acima para criar a conta.
+                </p>
+            )}
             <div className="flex items-center justify-between gap-4">
                 <Link to="/entrar" className="text-sm text-acento-texto underline-offset-4 hover:underline">
                     Já tenho conta
                 </Link>
-                <Botao type="submit" isPending={envio.isPending} isDisabled={Boolean(chaveTurnstile) && !token}>
+                <Botao
+                    type="submit"
+                    isPending={envio.isPending}
+                    isDisabled={aguardandoDesafio}
+                    aria-describedby={aguardandoDesafio ? motivo : undefined}
+                >
                     Criar conta
                 </Botao>
             </div>
