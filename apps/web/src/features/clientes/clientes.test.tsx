@@ -502,6 +502,20 @@ describe('clientes', () => {
             expect(campo('Número')).toHaveValue('')
         })
 
+        it('com tudo já digitado, não diz que preencheu', async () => {
+            app(GERENCIAR, { 'GET /api/v1/clientes': () => pagina([]) })
+            const espioes = provedores({ brasilApi: receita({ cep: '' }) })
+            const { usuario, janela, campo } = await novoCliente()
+            await usuario.type(campo('Nome'), 'Padaria')
+            await usuario.type(campo('Razão social'), 'Padaria Ltda')
+            await usuario.type(campo('E-mail'), 'oi@padaria.com.br')
+            await usuario.type(campo('Telefone'), '1833330000')
+            await usuario.type(campo('CPF ou CNPJ'), '19131243000197')
+            await vi.waitFor(() => expect(espioes.brasilApi).toHaveBeenCalled())
+            await vi.waitFor(() => expect(within(janela).queryByText('Buscando os dados na Receita…')).toBeNull())
+            expect(within(janela).queryByText(PREENCHIDO)).not.toBeInTheDocument()
+        })
+
         it('mostra que está buscando, e só a resposta do CNPJ atual vale (F10-07, F10-08)', async () => {
             app(GERENCIAR, { 'GET /api/v1/clientes': () => pagina([]) })
             let responderPrimeiro: (r: Response) => void = () => {}
@@ -521,6 +535,10 @@ describe('clientes', () => {
             await new Promise((r) => setTimeout(r, 50))
             expect(campo('Razão social')).toHaveValue('SEGUNDA LTDA')
             expect(campo('Nome')).toHaveValue('Segunda Ltda')
+            // A resposta atrasada traria o endereço da Paulista, que ainda está vazio: não pode entrar.
+            expect(campo('CEP')).toHaveValue('')
+            expect(campo('Logradouro')).toHaveValue('')
+            expect(campo('Telefone')).toHaveValue('(11) 2385-1939')
         })
 
         it('fechar a janela durante a consulta abandona tudo, sem erro (F10-09)', async () => {

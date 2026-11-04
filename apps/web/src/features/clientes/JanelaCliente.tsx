@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { useEffect, useRef, useState, type ReactNode } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from 'react'
 import { Form } from 'react-aria-components'
 import { errosDeCampo, mensagemDeErro } from '@/shared/api/mensagens'
 import { buscarCnpj, formaDeTitulo, type EmpresaDoCnpj } from '@/shared/api/cnpj'
@@ -157,12 +157,17 @@ function JanelaClienteAberta({
     const cnpjSalvo = useRef(cnpjCompleto(cliente?.documento ?? ''))
     const ultimoCnpj = useRef<string | null>(null)
     // Fechar a janela desmonta o formulário: a consulta em andamento é abandonada sem aplicar nada (F10-09).
-    const desmontado = useRef(new AbortController())
+    const desmontado = useRef<AbortController | null>(null)
     useEffect(() => {
         const controle = new AbortController()
         desmontado.current = controle
         return () => controle.abort()
     }, [])
+    // A resposta chega depois de um `await`: o preenchimento olha os valores de agora, não os de quando a consulta saiu.
+    const atuais = useRef({ nome, razaoSocial, email, telefone, endereco })
+    useLayoutEffect(() => {
+        atuais.current = { nome, razaoSocial, email, telefone, endereco }
+    })
 
     const envio = useMutation({
         mutationFn: (dados: DadosCliente) => (cliente ? editarCliente(cliente, dados) : criarCliente(dados)),
@@ -210,33 +215,42 @@ function JanelaClienteAberta({
         setCnpj('parado')
         if (!completo || completo === cnpjSalvo.current) return // CPF ou incompleto não consulta (F10-19)
         setCnpj('buscando')
-        const sinal = desmontado.current.signal
+        const sinal = desmontado.current?.signal
         const resultado = await buscarCnpj(completo, sinal)
-        if (sinal.aborted || ultimoCnpj.current !== completo) return
+        if (sinal?.aborted || ultimoCnpj.current !== completo) return
         if (resultado.tipo !== 'achou') {
             setCnpj(resultado.tipo)
             return
         }
-        preencher(resultado.empresa)
         setSituacao(avisoDeSituacao(resultado.empresa))
-        setCnpj('preencheu')
+        // A frase do F10-06 só aparece quando algum campo foi de fato preenchido.
+        setCnpj(preencher(resultado.empresa) ? 'preencheu' : 'parado')
     }
 
-    /** Só os campos vazios (F10-03); o endereço só como bloco, e só se estiver todo vazio (F10-04). */
-    function preencher(empresa: EmpresaDoCnpj) {
+    /**
+     * Só os campos vazios (F10-03); o endereço só como bloco, e só se estiver todo vazio (F10-04). Diz se preencheu algo.
+     */
+    function preencher(empresa: EmpresaDoCnpj): boolean {
+        const agora = atuais.current
         const vazio = (v: string) => v.trim() === ''
-        setNome((atual) => (vazio(atual) ? empresa.nomeFantasia || formaDeTitulo(empresa.razaoSocial) : atual))
-        setRazaoSocial((atual) => (vazio(atual) ? empresa.razaoSocial : atual))
-        setEmail((atual) => (vazio(atual) ? empresa.email : atual))
-        setTelefone((atual) => (vazio(atual) ? empresa.telefone : atual))
+        let preencheu = false
+        const seVazio = (atual: string, novo: string, mudar: (v: string) => void) => {
+            if (!vazio(atual) || vazio(novo)) return
+            mudar(novo)
+            preencheu = true
+        }
+        seVazio(agora.nome, empresa.nomeFantasia || formaDeTitulo(empresa.razaoSocial), setNome)
+        seVazio(agora.razaoSocial, empresa.razaoSocial, setRazaoSocial)
+        seVazio(agora.email, empresa.email, setEmail)
+        seVazio(agora.telefone, empresa.telefone, setTelefone)
         const veio = empresa.endereco
-        if (!veio) return
-        setEndereco((atual) => {
-            if (Object.values(atual).some((v) => v.trim() !== '')) return atual
+        if (veio && Object.values(agora.endereco).every(vazio)) {
             // O CEP veio da Receita: o ViaCEP não é chamado para ele (F10-05).
             ultimoCep.current = digitos(veio.cep)
-            return veio
-        })
+            setEndereco(veio)
+            preencheu = true
+        }
+        return preencheu
     }
 
     // Endereço é opcional; começou a preencher, o mínimo (CEP, logradouro, cidade, UF) passa a ser obrigatório.
