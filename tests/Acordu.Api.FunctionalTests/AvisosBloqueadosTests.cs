@@ -43,10 +43,12 @@ public sealed class AvisosBloqueadosTests(ApiFixture api)
             new { solucao = new { texto = "Logo trocada" } });
 
         api.Emails.Para(email).Should().BeEmpty();
+        (await equipe.EsperarAsync(HttpStatusCode.OK, HttpMethod.Get, $"/api/v1/solicitacoes/{solicitacao}/acessos-portal"))
+            .GetArrayLength().Should().Be(0, "nenhum aviso gerou link");
     }
 
     [Fact]
-    public async Task AvisoInterno_EmpresaNaoLiberada_SoOCriadorRecebeEmail_SinoParaTodos() // F9-17
+    public async Task AvisoInterno_EmpresaNaoLiberada_EmailSoAoCriadorESinoATodos() // F9-17
     {
         var equipe = await Equipe.CriarAsync(api, confirmar: false);
         var emailCriador = await EmailAsync(equipe, equipe.Dono);
@@ -57,8 +59,12 @@ public sealed class AvisosBloqueadosTests(ApiFixture api)
 
         api.Emails.Para(emailCriador).Should().Contain(m => m.Categoria == "aviso-consumo");
         api.Emails.Para(emailOutro).Should().NotContain(m => m.Categoria == "aviso-consumo");
-        var sino = await equipe.EsperarAsync(HttpStatusCode.OK, HttpMethod.Get, "/api/v1/notificacoes", token: outroDono);
-        sino.GetProperty("itens").GetArrayLength().Should().BeGreaterThan(0, "o sino não depende da liberação");
+        foreach (var token in new[] { equipe.Dono, outroDono })
+        {
+            var sino = await equipe.EsperarAsync(HttpStatusCode.OK, HttpMethod.Get, "/api/v1/notificacoes", token: token);
+            sino.GetProperty("itens").EnumerateArray()
+                .Should().Contain(n => n.GetProperty("categoria").GetString() == "CONSUMO", "o sino não depende da liberação");
+        }
     }
 
     [Fact]
@@ -78,7 +84,7 @@ public sealed class AvisosBloqueadosTests(ApiFixture api)
         api.Emails.Para(email).Should().ContainSingle().Which.Categoria.Should().Be("aviso-aguardando");
     }
 
-    private async Task<string> EmailAsync(Equipe equipe, string token) =>
+    private static async Task<string> EmailAsync(Equipe equipe, string token) =>
         (await equipe.EsperarAsync(HttpStatusCode.OK, HttpMethod.Get, "/api/v1/auth/eu", token: token)).GetProperty("email").GetString()!;
 
     private static async Task<Guid> AbrirAsync(Equipe equipe, Guid cliente, Guid contato) =>
