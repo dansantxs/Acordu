@@ -22,7 +22,7 @@ export const perfil = {
     nome: 'Ana Prado',
     email: 'ana@exemplo.com',
     emailConfirmado: true,
-    tenant: { id: 't1', nome: 'Prado Consultoria', fusoHorario: 'America/Sao_Paulo' },
+    tenant: { id: 't1', nome: 'Prado Consultoria', fusoHorario: 'America/Sao_Paulo', envioLiberado: true },
     papel: 'Dono',
     permissoes: [],
     clienteId: null,

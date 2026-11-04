@@ -72,7 +72,7 @@ describe('portal: base', () => {
                     nome: 'Marta Souza',
                     email: 'marta@bomgrao.com',
                     emailConfirmado: true,
-                    tenant: { id: 't1', nome: 'Prado Consultoria', fusoHorario: 'America/Sao_Paulo' },
+                    tenant: { id: 't1', nome: 'Prado Consultoria', fusoHorario: 'America/Sao_Paulo', envioLiberado: true },
                     papel: 'Cliente',
                     permissoes: [],
                     clienteId: 'c1',

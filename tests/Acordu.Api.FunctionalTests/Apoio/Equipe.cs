@@ -29,9 +29,19 @@ internal sealed class Equipe
     /// <summary>Token de quem registrou o tenant (papel Dono).</summary>
     public string Dono { get; }
 
-    public static async Task<Equipe> CriarAsync(ApiFixture api)
+    /// <param name="confirmar">
+    /// Confirma o e-mail de quem registrou, liberando o envio a terceiros (RF-AUT-06). Falso só nos testes do bloqueio.
+    /// </param>
+    public static async Task<Equipe> CriarAsync(ApiFixture api, bool confirmar = true)
     {
-        var (token, _) = await RegistrarAsync(api, "Estúdio Traço");
+        var (token, _, email) = await RegistrarAsync(api, "Estúdio Traço");
+        if (confirmar)
+        {
+            using var confirmacao = await EnviarAsync(
+                api, HttpMethod.Post, "/api/v1/auth/confirmacao-email", new { token = api.Emails.TokenDe(email, "confirmacao-email") }, null, null);
+            confirmacao.StatusCode.Should().Be(HttpStatusCode.NoContent);
+        }
+
         using var eu = await GetAsync(api, "/api/v1/auth/eu", token);
         var tenant = (await JsonAsync(eu)).GetProperty("tenant").GetProperty("id").GetGuid();
         return new Equipe(api, tenant, token);
@@ -40,7 +50,7 @@ internal sealed class Equipe
     /// <summary>Uma pessoa nova com o papel padrão no tenant (o convite chega depois; aqui o vínculo é gravado direto).</summary>
     public async Task<string> ComPapelAsync(string papel)
     {
-        var (token, refresh) = await RegistrarAsync(_api, "Própria");
+        var (token, refresh, _) = await RegistrarAsync(_api, "Própria");
         using var eu = await GetAsync(_api, "/api/v1/auth/eu", token);
         var usuario = (await JsonAsync(eu)).GetProperty("usuarioId").GetGuid();
         await using (var db = _api.DaEquipe(TenantId))
@@ -81,18 +91,19 @@ internal sealed class Equipe
         return texto.Length == 0 ? default : JsonDocument.Parse(texto).RootElement.Clone();
     }
 
-    private static async Task<(string Token, string Refresh)> RegistrarAsync(ApiFixture api, string empresa)
+    private static async Task<(string Token, string Refresh, string Email)> RegistrarAsync(ApiFixture api, string empresa)
     {
+        var email = $"pessoa-{Guid.NewGuid():N}@exemplo.com";
         using var resposta = await EnviarAsync(api, HttpMethod.Post, "/api/v1/auth/registro", new
         {
             nome = "Pessoa da equipe",
-            email = $"pessoa-{Guid.NewGuid():N}@exemplo.com",
+            email,
             senha = Senha,
             nomeEmpresa = empresa,
         }, null, null);
         resposta.StatusCode.Should().Be(HttpStatusCode.Created);
         var cookie = resposta.Headers.GetValues("Set-Cookie").Single(c => c.StartsWith("acordu_refresh=", StringComparison.Ordinal));
-        return ((await JsonAsync(resposta)).GetProperty("accessToken").GetString()!, cookie.Split(';')[0]["acordu_refresh=".Length..]);
+        return ((await JsonAsync(resposta)).GetProperty("accessToken").GetString()!, cookie.Split(';')[0]["acordu_refresh=".Length..], email);
     }
 
     private static async Task<HttpResponseMessage> GetAsync(ApiFixture api, string rota, string? token) =>
