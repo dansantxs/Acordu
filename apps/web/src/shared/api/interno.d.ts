@@ -6086,6 +6086,7 @@ export interface components {
             id: string
             nome: string
             fusoHorario: string
+            envioLiberado: boolean
         }
         TenantDoUsuario: {
             /** Format: uuid */
