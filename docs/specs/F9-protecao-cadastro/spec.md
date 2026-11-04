@@ -56,17 +56,17 @@ Abrir o cadastro ao público sem que ele vire um canal de envio em massa com o d
 
 | Id | Dado | Quando | Então | Teste |
 |---|---|---|---|---|
-| F9-28 | empresa com `CriadoEm` há 7 dias ou mais (no instante do diário), não liberada, sem dados (decisão 3) | roda o `POST /internal/jobs/diario` | a empresa e tudo dela são apagados, com o usuário (que só tinha esse vínculo); a resposta traz `cadastrosRemovidos: 1` | — |
-| F9-29 | a mesma empresa com menos de 7 dias desde `CriadoEm` | roda o diário | nada é apagado | — |
-| F9-30 | empresa com 7 dias ou mais, não liberada, com um dado que conta (ex.: um cliente) | roda o diário | nada é apagado | — |
-| F9-31 | empresa com 7 dias ou mais, liberada, sem dados | roda o diário | nada é apagado | — |
-| F9-32 | criador sem confirmação com vínculo em outra empresa | a empresa dele é expurgada | o usuário e o outro vínculo ficam; só a empresa e os vínculos dela saem | — |
-| F9-33 | sessão aberta na empresa expurgada | o navegador renova a sessão | `401`: os refresh tokens daquela empresa foram apagados | — |
-| F9-34 | access token ainda válido da empresa expurgada | chega `GET /auth/eu` ou outra rota interna | `401`: o vínculo não existe mais | — |
-| F9-35 | uma empresa expurgável e outras com dados | roda o diário | só a expurgável muda; dados, auditoria e usuários das outras ficam intactos (isolamento) | — |
-| F9-36 | o diário já expurgou | roda de novo | `cadastrosRemovidos: 0` (idempotente) | — |
-| F9-37 | o expurgo de uma empresa falha | roda o diário | a falha é logada e conta em `falhas`; as demais empresas e os outros passos do diário seguem | — |
-| F9-38 | uma entidade nova com `TenantId` | o teste de arquitetura roda | falha se ela não estiver classificada como "dado" ou "do registro/rastro" para o expurgo | — |
+| F9-28 | empresa com `CriadoEm` há 7 dias ou mais (no instante do diário), não liberada, sem dados (decisão 3) | roda o `POST /internal/jobs/diario` | a empresa e tudo dela são apagados, com o usuário (que só tinha esse vínculo); a resposta traz `cadastrosRemovidos: 1` | `ExpurgoCadastrosTests › Diario_CadastroAbandonadoSemDados_ApagaEmpresaECriador` |
+| F9-29 | a mesma empresa com menos de 7 dias desde `CriadoEm` | roda o diário | nada é apagado | `ExpurgoCadastrosTests › Diario_CadastroComMenosDeSeteDias_Fica` |
+| F9-30 | empresa com 7 dias ou mais, não liberada, com um dado que conta (ex.: um cliente) | roda o diário | nada é apagado | `ExpurgoCadastrosTests › Diario_CadastroAbandonadoComCliente_Fica` |
+| F9-31 | empresa com 7 dias ou mais, liberada, sem dados | roda o diário | nada é apagado | `ExpurgoCadastrosTests › Diario_EmpresaLiberadaSemDados_Fica` |
+| F9-32 | criador sem confirmação com vínculo em outra empresa | a empresa dele é expurgada | o usuário e o outro vínculo ficam; só a empresa e os vínculos dela saem | `ExpurgoCadastrosTests › Diario_CriadorComVinculoEmOutraEmpresa_FicaComOOutroVinculo` |
+| F9-33 | sessão aberta na empresa expurgada | o navegador renova a sessão | `401`: os refresh tokens daquela empresa foram apagados | `ExpurgoCadastrosTests › Refresh_DepoisDoExpurgo_Retorna401` |
+| F9-34 | access token ainda válido da empresa expurgada | chega `GET /auth/eu` ou outra rota interna | `401`: o vínculo não existe mais | `ExpurgoCadastrosTests › Eu_ComAccessTokenDaEmpresaExpurgada_Retorna401` |
+| F9-35 | uma empresa expurgável e outras com dados | roda o diário | só a expurgável muda; dados, auditoria e usuários das outras ficam intactos (isolamento) | `ExpurgoCadastrosTests › Diario_ComExpurgo_NaoTocaOutrasEmpresas` |
+| F9-36 | o diário já expurgou | roda de novo | `cadastrosRemovidos: 0` (idempotente) | `ExpurgoCadastrosTests › Diario_RodadoDeNovo_NaoRemoveMais` |
+| F9-37 | o expurgo de uma empresa falha | roda o diário | a falha é logada e conta em `falhas`; as demais empresas e os outros passos do diário seguem | `ExpurgoCadastrosTests › Diario_ExpurgoDeUmaEmpresaFalha_ContaEmFalhasESegueComAsDemais` (falha forçada por trigger) |
+| F9-38 | uma entidade nova com `TenantId` | o teste de classificação roda | falha se ela não estiver classificada como "dado" ou "do registro/rastro" para o expurgo | `ClassificacaoDoExpurgoTests › EntidadesComTenant_TodasClassificadas_NumaListaSo` (integração: o modelo do EF é a fonte) |
 
 ### Front
 
@@ -109,7 +109,7 @@ Abrir o cadastro ao público sem que ele vire um canal de envio em massa com o d
    - (a) **"Dado" é qualquer registro de negócio**: clientes, contatos, solicitações, tarefas, projetos, contratos, recorrências, apontamentos, anexos, categorias criadas, convites e acessos ao portal. Não contam o que o registro cria (empresa, papéis padrão, vínculo do criador, calendário padrão), os rastros (auditoria, atividade, notificações, outbox, preferências, tokens) e mudanças de configuração (nome, SLA padrão, calendário editado). Um teste de arquitetura obriga a classificar toda entidade com `TenantId` (F9-38) — **recomendado**: segue a ERS e não deixa uma tabela nova esquecida fazer o expurgo apagar dado real.
    - (b) Como (a), mas mudança de configuração também conta como dado (quem personalizou a empresa não é apagado). Mais conservador; a conta descartável que só trocou o nome sobrevive.
    - (c) Só "sem clientes e sem solicitações". Simples, mas apaga, por exemplo, uma empresa que só cadastrou tarefas.
-   - **Usuário com vínculo em outra empresa** (em todas as opções): fica, com o outro vínculo; saem só a empresa expurgada e os vínculos e refresh tokens dela (a ERS já diz isso).
+   - **Usuário com vínculo em outra empresa** (em todas as opções): fica, com o outro vínculo; saem só a empresa expurgada e os vínculos e refresh tokens dela (a ERS já diz isso). Na implementação (F9d), a conta também fica se a pessoa já esteve em outra empresa (sessão aberta lá ou conta ligada a um contato), para não deixar autoria órfã; papel criado pela empresa conta como dado; o logotipo do portal, se houver, sai do storage depois do commit.
 
 4. **Comportamento do front.**
    - (a) **Aviso da casca com o motivo, botões de convite e de link desabilitados com a explicação ao lado, e o "Reenviar link" que já existe** — **recomendado**: a pessoa entende antes de tentar, e o `422` fica só como rede de proteção. Exige `tenant.envioLiberado` em `/auth/eu`.
@@ -167,6 +167,8 @@ Ordem: F9a primeiro (criador, liberação, `422` e `envioLiberado`); depois F9b 
 
 ## 7. Registro
 
+- 04/11 — F9d, revisão: transação serializável e a empresa apagada primeiro com a condição repetida (corrida com a confirmação); conta mantida se houver rastro em outra empresa; papel não padrão conta como dado; logotipo removido; F9-37 com teste.
+- 04/11 — F9b na main (PR #135). F9d: `ExpurgoCadastros` no diário (`cadastrosRemovidos`); vínculo de outra pessoa conta como dado; a classificação é conferida contra o modelo do EF num teste de integração.
 - 04/11 — F9a na main (PR #134). F9b: avisos barrados em `EnvioATerceiros.PodeAvisarAsync`, chamado por `AvisosAoContato` (antes de gerar o link) e `AvisoInterno` (exceto o criador); RF-AUT-06 da ERS com a redação da decisão 8.
 - 04/11 — spec aprovada (PR #133, todas as recomendações da §4); F9a em implementação.
 - 04/11 — rascunho. Requisitos do PR #132. Revisão: liberação também pela redefinição de senha, precedência 403/422, rota real do convite do portal, aviso da casca pelo estado da empresa, decisão 8 (e-mail ao próprio criador), ordem dos PRs.
