@@ -6,6 +6,7 @@ using Acordu.Application.Solicitacoes;
 using Acordu.Infrastructure.Agendamento;
 using Acordu.Infrastructure.Persistence.Auditoria;
 using Acordu.Infrastructure.Persistence.Atividades;
+using Acordu.Infrastructure.Persistence.Cadastros;
 using Acordu.Infrastructure.Persistence.Notificacoes;
 using Acordu.Infrastructure.Persistence.Outbox;
 
@@ -81,7 +82,7 @@ internal static class JobsEndpoints
 
     /// <summary>
     /// O disparo diário do Scheduler (ADR 0010 §5; o plano gratuito tem 3 jobs): fechamento automático, expurgo da
-    /// auditoria e expurgo das notificações e do feed, em sequência. Um passo que falha é logado, entra em <c>falhas</c>
+    /// auditoria, expurgo das notificações e do feed e expurgo dos cadastros abandonados (RF-AUT-07), em sequência. Um passo que falha é logado, entra em <c>falhas</c>
     /// e não impede os seguintes; os endpoints individuais continuam para disparo manual.
     /// </summary>
     private static void MapDiario(RouteGroupBuilder jobs) =>
@@ -90,6 +91,7 @@ internal static class JobsEndpoints
             ExpurgoAuditoria auditoria,
             ExpurgoNotificacoes notificacoes,
             ExpurgoAtividades atividades,
+            ExpurgoCadastros cadastros,
             ILoggerFactory logs,
             CancellationToken cancellationToken) =>
         {
@@ -108,6 +110,12 @@ internal static class JobsEndpoints
                     new("expurgo-auditoria", auditoria.ExecutarAsync),
                     new("expurgo-notificacoes", notificacoes.ExecutarAsync),
                     new("expurgo-atividades", atividades.ExecutarAsync),
+                    new("expurgo-cadastros", async ct =>
+                    {
+                        var expurgo = await cadastros.ExecutarAsync(ct);
+                        falhasPorTenant += expurgo.Falhas;
+                        return expurgo.Removidos;
+                    }),
                 ],
                 logs.CreateLogger(typeof(PassosDiario)),
                 cancellationToken);
@@ -117,6 +125,7 @@ internal static class JobsEndpoints
                 auditoriaRemovida = resultado.Contagens[1],
                 notificacoesRemovidas = resultado.Contagens[2],
                 atividadesRemovidas = resultado.Contagens[3],
+                cadastrosRemovidos = resultado.Contagens[4],
                 falhas = resultado.Falhas + falhasPorTenant,
             });
         });
