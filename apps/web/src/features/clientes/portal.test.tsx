@@ -2,7 +2,7 @@ import { screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { reiniciarParaTestes } from '@/shared/sessao/sessao'
-import { abrir, comPerfil, json, type Rotas } from '@/testes/app'
+import { abrir, comPerfil, json, perfil, type Rotas } from '@/testes/app'
 
 const C = 'c1'
 const marta = {
@@ -200,5 +200,16 @@ describe('ficha: portal, arquivos e movimentos', () => {
         expect(await screen.findByRole('tab', { name: 'Contatos e portal' })).toBeInTheDocument()
         expect(screen.queryByRole('tab', { name: 'Arquivos' })).not.toBeInTheDocument()
         expect(screen.queryByRole('tab', { name: 'Movimentos' })).not.toBeInTheDocument()
+    })
+
+    it('empresa não liberada: convidar para o portal fica desabilitado, com a explicação (F9-43)', async () => {
+        app(PORTAL, {
+            '/api/v1/auth/eu': () =>
+                json({ ...perfil, permissoes: PORTAL, tenant: { ...perfil.tenant, envioLiberado: false } }),
+            [`GET /api/v1/clientes/${C}`]: () => json(cliente(null)),
+        })
+        await abrir(`/clientes/${C}?secao=contatos`)
+        expect(await screen.findByRole('button', { name: 'Convidar Marta Souza para o portal' })).toBeDisabled()
+        expect(screen.getByText('Disponível depois que você confirmar seu e-mail.')).toBeInTheDocument()
     })
 })

@@ -374,4 +374,16 @@ describe('detalhe da solicitação', () => {
         expect(await screen.findByText(/Não encontramos esta solicitação/)).toBeInTheDocument()
         expect(screen.getByRole('link', { name: 'Forno não liga' })).toBeInTheDocument()
     })
+
+    it('empresa não liberada: o link do portal fica desabilitado, com a explicação (F9-43)', async () => {
+        const permissoes = ['solicitacao.ver', 'cliente.ver', 'portal.gerenciar_acessos']
+        app(permissoes, {
+            '/api/v1/auth/eu': () =>
+                json({ ...perfil, permissoes, tenant: { ...perfil.tenant, envioLiberado: false } }),
+        })
+        await abrir(`/solicitacoes/${ID}`)
+        const aside = await painel()
+        expect(within(aside).getByRole('button', { name: 'Link do portal' })).toBeDisabled()
+        expect(within(aside).getByText('Disponível depois que você confirmar seu e-mail.')).toBeInTheDocument()
+    })
 })
