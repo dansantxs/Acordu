@@ -50,7 +50,9 @@ for (const e of estilos) {
 const TURNSTILE = 'https://challenges.cloudflare.com'
 for (const nome of ['script-src', 'frame-src'])
     if (!diretiva(nome).split(/\s+/).includes(TURNSTILE)) erros.push(`${nome} sem ${TURNSTILE} (Turnstile do cadastro)`)
-if (/'unsafe-inline'/.test(csp)) erros.push(`a política não pode ter 'unsafe-inline'`)
+for (const proibido of ["'unsafe-inline'", "'unsafe-eval'"])
+    if (csp.includes(proibido)) erros.push(`a política não pode ter ${proibido}`)
+if (diretiva('script-src').split(/\s+/).includes('*')) erros.push('script-src não pode ter o curinga *')
 
 // O react-dom também cria <style>, mas só para `<style precedence>`, que o app não usa: fica fora da conta.
 const criados = [...bundle.matchAll(/createElement\(`style`\)/g)].filter(
