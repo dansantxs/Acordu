@@ -378,8 +378,8 @@ public sealed partial class ServicoAutenticacao : IServicoAutenticacao
     /// Atualização direta, fora do rastreamento: a rota é pública (ou o contexto é de outra empresa do usuário), e a
     /// condição já restringe às empresas que ele criou e que ainda não foram liberadas, o que a torna idempotente.
     /// </summary>
-    private Task LiberarEmpresasCriadasAsync(Guid usuarioId, DateTimeOffset agora, CancellationToken cancellationToken) =>
-        _db.Tenants.IgnoreQueryFilters(Filtros)
+    private async Task LiberarEmpresasCriadasAsync(Guid usuarioId, DateTimeOffset agora, CancellationToken cancellationToken) =>
+        await _db.Tenants.IgnoreQueryFilters(Filtros)
             .Where(t => t.CriadoPorUsuarioId == usuarioId && t.EnvioLiberadoEm == null)
             .ExecuteUpdateAsync(t => t.SetProperty(x => x.EnvioLiberadoEm, (DateTimeOffset?)agora), cancellationToken);
 
