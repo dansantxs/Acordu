@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| **Status** | Rascunho |
+| **Status** | Em implementação |
 | **Data** | 04/11/2026 |
 | **Requisitos** | RF-AUT-06, RF-AUT-07, RNF-SEG-10 (decididos em 04/11), RF-AUT-01, RF-AUT-04, RNF-SEG-08 |
 | **ADRs** | 0001, 0002, 0010, 0011 |
@@ -32,25 +32,25 @@ Abrir o cadastro ao público sem que ele vire um canal de envio em massa com o d
 
 | Id | Dado | Quando | Então | Teste |
 |---|---|---|---|---|
-| F9-09 | empresa recém-cadastrada | o criador lê `GET /auth/eu` | `emailConfirmado: false` e `tenant.envioLiberado: false` | — |
-| F9-10 | empresa não liberada | alguém **sem** `usuario.convidar` chama `POST /convites` (ou sem `portal.gerenciar_acessos` nas rotas do portal) | `403 sem-permissao`: a permissão é conferida antes do bloqueio | — |
-| F9-11 | empresa não liberada | alguém com `usuario.convidar` chama `POST /convites` | `422 email-nao-confirmado` (decisão 1); nenhum convite gravado, nenhum e-mail | — |
-| F9-12 | empresa não liberada | alguém com `portal.gerenciar_acessos` convida (ou reconvida) um contato para o portal: `POST /clientes/{id}/contatos/{contatoId}/acesso-portal` | `422 email-nao-confirmado`; acesso não criado, nenhum e-mail | — |
-| F9-13 | empresa não liberada | alguém emite link de acesso de uma solicitação (`POST /solicitacoes/{id}/acessos-portal`), com ou sem `enviarEmail` | `422 email-nao-confirmado`; nenhum link emitido, nem só na resposta | — |
-| F9-14 | empresa não liberada | alguém altera o escopo de um acesso ao portal (`PATCH …/acesso-portal`, não envia e-mail) | segue funcionando como hoje | — |
+| F9-09 | empresa recém-cadastrada | o criador lê `GET /auth/eu` | `emailConfirmado: false` e `tenant.envioLiberado: false` | `EnvioATerceirosTests › EmpresaNova_NaoLiberada_NoEu` |
+| F9-10 | empresa não liberada | alguém **sem** `usuario.convidar` chama `POST /convites` (ou sem `portal.gerenciar_acessos` nas rotas do portal) | `403 sem-permissao`: a permissão é conferida antes do bloqueio | `EnvioATerceirosTests › SemPermissao_403VemAntesDoBloqueio` |
+| F9-11 | empresa não liberada | alguém com `usuario.convidar` chama `POST /convites` | `422 email-nao-confirmado` (decisão 1); nenhum convite gravado, nenhum e-mail | `EnvioATerceirosTests › ConviteDaEquipe_Recusado_SemGravarNemEnviar` |
+| F9-12 | empresa não liberada | alguém com `portal.gerenciar_acessos` convida (ou reconvida) um contato para o portal: `POST /clientes/{id}/contatos/{contatoId}/acesso-portal` | `422 email-nao-confirmado`; acesso não criado, nenhum e-mail | `EnvioATerceirosTests › ConviteDoPortal_Recusado_SemAcessoNemEmail` |
+| F9-13 | empresa não liberada | alguém emite link de acesso de uma solicitação (`POST /solicitacoes/{id}/acessos-portal`), com ou sem `enviarEmail` | `422 email-nao-confirmado`; nenhum link emitido, nem só na resposta | `EnvioATerceirosTests › LinkDeAcesso_Recusado_ComOuSemEmail` |
+| F9-14 | empresa não liberada | alguém altera o escopo de um acesso ao portal (`PATCH …/acesso-portal`, não envia e-mail) | segue funcionando como hoje | `EnvioATerceirosTests › AlterarEscopo_NaoEnviaEmail_SegueFuncionando` |
 | F9-15 | empresa não liberada, cliente com contato | a equipe abre uma solicitação para o contato | a solicitação é criada; o contato não recebe e-mail e nenhum link de acesso é gerado | — |
 | F9-16 | empresa não liberada | um aviso automático ao contato seria enviado (mensagem externa, aguardando você, resolvida) | não sai e-mail nem link; a operação que o causou não falha | — |
 | F9-17 | empresa não liberada | um aviso interno é para o próprio criador (ex.: SLA em risco, consumo de contrato) | sino sempre; e-mail conforme a decisão 8 | — |
-| F9-18 | empresa não liberada | o criador pede o reenvio da confirmação ou a redefinição de senha | os e-mails da conta saem normalmente: são para ele mesmo | — |
-| F9-19 | empresa não liberada | o criador confirma o e-mail pelo link | `envioLiberado: true` em `/auth/eu`; convites, links e avisos voltam a sair a partir daí | — |
-| F9-20 | empresa não liberada | o criador redefine a senha pelo link do e-mail (que já confirma o e-mail, contrato §2) | a empresa fica liberada, como na confirmação | — |
+| F9-18 | empresa não liberada | o criador pede o reenvio da confirmação ou a redefinição de senha | os e-mails da conta saem normalmente: são para ele mesmo | `EnvioATerceirosTests › EmailsDaConta_SaemNaEmpresaNaoLiberada` |
+| F9-19 | empresa não liberada | o criador confirma o e-mail pelo link | `envioLiberado: true` em `/auth/eu`; convites, links e avisos voltam a sair a partir daí | `EnvioATerceirosTests › ConfirmarOEmail_LiberaConvitesELinks` |
+| F9-20 | empresa não liberada | o criador redefine a senha pelo link do e-mail (que já confirma o e-mail, contrato §2) | a empresa fica liberada, como na confirmação | `EnvioATerceirosTests › RedefinirASenha_TambemLibera` |
 | F9-21 | avisos automáticos bloqueados antes da confirmação | o criador confirma o e-mail | os avisos bloqueados não saem depois (decisão 6) | — |
-| F9-22 | empresa liberada | o criador deixa a equipe (há outro Dono) ou muda de papel | a empresa continua liberada (decisão 2) | — |
-| F9-23 | pessoa sem conta | aceita um convite da equipe ou do portal | a conta nasce com `emailConfirmado: true` (regressão: já é assim) | — |
-| F9-24 | empresa A não liberada e empresa B liberada | B convida, emite link e avisa contatos | B envia normalmente; o bloqueio é por empresa | — |
-| F9-25 | usuário com vínculo em A (não liberada, ele é o criador) e em B (liberada, convidado) | ele age em B | B envia normalmente; o estado de A não vaza para B | — |
+| F9-22 | empresa liberada | o criador deixa a equipe (há outro Dono) ou muda de papel | a empresa continua liberada (decisão 2) | `EnvioATerceirosTests › Liberada_ContinuaLiberada_QuandoOCriadorMudaDePapel`; `TenantTests › LiberarEnvio_GuardaAPrimeiraData_EmUtc` |
+| F9-23 | pessoa sem conta | aceita um convite da equipe ou do portal | a conta nasce com `emailConfirmado: true` (regressão: já é assim) | `EnvioATerceirosTests › ContaCriadaPorConvite_NasceConfirmada` |
+| F9-24 | empresa A não liberada e empresa B liberada | B convida, emite link e avisa contatos | B envia normalmente; o bloqueio é por empresa | `EnvioATerceirosTests › BloqueioEhPorEmpresa` |
+| F9-25 | usuário com vínculo em A (não liberada, ele é o criador) e em B (liberada, convidado) | ele age em B | B envia normalmente; o estado de A não vaza para B | `EnvioATerceirosTests › UsuarioNaoConfirmado_EnviaPelaEmpresaLiberadaEmQueEsta` |
 | F9-26 | o mesmo usuário do F9-25 | ele abre o sistema em B | não vê o texto de envio bloqueado (B está liberada); o lembrete de confirmar o e-mail continua, porque é da conta | — |
-| F9-27 | empresas que já existiam antes do F9 | a migration roda | ficam liberadas e com o criador preenchido (o Dono mais antigo) | — |
+| F9-27 | empresas que já existiam antes do F9 | a migration roda | ficam liberadas e com o criador preenchido (o Dono mais antigo) | `MigrationsTests › PreenchimentoDoF9_CriadorEhODonoMaisAntigo_EEmpresaFicaLiberada` |
 
 ### Expurgo (RF-AUT-07)
 
@@ -167,4 +167,5 @@ Ordem: F9a primeiro (criador, liberação, `422` e `envioLiberado`); depois F9b 
 
 ## 7. Registro
 
+- 04/11 — spec aprovada (PR #133, todas as recomendações da §4); F9a em implementação.
 - 04/11 — rascunho. Requisitos do PR #132. Revisão: liberação também pela redefinição de senha, precedência 403/422, rota real do convite do portal, aviso da casca pelo estado da empresa, decisão 8 (e-mail ao próprio criador), ordem dos PRs.

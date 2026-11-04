@@ -44,6 +44,7 @@ Sessão (Acordu, formalizado no ADR 0007):
 - `POST /auth/refresh` (só o cookie) → `200` com novo access token e **novo** cookie (rotação). Reapresentar um refresh já trocado revoga todas as sessões do usuário naquele tenant → `401`.
 - `POST /auth/logout` → `204`; revoga o refresh e apaga o cookie.
 - `POST /auth/confirmacao-email` `{ token }` (público) → `204`; token inválido, expirado ou usado → `401`. Link `{App__UrlPublica}/conta/confirmacao/{token}`, válido por 48 h.
+- **Envio a terceiros (RF-AUT-06, F9):** enquanto quem criou a empresa não confirmar o e-mail, ela não convida (`POST /convites`, `POST …/acesso-portal`) nem emite link de acesso (`POST /solicitacoes/{id}/acessos-portal`, com ou sem `enviarEmail`): `422 email-nao-confirmado`, depois da checagem de permissão (sem a permissão, `403`). A confirmação pelo link ou a redefinição de senha (que também confirma) libera a empresa de vez. `/auth/eu` traz `tenant.envioLiberado`; o reenvio da confirmação e a redefinição de senha continuam saindo (são para o próprio criador).
 - `POST /auth/confirmacao-email/reenvio` (com conta) → `202`; invalida o link anterior; e-mail já confirmado não recebe nada.
 - `POST /auth/senha/esqueci` `{ email }` (público) → sempre `202`, tenha o e-mail conta ou não. Link `{App__UrlPublica}/conta/senha/{token}`, válido por 1 h; novo pedido invalida o anterior.
 - `POST /auth/senha/redefinir` `{ token, novaSenha }` (público) → `204` e apaga o cookie: troca a senha, confirma o e-mail, desbloqueia a conta e revoga **todas** as sessões do usuário (em todos os tenants). Senha fraca → `400` em `novaSenha` (o link continua valendo); token inválido → `401`.
@@ -90,7 +91,7 @@ Superfície de equipe (`/usuarios`, `/convites`, `/papeis`), com o aceite do con
 | PUT | `/usuarios/{id}/capacidade` | `{ capacidadeSemanalMinutos }` (0 a 10080; padrão 2400 = 40h para quem entra na equipe) → `200` com a pessoa. Base do planejamento (agenda e capacidade, marco 13). Fora da faixa → `400`. | `papel.gerenciar` |
 | DELETE | `/usuarios/{id}` | Remove do tenant e revoga as sessões dela aqui → `204`. A conta global continua. | `usuario.remover` |
 | GET | `/convites` | Pendentes: `[{ id, email, papel, criadoEm, expiraEm }]` (`expiraEm` nulo até o e-mail sair). | `usuario.convidar` |
-| POST | `/convites` | `{ email, papelId }` → `202` com o convite; e-mail com link de aceite. | `usuario.convidar` |
+| POST | `/convites` | `{ email, papelId }` → `202` com o convite; e-mail com link de aceite. Empresa não liberada → `422 email-nao-confirmado` (§2). | `usuario.convidar` |
 | DELETE | `/convites/{id}` | Revoga → `204`. | `usuario.convidar` |
 | POST | `/auth/convite/consulta` | Público: `{ token }` → `{ nomeTenant, email, papel, temConta }`. | — |
 | POST | `/auth/convite` | Público: `{ token, nome?, senha }` → `201` com a sessão (como o login). | — |
@@ -166,7 +167,7 @@ Cadastro ampliado (decidido em 16/10, RF-CLI-01, 06 e 07):
 // POST .../acesso-portal → 202 (convite enviado por e-mail); corpo: o contato
 { "escopoPortal": "TODAS_DO_CLIENTE" }
 ```
-E-mail já em uso por outro contato ativo do mesmo cliente → `422`.
+E-mail já em uso por outro contato ativo do mesmo cliente → `422`. Empresa não liberada → `422 email-nao-confirmado` (§2); o `PATCH` (escopo) não envia e-mail e não é barrado.
 
 Decidido na implementação:
 - O contato no detalhe do cliente traz `acessoPortal`: `null`, `{ "situacao": "CONVIDADO", "escopoPortal": "...", "conviteExpiraEm": "..." }` (nulo até o e-mail sair) ou `{ "situacao": "ATIVO", "escopoPortal": "...", "conviteExpiraEm": null }`.
@@ -359,7 +360,7 @@ Contrato de outro cliente ou não vigente → `422`. Sem `contratoId`, a API usa
 ```
 
 Decidido na implementação (6d3):
-- `contatoId`: contato ativo do cliente da solicitação (senão `400` no campo). `validadeDias` de 1 a 90, padrão 30. `enviarEmail` nulo envia. Um link por (solicitação, contato): emitir de novo revoga o anterior. Solicitação FECHADA ou CANCELADA, ou cliente inativo → `422`.
+- `contatoId`: contato ativo do cliente da solicitação (senão `400` no campo). `validadeDias` de 1 a 90, padrão 30. `enviarEmail` nulo envia. Um link por (solicitação, contato): emitir de novo revoga o anterior. Solicitação FECHADA ou CANCELADA, ou cliente inativo → `422`. Empresa não liberada → `422 email-nao-confirmado` (§2), mesmo com `enviarEmail: false`.
 - O e-mail sai logo depois do commit, na própria requisição (o token não pode ir para a outbox); falha no envio não desfaz a emissão e volta como `emailEnviado: false`.
 - `GET /solicitacoes/{id}/acessos-portal` (`portal.gerenciar_acessos`) → links válidos `[{ acessoId, contatoId, contatoNome, emitidoEm, expiraEm }]`, sem o token. `DELETE .../{acessoId}` → `204`, idempotente; a sessão aberta pelo link para de valer na requisição seguinte.
 
@@ -818,7 +819,7 @@ O `tick` responde também `alertasSla` (solicitações alertadas), `tarefasRecor
 }
 ```
 
-Tipos (`type`) do v1: `validacao` (com `errors` por campo), `transicao-invalida`, `periodo-fechado`, `contrato-incoerente`, `anexo-invalido` (422: tipo não permitido, vazio, mais de 5), `anexo-grande-demais` (413), `conflito-versao`, `cronometro-ativo`, `nao-encontrado`, `sem-permissao`, `nao-autenticado` (401), `limite-requisicoes` (429), `erro-interno` (500).
+Tipos (`type`) do v1: `validacao` (com `errors` por campo), `transicao-invalida`, `periodo-fechado`, `contrato-incoerente`, `anexo-invalido` (422: tipo não permitido, vazio, mais de 5), `anexo-grande-demais` (413), `conflito-versao`, `cronometro-ativo`, `nao-encontrado`, `sem-permissao`, `email-nao-confirmado` (422: a empresa ainda não envia a terceiros, §2), `nao-autenticado` (401), `limite-requisicoes` (429), `erro-interno` (500).
 
 ---
 
