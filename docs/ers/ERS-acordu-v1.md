@@ -131,6 +131,7 @@ Convenções: **RF** = requisito funcional, **RNF** = não funcional. Verificaç
 | RF-CLI-05 | Revogar o acesso de um contato ao portal sem apagar seu histórico. | T |
 | RF-CLI-06 | Definir o **responsável interno** do cliente (alguém da equipe), sugerido como responsável das solicitações novas dele, e filtrar a lista por responsável. Decidido em 16/10. | T |
 | RF-CLI-07 | Marcar clientes com até 10 **etiquetas** livres (ex.: "condomínio", "varejo") e filtrar a lista por etiqueta, com as etiquetas em uso sugeridas. Decidido em 16/10. | T |
+| RF-CLI-08 | **Preenchimento pelo CNPJ** (04/11): ao completar um CNPJ válido no cadastro do cliente, o formulário consulta uma API pública de dados abertos da Receita e preenche razão social, nome (nome fantasia, se houver), endereço e, se vazios, e-mail e telefone gerais, **sem sobrescrever o que já foi digitado**. Situação cadastral diferente de ativa gera aviso, sem bloquear. Falha ou indisponibilidade da consulta não impede o cadastro. Inscrição estadual continua manual. **CPF não é consultado** (dado pessoal, sem API pública; só a validação dos dígitos). | T |
 
 **Contratos e SLA**
 | ID | Requisito | Verif. |
