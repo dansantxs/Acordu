@@ -63,12 +63,24 @@ public sealed partial class VerificadorTurnstile : IVerificacaoHumana
             return ResultadoVerificacaoHumana.Indisponivel;
         }
 
+        // Segredo errado ou ausente: o problema é nosso, não de quem se cadastra (e precisa aparecer no log).
+        if (CodigosDeErro(corpo).Any(c => c is "invalid-input-secret" or "missing-input-secret"))
+        {
+            SegredoRecusado(_logger);
+            return ResultadoVerificacaoHumana.Indisponivel;
+        }
+
         var aprovado = corpo.ValueKind == JsonValueKind.Object
             && corpo.TryGetProperty("success", out var sucesso) && sucesso.ValueKind == JsonValueKind.True
             && Texto(corpo, "action") == OpcoesTurnstile.Acao
             && (_opcoes.Hostname is null || string.Equals(Texto(corpo, "hostname"), _opcoes.Hostname, StringComparison.OrdinalIgnoreCase));
         return aprovado ? ResultadoVerificacaoHumana.Aprovada : ResultadoVerificacaoHumana.Recusada;
     }
+
+    private static IEnumerable<string> CodigosDeErro(JsonElement corpo) =>
+        corpo.ValueKind == JsonValueKind.Object && corpo.TryGetProperty("error-codes", out var codigos) && codigos.ValueKind == JsonValueKind.Array
+            ? codigos.EnumerateArray().Where(c => c.ValueKind == JsonValueKind.String).Select(c => c.GetString()!)
+            : [];
 
     private static string? Texto(JsonElement corpo, string nome) =>
         corpo.TryGetProperty(nome, out var valor) && valor.ValueKind == JsonValueKind.String ? valor.GetString() : null;
@@ -78,6 +90,10 @@ public sealed partial class VerificadorTurnstile : IVerificacaoHumana
 
     [LoggerMessage(EventId = 311, Level = LogLevel.Warning, Message = "Turnstile não respondeu: cadastro recusado.")]
     private static partial void Falhou(ILogger logger, Exception erro);
+
+    [LoggerMessage(EventId = 312, Level = LogLevel.Error,
+        Message = "Turnstile recusou o segredo do servidor (Turnstile__Segredo errado ou revogado): todo cadastro é recusado.")]
+    private static partial void SegredoRecusado(ILogger logger);
 }
 
 /// <summary>Sem segredo configurado (dev, testes, E2E): aprova sem chamar o Cloudflare (RNF-SEG-10).</summary>
