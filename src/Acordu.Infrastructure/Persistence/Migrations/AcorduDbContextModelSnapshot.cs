@@ -1095,9 +1095,17 @@ namespace Acordu.Infrastructure.Persistence.Migrations
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("criado_em");
 
+                    b.Property<Guid?>("CriadoPorUsuarioId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("criado_por_usuario_id");
+
                     b.Property<int>("DiasFechamentoAutomatico")
                         .HasColumnType("integer")
                         .HasColumnName("dias_fechamento_automatico");
+
+                    b.Property<DateTimeOffset?>("EnvioLiberadoEm")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("envio_liberado_em");
 
                     b.Property<string>("LogoChave")
                         .HasMaxLength(512)
