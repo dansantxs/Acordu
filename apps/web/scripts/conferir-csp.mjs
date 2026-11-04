@@ -2,7 +2,8 @@
 // estilo inline que muda sem o hash mudar junto quebraria o SPA só em produção.
 // - script-src: cada <script> inline do dist/index.html, pelo hash;
 // - style-src: os <style> que o React Aria cria em tempo de execução. O texto deles está no bundle; aqui ficam os textos
-//   esperados e conferimos que continuam iguais no bundle (upgrade do React Aria que mude o texto falha aqui).
+//   esperados e conferimos que continuam iguais no bundle (upgrade do React Aria que mude o texto falha aqui);
+// - connect-src: a lista exata de origens, sem curinga (spec do F10, F10-21).
 import { createHash } from 'node:crypto'
 import { readdirSync, readFileSync } from 'node:fs'
 
