@@ -134,8 +134,8 @@ Conferir no primeiro deploy; se o `wrangler` pedir outra permissão, acrescentá
 
 ### 5. Turnstile do cadastro (RNF-SEG-10, F9)
 1. No painel do Cloudflare: **Turnstile** → Add widget. Nome `acordu-cadastro`, hostname **`acordu.app.br`**, modo *Managed*.
-2. A chave do site (pública) vai na variável do repositório `TURNSTILE_CHAVE_SITE`; a chave secreta, no secret `API_TURNSTILE_SEGREDO` (vira `Turnstile__Segredo` da API). O `deploy.yml` recusa publicar sem as duas.
-3. Depois do primeiro deploy, criar uma conta de teste em `acordu.app.br/cadastro` e conferir que passa. A API confere o hostname que o Cloudflare devolve (o de `App__UrlPublica`); se todo cadastro voltar com "Confirme que você não é um robô", ver no Turnstile do painel o hostname registrado nas tentativas e se a `Referrer-Policy: same-origin` do SPA interfere. Segredo errado aparece no log da API como erro (EventId 312).
+2. A chave do site (pública) vai na variável do repositório `TURNSTILE_CHAVE_SITE`; a chave secreta, no secret `API_TURNSTILE_SEGREDO` (vira `Turnstile__Segredo` da API). O `deploy.yml` recusa publicar sem as duas (confere antes da nova revisão).
+3. Depois do primeiro deploy, criar uma conta de teste em `acordu.app.br/cadastro` e conferir que passa. A API confere o hostname que o Cloudflare devolve (o de `App__UrlPublica`); se todo cadastro voltar com "Confirme que você não é um robô", ver no Turnstile do painel o hostname registrado nas tentativas e se a `Referrer-Policy: same-origin` do SPA interfere. Segredo errado aparece no log da API como erro (EventId 312). Conferência negativa: `curl -X POST https://api.acordu.app.br/api/v1/auth/registro -H 'Content-Type: application/json' -d '{"nome":"x","email":"x@exemplo.com","senha":"senha-bem-comprida","nomeEmpresa":"x"}'` responde `400` com `errors.tokenTurnstile`.
 
 ---
 

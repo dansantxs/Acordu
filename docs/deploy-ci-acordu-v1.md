@@ -135,7 +135,7 @@ Cada job é um endpoint interno (`POST /internal/jobs/<nome>`): `X-Job-Token` co
 
 ## 7. Segredos e configuração
 
-- **GitHub Actions:** nenhuma chave do Google (WIF). Nomes das variáveis e dos secrets no runbook ("Segredos do GitHub"). Variáveis `GCP_WIF_PROVIDER`, `GCP_PROJECT_ID` e `BACKUP_ATIVO`. Secrets: connection string direta do `acordu_migrator`, variáveis da API (abaixo), token do Cloudflare (Pages + Worker), token R2 de backup, webhook do Discord.
+- **GitHub Actions:** nenhuma chave do Google (WIF). Nomes das variáveis e dos secrets no runbook ("Segredos do GitHub"). Variáveis `GCP_WIF_PROVIDER`, `GCP_PROJECT_ID`, `BORDA_ATIVA`, `BACKUP_ATIVO` e `TURNSTILE_CHAVE_SITE` (chave do site do Turnstile, pública, para o build do SPA; conferida antes de publicar). Secrets: connection string direta do `acordu_migrator`, variáveis da API (abaixo), token do Cloudflare (Pages + Worker), token R2 de backup, webhook do Discord.
 - **Variáveis da API no Cloud Run:**
   - `ConnectionStrings__Acordu` (pooled, `acordu_app`);
   - `Jwt__ChaveAssinatura`; `Jobs__Token`;
