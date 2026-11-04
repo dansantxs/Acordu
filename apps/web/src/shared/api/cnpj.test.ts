@@ -64,6 +64,15 @@ describe('BrasilAPI (CNPJ)', () => {
         expect(exterior.tipo === 'achou' && exterior.empresa.email).toBe('contato@ok.org.br')
     })
 
+    it('e-mail fora do formato vem vazio, para não travar o salvar', async () => {
+        vi.stubGlobal(
+            'fetch',
+            vi.fn(async () => Response.json({ ...respostaDaReceita, email: 'CONTATO@' })),
+        )
+        const r = await buscarCnpj('19131243000197')
+        expect(r.tipo === 'achou' && r.empresa.email).toBe('')
+    })
+
     it('404 é CNPJ sem cadastro (F10-15)', async () => {
         vi.stubGlobal(
             'fetch',
@@ -103,6 +112,12 @@ describe('BrasilAPI (CNPJ)', () => {
         ['RUA DAS FLORES', 'Rua das Flores'],
         ['  JARDIM  DE  ALAH ', 'Jardim de Alah'],
         ['DE PAULA E SILVA', 'De Paula e Silva'],
+        ['BLOCO E', 'Bloco E'],
+        ['RUA XV DE NOVEMBRO', 'Rua XV de Novembro'],
+        ['EMBU-GUACU', 'Embu-Guacu'],
+        ["SANTA BARBARA D'OESTE", "Santa Barbara D'Oeste"],
+        ['PADARIA BOM GRAO ME', 'Padaria Bom Grao ME'],
+        ['RUA DO CIVIL', 'Rua do Civil'],
         ['', ''],
     ])('forma de título: %s → %s', (entrada, saida) => expect(formaDeTitulo(entrada)).toBe(saida))
 })
