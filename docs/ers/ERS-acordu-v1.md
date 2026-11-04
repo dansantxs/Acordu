@@ -4,7 +4,7 @@
 | | |
 |---|---|
 | **Versão** | 0.1 (rascunho para revisão) |
-| **Data** | 26/10/2026 |
+| **Data** | 04/11/2026 |
 | **Produto** | Acordu |
 | **Norma de referência** | ABNT NBR ISO/IEC/IEEE 29148:2018 (estrutura de SRS), forma condensada |
 | **Documento de origem** | `estrategia-produto-acordu.md` (visão, público, posicionamento) |
@@ -114,6 +114,8 @@ Convenções: **RF** = requisito funcional, **RNF** = não funcional. Verificaç
 | RF-AUT-03 | Toda requisição resolve o `TenantId` **ativo** do token e restringe o acesso aos dados desse tenant. | T |
 | RF-AUT-04 | Confirmação de e-mail, política de senha e lockout. | T |
 | RF-AUT-05 | Usuário com vínculos em vários tenants troca o tenant ativo, com reemissão do token. | T |
+| RF-AUT-06 | **Envio a terceiros exige e-mail confirmado** (04/11): enquanto quem criou a empresa não confirmar o e-mail, a empresa não envia e-mail a ninguém além dele. Convites da equipe e do portal e link do portal são recusados com erro próprio; avisos automáticos a contatos e à equipe não saem. O login e o uso do sistema continuam liberados (decisão de 09/10). | T |
+| RF-AUT-07 | **Expurgo de cadastro abandonado** (04/11): empresa cujo criador não confirmou o e-mail em 7 dias e que não tem nenhum dado cadastrado além do que o registro cria é apagada, com o usuário, se ele não tiver vínculo com outra empresa. Roda no job diário. | T |
 | RF-USR-01 | Convidar usuário interno por e-mail com um papel; aceitar cria conta ou adiciona vínculo. | T |
 | RF-USR-02 | Remover usuário e alterar papel; garantir **≥ 1 Dono** por tenant. | T |
 | RF-USR-03 | Autorizar cada ação por permissão (RBAC granular); sem permissão → 403. | T |
@@ -254,6 +256,7 @@ Convenções: **RF** = requisito funcional, **RNF** = não funcional. Verificaç
 | RNF-SEG-07 | Anexos: tamanho máximo (padrão 20 MB), lista de tipos permitidos, download só via URL assinada de curta duração após checagem de permissão. | T |
 | RNF-SEG-08 | Rate limiting no login, no portal e no envio de formulários públicos. | T |
 | RNF-SEG-09 | Headers de segurança e HTTPS obrigatório (Cloudflare na borda; ADR 0010). | I |
+| RNF-SEG-10 | **Proteção do cadastro contra automação** (04/11): desafio Cloudflare Turnstile no cadastro, validado no servidor (sem SDK, por HTTP; desligado em dev e testes por configuração), e limite próprio de cadastros por IP (padrão 3 por hora), separado do limite das demais rotas de `/auth`. | T |
 
 **Auditoria**
 | ID | Requisito | Verif. |
@@ -601,6 +604,7 @@ Pirâmide de testes (xUnit + AwesomeAssertions, Testcontainers, WebApplicationFa
 - **RNF-SEG-02:** contato do cliente A não lê, lista, comenta nem baixa anexo do cliente B do mesmo tenant; contato com escopo PROPRIAS não vê solicitações de colegas.
 - **RNF-SEG-03:** nenhuma resposta do portal contém interação, tarefa ou apontamento INTERNO.
 - **RNF-SEG-06:** link de acesso expirado, revogado ou de outra solicitação → negado.
+- **RF-AUT-06:** empresa com criador sem e-mail confirmado não consegue convidar, emitir link do portal nem disparar aviso a terceiros; depois da confirmação, consegue.
 
 ### 6.3 Rastreabilidade
 Cada requisito com verificação **T** tem ao menos um teste automatizado associado.

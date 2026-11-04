@@ -124,6 +124,12 @@ ASP.NET Core Identity (ADR 0001: confirmação de e-mail, lockout, política de 
 - E-mails da conta saem na própria requisição, depois do commit (são pedidos do próprio usuário, repetíveis e sem tenant para a outbox); falha no envio vai para o log.
 - `senha/esqueci` não revela se o e-mail tem conta. Redefinir revoga todos os refresh tokens do usuário e zera o bloqueio.
 
+**(Acordu, proteção contra cadastro em massa, decidido em 04/11; RF-AUT-06, RF-AUT-07, RNF-SEG-10):** uma pessoa com vários e-mails podia criar empresas sem limite e usar convites e links para mandar e-mail a qualquer endereço com o domínio do Acordu, estragando a reputação de envio de que os clientes reais dependem.
+- **Envio a terceiros só com e-mail confirmado:** enquanto o criador da empresa não confirmar o e-mail, a empresa não envia nada a outra pessoa (convites, link do portal, avisos). O login continua sem exigir confirmação.
+- **Turnstile + limite de cadastro:** desafio do Cloudflare no formulário, conferido pela API, e limite próprio de cadastros por IP.
+- **Expurgo:** cadastro sem confirmação em 7 dias e sem dados é apagado pelo job diário.
+- Fora, por ora: lista de domínios descartáveis (manutenção alta, pouco ganho sobre o resto) e período de teste atrelado a CNPJ ou cartão (entra com a cobrança, v3).
+
 Fluxos específicos:
 - **Registro:** cria `Usuario` + `Tenant` (o prestador) + `Vinculo` Dono + `CalendarioUtil` padrão + papéis padrão.
 - **Convite para a equipe (6e1):** equipe com `usuario.convidar` convida um e-mail com um papel INTERNO → e-mail com link de aceite → `POST /auth/convite` cria a conta (ou confere a senha da existente) e o `Vinculo` com o papel do convite. Mesmas regras de token do convite do portal; o convite é entidade própria (`ConviteEquipe`), não um vínculo pendente. Quem convida lista os papéis (`GET /papeis`, 22/10) para escolher; criar, editar e excluir papel e ver o catálogo continuam só com `papel.gerenciar`. Convidar com o papel Dono exige também `papel.gerenciar` (23/10): sem ela, quem convida não entrega todas as permissões.
@@ -212,6 +218,7 @@ Quem, tenant, ação, alvo, quando (IP opcional). Não audita leituras. Mecanism
 
 - **Rate limiting:** login, `/auth/portal/link` (por IP e por token), abertura de solicitação pelo portal, upload de anexos.
   - As rotas públicas de `/auth` (login, cadastro, convites, recuperação de senha) e o reenvio da confirmação: 10 por minuto por IP (`RateLimit__Auth__PorMinuto`).
+  - **Cadastro (`/auth/registro`): limite próprio adicional**, 3 por hora por IP (padrão), mais o Turnstile (RNF-SEG-10, 04/11).
   - **Renovação da sessão (`/auth/refresh`): limite próprio, 30 por minuto por refresh token** (`RateLimit__Refresh__PorMinuto`; a partição é o hash do cookie, e sem cookie o IP). Fica fora do limite por IP porque cada carga de página renova: um escritório atrás de um IP só, ou alguém com várias abas, esgotava o limite do login e caía na tela de entrar com a sessão ainda válida (achado da fumaça do F1c3; decidido em 15/10). O risco de abuso é baixo: sem um refresh válido a resposta é 401, e reapresentar um token já trocado revoga as sessões (ADR 0007).
 - **Borda da API (ADR 0010 §3, F8b):** com `Proxy__TokenOrigem`, a API responde 404 a toda requisição sem o `X-Origem-Token` do Worker de `api.acordu.app.br`, antes de proxy, autenticação e rate limit. O IP do rate limit e da auditoria vem do `X-Forwarded-For` com `Proxy__Saltos=2` (Worker + front do Cloud Run), que só vale com o token ativo; sem ele, um salto. CORS só para `Cors__Origem` (`https://acordu.app.br`), com credenciais.
 - **Segredos de produção no GitHub (F8f):** ficam como secrets do repositório; qualquer workflow do próprio repositório pode lê-los. Risco aceito no nível 0, com escrita só do Daniel e MFA (`deploy-ci-acordu-v1.md` §7).
