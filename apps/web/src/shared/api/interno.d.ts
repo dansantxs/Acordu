@@ -5801,6 +5801,7 @@ export interface components {
             email: string
             senha: string
             nomeEmpresa: string
+            tokenTurnstile?: null | string
         }
         RegraRecorrenciaDto: {
             periodicidade: components['schemas']['Periodicidade']

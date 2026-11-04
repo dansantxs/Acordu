@@ -6,6 +6,7 @@ using Acordu.Api.Erros;
 using Acordu.Api.Jobs;
 using Acordu.Api.Seguranca;
 using Acordu.Application.Abstractions;
+using Acordu.Application.Autenticacao;
 using Acordu.Infrastructure;
 using Acordu.Infrastructure.Armazenamento;
 using Acordu.Infrastructure.Email;
@@ -60,6 +61,7 @@ internal static class ComposicaoApi
             string.IsNullOrEmpty(urlApi) ? null : new Uri(urlApi)));
         AdicionarEmail(services, configuracao);
         AdicionarArmazenamento(services, configuracao);
+        AdicionarVerificacaoHumana(services, configuracao);
 
         services.AddProblemDetails(opcoes => opcoes.CustomizeProblemDetails = contexto =>
         {
@@ -93,6 +95,30 @@ internal static class ComposicaoApi
             opcoes.AddDocumentTransformer(Identificar("Acordu — portal"));
         });
         return services;
+    }
+
+    /// <summary>Nome do HttpClient do Turnstile (os testes trocam o handler por ele).</summary>
+    internal const string NomeClienteTurnstile = "turnstile";
+
+    /// <summary>
+    /// Turnstile no cadastro (RNF-SEG-10) quando há <c>Turnstile__Segredo</c>; senão, desligado (dev, testes, E2E). O
+    /// hostname esperado é o de <c>App__UrlPublica</c> (o mesmo padrão dos links). 5 s de espera: depois, o cadastro é recusado.
+    /// </summary>
+    private static void AdicionarVerificacaoHumana(IServiceCollection services, IConfiguration configuracao)
+    {
+        var segredo = configuracao["Turnstile:Segredo"];
+        if (string.IsNullOrEmpty(segredo))
+        {
+            services.TryAddSingleton<IVerificacaoHumana, Infrastructure.Seguranca.VerificacaoHumanaDesligada>();
+            return;
+        }
+
+        var opcoes = new Infrastructure.Seguranca.OpcoesTurnstile(segredo, new Uri(configuracao["App:UrlPublica"] ?? UrlPublicaPadrao).Host);
+        services.AddHttpClient(NomeClienteTurnstile, http => http.Timeout = TimeSpan.FromSeconds(5));
+        services.TryAddScoped<IVerificacaoHumana>(sp => new Infrastructure.Seguranca.VerificadorTurnstile(
+            sp.GetRequiredService<IHttpClientFactory>().CreateClient(NomeClienteTurnstile),
+            opcoes,
+            sp.GetRequiredService<ILogger<Infrastructure.Seguranca.VerificadorTurnstile>>()));
     }
 
     /// <summary>

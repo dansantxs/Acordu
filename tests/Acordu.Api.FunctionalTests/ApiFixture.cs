@@ -63,9 +63,12 @@ public sealed class ApiFixture : IAsyncLifetime
     /// dependem de chave lida na montagem. Quem chama descarta.
     /// </summary>
     internal async Task<WebApplication> NovaApiAsync(
-        IReadOnlyDictionary<string, string?> extras, Action<GruposApi>? mapear = null, Action<WebApplication>? antes = null)
+        IReadOnlyDictionary<string, string?> extras,
+        Action<GruposApi>? mapear = null,
+        Action<WebApplication>? antes = null,
+        Action<IServiceCollection>? servicos = null)
     {
-        var app = Construir(extras);
+        var app = Construir(extras, servicos);
         antes?.Invoke(app);
         var grupos = app.UseAcorduApi();
         mapear?.Invoke(grupos);
@@ -73,7 +76,8 @@ public sealed class ApiFixture : IAsyncLifetime
         return app;
     }
 
-    private WebApplication Construir(IReadOnlyDictionary<string, string?> extras)
+    /// <param name="servicos">Depois da composição da Api: troca de handler de HttpClient, por exemplo.</param>
+    private WebApplication Construir(IReadOnlyDictionary<string, string?> extras, Action<IServiceCollection>? servicos = null)
     {
         var builder = WebApplication.CreateBuilder(new WebApplicationOptions { EnvironmentName = "Development" });
         builder.WebHost.UseTestServer();
@@ -85,6 +89,7 @@ public sealed class ApiFixture : IAsyncLifetime
             ["RateLimit:Auth:PorMinuto"] = "100000",
             ["RateLimit:Refresh:PorMinuto"] = "100000",
             ["RateLimit:Portal:PorMinuto"] = "100000",
+            ["RateLimit:Registro:PorHora"] = "100000",
         };
         foreach (var (chave, valor) in extras)
             configuracao[chave] = valor;
@@ -95,6 +100,7 @@ public sealed class ApiFixture : IAsyncLifetime
         builder.Services.AddSingleton<IArmazenamentoArquivos>(Arquivos);
         builder.Services.AddScoped<IManipuladorPosCommit<SolicitacaoAberta>, ManipuladorDeTeste>();
         builder.Services.AddAcorduApi(builder.Configuration);
+        servicos?.Invoke(builder.Services);
         return builder.Build();
     }
 

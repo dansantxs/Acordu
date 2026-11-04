@@ -1,3 +1,5 @@
+using System.Net;
+using System.Net.Sockets;
 using System.Security.Cryptography;
 using System.Text;
 using System.Threading.RateLimiting;
@@ -24,6 +26,12 @@ internal static class ComposicaoSeguranca
 
     /// <summary>Abertura de solicitação pelo portal (segurança §9): por usuário, ou por IP sem usuário.</summary>
     public const string LimitePortal = "portal";
+
+    /// <summary>
+    /// Cadastro (RNF-SEG-10): limite próprio por hora (padrão 3), por IP (IPv6 por /64), separado do de
+    /// <see cref="LimiteAuth"/>. Uma janela só: os 3 por hora já são mais restritos que os 10 por minuto.
+    /// </summary>
+    public const string LimiteRegistro = "registro";
 
     /// <summary>Feed ICS da agenda assinável, por IP (os calendários buscam de tempos em tempos).</summary>
     public const string LimiteAgenda = "agenda";
@@ -80,6 +88,7 @@ internal static class ComposicaoSeguranca
         var limiteRenovacao = configuracao.GetValue("RateLimit:Refresh:PorMinuto", 30);
         var limitePortal = configuracao.GetValue("RateLimit:Portal:PorMinuto", 10);
         var limiteAgenda = configuracao.GetValue("RateLimit:Agenda:PorMinuto", 30);
+        var limiteRegistro = configuracao.GetValue("RateLimit:Registro:PorHora", 3);
         services.AddRateLimiter(opcoes =>
         {
             opcoes.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
@@ -92,6 +101,9 @@ internal static class ComposicaoSeguranca
             opcoes.AddPolicy(LimiteRenovacao, http => RateLimitPartition.GetFixedWindowLimiter(
                 ChaveDaRenovacao(http),
                 _ => new FixedWindowRateLimiterOptions { PermitLimit = limiteRenovacao, Window = TimeSpan.FromMinutes(1), QueueLimit = 0 }));
+            opcoes.AddPolicy(LimiteRegistro, http => RateLimitPartition.GetFixedWindowLimiter(
+                ChaveDoIp(http.Connection.RemoteIpAddress),
+                _ => new FixedWindowRateLimiterOptions { PermitLimit = limiteRegistro, Window = TimeSpan.FromHours(1), QueueLimit = 0 }));
             opcoes.AddPolicy(LimiteAuth, http => RateLimitPartition.GetFixedWindowLimiter(
                 http.Connection.RemoteIpAddress?.ToString() ?? "desconhecido",
                 _ => new FixedWindowRateLimiterOptions { PermitLimit = limite, Window = TimeSpan.FromMinutes(1), QueueLimit = 0 }));
@@ -104,6 +116,24 @@ internal static class ComposicaoSeguranca
                 opcoes.AddDefaultPolicy(p => p.WithOrigins(origem).AllowCredentials().AllowAnyHeader().AllowAnyMethod());
         });
         return services;
+    }
+
+    /// <summary>
+    /// Partição por IP do limite de cadastro: IPv4 inteiro; IPv6 pelo prefixo /64, que um mesmo cliente costuma ter
+    /// inteiro (trocar de endereço dentro dele não renova a cota).
+    /// </summary>
+    internal static string ChaveDoIp(IPAddress? ip)
+    {
+        if (ip is null)
+            return "desconhecido";
+        if (ip.IsIPv4MappedToIPv6)
+            ip = ip.MapToIPv4();
+        if (ip.AddressFamily != AddressFamily.InterNetworkV6)
+            return ip.ToString();
+
+        var bytes = ip.GetAddressBytes();
+        Array.Clear(bytes, 8, 8);
+        return new IPAddress(bytes) + "/64";
     }
 
     /// <summary>

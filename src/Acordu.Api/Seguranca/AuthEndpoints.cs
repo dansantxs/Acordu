@@ -1,6 +1,7 @@
 using Acordu.Api.Erros;
 using Acordu.Application.Abstractions;
 using Acordu.Application.Autenticacao;
+using Acordu.Application.Common;
 
 namespace Acordu.Api.Seguranca;
 
@@ -17,13 +18,24 @@ internal static class AuthEndpoints
         var publicas = auth.MapGroup(string.Empty).AllowAnonymous();
 
         publicas.MapPost("/registro", async (
-            RegistroRequest corpo, IServicoAutenticacao servico, ConfiguracaoJwt jwt, TimeProvider relogio, HttpResponse resposta,
-            CancellationToken cancellationToken) =>
+            RegistroRequest corpo, IVerificacaoHumana humana, IOrigemRequisicao origem, IServicoAutenticacao servico,
+            ConfiguracaoJwt jwt, TimeProvider relogio, HttpResponse resposta, CancellationToken cancellationToken) =>
         {
+            // RNF-SEG-10: o desafio vem antes de qualquer validação ou gravação (spec do F9, F9-01 a F9-05).
+            var verificacao = await humana.VerificarAsync(corpo.TokenTurnstile, origem.Ip, cancellationToken);
+            if (verificacao != ResultadoVerificacaoHumana.Aprovada)
+            {
+                throw ErroDeCampo.Criar(
+                    "tokenTurnstile",
+                    verificacao == ResultadoVerificacaoHumana.Indisponivel
+                        ? "Não deu para conferir agora. Tente de novo em instantes."
+                        : "Confirme que você não é um robô e tente de novo.");
+            }
+
             var sessao = await servico.RegistrarAsync(corpo.Nome, corpo.Email, corpo.Senha, corpo.NomeEmpresa, cancellationToken);
             return Results.Created("/api/v1/auth/eu", Responder(sessao, jwt, relogio, resposta));
         })
-            .RequireRateLimiting(ComposicaoSeguranca.LimiteAuth)
+            .RequireRateLimiting(ComposicaoSeguranca.LimiteRegistro)
             .Produces<TokenDeAcesso>(StatusCodes.Status201Created);
 
         publicas.MapPost("/login", async (

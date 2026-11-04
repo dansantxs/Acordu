@@ -1,7 +1,10 @@
 namespace Acordu.Application.Autenticacao;
 
-/// <summary>Corpo do <c>POST /auth/registro</c>.</summary>
-public sealed record RegistroRequest(string Nome, string Email, string Senha, string NomeEmpresa);
+/// <summary>
+/// Corpo do <c>POST /auth/registro</c>. <see cref="TokenTurnstile"/>: o do desafio do Cloudflare (RNF-SEG-10), exigido só
+/// com o Turnstile ligado no servidor.
+/// </summary>
+public sealed record RegistroRequest(string Nome, string Email, string Senha, string NomeEmpresa, string? TokenTurnstile = null);
 
 /// <summary>Corpo do <c>POST /auth/login</c>.</summary>
 public sealed record LoginRequest(string Email, string Senha);

@@ -17,7 +17,7 @@ public sealed class LimiteRenovacaoTests(ApiFixture api)
     [Theory]
     [InlineData("/api/v1/auth/refresh", ComposicaoSeguranca.LimiteRenovacao)]
     [InlineData("/api/v1/auth/login", ComposicaoSeguranca.LimiteAuth)]
-    [InlineData("/api/v1/auth/registro", ComposicaoSeguranca.LimiteAuth)]
+    [InlineData("/api/v1/auth/registro", ComposicaoSeguranca.LimiteRegistro)]
     [InlineData("/api/v1/auth/senha/esqueci", ComposicaoSeguranca.LimiteAuth)]
     public void Rota_UsaOLimiteCerto(string rota, string politica)
     {
