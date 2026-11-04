@@ -48,7 +48,16 @@
 
 ### 2. Artifact Registry
 - Repositório Docker **`acordu`** em `us-east4`.
-- **Política de limpeza:** manter as 5 versões mais recentes; apagar imagens sem tag com mais de 7 dias. Rodar primeiro em *dry run*.
+- **Política de limpeza:** apagar qualquer imagem com mais de 7 dias, mantendo sempre as 5 versões mais recentes (a regra *Keep* vence a *Delete*). Só apagar as sem tag não limparia nada: cada deploy marca a imagem com o SHA do commit. Aplicada em 04/11 pelo Cloud Shell:
+  ```
+  cat > limpeza.json <<'EOF'
+  [
+    {"name": "manter-5", "action": {"type": "Keep"}, "mostRecentVersions": {"keepCount": 5}},
+    {"name": "apagar-antigas", "action": {"type": "Delete"}, "condition": {"tagState": "ANY", "olderThan": "7d"}}
+  ]
+  EOF
+  gcloud artifacts repositories set-cleanup-policies acordu --location=us-east4 --policy=limpeza.json --no-dry-run
+  ```
 
 ### 3. Service accounts
 | Service account | Papéis | Uso |
@@ -254,11 +263,11 @@ _(preencher conforme executar)_
 
 | Recurso | Valor |
 |---|---|
-| Conta de faturamento | `nebrys-billing` — _pendente_ |
-| Projeto Google | `acordu-prod` — _pendente_ |
-| Artifact Registry | `us-east4/acordu` — _pendente_ |
-| WIF | pool `github` / provider `acordu-repo` — _pendente_ |
-| Neon | projeto `acordu` (PG 17, `aws-us-east-1`) — _pendente_ |
+| Conta de faturamento | `nebrys-billing` — criada (04/11) |
+| Projeto Google | `acordu-prod` — criado, na `nebrys-billing`, alerta de orçamento de R$ 10 (04/11) |
+| Artifact Registry | `us-east4/acordu` — criado em 04/11, com a política de limpeza |
+| WIF | pool `github` / provider `acordu-repo` — criado (04/11); variáveis `GCP_WIF_PROVIDER` e `GCP_PROJECT_ID` no GitHub |
+| Neon | projeto `acordu` (PG 17, `aws-us-east-1`) — criado (04/11), roles e secrets `NEON_MIGRATOR`/`API_CONNECTION_STRING`; conferir o autoscaling até 1 CU |
 | R2 | `acordu-anexos`, `acordu-backups` — _pendente_ |
 | Worker | `acordu-api-borda` — _pendente_ |
 | Pages | `acordu-web` — _pendente_ |
