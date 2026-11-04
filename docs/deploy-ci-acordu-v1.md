@@ -112,7 +112,7 @@ Cada job é um endpoint interno (`POST /internal/jobs/<nome>`): `X-Job-Token` co
 | Job do Scheduler | Agenda (`America/Sao_Paulo`) | Endpoint | Faz |
 |---|---|---|---|
 | `acordu-tick` | `*/15 7-19 * * 1-6` | `/internal/jobs/tick` | Tarefas recorrentes, outbox pendente e alertas de SLA. Responde `{ tarefasRecorrentes, outboxProcessadas, alertasSla, falhas }`. |
-| `acordu-diario` | `40 6 * * *` | `/internal/jobs/diario` | Roda em sequência `fechamento-automatico`, `expurgo-auditoria` e `expurgo-notificacoes` (que apaga também o feed de atividade com mais de 90 dias). Responde `{ fechadas, auditoriaRemovida, notificacoesRemovidas, atividadesRemovidas, falhas }`; um passo que falha é logado, conta em `falhas` e não impede os seguintes. |
+| `acordu-diario` | `40 6 * * *` | `/internal/jobs/diario` | Roda em sequência `fechamento-automatico`, `expurgo-auditoria`, `expurgo-notificacoes` (que apaga também o feed de atividade com mais de 90 dias) e `expurgo-cadastros` (empresa não liberada há 7 dias ou mais e sem dados, RF-AUT-07). Responde `{ fechadas, auditoriaRemovida, notificacoesRemovidas, atividadesRemovidas, cadastrosRemovidos, falhas }`; um passo que falha é logado, conta em `falhas` e não impede os seguintes. |
 
 - Os endpoints diários individuais continuam existindo para disparo manual.
 - Retry do Scheduler com backoff curto; o próximo disparo cobre o anterior.
