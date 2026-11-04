@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| **Status** | Rascunho |
+| **Status** | Em implementação |
 | **Data** | 04/11/2026 |
 | **Requisitos** | RF-CLI-08 (decidido em 04/11), RF-CLI-01 |
 | **ADRs** | 0010 (sem SDK de provedor), 0011 |
@@ -65,7 +65,7 @@ Ao digitar o CNPJ no cadastro do cliente, o formulário busca os dados abertos d
 | F10-24 | o campo CPF ou CNPJ | a pessoa digita uma letra | a máscara aceita letra só nas 12 primeiras posições do CNPJ; CPF continua só numérico | `mascaras.test › documento 12abc34501de35`; `clientes.test › aceita CNPJ alfanumérico` |
 | F10-25 | um CNPJ alfanumérico | a validação roda (front e API) | os dígitos verificadores são conferidos pelo código ASCII menos 48, com o exemplo oficial da Receita como caso de teste | `ClienteTests › DocumentoValido_GuardaSemPontuacaoEmMaiusculas`; `documento.test` |
 | F10-26 | um CNPJ alfanumérico em minúsculas | a API grava | guarda em maiúsculas, sem pontuação; não precisa de migration (coluna de 14 caracteres) | `ClientesTests › Criar_CnpjAlfanumerico_GuardaEmMaiusculas_EAchaNaBusca` |
-| F10-27 | cliente com CNPJ alfanumérico | a lista e a ficha mostram o documento | formatado com as letras (`12.ABC.345/01DE-35`), sem perder caracteres | `mascaras.test › documento 12ABC34501DE35` |
+| F10-27 | cliente com CNPJ alfanumérico | a lista e a ficha mostram o documento | formatado com as letras (`12.ABC.345/01DE-35`), sem perder caracteres | `clientes.test › lista e ficha mostram o CNPJ alfanumérico formatado` |
 | F10-28 | cliente com CNPJ alfanumérico | a busca da lista recebe um trecho dele, com ou sem pontuação | o cliente é encontrado (hoje a busca usa só os dígitos) | `ClientesTests › Criar_CnpjAlfanumerico_GuardaEmMaiusculas_EAchaNaBusca` |
 
 Permissão e isolamento: sem cenário novo. Não há rota nova; o formulário segue exigindo `cliente.gerenciar` (testes de clientes existentes), e a consulta não toca a API do Acordu nem dados de outra empresa.
@@ -143,4 +143,4 @@ Ordem: F10b primeiro (corrige um defeito que já existe e não depende de nada);
 ## 7. Registro
 
 - 04/11 — rascunho. Requisito do PR #139. Provedores não verificados daqui (rede bloqueada); CORS conferido no início do F10a. Revisão: decisão 6 com a fonte (IN RFB 2.229/2024) e o alcance real no código, F10b antes do F10a com a validação do front, cenários de 4xx, CORS, ViaCEP, fechamento da janela e "buscando".
-- 04/11 — F10b implementado (CNPJ alfanumérico na API e no front, validação no front). O read side não descreve a busca de clientes; a regra nova ficou no contrato §4.
+- 04/11 — F10b implementado (CNPJ alfanumérico na API e no front, validação no front). O read side não descreve a busca de clientes; a regra nova ficou no contrato §4. Revisão: erro também ao sair do campo, rótulo colado ("CNPJ: …") ignorado na máscara, busca só compara o documento quando o termo tem dígito, teste de tela da lista e da ficha, nota em Novidades.
