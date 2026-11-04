@@ -97,13 +97,13 @@ internal static class ComposicaoApi
         return services;
     }
 
-    /// <summary>
-    /// Turnstile no cadastro (RNF-SEG-10) quando há <c>Turnstile__Segredo</c>; senão, desligado (dev, testes, E2E). O
-    /// hostname esperado é o de <c>App__UrlPublica</c>, se configurado. 5 s de espera: depois disso, o cadastro é recusado.
-    /// </summary>
     /// <summary>Nome do HttpClient do Turnstile (os testes trocam o handler por ele).</summary>
     internal const string NomeClienteTurnstile = "turnstile";
 
+    /// <summary>
+    /// Turnstile no cadastro (RNF-SEG-10) quando há <c>Turnstile__Segredo</c>; senão, desligado (dev, testes, E2E). O
+    /// hostname esperado é o de <c>App__UrlPublica</c> (o mesmo padrão dos links). 5 s de espera: depois, o cadastro é recusado.
+    /// </summary>
     private static void AdicionarVerificacaoHumana(IServiceCollection services, IConfiguration configuracao)
     {
         var segredo = configuracao["Turnstile:Segredo"];
@@ -113,8 +113,7 @@ internal static class ComposicaoApi
             return;
         }
 
-        var urlPublica = configuracao["App:UrlPublica"];
-        var opcoes = new Infrastructure.Seguranca.OpcoesTurnstile(segredo, string.IsNullOrEmpty(urlPublica) ? null : new Uri(urlPublica).Host);
+        var opcoes = new Infrastructure.Seguranca.OpcoesTurnstile(segredo, new Uri(configuracao["App:UrlPublica"] ?? UrlPublicaPadrao).Host);
         services.AddHttpClient(NomeClienteTurnstile, http => http.Timeout = TimeSpan.FromSeconds(5));
         services.TryAddScoped<IVerificacaoHumana>(sp => new Infrastructure.Seguranca.VerificadorTurnstile(
             sp.GetRequiredService<IHttpClientFactory>().CreateClient(NomeClienteTurnstile),
