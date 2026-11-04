@@ -41,6 +41,26 @@ public sealed class ClientesTests(ApiFixture api)
     }
 
     [Fact]
+    public async Task Criar_CnpjAlfanumerico_GuardaEmMaiusculas_EAchaNaBusca() // F10-25, F10-26, F10-28
+    {
+        var equipe = await Equipe.CriarAsync(api);
+
+        var cliente = await equipe.EsperarAsync(
+            HttpStatusCode.Created, HttpMethod.Post, "/api/v1/clientes", new { nome = "Empresa Nova", documento = "12.abc.345/01de-35" });
+
+        cliente.GetProperty("documento").GetString().Should().Be("12ABC34501DE35");
+        foreach (var trecho in new[] { "abc.345", "ABC345", "01DE-35" })
+        {
+            var achados = await equipe.EsperarAsync(HttpStatusCode.OK, HttpMethod.Get, $"/api/v1/clientes?busca={Uri.EscapeDataString(trecho)}");
+            achados.GetProperty("itens").EnumerateArray()
+                .Should().Contain(c => c.GetProperty("id").GetGuid() == cliente.GetProperty("id").GetGuid(), "busca por {0}", trecho);
+        }
+
+        await equipe.EsperarAsync(
+            HttpStatusCode.BadRequest, HttpMethod.Post, "/api/v1/clientes", new { nome = "Errada", documento = "12.ABC.345/01DE-36" });
+    }
+
+    [Fact]
     public async Task Listar_BuscaPorNomeOuDocumento_EFiltroDeAtivo()
     {
         var equipe = await Equipe.CriarAsync(api);
