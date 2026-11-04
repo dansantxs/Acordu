@@ -78,8 +78,8 @@ public sealed class ComandosLinkPortal
     public async Task<LinkEmitidoDto> EmitirAsync(Guid solicitacaoId, EmissaoLinkRequest dados, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(dados);
-        await _envio.GarantirLiberadoAsync(cancellationToken);
         var solicitacao = await CarregarAsync(solicitacaoId, cancellationToken);
+        await _envio.GarantirLiberadoAsync(cancellationToken);
         if (solicitacao.EstaFinalizada)
             throw new AcessoPortalException("Solicitação fechada ou cancelada não recebe link de acesso.");
         var dias = dados.ValidadeDias ?? ValidadePadraoDias;

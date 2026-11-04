@@ -20,7 +20,7 @@ public sealed record PerfilUsuario(
 
 /// <summary>
 /// Tenant ativo, com o fuso em que a UI exibe instantes (convenções §4). <see cref="EnvioLiberado"/> falso: a empresa
-/// ainda não envia convites, links nem avisos a terceiros (RF-AUT-06), e a SPA explica e desabilita esses botões.
+/// ainda não envia convites nem links a terceiros (RF-AUT-06), e a SPA explica e desabilita esses botões.
 /// </summary>
 public sealed record TenantAtivo(Guid Id, string Nome, string FusoHorario, bool EnvioLiberado);
 

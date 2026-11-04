@@ -66,9 +66,9 @@ public sealed class ComandosAcessoPortal
     public async Task ConvidarAsync(Guid clienteId, Guid contatoId, AcessoPortalRequest dados, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(dados);
-        await _envio.GarantirLiberadoAsync(cancellationToken);
         var escopo = dados.EscopoPortal ?? throw ErroDeCampo.Criar("escopoPortal", "Informe o escopo do portal.");
         var (cliente, contato) = await CarregarAsync(clienteId, contatoId, cancellationToken);
+        await _envio.GarantirLiberadoAsync(cancellationToken);
         if (!cliente.Ativo)
             throw new AcessoPortalException("Cliente inativo não recebe convite para o portal.");
         if (!contato.Ativo)
