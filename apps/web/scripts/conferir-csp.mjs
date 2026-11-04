@@ -50,6 +50,14 @@ for (const e of estilos) {
 const TURNSTILE = 'https://challenges.cloudflare.com'
 for (const nome of ['script-src', 'frame-src'])
     if (!diretiva(nome).split(/\s+/).includes(TURNSTILE)) erros.push(`${nome} sem ${TURNSTILE} (Turnstile do cadastro)`)
+// connect-src (spec do F10, F10-21): a API e os serviços públicos que o navegador consulta direto (CEP e CNPJ), nada
+// além disso e sem curinga. Serviço novo entra aqui e na segurança §9 no mesmo PR.
+const CONEXOES = ["'self'", 'https://api.acordu.app.br', 'https://viacep.com.br', 'https://brasilapi.com.br']
+const conexoes = diretiva('connect-src').trim().split(/\s+/).slice(1)
+for (const origem of CONEXOES) if (!conexoes.includes(origem)) erros.push(`connect-src sem ${origem}`)
+for (const origem of conexoes)
+    if (origem.includes('*')) erros.push(`connect-src não pode ter curinga (${origem})`)
+    else if (!CONEXOES.includes(origem)) erros.push(`connect-src com ${origem}, que não está na lista conferida`)
 for (const proibido of ["'unsafe-inline'", "'unsafe-eval'"])
     if (csp.includes(proibido)) erros.push(`a política não pode ter ${proibido}`)
 if (diretiva('script-src').split(/\s+/).includes('*')) erros.push('script-src não pode ter o curinga *')

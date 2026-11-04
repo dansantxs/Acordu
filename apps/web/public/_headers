@@ -3,7 +3,7 @@
 # React Aria injeta (usePress e usePreventScroll). Mudou algum deles, mude aqui. O Turnstile do cadastro (RNF-SEG-10)
 # precisa de https://challenges.cloudflare.com no script-src e no frame-src (a CI confere também).
 /*
-  Content-Security-Policy: default-src 'self'; script-src 'self' 'sha256-30qIpsbG6xkFRDpFoHDU3W4JwKKHppKNEVSSvCKvQFQ=' https://challenges.cloudflare.com; style-src 'self' 'sha256-38RhXrc7EdReTKsOm23ZPOCUgniTUUcjky8QOOrQx6o=' 'sha256-gYiS/BvZvRcK27JIXTuwhZ3hs2+VJ1X+2gUlE+farlg='; img-src 'self' data: https://*.r2.cloudflarestorage.com; font-src 'self'; connect-src 'self' https://api.acordu.app.br https://viacep.com.br; frame-src https://challenges.cloudflare.com; frame-ancestors 'none'; base-uri 'self'; form-action 'self'; object-src 'none'
+  Content-Security-Policy: default-src 'self'; script-src 'self' 'sha256-30qIpsbG6xkFRDpFoHDU3W4JwKKHppKNEVSSvCKvQFQ=' https://challenges.cloudflare.com; style-src 'self' 'sha256-38RhXrc7EdReTKsOm23ZPOCUgniTUUcjky8QOOrQx6o=' 'sha256-gYiS/BvZvRcK27JIXTuwhZ3hs2+VJ1X+2gUlE+farlg='; img-src 'self' data: https://*.r2.cloudflarestorage.com; font-src 'self'; connect-src 'self' https://api.acordu.app.br https://viacep.com.br https://brasilapi.com.br; frame-src https://challenges.cloudflare.com; frame-ancestors 'none'; base-uri 'self'; form-action 'self'; object-src 'none'
   Strict-Transport-Security: max-age=31536000; includeSubDomains
   X-Content-Type-Options: nosniff
   Referrer-Policy: same-origin
