@@ -1,6 +1,10 @@
 namespace Acordu.Domain.Common;
 
-/// <summary>Normalização e validação de CPF/CNPJ: guarda só dígitos e confere os dígitos verificadores.</summary>
+/// <summary>
+/// Normalização e validação de CPF/CNPJ: guarda só os caracteres (sem pontuação) e confere os dígitos verificadores.
+/// CPF só tem dígitos; o CNPJ pode ter letras nas 12 primeiras posições (alfanumérico, IN RFB 2.229/2024, desde julho
+/// de 2026), guardadas em maiúsculas, com os dois verificadores numéricos.
+/// </summary>
 internal static class Documento
 {
     public static string? Normalizar(string? documento, string parametro)
@@ -8,17 +12,21 @@ internal static class Documento
         if (string.IsNullOrWhiteSpace(documento))
             return null;
 
-        var digitos = new string(documento.Where(char.IsAsciiDigit).ToArray());
-        var semOutrosCaracteres = documento.All(c => char.IsAsciiDigit(c) || c is '.' or '-' or '/' or ' ');
-        var valido = semOutrosCaracteres && digitos.Length switch
+        var semOutrosCaracteres = documento.All(c => char.IsAsciiLetterOrDigit(c) || c is '.' or '-' or '/' or ' ');
+        var caracteres = new string(documento.Where(char.IsAsciiLetterOrDigit).ToArray()).ToUpperInvariant();
+        var valido = semOutrosCaracteres && caracteres.Length switch
         {
-            11 => CpfValido(digitos),
-            14 => CnpjValido(digitos),
+            11 => caracteres.All(char.IsAsciiDigit) && CpfValido(caracteres),
+            14 => FormatoCnpj(caracteres) && CnpjValido(caracteres),
             _ => false,
         };
 
-        return valido ? digitos : throw new ArgumentException("CPF ou CNPJ inválido.", parametro);
+        return valido ? caracteres : throw new ArgumentException("CPF ou CNPJ inválido.", parametro);
     }
+
+    /// <summary>12 letras maiúsculas ou dígitos e os dois verificadores numéricos.</summary>
+    private static bool FormatoCnpj(string d) =>
+        d.Take(12).All(c => char.IsAsciiDigit(c) || char.IsAsciiLetterUpper(c)) && char.IsAsciiDigit(d[12]) && char.IsAsciiDigit(d[13]);
 
     private static bool CpfValido(string d)
     {
@@ -40,7 +48,11 @@ internal static class Documento
             && Digito(d, 13, i => pesos2[i]) == d[13] - '0';
     }
 
-    /// <summary>Dígito verificador módulo 11 sobre os <paramref name="tamanho"/> primeiros dígitos.</summary>
+    /// <summary>
+    /// Dígito verificador módulo 11 sobre os <paramref name="tamanho"/> primeiros caracteres. O valor de cada um é o
+    /// código ASCII menos 48: os dígitos valem o próprio número, e as letras de A a Z valem de 17 a 42 (regra da Receita
+    /// para o CNPJ alfanumérico, que coincide com a antiga para os numéricos).
+    /// </summary>
     private static int Digito(string d, int tamanho, Func<int, int> peso)
     {
         var soma = 0;
