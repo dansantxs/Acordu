@@ -22,6 +22,10 @@ internal sealed class TenantConfiguration : IEntityTypeConfiguration<Tenant>
         // Conversor não genérico: o EF só converte valores não nulos, e a coluna aceita nulo (sem SLA próprio).
         builder.Property(t => t.SlaPadrao).HasConversion((ValueConverter)new PoliticaSlaConverter()).HasColumnType("jsonb");
         builder.Ignore(t => t.SlaSugerido);
+        builder.Ignore(t => t.EnvioLiberado);
+        // Sem FK para o usuário: a identidade fica fora do domínio, e o expurgo (F9d) apaga os dois juntos.
+        builder.Property(t => t.CriadoPorUsuarioId);
+        builder.Property(t => t.EnvioLiberadoEm);
         builder.Property<uint>(ConfiguracaoRaiz.Versao)
             .IsRowVersion()
             .HasColumnName("xmin")

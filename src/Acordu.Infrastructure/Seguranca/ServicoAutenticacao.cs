@@ -100,7 +100,7 @@ public sealed partial class ServicoAutenticacao : IServicoAutenticacao
         var papeis = Papel.Padroes(tenantId);
         var dono = papeis.Single(p => p.Nome == Papel.NomeDono);
         var vinculo = Vinculo.Criar(Guid.CreateVersion7(), usuario.Id, dono);
-        _db.Add(Tenant.Criar(tenantId, empresaValida, agora));
+        _db.Add(Tenant.Criar(tenantId, empresaValida, agora, usuario.Id));
         _db.AddRange(papeis);
         _db.Add(vinculo);
         _db.Add(CalendarioUtil.Padrao(tenantId));
@@ -363,11 +363,25 @@ public sealed partial class ServicoAutenticacao : IServicoAutenticacao
         if (registro is null || usuario is null)
             return false;
 
-        registro.Usar(_relogio.GetUtcNow());
+        var agora = _relogio.GetUtcNow();
+        await using var transacao = await _db.Database.BeginTransactionAsync(cancellationToken);
+        registro.Usar(agora);
         usuario.EmailConfirmed = true;
+        await LiberarEmpresasCriadasAsync(usuario.Id, agora, cancellationToken);
         await _db.SaveChangesAsync(cancellationToken);
+        await transacao.CommitAsync(cancellationToken);
         return true;
     }
+
+    /// <summary>
+    /// O e-mail do criador ficou confirmado: a empresa dele passa a enviar a terceiros (RF-AUT-06; spec do F9, decisão 2).
+    /// Atualização direta, fora do rastreamento: a rota é pública (ou o contexto é de outra empresa do usuário), e a
+    /// condição já restringe às empresas que ele criou e que ainda não foram liberadas, o que a torna idempotente.
+    /// </summary>
+    private async Task LiberarEmpresasCriadasAsync(Guid usuarioId, DateTimeOffset agora, CancellationToken cancellationToken) =>
+        await _db.Tenants.IgnoreQueryFilters(Filtros)
+            .Where(t => t.CriadoPorUsuarioId == usuarioId && t.EnvioLiberadoEm == null)
+            .ExecuteUpdateAsync(t => t.SetProperty(x => x.EnvioLiberadoEm, (DateTimeOffset?)agora), cancellationToken);
 
     public async Task ReenviarConfirmacaoAsync(Guid usuarioId, CancellationToken cancellationToken = default)
     {
@@ -407,6 +421,7 @@ public sealed partial class ServicoAutenticacao : IServicoAutenticacao
         await using var transacao = await _db.Database.BeginTransactionAsync(cancellationToken);
         usuario.PasswordHash = _usuarios.PasswordHasher.HashPassword(usuario, novaSenha);
         usuario.EmailConfirmed = true; // o link chegou pelo e-mail
+        await LiberarEmpresasCriadasAsync(usuario.Id, agora, cancellationToken);
         usuario.AccessFailedCount = 0;
         usuario.LockoutEnd = null;
         await _usuarios.UpdateSecurityStampAsync(usuario);
@@ -454,7 +469,7 @@ public sealed partial class ServicoAutenticacao : IServicoAutenticacao
             usuario.Nome,
             usuario.Email ?? string.Empty,
             usuario.EmailConfirmed,
-            new TenantAtivo(tenant.Id, tenant.Nome, fuso),
+            new TenantAtivo(tenant.Id, tenant.Nome, fuso, tenant.EnvioLiberado),
             papel.Nome,
             [.. papel.Permissoes],
             ativo.ClienteId,

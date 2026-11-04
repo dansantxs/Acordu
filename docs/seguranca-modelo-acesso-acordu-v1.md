@@ -125,7 +125,7 @@ ASP.NET Core Identity (ADR 0001: confirmação de e-mail, lockout, política de 
 - `senha/esqueci` não revela se o e-mail tem conta. Redefinir revoga todos os refresh tokens do usuário e zera o bloqueio.
 
 **(Acordu, proteção contra cadastro em massa, decidido em 04/11; RF-AUT-06, RF-AUT-07, RNF-SEG-10):** uma pessoa com vários e-mails podia criar empresas sem limite e usar convites e links para mandar e-mail a qualquer endereço com o domínio do Acordu, estragando a reputação de envio de que os clientes reais dependem.
-- **Envio a terceiros só com e-mail confirmado:** enquanto o criador da empresa não confirmar o e-mail, a empresa não envia nada a outra pessoa (convites, link do portal, avisos). O login continua sem exigir confirmação.
+- **Envio a terceiros só com e-mail confirmado:** enquanto o criador da empresa não confirmar o e-mail, a empresa não envia nada a outra pessoa (convites, link do portal, avisos). O login continua sem exigir confirmação. A empresa guarda o criador e a data da liberação (`Tenant.EnvioLiberadoEm`), gravada na primeira confirmação, pelo link ou pela redefinição de senha, e permanente (spec do F9, decisão 2). Convites e links recusados respondem `422 email-nao-confirmado`, depois da checagem de permissão.
 - **Turnstile + limite de cadastro:** desafio do Cloudflare no formulário, conferido pela API, e limite próprio de cadastros por IP.
 - **Expurgo:** cadastro sem confirmação em 7 dias e sem dados é apagado pelo job diário.
 - Fora, por ora: lista de domínios descartáveis (manutenção alta, pouco ganho sobre o resto) e período de teste atrelado a CNPJ ou cartão (entra com a cobrança, v3).

@@ -13,11 +13,12 @@ public sealed class Tenant
     public const int DiasFechamentoMinimo = 1;
     public const int DiasFechamentoMaximo = 60;
 
-    private Tenant(Guid id, string nome, DateTimeOffset criadoEm)
+    private Tenant(Guid id, string nome, DateTimeOffset criadoEm, Guid criadoPorUsuarioId)
     {
         Id = id;
         Nome = nome;
         CriadoEm = criadoEm;
+        CriadoPorUsuarioId = criadoPorUsuarioId;
         DiasFechamentoAutomatico = DiasFechamentoPadrao;
     }
 
@@ -33,6 +34,21 @@ public sealed class Tenant
     public string Nome { get; private set; }
 
     public DateTimeOffset CriadoEm { get; private set; }
+
+    /// <summary>
+    /// Quem registrou a empresa (RF-AUT-06, F9): só a confirmação do e-mail dele libera o envio a terceiros. Nulo só em
+    /// empresa anterior ao F9 sem Dono (a migration preenche com o Dono mais antigo).
+    /// </summary>
+    public Guid? CriadoPorUsuarioId { get; private set; }
+
+    /// <summary>
+    /// Quando a empresa passou a poder enviar e-mail a terceiros (convites, links, avisos): a primeira vez que o e-mail
+    /// do criador ficou confirmado. Nunca volta a nulo (spec do F9, decisão 2). Gravada pela Infrastructure na
+    /// confirmação, por atualização direta: a rota é pública e não tem o contexto da empresa (convenções §1).
+    /// </summary>
+    public DateTimeOffset? EnvioLiberadoEm { get; private set; }
+
+    public bool EnvioLiberado => EnvioLiberadoEm is not null;
 
     /// <summary>Nome mostrado aos clientes no portal (RF-POR-09); nulo usa o <see cref="Nome"/>.</summary>
     public string? NomePortal { get; private set; }
@@ -57,8 +73,12 @@ public sealed class Tenant
     /// <summary>A política que o cadastro de contrato sugere: a da empresa ou a do sistema.</summary>
     public PoliticaSla SlaSugerido => SlaPadrao ?? PoliticaSla.Sugerida;
 
-    public static Tenant Criar(Guid id, string nome, DateTimeOffset agora) =>
-        new(Ids.Obrigatorio(id, nameof(id)), Texto.Obrigatorio(nome, LimitesTexto.Nome, nameof(nome)), agora.ToUniversalTime());
+    public static Tenant Criar(Guid id, string nome, DateTimeOffset agora, Guid criadoPorUsuarioId) =>
+        new(
+            Ids.Obrigatorio(id, nameof(id)),
+            Texto.Obrigatorio(nome, LimitesTexto.Nome, nameof(nome)),
+            agora.ToUniversalTime(),
+            Ids.Obrigatorio(criadoPorUsuarioId, nameof(criadoPorUsuarioId)));
 
     public void Renomear(string nome) => Nome = Texto.Obrigatorio(nome, LimitesTexto.Nome, nameof(nome));
 
