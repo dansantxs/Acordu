@@ -11,3 +11,4 @@ Cada marco do Acordu, a partir do F8, começa por uma spec nesta pasta (ADR 0011
 |---|---|---|
 | F8 | [Deploy no nível 0](F8-deploy/spec.md) | Em implementação |
 | F9 | [Proteção do cadastro](F9-protecao-cadastro/spec.md) | Concluída (código); F9-46/47 conferidos no primeiro deploy |
+| F10 | [Preenchimento do cliente pelo CNPJ](F10-cnpj-cliente/spec.md) | Rascunho |
