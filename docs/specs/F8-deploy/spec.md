@@ -75,7 +75,7 @@ A coluna **Teste** é preenchida nos PRs de código. Os cenários de provisionam
 | F8-29 | os jobs no Scheduler | chega o horário | `acordu-tick` e `acordu-diario` respondem 2xx pela borda; resposta fora de 2xx avisa por e-mail | verificação no Scheduler |
 | F8-30 | o `backup.yml` às 04:00 | roda | grava `acordu-backups/db/AAAA-MM-DD.dump` (`pg_dump -Fc`, cliente 17) no R2; falha avisa | primeira execução |
 | F8-31 | um backup do dia | o restore é feito num Postgres 17 local | a API sobe apontada para ele e mostra os dados | verificação manual, antes do primeiro cliente |
-| F8-32 | produção no ar | uma empresa se cadastra, convida um contato e o contato abre uma solicitação pelo portal | tudo funciona entre `acordu.app.br` e `api.acordu.app.br`, com o e-mail chegando pelo Resend | fumaça manual pós-deploy |
+| F8-32 | produção no ar | uma empresa se cadastra (passando pelo Turnstile), confirma o e-mail, convida um contato e o contato abre uma solicitação pelo portal | tudo funciona entre `acordu.app.br` e `api.acordu.app.br`, com o e-mail chegando pelo Resend | fumaça manual pós-deploy |
 
 ## 3. Fora de escopo
 

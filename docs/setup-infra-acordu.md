@@ -132,6 +132,11 @@ Conferir no primeiro deploy; se o `wrangler` pedir outra permissão, acrescentá
 3. Variável `ORIGEM` = URL `*.run.app`; segredo `TOKEN_ORIGEM` com **o mesmo valor** do secret `API_TOKEN_ORIGEM`, gerado antes do primeiro deploy (o deploy o grava em `Proxy__TokenOrigem` da API): `pnpm exec wrangler secret put TOKEN_ORIGEM` em `infra/cloudflare/api-borda`, ou pelo painel. O `wrangler.toml` tem `keep_vars = true`: os deploys do `deploy.yml` preservam a `ORIGEM` definida no painel.
 4. Conferir `curl https://api.acordu.app.br/api/health` e criar a variável do repositório `BORDA_ATIVA=true`: daí em diante o health do deploy passa pela borda.
 
+### 5. Turnstile do cadastro (RNF-SEG-10, F9)
+1. No painel do Cloudflare: **Turnstile** → Add widget. Nome `acordu-cadastro`, hostname **`acordu.app.br`**, modo *Managed*.
+2. A chave do site (pública) vai na variável do repositório `TURNSTILE_CHAVE_SITE`; a chave secreta, no secret `API_TURNSTILE_SEGREDO` (vira `Turnstile__Segredo` da API). O `deploy.yml` recusa publicar sem as duas (confere antes da nova revisão).
+3. Depois do primeiro deploy, criar uma conta de teste em `acordu.app.br/cadastro` e conferir que passa. A API confere o hostname que o Cloudflare devolve (o de `App__UrlPublica`); se todo cadastro voltar com "Confirme que você não é um robô", ver no Turnstile do painel o hostname registrado nas tentativas e se a `Referrer-Policy: same-origin` do SPA interfere. Segredo errado aparece no log da API como erro (EventId 312). Conferência negativa: `curl -X POST https://api.acordu.app.br/api/v1/auth/registro -H 'Content-Type: application/json' -d '{"nome":"x","email":"x@exemplo.com","senha":"senha-bem-comprida","nomeEmpresa":"x"}'` responde `400` com `errors.tokenTurnstile`.
+
 ---
 
 ## Parte D — Resend
@@ -160,6 +165,7 @@ Repositório → Settings → Secrets and variables → Actions. Só os nomes fi
 | Variável | `GCP_WIF_PROVIDER` | Nome completo do provider `acordu-repo` (A4) |
 | Variável | `GCP_PROJECT_ID` | `acordu-prod` |
 | Variável | `BORDA_ATIVA` | `true` depois de C4; o health do deploy passa a ir pela borda |
+| Variável | `TURNSTILE_CHAVE_SITE` | Chave do site do widget `acordu-cadastro` (C5); vai para o build do SPA |
 | Variável | `BACKUP_ATIVO` | `true` quando Neon e R2 estiverem prontos; liga o agendamento do `backup.yml` |
 | Secret | `NEON_MIGRATOR` | String direta, `acordu_migrator` (B4) |
 | Secret | `API_CONNECTION_STRING` | String pooled, `acordu_app` (B4) |
@@ -167,6 +173,7 @@ Repositório → Settings → Secrets and variables → Actions. Só os nomes fi
 | Secret | `API_JOBS_TOKEN` | 32 bytes aleatórios (`Jobs__Token`; o mesmo no Scheduler) |
 | Secret | `API_TOKEN_ORIGEM` | 32 bytes aleatórios; o mesmo valor vai no `TOKEN_ORIGEM` do Worker (C4) |
 | Secret | `API_RESEND_CHAVE` | Chave do Resend (D3) |
+| Secret | `API_TURNSTILE_SEGREDO` | Chave secreta do widget do Turnstile (C5) |
 | Secret | `R2_ENDPOINT` | Endpoint S3 do R2 (C2) |
 | Secret | `API_R2_CHAVE_ACESSO`, `API_R2_CHAVE_SECRETA` | Token `acordu-api-anexos` (C2) |
 | Secret | `R2_BACKUP_CHAVE_ACESSO`, `R2_BACKUP_CHAVE_SECRETA` | Token `acordu-backup` (C2) |
@@ -209,11 +216,13 @@ C1. Domínios → Cloudflare
 C2. R2: buckets + tokens → secrets do GitHub
 D.  Resend (SPF/DKIM/DMARC)
 C3. Token do Cloudflare
+C5. Widget do Turnstile → TURNSTILE_CHAVE_SITE e API_TURNSTILE_SEGREDO
 → Segredos do GitHub: todos os da tabela (gerar API_JWT_CHAVE, API_JOBS_TOKEN e API_TOKEN_ORIGEM), menos BORDA_ATIVA e BACKUP_ATIVO
 → primeiro deploy (cria o serviço Cloud Run, o Worker e o Pages)
 C3/C4. Domínios do Pages e do Worker; ORIGEM e TOKEN_ORIGEM (= API_TOKEN_ORIGEM) → BORDA_ATIVA=true
 A6. Cloud Scheduler (tick e diário) + alerta de falha
 E.  UptimeRobot + Discord
+→ cadastro de teste em acordu.app.br (Turnstile, confirmação do e-mail, convite)
 → BACKUP_ATIVO=true; primeiro backup
 → restore testado
 ```
@@ -234,6 +243,7 @@ E.  UptimeRobot + Discord
 - [ ] `acordu-tick` e `acordu-diario` no Scheduler, com alerta de falha.
 - [ ] Resend verificado + DMARC.
 - [ ] UptimeRobot ativo; webhook do Discord recebendo deploy e backup.
+- [ ] Turnstile no cadastro: conta de teste criada; sem o token, cadastro recusado.
 - [ ] Backup diário rodando e restore testado.
 
 ---

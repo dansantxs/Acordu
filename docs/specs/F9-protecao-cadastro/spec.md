@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| **Status** | Em implementação |
+| **Status** | Concluída (código); F9-46/47 conferidos no primeiro deploy |
 | **Data** | 04/11/2026 |
 | **Requisitos** | RF-AUT-06, RF-AUT-07, RNF-SEG-10 (decididos em 04/11), RF-AUT-01, RF-AUT-04, RNF-SEG-08 |
 | **ADRs** | 0001, 0002, 0010, 0011 |
@@ -84,8 +84,8 @@ Abrir o cadastro ao público sem que ele vire um canal de envio em massa com o d
 
 | Id | Dado | Quando | Então | Teste |
 |---|---|---|---|---|
-| F9-46 | o `deploy.yml` | roda sem o secret do Turnstile | para antes de publicar (segredo obrigatório em produção) | — |
-| F9-47 | o `deploy.yml` com o secret e a chave do site | roda | a API recebe `Turnstile__Segredo` e o SPA é construído com `VITE_TURNSTILE_CHAVE` | — |
+| F9-46 | o `deploy.yml` | roda sem o secret do Turnstile | para antes de publicar (segredo obrigatório em produção) | revisão do `deploy.yml` (lista de obrigatórias); conferido no primeiro deploy |
+| F9-47 | o `deploy.yml` com o secret e a chave do site | roda | a API recebe `Turnstile__Segredo` e o SPA é construído com `VITE_TURNSTILE_CHAVE` | revisão do `deploy.yml` (variável `TURNSTILE_CHAVE_SITE` exigida no build); conferido no primeiro deploy (runbook C5) |
 
 ## 3. Fora de escopo
 
@@ -167,6 +167,7 @@ Ordem: F9a primeiro (criador, liberação, `422` e `envioLiberado`); depois F9b 
 
 ## 7. Registro
 
+- 04/11 — F9e na main (PR #138). F9f: `deploy.yml` exige `API_TURNSTILE_SEGREDO` e `TURNSTILE_CHAVE_SITE`; runbook C5 (widget e conferência do hostname); F8-32 passa pelo Turnstile e pela confirmação do e-mail.
 - 04/11 — F9e, revisão: explicação ligada aos botões por `aria-describedby` (inclusive "Criar conta" sem o token); reenviar convite com a explicação; testes do script que falha, do token vencido e da desmontagem. A conferir no primeiro deploy (F9f, C5): o hostname que o Turnstile devolve com `Referrer-Policy: same-origin` no SPA.
 - 04/11 — F9c na main (PR #137). F9e: aviso da empresa não liberada na casca (o lembrete de confirmar a conta segue na Hoje), botões de convite e link desabilitados com a explicação, desafio no cadastro com renovação a cada recusa e mensagem própria para o limite por hora; CSP com o Cloudflare.
 - 04/11 — F9c, revisão: limite do cadastro numa janela só (o encadeado criava timers por IP sem descarte), IPv6 por /64, segredo recusado vira indisponível com log de erro, hostname com o padrão dos links.
