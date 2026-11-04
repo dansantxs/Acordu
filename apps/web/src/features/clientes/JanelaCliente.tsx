@@ -222,6 +222,7 @@ function JanelaClienteAberta({
                         rotulo="CPF ou CNPJ"
                         mascara={formatarDocumento}
                         caracteres={caracteresDoDocumento}
+                        teclado="text"
                         validate={validarDocumento}
                         defaultValue={cliente?.documento}
                     />

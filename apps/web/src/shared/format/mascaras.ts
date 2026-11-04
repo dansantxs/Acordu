@@ -9,8 +9,10 @@ export const digitos = (texto: string): string => texto.replace(/\D/g, '')
  * IN RFB 2.229/2024). Letra depois disso ou além de 14 caracteres é descartada.
  */
 export function caracteresDoDocumento(texto: string): string {
+    // Texto colado de nota ou e-mail ("CNPJ: 11.222…", "CPF nº 529…"): o rótulo não pode virar letras do CNPJ.
+    const semRotulo = texto.replace(/^[^:]*:/, '').replace(/^\s*(CNPJ|CPF)\b[\s.]*(N[º°O.]*\s*)?/i, '')
     let saida = ''
-    for (const c of texto.toUpperCase()) {
+    for (const c of semRotulo.toUpperCase()) {
         if (saida.length >= 14) break
         if (/\d/.test(c) || (/[A-Z]/.test(c) && saida.length < 12)) saida += c
     }

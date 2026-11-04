@@ -362,6 +362,8 @@ describe('clientes', () => {
         const janela = await screen.findByRole('dialog', { name: 'Novo cliente' })
         await usuario.type(within(janela).getByLabelText('Nome'), 'Padaria Bom Grão')
         await usuario.type(within(janela).getByLabelText('CPF ou CNPJ'), '11222333000180')
+        await usuario.tab()
+        expect(await within(janela).findByText('CPF ou CNPJ inválido.')).toBeInTheDocument()
         await usuario.click(within(janela).getByRole('button', { name: 'Criar cliente' }))
         expect(await within(janela).findByText('CPF ou CNPJ inválido.')).toBeInTheDocument()
         expect(chamadas.some((c) => c.metodo === 'POST' && c.caminho === '/api/v1/clientes')).toBe(false)
@@ -375,5 +377,17 @@ describe('clientes', () => {
         const janela = await screen.findByRole('dialog', { name: 'Novo cliente' })
         await usuario.type(within(janela).getByLabelText('CPF ou CNPJ'), '12abc34501de35')
         expect(within(janela).getByLabelText('CPF ou CNPJ')).toHaveValue('12.ABC.345/01DE-35')
+    })
+
+    it('lista e ficha mostram o CNPJ alfanumérico formatado, com as letras (F10-27)', async () => {
+        const alfanumerico = { ...padaria, documento: '12ABC34501DE35' }
+        app(VER, {
+            'GET /api/v1/clientes': () => pagina([alfanumerico]),
+            'GET /api/v1/clientes/c1': () => json(alfanumerico),
+        })
+        await abrir('/clientes')
+        expect(await screen.findByText('12.ABC.345/01DE-35', { exact: false })).toBeInTheDocument()
+        await abrir('/clientes/c1')
+        expect(await screen.findByText('12.ABC.345/01DE-35', { exact: false })).toBeInTheDocument()
     })
 })

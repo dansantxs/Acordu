@@ -17,6 +17,8 @@ interface Props extends Omit<TextFieldProps, 'children' | 'value' | 'onChange' |
      * letras do CNPJ alfanumérico; com ele, o teclado do celular deixa de ser só numérico.
      */
     caracteres?: (texto: string) => string
+    /** Teclado do celular (padrão: numérico). Campo que aceita letras passa `text`. */
+    teclado?: 'numeric' | 'text'
 }
 
 /**
@@ -31,6 +33,7 @@ export function CampoMascarado({
     value,
     onChange,
     caracteres = digitos,
+    teclado = 'numeric',
     className,
     ...props
 }: Props) {
@@ -63,7 +66,7 @@ export function CampoMascarado({
             <Rotulo texto={rotulo} obrigatorio={props.isRequired} />
             <Input
                 ref={entrada}
-                inputMode={caracteres === digitos ? 'numeric' : 'text'}
+                inputMode={teclado}
                 onChange={mudar}
                 className="rounded-couro border border-linha bg-superficie px-3 py-2 text-tinta tabular-nums placeholder:text-suave data-[invalid]:border-vermelho"
             />

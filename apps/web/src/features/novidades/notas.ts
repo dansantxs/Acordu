@@ -13,6 +13,15 @@ export interface NotaVersao {
 
 export const NOTAS: NotaVersao[] = [
     {
+        data: '2026-11-04',
+        publico: 'equipe',
+        titulo: 'CNPJ com letras',
+        itens: [
+            'O cadastro do cliente aceita o novo CNPJ com letras (como 12.ABC.345/01DE-35), e a busca da lista também o encontra.',
+            'CPF ou CNPJ com dígito errado agora aparece como inválido já no campo, antes de salvar.',
+        ],
+    },
+    {
         data: '2026-10-23',
         publico: 'equipe',
         titulo: 'Escolha o couro',
