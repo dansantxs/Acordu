@@ -56,6 +56,7 @@ internal static class CasosDeUso
         services.AddScoped<ComandosCategoria>();
         services.AddScoped<ComandosAcessoPortal>();
         services.AddScoped<RevogacaoAcessoPortal>();
+        services.AddScoped<EnvioATerceiros>();
         services.AddScoped<ComandosLinkPortal>();
         services.AddScoped<ComandosEquipe>();
         services.AddScoped<ComandosComentarioTarefa>();

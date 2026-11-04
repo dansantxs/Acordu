@@ -44,6 +44,7 @@ internal static partial class ManipuladorExcecoes
         DominioException e => Problema(422, "validacao", "Regra de negócio violada", e.Message),
         NaoEncontradoException e => Problema(404, "nao-encontrado", "Não encontrado", e.Message),
         AcessoNegadoException e => Problema(403, "sem-permissao", "Sem permissão", e.Message),
+        EmailNaoConfirmadoException e => Problema(422, "email-nao-confirmado", "E-mail não confirmado", e.Message),
         CronometroAtivoException e => Problema(409, "cronometro-ativo", "Cronômetro já ativo", e.Message),
         DbUpdateConcurrencyException => Problema(
             409, "conflito-versao", "Versão divergente", "O recurso foi alterado por outra requisição. Recarregue e tente de novo."),
