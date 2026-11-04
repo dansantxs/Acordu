@@ -22,6 +22,7 @@ public sealed class ComandosAcessoPortal
     private readonly RelogioDoTenant _relogio;
     private readonly IUnitOfWork _unidade;
     private readonly IAuditoria _auditoria;
+    private readonly EnvioATerceiros _envio;
 
     public ComandosAcessoPortal(
         ITenantContext contexto,
@@ -32,8 +33,11 @@ public sealed class ComandosAcessoPortal
         RevogacaoAcessoPortal revogacao,
         RelogioDoTenant relogio,
         IUnitOfWork unidade,
-        IAuditoria auditoria)
+        IAuditoria auditoria,
+        EnvioATerceiros envio)
     {
+        ArgumentNullException.ThrowIfNull(envio);
+        _envio = envio;
         ArgumentNullException.ThrowIfNull(auditoria);
         _auditoria = auditoria;
         ArgumentNullException.ThrowIfNull(contexto);
@@ -56,11 +60,13 @@ public sealed class ComandosAcessoPortal
 
     /// <summary>
     /// Convida (ou reconvida: o convite pendente anterior é revogado). Contato com acesso, inativo, de cliente inativo
-    /// ou com e-mail que já tem vínculo neste tenant → 422.
+    /// ou com e-mail que já tem vínculo neste tenant → 422; empresa não liberada (RF-AUT-06) → 422
+    /// <c>email-nao-confirmado</c>.
     /// </summary>
     public async Task ConvidarAsync(Guid clienteId, Guid contatoId, AcessoPortalRequest dados, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(dados);
+        await _envio.GarantirLiberadoAsync(cancellationToken);
         var escopo = dados.EscopoPortal ?? throw ErroDeCampo.Criar("escopoPortal", "Informe o escopo do portal.");
         var (cliente, contato) = await CarregarAsync(clienteId, contatoId, cancellationToken);
         if (!cliente.Ativo)

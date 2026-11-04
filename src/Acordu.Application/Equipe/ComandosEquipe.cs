@@ -26,6 +26,7 @@ public sealed class ComandosEquipe
     private readonly RelogioDoTenant _relogio;
     private readonly IUnitOfWork _unidade;
     private readonly IAuditoria _auditoria;
+    private readonly EnvioATerceiros _envio;
 
     public ComandosEquipe(
         ITenantContext contexto,
@@ -36,8 +37,11 @@ public sealed class ComandosEquipe
         IVinculos vinculos,
         RelogioDoTenant relogio,
         IUnitOfWork unidade,
-        IAuditoria auditoria)
+        IAuditoria auditoria,
+        EnvioATerceiros envio)
     {
+        ArgumentNullException.ThrowIfNull(envio);
+        _envio = envio;
         ArgumentNullException.ThrowIfNull(contexto);
         ArgumentNullException.ThrowIfNull(papeis);
         ArgumentNullException.ThrowIfNull(repositorioVinculos);
@@ -60,7 +64,8 @@ public sealed class ComandosEquipe
 
     /// <summary>
     /// Convida com um papel INTERNO (reconvidar revoga o pendente anterior). Papel de cliente ou e-mail que já tem
-    /// vínculo neste tenant → 422; convidar como Dono sem <c>papel.gerenciar</c> → 403.
+    /// vínculo neste tenant → 422; convidar como Dono sem <c>papel.gerenciar</c> → 403; empresa não liberada (RF-AUT-06) →
+    /// 422 <c>email-nao-confirmado</c>.
     /// </summary>
     public async Task<Guid> ConvidarAsync(ConviteEquipeRequest dados, CancellationToken cancellationToken = default)
     {
@@ -70,6 +75,7 @@ public sealed class ComandosEquipe
         // Dar o papel Dono pelo convite é dar todas as permissões: exige também papel.gerenciar (decidido em 23/10).
         if (papel.EhDono)
             _contexto.Exigir(Permissoes.PapelGerenciar);
+        await _envio.GarantirLiberadoAsync(cancellationToken);
         var agora = _relogio.Agora;
         var convite = ConviteEquipe.Criar(Guid.CreateVersion7(), dados.Email, papel, _contexto.Usuario(), agora);
         if (await _vinculos.EmailJaVinculadoAsync(convite.Email, cancellationToken))

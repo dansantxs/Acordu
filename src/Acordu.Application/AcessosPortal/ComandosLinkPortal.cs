@@ -32,6 +32,7 @@ public sealed class ComandosLinkPortal
     private readonly RelogioDoTenant _relogio;
     private readonly IUnitOfWork _unidade;
     private readonly IAuditoria _auditoria;
+    private readonly EnvioATerceiros _envio;
 
     public ComandosLinkPortal(
         ITenantContext contexto,
@@ -44,8 +45,11 @@ public sealed class ComandosLinkPortal
         EnderecosPublicos enderecos,
         RelogioDoTenant relogio,
         IUnitOfWork unidade,
-        IAuditoria auditoria)
+        IAuditoria auditoria,
+        EnvioATerceiros envio)
     {
+        ArgumentNullException.ThrowIfNull(envio);
+        _envio = envio;
         ArgumentNullException.ThrowIfNull(auditoria);
         _auditoria = auditoria;
         ArgumentNullException.ThrowIfNull(contexto);
@@ -70,9 +74,11 @@ public sealed class ComandosLinkPortal
         _unidade = unidade;
     }
 
+    /// <summary>Empresa não liberada (RF-AUT-06) → 422 <c>email-nao-confirmado</c>, mesmo sem enviar o e-mail.</summary>
     public async Task<LinkEmitidoDto> EmitirAsync(Guid solicitacaoId, EmissaoLinkRequest dados, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(dados);
+        await _envio.GarantirLiberadoAsync(cancellationToken);
         var solicitacao = await CarregarAsync(solicitacaoId, cancellationToken);
         if (solicitacao.EstaFinalizada)
             throw new AcessoPortalException("Solicitação fechada ou cancelada não recebe link de acesso.");
