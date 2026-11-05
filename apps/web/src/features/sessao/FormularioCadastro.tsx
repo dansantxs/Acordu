@@ -8,7 +8,8 @@ import { CHAVE_TURNSTILE } from '@/shared/config/ambiente'
 import { cadastrar } from '@/shared/sessao/acoes'
 import { Alerta } from '@/shared/ui/Alerta'
 import { Botao } from '@/shared/ui/Botao'
-import { CampoSenha, CampoTexto } from '@/shared/ui/CampoTexto'
+import { CampoSenha } from '@/shared/ui/CampoSenha'
+import { CampoTexto } from '@/shared/ui/CampoTexto'
 import { DesafioTurnstile } from './DesafioTurnstile'
 
 /** Mesma regra da API (contrato §2): senha com pelo menos 10 caracteres. */

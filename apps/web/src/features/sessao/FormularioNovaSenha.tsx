@@ -7,7 +7,7 @@ import { redefinirSenha } from '@/shared/sessao/acoes'
 import { descartarTokenDeLink } from '@/shared/sessao/tokenDaUrl'
 import { Alerta } from '@/shared/ui/Alerta'
 import { Botao } from '@/shared/ui/Botao'
-import { CampoSenha } from '@/shared/ui/CampoTexto'
+import { CampoSenha } from '@/shared/ui/CampoSenha'
 import { SENHA_MINIMA, validarSenha } from './FormularioCadastro'
 import { linkRecusado } from './linkInvalido'
 

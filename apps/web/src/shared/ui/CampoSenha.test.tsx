@@ -1,7 +1,7 @@
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { describe, expect, it } from 'vitest'
-import { CampoSenha } from './CampoTexto'
+import { CampoSenha } from './CampoSenha'
 
 describe('CampoSenha', () => {
     it('começa oculta, e o botão mostra e oculta sem perder o que foi digitado', async () => {
@@ -12,12 +12,17 @@ describe('CampoSenha', () => {
         expect(campo).toHaveAttribute('type', 'password')
         expect(campo).toHaveAttribute('autocomplete', 'current-password')
 
-        await usuario.click(screen.getByRole('button', { name: 'Mostrar senha' }))
+        const olho = screen.getByRole('button', { name: 'Mostrar senha' })
+        expect(olho).toHaveAttribute('aria-pressed', 'false')
+        await usuario.click(olho)
         expect(campo).toHaveAttribute('type', 'text')
         expect(campo).toHaveValue('segredo-123')
-        expect(screen.getByRole('button', { name: 'Ocultar senha' })).toHaveAttribute('aria-pressed', 'true')
+        expect(olho).toHaveAttribute('aria-pressed', 'true')
+        // Visível, fora do corretor ortográfico e da maiúscula automática do celular.
+        expect(campo).toHaveAttribute('spellcheck', 'false')
+        expect(campo).toHaveAttribute('autocapitalize', 'off')
 
-        await usuario.click(screen.getByRole('button', { name: 'Ocultar senha' }))
+        await usuario.click(olho)
         expect(campo).toHaveAttribute('type', 'password')
     })
 

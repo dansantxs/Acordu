@@ -5,7 +5,8 @@ import { errosDeCampo, mensagemDeErro } from '@/shared/api/mensagens'
 import { destinoSeguro, entrar } from '@/shared/sessao/acoes'
 import { Alerta } from '@/shared/ui/Alerta'
 import { Botao } from '@/shared/ui/Botao'
-import { CampoSenha, CampoTexto } from '@/shared/ui/CampoTexto'
+import { CampoSenha } from '@/shared/ui/CampoSenha'
+import { CampoTexto } from '@/shared/ui/CampoTexto'
 
 export function FormularioEntrar({ voltar }: { voltar?: string }) {
     const navegar = useNavigate()

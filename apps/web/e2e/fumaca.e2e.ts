@@ -58,6 +58,10 @@ test('recusa a senha errada e entra com a certa', async ({ page }) => {
     await page.goto('/entrar?voltar=%2Fclientes')
     await page.getByLabel('E-mail').fill(conta.email)
     await page.getByLabel('Senha', { exact: true }).fill('senha-errada-123')
+    // O olho mostra a senha no navegador de verdade e não envia o formulário.
+    await page.getByRole('button', { name: 'Mostrar senha' }).click()
+    await expect(page.getByLabel('Senha', { exact: true })).toHaveAttribute('type', 'text')
+    await expect(page.getByRole('alert')).toHaveCount(0)
     await page.getByRole('button', { name: 'Entrar' }).click()
     await expect(page.getByRole('alert')).toContainText('E-mail ou senha inválidos')
 

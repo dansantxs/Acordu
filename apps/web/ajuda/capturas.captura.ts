@@ -87,7 +87,7 @@ async function entrar(contexto: BrowserContext, email: string, senha: string, in
 
     await page.goto('/entrar')
     await page.getByLabel('E-mail').fill(email)
-    await page.getByLabel('Senha').fill(senha)
+    await page.getByLabel('Senha', { exact: true }).fill(senha)
     await page.getByRole('button', { name: 'Entrar' }).click()
     await expect(page.getByRole('heading', { level: 1, name: inicio })).toBeVisible()
     return { page, emVoo }

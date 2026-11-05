@@ -9,7 +9,8 @@ import { aceitarConvitePortal } from '@/shared/sessao/acoes'
 import { descartarTokenDeLink } from '@/shared/sessao/tokenDaUrl'
 import { Alerta } from '@/shared/ui/Alerta'
 import { Botao } from '@/shared/ui/Botao'
-import { CampoSenha, CampoTexto } from '@/shared/ui/CampoTexto'
+import { CampoSenha } from '@/shared/ui/CampoSenha'
+import { CampoTexto } from '@/shared/ui/CampoTexto'
 
 /**
  * Aceite do convite do portal (contrato §2, F7a): conta nova pede nome (já sugerido pelo contato) e senha; conta que já
