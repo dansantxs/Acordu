@@ -182,8 +182,7 @@ function JanelaClienteAberta({
     const mudarEndereco = (campo: keyof CamposEndereco) => (valor: string) =>
         setEndereco((atual) => ({ ...atual, [campo]: valor }))
 
-    /** `focar`: depois de achar, leva ao número (digitando o CEP); vindo do CNPJ, o foco fica onde está. */
-    async function mudarCep(valor: string, focar = true) {
+    async function mudarCep(valor: string) {
         setEndereco((atual) => ({ ...atual, cep: valor }))
         const numeros = digitos(valor)
         if (numeros.length !== 8 || numeros === ultimoCep.current) return
@@ -203,7 +202,28 @@ function JanelaClienteAberta({
             cidade: achado.cidade,
             uf: achado.uf,
         }))
-        if (focar) numero.current?.focus()
+        numero.current?.focus()
+    }
+
+    /**
+     * Empresário individual (F10-29): CEP, bairro, cidade e UF da Receita entram na hora; o ViaCEP só completa o que
+     * ficou vazio (logradouro, bairro) e troca a cidade pela grafia com acento se ninguém mexeu nela. A resposta só vale
+     * para o CNPJ e o CEP de agora e com a janela aberta (F10-08, F10-09); o foco fica onde está.
+     */
+    async function completarPeloCep(base: NonNullable<EmpresaDoCnpj['semLogradouro']>, cnpj: string) {
+        const numeros = digitos(base.cep)
+        ultimoCep.current = numeros
+        setEndereco({ ...enderecoVazio, ...base })
+        const sinal = desmontado.current?.signal
+        const achado = await buscarCep(numeros, sinal)
+        if (!achado || sinal?.aborted || ultimoCnpj.current !== cnpj || ultimoCep.current !== numeros) return
+        setEndereco((atual) => ({
+            ...atual,
+            logradouro: atual.logradouro || achado.logradouro,
+            bairro: atual.bairro || achado.bairro,
+            cidade: atual.cidade === base.cidade || !atual.cidade ? achado.cidade : atual.cidade,
+            uf: atual.uf || achado.uf,
+        }))
     }
 
     async function mudarDocumento(valor: string) {
@@ -225,13 +245,13 @@ function JanelaClienteAberta({
         }
         setSituacao(avisoDeSituacao(resultado.empresa))
         // A frase do F10-06 só aparece quando algum campo foi de fato preenchido.
-        setCnpj(preencher(resultado.empresa) ? 'preencheu' : 'parado')
+        setCnpj(preencher(resultado.empresa, completo) ? 'preencheu' : 'parado')
     }
 
     /**
      * Só os campos vazios (F10-03); o endereço só como bloco, e só se estiver todo vazio (F10-04). Diz se preencheu algo.
      */
-    function preencher(empresa: EmpresaDoCnpj): boolean {
+    function preencher(empresa: EmpresaDoCnpj, cnpj: string): boolean {
         const agora = atuais.current
         const vazio = (v: string) => v.trim() === ''
         let preencheu = false
@@ -251,10 +271,8 @@ function JanelaClienteAberta({
                 ultimoCep.current = digitos(veio.cep)
                 setEndereco(veio)
                 preencheu = true
-            } else if (empresa.cep) {
-                // Só o CEP (empresário individual, sem logradouro por privacidade): o ViaCEP completa como se a pessoa
-                // tivesse digitado o CEP, sem tirar o foco do CNPJ (F10-29).
-                void mudarCep(empresa.cep, false)
+            } else if (empresa.semLogradouro) {
+                void completarPeloCep(empresa.semLogradouro, cnpj)
                 preencheu = true
             }
         }
@@ -314,7 +332,8 @@ function JanelaClienteAberta({
                         validate={validarDocumento}
                         value={documento}
                         onChange={(v) => void mudarDocumento(v)}
-                        descricao={DESCRICAO_CNPJ[cnpj]}
+                        // A dica só no cliente novo: na edição, o CNPJ salvo não é consultado (F10-10).
+                        descricao={cnpj === 'parado' && cliente ? undefined : DESCRICAO_CNPJ[cnpj]}
                     />
                     <CampoTexto
                         name="inscricaoEstadual"

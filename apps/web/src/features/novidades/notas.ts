@@ -18,8 +18,8 @@ export const NOTAS: NotaVersao[] = [
         titulo: 'Cliente pelo CNPJ, mais certeiro',
         itens: [
             'No cadastro do cliente, CPF ou CNPJ agora é o primeiro campo: digite o CNPJ e o resto se preenche.',
-            'Para empresário individual (MEI), a Receita não publica rua nem telefone: o Acordu usa o CEP dela para completar o endereço.',
-            'O e-mail não vem da Receita; preencha à mão.',
+            'Para empresário individual (MEI), os dados abertos da Receita não trazem rua nem telefone: o Acordu usa CEP, bairro e cidade e completa a rua pelo CEP.',
+            'O e-mail não vem nos dados abertos da Receita; preencha à mão.',
         ],
     },
     {

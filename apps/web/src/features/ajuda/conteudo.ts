@@ -213,7 +213,7 @@ export const SECOES_AJUDA: SecaoAjuda[] = [
             'Em "Contatos e portal", adicione os contatos e convide para o portal. "Só as próprias" mostra ao contato só as solicitações dele; "Todas do cliente", todas.',
         ],
         dicas: [
-            'O telefone que vem da Receita costuma ser do escritório de contabilidade: confira antes de salvar. O e-mail não vem, e para empresário individual (MEI) a Receita só publica o CEP, que completa o endereço pelo ViaCEP. Se a empresa não estiver ativa na Receita, aparece um aviso, mas dá para salvar.',
+            'O telefone que vem da Receita costuma ser do escritório de contabilidade: confira antes de salvar. O e-mail não vem, e para empresário individual (MEI) os dados abertos não trazem rua nem telefone: o Acordu usa CEP, bairro e cidade e completa a rua pelo CEP. Se a empresa não estiver ativa na Receita, aparece um aviso, mas dá para salvar.',
             'Inativar um cliente tira o acesso de todos os contatos ao portal; reativar não devolve: é preciso convidar de novo.',
             '"Arquivos" junta os anexos de todas as conversas e comentários do cliente.',
         ],
