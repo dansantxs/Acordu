@@ -1,4 +1,5 @@
 import { Link } from '@tanstack/react-router'
+import { useId } from 'react'
 import { Button } from 'react-aria-components'
 import type { Perfil } from '@/shared/sessao/perfil'
 import { Icone } from '@/shared/ui/Icone'
@@ -26,6 +27,8 @@ export function CapaLateral({
     aoNavegar?: () => void
 }) {
     const haNovidade = useHaNovidade('equipe')
+    // A capa aparece duas vezes no DOM (fixa e na gaveta do celular): os ids dos títulos não podem repetir.
+    const prefixo = useId()
     return (
         <nav
             aria-label="Principal"
@@ -41,12 +44,13 @@ export function CapaLateral({
                 <Sino fuso={perfil.tenant.fusoHorario} />
             </div>
 
-            <div className="flex flex-col gap-3">
+            {/* Rola sozinha em tela baixa, para o cronômetro, a busca e o menu do usuário continuarem ao alcance. */}
+            <div className="-mx-1 flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto px-1">
                 {gruposDe(perfil).map(({ grupo, titulo, itens }, i) => (
                     <div key={grupo} className="flex flex-col gap-px">
                         {titulo ? (
                             <span
-                                id={`grupo-${grupo}`}
+                                id={`${prefixo}-${grupo}`}
                                 className="px-2.5 pb-1 text-[11px] font-semibold tracking-wide text-lateral-suave uppercase"
                             >
                                 {titulo}
@@ -54,7 +58,10 @@ export function CapaLateral({
                         ) : (
                             i > 0 && <span aria-hidden="true" className="mx-2 mb-2 h-px bg-lateral-linha" />
                         )}
-                        <ul aria-labelledby={titulo ? `grupo-${grupo}` : undefined} className="flex flex-col gap-px">
+                        <ul
+                            aria-labelledby={titulo ? `${prefixo}-${grupo}` : undefined}
+                            className="flex flex-col gap-px"
+                        >
                             {itens.map((item) => (
                                 <li key={item.para} className="flex flex-col">
                                     <Link
@@ -73,7 +80,7 @@ export function CapaLateral({
                 ))}
             </div>
 
-            <div className="mt-auto flex flex-col gap-2">
+            <div className="flex shrink-0 flex-col gap-2">
                 {pode(perfil, 'apontamento.criar') && <IndicadorCronometro />}
                 <Button
                     onPress={aoBuscar}

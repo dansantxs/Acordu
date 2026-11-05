@@ -2,7 +2,7 @@ import type { Perfil } from '@/shared/sessao/perfil'
 
 /**
  * Destinos da capa lateral, na ordem de uso (pedido de 05/11): o dia (Hoje e Agenda), o que se cadastra antes de
- * trabalhar (clientes e contratos), o trabalho, o acompanhamento e, no rodapé, o que é da conta e do sistema.
+ * trabalhar (clientes e contratos), o trabalho, o acompanhamento e, por último, depois de uma linha, o que é do sistema.
  */
 export type GrupoNavegacao = 'dia' | 'cadastros' | 'atendimento' | 'acompanhamento' | 'sistema'
 
@@ -81,11 +81,9 @@ export function navegacaoDe(perfil: Perfil): ItemNavegacao[] {
 
 /** Os destinos do papel em grupos, na ordem; grupo sem nenhum item visível não aparece. */
 export function gruposDe(perfil: Perfil): { grupo: GrupoNavegacao; titulo: string | null; itens: ItemNavegacao[] }[] {
-    const grupos: { grupo: GrupoNavegacao; titulo: string | null; itens: ItemNavegacao[] }[] = []
-    for (const item of navegacaoDe(perfil)) {
-        const atual = grupos.at(-1)
-        if (atual?.grupo === item.grupo) atual.itens.push(item)
-        else grupos.push({ grupo: item.grupo, titulo: TITULOS_GRUPO[item.grupo], itens: [item] })
-    }
-    return grupos
+    // Na ordem de TITULOS_GRUPO: cada grupo aparece uma vez, mesmo com um item fora do bloco em NAVEGACAO.
+    const itens = navegacaoDe(perfil)
+    return (Object.keys(TITULOS_GRUPO) as GrupoNavegacao[])
+        .map((grupo) => ({ grupo, titulo: TITULOS_GRUPO[grupo], itens: itens.filter((i) => i.grupo === grupo) }))
+        .filter((g) => g.itens.length > 0)
 }

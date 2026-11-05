@@ -72,6 +72,21 @@ describe('casca do app', () => {
             'Recorrências',
         ])
         expect(nomes(within(capa).getByRole('list', { name: 'Acompanhamento' }))).toEqual(['Horas', 'Panorama'])
+        // O grupo do sistema vem por último, sem título (só a linha).
+        const listas = within(capa).getAllByRole('list')
+        expect(nomes(listas.at(-1)!)).toEqual(['Configurações', 'Novidades', 'Ajuda'])
+        expect(listas.at(-1)).not.toHaveAccessibleName()
+    })
+
+    it('na gaveta do celular, os títulos dos grupos não repetem id com a capa fixa', async () => {
+        app(['cliente.ver', 'contrato.ver', 'solicitacao.ver'])
+        await abrir('/')
+        const usuario = userEvent.setup()
+        await usuario.click(await screen.findByRole('button', { name: 'Abrir menu' }))
+        const gaveta = await screen.findByRole('dialog', { name: 'Menu' })
+        expect(within(gaveta).getByRole('list', { name: 'Cadastros' })).toBeInTheDocument()
+        const ids = [...document.querySelectorAll('[id]')].map((e) => e.id).filter(Boolean)
+        expect(new Set(ids).size).toBe(ids.length)
     })
 
     it('o couro escolhido no menu vale no app e fica no navegador', async () => {
