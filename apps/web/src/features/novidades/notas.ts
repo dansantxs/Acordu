@@ -13,6 +13,14 @@ export interface NotaVersao {
 
 export const NOTAS: NotaVersao[] = [
     {
+        data: '2026-11-05',
+        publico: 'equipe',
+        titulo: 'Menu na ordem de uso',
+        itens: [
+            'A barra lateral agora segue a ordem do trabalho, em grupos: Hoje e Agenda; Cadastros (Clientes e Contratos); Atendimento (Solicitações, Tarefas, Projetos e Recorrências); Acompanhamento (Horas e Panorama); e, no fim, Configurações, Novidades e Ajuda.',
+        ],
+    },
+    {
         data: '2026-11-04',
         publico: 'equipe',
         titulo: 'Ver a senha enquanto digita',

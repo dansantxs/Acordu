@@ -6,7 +6,7 @@ import { MenuUsuario } from './MenuUsuario'
 import { IndicadorCronometro } from '@/features/cronometro/Cronometro'
 import { PontoNovidade } from '@/features/novidades/ListaNotas'
 import { useHaNovidade } from '@/features/novidades/vistas'
-import { navegacaoDe, pode } from './navegacao'
+import { gruposDe, pode } from './navegacao'
 import { Sino } from './Sino'
 
 const estiloLink =
@@ -41,22 +41,37 @@ export function CapaLateral({
                 <Sino fuso={perfil.tenant.fusoHorario} />
             </div>
 
-            <ul className="flex flex-col gap-px">
-                {navegacaoDe(perfil).map((item) => (
-                    <li key={item.para} className="flex flex-col">
-                        {item.separar && <span aria-hidden="true" className="mx-2 my-2 h-px bg-lateral-linha" />}
-                        <Link
-                            to={item.para}
-                            activeOptions={{ exact: item.para === '/' }}
-                            className={estiloLink}
-                            onClick={aoNavegar}
-                        >
-                            {item.rotulo}
-                            {item.para === '/novidades' && haNovidade && <PontoNovidade />}
-                        </Link>
-                    </li>
+            <div className="flex flex-col gap-3">
+                {gruposDe(perfil).map(({ grupo, titulo, itens }, i) => (
+                    <div key={grupo} className="flex flex-col gap-px">
+                        {titulo ? (
+                            <span
+                                id={`grupo-${grupo}`}
+                                className="px-2.5 pb-1 text-[11px] font-semibold tracking-wide text-lateral-suave uppercase"
+                            >
+                                {titulo}
+                            </span>
+                        ) : (
+                            i > 0 && <span aria-hidden="true" className="mx-2 mb-2 h-px bg-lateral-linha" />
+                        )}
+                        <ul aria-labelledby={titulo ? `grupo-${grupo}` : undefined} className="flex flex-col gap-px">
+                            {itens.map((item) => (
+                                <li key={item.para} className="flex flex-col">
+                                    <Link
+                                        to={item.para}
+                                        activeOptions={{ exact: item.para === '/' }}
+                                        className={estiloLink}
+                                        onClick={aoNavegar}
+                                    >
+                                        {item.rotulo}
+                                        {item.para === '/novidades' && haNovidade && <PontoNovidade />}
+                                    </Link>
+                                </li>
+                            ))}
+                        </ul>
+                    </div>
                 ))}
-            </ul>
+            </div>
 
             <div className="mt-auto flex flex-col gap-2">
                 {pode(perfil, 'apontamento.criar') && <IndicadorCronometro />}

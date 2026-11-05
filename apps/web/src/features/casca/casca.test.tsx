@@ -27,6 +27,51 @@ describe('casca do app', () => {
             .getAllByRole('link')
             .map((l) => l.textContent?.replace(', há novidades', ''))
         expect(links).toEqual(['Hoje', 'Agenda', 'Solicitações', 'Tarefas', 'Horas', 'Novidades', 'Ajuda'])
+        // Grupo sem nenhum destino do papel (Cadastros) não aparece.
+        expect(within(capa).queryByText('Cadastros')).not.toBeInTheDocument()
+        expect(within(capa).getByRole('list', { name: 'Atendimento' })).toBeInTheDocument()
+    })
+
+    it('a capa segue a ordem de uso, em grupos com título (pedido de 05/11)', async () => {
+        app([
+            'solicitacao.ver',
+            'tarefa.ver',
+            'cliente.ver',
+            'contrato.ver',
+            'projeto.ver',
+            'recorrencia.ver',
+            'dashboard.ver',
+            'configuracao.gerenciar',
+        ])
+        await abrir('/')
+        const capa = await screen.findByRole('navigation', { name: 'Principal' })
+        const nomes = (lista: HTMLElement) =>
+            within(lista)
+                .getAllByRole('link')
+                .map((l) => l.textContent?.replace(', há novidades', ''))
+        expect(nomes(capa)).toEqual([
+            'Hoje',
+            'Agenda',
+            'Clientes',
+            'Contratos',
+            'Solicitações',
+            'Tarefas',
+            'Projetos',
+            'Recorrências',
+            'Horas',
+            'Panorama',
+            'Configurações',
+            'Novidades',
+            'Ajuda',
+        ])
+        expect(nomes(within(capa).getByRole('list', { name: 'Cadastros' }))).toEqual(['Clientes', 'Contratos'])
+        expect(nomes(within(capa).getByRole('list', { name: 'Atendimento' }))).toEqual([
+            'Solicitações',
+            'Tarefas',
+            'Projetos',
+            'Recorrências',
+        ])
+        expect(nomes(within(capa).getByRole('list', { name: 'Acompanhamento' }))).toEqual(['Horas', 'Panorama'])
     })
 
     it('o couro escolhido no menu vale no app e fica no navegador', async () => {
