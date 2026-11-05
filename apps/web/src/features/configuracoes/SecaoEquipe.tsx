@@ -67,7 +67,8 @@ export function SecaoEquipe({ perfil }: { perfil: Perfil }) {
     const revogacao = useMutation({
         mutationFn: revogarConvite,
         onSuccess: async (_, c) => {
-            await consultas.invalidateQueries({ queryKey: consultaConvites.queryKey })
+            // Toda a equipe: convites mudam também o passo "equipe" dos primeiros passos.
+            await consultas.invalidateQueries({ queryKey: ['equipe'] })
             avisar(`Convite de ${c.email} cancelado.`)
         },
         onError: avisarErro,
@@ -248,7 +249,8 @@ function JanelaConvite({ papeis, aoFechar }: { papeis: Papel[]; aoFechar: () => 
     const envio = useMutation({
         mutationFn: ({ email }: { email: string }) => convidar(email, papel!),
         onSuccess: async (c) => {
-            await consultas.invalidateQueries({ queryKey: consultaConvites.queryKey })
+            // Toda a equipe: convites mudam também o passo "equipe" dos primeiros passos.
+            await consultas.invalidateQueries({ queryKey: ['equipe'] })
             avisar(`Convite enviado para ${c.email}.`)
             aoFechar()
         },

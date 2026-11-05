@@ -41,6 +41,8 @@ function Formulario({ empresa }: { empresa: Empresa }) {
         mutationFn: salvarEmpresa,
         onSuccess: async (salva) => {
             consultas.setQueryData(consultaEmpresa.queryKey, salva)
+            // Por prefixo: atualiza também o que deriva da empresa (o passo dos primeiros passos no Hoje).
+            await consultas.invalidateQueries({ queryKey: consultaEmpresa.queryKey })
             // O nome da empresa vem no perfil (capa lateral, troca de empresa).
             await consultas.invalidateQueries({ queryKey: ['sessao', 'eu'] })
             await roteador.invalidate()
