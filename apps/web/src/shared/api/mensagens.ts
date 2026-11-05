@@ -13,7 +13,10 @@ export function mensagemDeErro(erro: unknown): string | null {
     }
     // Só a falha de rede do `fetch` é "sem conexão" (Chrome: "Failed to fetch"; Firefox: "NetworkError…"; Safari: "Load
     // failed"). Outro `TypeError` é defeito do código e não pode mandar a pessoa conferir a internet.
-    if (erro instanceof TypeError && /fetch|network|load failed/i.test(erro.message))
+    if (
+        erro instanceof TypeError &&
+        /^(failed to fetch|networkerror|network error|load failed|fetch failed)/i.test(erro.message)
+    )
         return 'Sem conexão com o servidor. Confira a internet e tente de novo.'
     return 'Algo deu errado. Tente de novo.'
 }

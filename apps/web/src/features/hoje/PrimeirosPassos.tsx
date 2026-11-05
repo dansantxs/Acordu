@@ -10,7 +10,7 @@ import type { Perfil } from '@/shared/sessao/perfil'
 /**
  * Primeiros passos no Hoje (marco do manual, M5): para quem configura a empresa (o Dono), o progresso da ordem de uso
  * pelas listas que já existem. Some quando tudo foi feito ou com "Dispensar" (guardado no navegador, por empresa).
- * Cada chave da consulta começa pelo recurso, para o tempo real e as mutações já existentes a invalidarem, e termina
+ * Cada chave começa pelo recurso que as mutações e o tempo real daquele passo invalidam (por prefixo), e termina
  * em `primeiros-passos`: aqui a consulta guarda só um booleano, e uma chave igual à da tela (ex.: a seção Empresa)
  * entregaria esse booleano a ela.
  */
@@ -30,7 +30,7 @@ const VERIFICACOES: Record<ChaveProgresso, { chave: string[]; feito: () => Promi
         feito: async () => (await api.GET('/api/v1/configuracoes/calendario')).data!.feriados.length > 0,
     },
     equipe: {
-        chave: ['usuarios', 'primeiros-passos'],
+        chave: ['equipe', 'primeiros-passos'],
         feito: async () => {
             const [usuarios, convites] = await Promise.all([api.GET('/api/v1/usuarios'), api.GET('/api/v1/convites')])
             return usuarios.data!.length > 1 || convites.data!.length > 0
@@ -45,7 +45,7 @@ const VERIFICACOES: Record<ChaveProgresso, { chave: string[]; feito: () => Promi
         feito: async () => algum((await api.GET('/api/v1/contratos', { params: pagina1 })).data!),
     },
     portal: {
-        chave: ['auditoria', 'primeiros-passos'],
+        chave: ['clientes', 'portal', 'primeiros-passos'],
         feito: async () =>
             algum(
                 (

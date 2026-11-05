@@ -80,8 +80,10 @@ function Formulario({ calendario }: { calendario: Calendario }) {
 
     const envio = useMutation({
         mutationFn: salvarCalendario,
-        onSuccess: (salvo) => {
+        onSuccess: async (salvo) => {
             consultas.setQueryData(consultaCalendario.queryKey, salvo)
+            // Por prefixo: atualiza também o que deriva do calendário (o passo dos primeiros passos no Hoje).
+            await consultas.invalidateQueries({ queryKey: consultaCalendario.queryKey })
             avisar('Calendário salvo. Vale para as solicitações novas.')
         },
     })

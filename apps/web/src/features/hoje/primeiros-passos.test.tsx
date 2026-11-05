@@ -83,4 +83,36 @@ describe('hoje: primeiros passos', () => {
         expect(await screen.findByText(/O SLA conta só as horas do expediente/)).toBeInTheDocument()
         expect(screen.queryByText(/Sem conexão com o servidor/)).not.toBeInTheDocument()
     })
+
+    it('salvar a empresa marca o passo como feito ao voltar ao Hoje', async () => {
+        const slaPadrao = ['URGENTE', 'ALTA', 'MEDIA', 'BAIXA'].map((prioridade) => ({
+            prioridade,
+            primeiraRespostaMinutos: 60,
+            resolucaoMinutos: 240,
+        }))
+        let empresa = { nome: 'Prado', responderPara: null as string | null, slaPadrao, slaPersonalizado: false }
+        comPerfil(
+            DONO,
+            empresaNova({
+                'GET /api/v1/configuracoes/empresa': () => json(empresa),
+                'PUT /api/v1/configuracoes/empresa': (corpo) => {
+                    empresa = { ...empresa, ...(corpo as object) }
+                    return json(empresa)
+                },
+            }),
+        )
+        const roteador = await abrir('/')
+        const cartao = await screen.findByRole('region', { name: 'Primeiros passos' })
+        expect(within(cartao).getByText(/Configure a empresa/)).not.toHaveTextContent('(feito)')
+
+        await roteador.navigate({ to: '/configuracoes/empresa' })
+        const usuario = userEvent.setup()
+        await usuario.type(await screen.findByRole('textbox', { name: /Responder para/ }), 'oi@prado.com.br')
+        await usuario.click(screen.getByRole('button', { name: 'Salvar' }))
+        await screen.findByText('Dados da empresa salvos.')
+
+        await roteador.navigate({ to: '/' })
+        const depois = await screen.findByRole('region', { name: 'Primeiros passos' })
+        await vi.waitFor(() => expect(within(depois).getByText(/Configure a empresa/)).toHaveTextContent('(feito)'))
+    })
 })

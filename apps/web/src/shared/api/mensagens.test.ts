@@ -7,9 +7,11 @@ describe('mensagemDeErro', () => {
         (texto) => expect(mensagemDeErro(new TypeError(texto))).toMatch(/^Sem conexão com o servidor/),
     )
 
-    it('outro TypeError é defeito, não falta de internet', () => {
-        expect(mensagemDeErro(new TypeError("Cannot read properties of undefined (reading 'find')"))).toBe(
-            'Algo deu errado. Tente de novo.',
-        )
-    })
+    it.each([
+        "Cannot read properties of undefined (reading 'find')",
+        "Cannot read properties of undefined (reading 'refetch')",
+        "Failed to execute 'fetch' on 'Window': Invalid value",
+    ])('outro TypeError (%s) é defeito, não falta de internet', (texto) =>
+        expect(mensagemDeErro(new TypeError(texto))).toBe('Algo deu errado. Tente de novo.'),
+    )
 })
