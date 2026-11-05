@@ -10,7 +10,7 @@ import type { TarefaResumo } from './consultas'
 const LIMITE = 20
 
 /**
- * Escolha de tarefa buscando na API pelo título (lançar horas pela tela "Horas"): abertas e concluídas, as 20
+ * Escolha de tarefa buscando na API pelo título (lançar horas pela tela "Horas trabalhadas"): abertas e concluídas, as 20
  * primeiras. Devolve o resumo inteiro, porque quem usa precisa saber se a tarefa tem cliente.
  */
 export function CampoTarefa({

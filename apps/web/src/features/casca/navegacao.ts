@@ -52,7 +52,7 @@ export const NAVEGACAO: ItemNavegacao[] = [
     { rotulo: 'Tarefas', para: '/tarefas', permissoes: ['tarefa.ver'], grupo: 'atendimento' },
     { rotulo: 'Projetos', para: '/projetos', permissoes: ['projeto.ver'], grupo: 'atendimento' },
     { rotulo: 'Recorrências', para: '/recorrencias', permissoes: ['recorrencia.ver'], grupo: 'atendimento' },
-    { rotulo: 'Horas', para: '/horas', permissoes: [], grupo: 'acompanhamento' },
+    { rotulo: 'Horas trabalhadas', para: '/horas', permissoes: [], grupo: 'acompanhamento' },
     { rotulo: 'Panorama', para: '/panorama', permissoes: ['dashboard.ver'], grupo: 'acompanhamento' },
     {
         rotulo: 'Configurações',

@@ -17,7 +17,7 @@ import { Marcador } from '@/shared/ui/Marcador'
 import { LegendaObrigatorios } from '@/shared/ui/Rotulo'
 import { criarApontamento, editarApontamento, excluirApontamento, type Apontamento } from './consultas'
 
-/** A tarefa já conhecida (lançar pelo painel dela) ou nenhuma (escolher na tela "Horas"). */
+/** A tarefa já conhecida (lançar pelo painel dela) ou nenhuma (escolher na tela "Horas trabalhadas"). */
 export interface TarefaDoApontamento {
     id: string
     titulo: string
@@ -216,7 +216,7 @@ function Formulario({
 
 /**
  * Linhas de apontamento com editar e excluir para quem pode (o autor, ou `apontamento.editar_todos`). Excluir pede
- * confirmação (não tem volta). `mostrarTarefa` é para a tela "Horas"; no painel da tarefa ela já é conhecida.
+ * confirmação (não tem volta). `mostrarTarefa` é para a tela "Horas trabalhadas"; no painel da tarefa ela já é conhecida.
  */
 export function LinhasApontamento({
     itens,

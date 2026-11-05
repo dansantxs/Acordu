@@ -15,6 +15,12 @@ export const NOTAS: NotaVersao[] = [
     {
         data: '2026-11-05',
         publico: 'equipe',
+        titulo: '"Horas" agora é "Horas trabalhadas"',
+        itens: ['A tela dos apontamentos da semana mudou de nome no menu: Horas trabalhadas. O conteúdo é o mesmo.'],
+    },
+    {
+        data: '2026-11-05',
+        publico: 'equipe',
         titulo: 'Cliente pelo CNPJ, mais certeiro',
         itens: [
             'No cadastro do cliente, CPF ou CNPJ agora é o primeiro campo: digite o CNPJ e o resto se preenche.',
