@@ -12,7 +12,7 @@ const empresaNova = (mudancas: Rotas = {}): Rotas => ({
     'GET /api/v1/configuracoes/empresa': () =>
         json({ nome: 'Prado', responderPara: null, slaPadrao: [], slaPersonalizado: false }),
     'GET /api/v1/configuracoes/calendario': () =>
-        json({ fusoHorario: 'America/Sao_Paulo', expediente: [], feriados: [{ data: '2026-11-02', nome: 'Finados' }] }),
+        json({ fusoHorario: 'America/Sao_Paulo', expediente: [], feriados: ['2026-11-02'] }),
     'GET /api/v1/usuarios': () => json([{ usuarioId: 'u1' }]),
     'GET /api/v1/convites': () => json([]),
     'GET /api/v1/clientes': () => pagina(1),
@@ -70,5 +70,17 @@ describe('hoje: primeiros passos', () => {
         await abrir('/')
         expect(await screen.findByRole('region', { name: /Apontado hoje/ })).toBeInTheDocument()
         expect(screen.queryByRole('region', { name: 'Primeiros passos' })).not.toBeInTheDocument()
+    })
+
+    it('voltar às configurações depois do Hoje abre a seção normalmente (chave própria da verificação)', async () => {
+        comPerfil(DONO, empresaNova())
+        const roteador = await abrir('/')
+        await screen.findByRole('region', { name: 'Primeiros passos' })
+        await roteador.navigate({ to: '/configuracoes/empresa' })
+        expect(await screen.findByRole('textbox', { name: /Responder para/ })).toBeInTheDocument()
+        expect(screen.queryByText(/Sem conexão com o servidor/)).not.toBeInTheDocument()
+        await roteador.navigate({ to: '/configuracoes/calendario' })
+        expect(await screen.findByText(/O SLA conta só as horas do expediente/)).toBeInTheDocument()
+        expect(screen.queryByText(/Sem conexão com o servidor/)).not.toBeInTheDocument()
     })
 })

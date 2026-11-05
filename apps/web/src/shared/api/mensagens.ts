@@ -11,7 +11,10 @@ export function mensagemDeErro(erro: unknown): string | null {
         if (erro.status >= 500) return 'O servidor não conseguiu concluir agora. Tente de novo em instantes.'
         return erro.message
     }
-    if (erro instanceof TypeError) return 'Sem conexão com o servidor. Confira a internet e tente de novo.'
+    // Só a falha de rede do `fetch` é "sem conexão" (Chrome: "Failed to fetch"; Firefox: "NetworkError…"; Safari: "Load
+    // failed"). Outro `TypeError` é defeito do código e não pode mandar a pessoa conferir a internet.
+    if (erro instanceof TypeError && /fetch|network|load failed/i.test(erro.message))
+        return 'Sem conexão com o servidor. Confira a internet e tente de novo.'
     return 'Algo deu errado. Tente de novo.'
 }
 
