@@ -404,7 +404,7 @@ export async function criarDemonstracao(): Promise<Demonstracao> {
     await apontar(rafael, tCheckout, -6, 120, 'Levantamento dos meios de pagamento')
     await apontar(marina, tConta, 0, 30, 'Caixa de e-mail criada')
     await apontar(marina, tLayout, -5, 60, 'Reunião de briefing com a Joana')
-    // A Marina aponta todo dia da semana, para a tela Horas ter o que agrupar.
+    // A Marina aponta todo dia da semana, para a tela Horas trabalhadas ter o que agrupar.
     const nestaSemana: number[] = []
     for (let d = -1; diaDaSemana(util(d)) < diaDaSemana(ultimoUtil()); d--) nestaSemana.push(d)
     for (const [i, d] of nestaSemana.entries()) {

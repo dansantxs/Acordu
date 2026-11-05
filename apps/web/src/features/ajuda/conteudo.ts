@@ -131,7 +131,7 @@ export const SECOES_AJUDA: SecaoAjuda[] = [
         permissoes: [],
         resumo: 'Algumas coisas valem para todas as telas e economizam tempo.',
         dicas: [
-            'A barra lateral segue a ordem do trabalho: Hoje e Agenda; Cadastros (clientes e contratos, feitos antes de atender); Atendimento (solicitações, tarefas, projetos e recorrências); Acompanhamento (horas e panorama); e, no fim, Configurações, Novidades e Ajuda. As seções das telas, aqui no manual, seguem a mesma ordem.',
+            'A barra lateral segue a ordem do trabalho: Hoje e Agenda; Cadastros (clientes e contratos, feitos antes de atender); Atendimento (solicitações, tarefas, projetos e recorrências); Acompanhamento (horas trabalhadas e panorama); e, no fim, Configurações, Novidades e Ajuda. As seções das telas, aqui no manual, seguem a mesma ordem.',
             'Ctrl+K (ou Cmd+K no Mac) abre a busca: vá para qualquer tela, encontre um cliente ou uma solicitação pelo número e crie coisas novas sem sair de onde está.',
             'Os filtros ficam no endereço da página: copie o link para mostrar a alguém exatamente a mesma lista, ou volte a ela pelo histórico.',
             'Detalhes abrem num painel ao lado da lista. Esc fecha o painel e devolve você à linha de onde saiu.',
@@ -315,7 +315,7 @@ export const SECOES_AJUDA: SecaoAjuda[] = [
     },
     {
         id: 'horas',
-        titulo: 'Horas',
+        titulo: 'Horas trabalhadas',
         grupo: 'telas',
         permissoes: [],
         tela: '/horas',

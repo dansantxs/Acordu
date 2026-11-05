@@ -3,8 +3,8 @@ import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { reiniciarParaTestes } from '@/shared/sessao/sessao'
 import { abrir, comContato, comPerfil, json } from '@/testes/app'
-import { notasDo } from './notas'
-import { reiniciarVistasParaTestes } from './vistas'
+import { NOTAS, notasDo } from './notas'
+import { marcarVistas, reiniciarVistasParaTestes } from './vistas'
 
 describe('novidades', () => {
     beforeEach(() => {
@@ -22,7 +22,31 @@ describe('novidades', () => {
         expect(await screen.findByRole('heading', { level: 1, name: 'Novidades' })).toBeInTheDocument()
         expect(screen.getByRole('heading', { level: 2, name: notasDo('equipe')[0]!.titulo })).toBeInTheDocument()
         expect(await within(menu).findByRole('link', { name: 'Novidades' })).toBeInTheDocument()
-        expect(localStorage.getItem('acordu.novidades.equipe')).toBe(notasDo('equipe')[0]!.data)
+        expect(localStorage.getItem('acordu.novidades.equipe')).toMatch(
+            new RegExp(`^${notasDo('equipe')[0]!.data}\\|\\d{3}$`),
+        )
+    })
+
+    it('nota nova no mesmo dia de uma já vista acende o ponto de novo', async () => {
+        comPerfil([])
+        marcarVistas('equipe')
+        const extra = { ...notasDo('equipe')[0]!, titulo: 'Mais uma do dia' }
+        NOTAS.unshift(extra)
+        try {
+            await abrir('/ajuda')
+            const deNovo = await screen.findByRole('navigation', { name: 'Principal' })
+            expect(await within(deNovo).findByRole('link', { name: 'Novidades, há novidades' })).toBeInTheDocument()
+        } finally {
+            NOTAS.splice(NOTAS.indexOf(extra), 1)
+        }
+    })
+
+    it('"já vi" guardado no formato antigo (só a data) acende o ponto uma vez', async () => {
+        localStorage.setItem('acordu.novidades.equipe', notasDo('equipe')[0]!.data)
+        comPerfil([])
+        await abrir('/ajuda')
+        const menu = await screen.findByRole('navigation', { name: 'Principal' })
+        expect(within(menu).getByRole('link', { name: 'Novidades, há novidades' })).toBeInTheDocument()
     })
 
     it('a equipe não vê as notas do cliente', async () => {

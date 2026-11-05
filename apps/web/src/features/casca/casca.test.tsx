@@ -26,7 +26,7 @@ describe('casca do app', () => {
         const links = within(capa)
             .getAllByRole('link')
             .map((l) => l.textContent?.replace(', há novidades', ''))
-        expect(links).toEqual(['Hoje', 'Agenda', 'Solicitações', 'Tarefas', 'Horas', 'Novidades', 'Ajuda'])
+        expect(links).toEqual(['Hoje', 'Agenda', 'Solicitações', 'Tarefas', 'Horas trabalhadas', 'Novidades', 'Ajuda'])
         // Grupo sem nenhum destino do papel (Cadastros) não aparece.
         expect(within(capa).queryByText('Cadastros')).not.toBeInTheDocument()
         expect(within(capa).getByRole('list', { name: 'Atendimento' })).toBeInTheDocument()
@@ -58,7 +58,7 @@ describe('casca do app', () => {
             'Tarefas',
             'Projetos',
             'Recorrências',
-            'Horas',
+            'Horas trabalhadas',
             'Panorama',
             'Configurações',
             'Novidades',
@@ -71,7 +71,10 @@ describe('casca do app', () => {
             'Projetos',
             'Recorrências',
         ])
-        expect(nomes(within(capa).getByRole('list', { name: 'Acompanhamento' }))).toEqual(['Horas', 'Panorama'])
+        expect(nomes(within(capa).getByRole('list', { name: 'Acompanhamento' }))).toEqual([
+            'Horas trabalhadas',
+            'Panorama',
+        ])
         // O grupo do sistema vem por último, sem título (só a linha).
         const listas = within(capa).getAllByRole('list')
         expect(nomes(listas.at(-1)!)).toEqual(['Configurações', 'Novidades', 'Ajuda'])

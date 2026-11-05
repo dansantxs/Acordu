@@ -69,7 +69,7 @@ export function TelaHoras({ perfil, filtros }: { perfil: Perfil; filtros: Filtro
     return (
         <Pagina
             ajuda="horas"
-            titulo="Horas"
+            titulo="Horas trabalhadas na semana"
             acoes={
                 podeCriar && (
                     <Botao onPress={() => setLancando(true)}>
