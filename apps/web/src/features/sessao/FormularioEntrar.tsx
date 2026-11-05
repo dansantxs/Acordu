@@ -5,6 +5,7 @@ import { errosDeCampo, mensagemDeErro } from '@/shared/api/mensagens'
 import { destinoSeguro, entrar } from '@/shared/sessao/acoes'
 import { Alerta } from '@/shared/ui/Alerta'
 import { Botao } from '@/shared/ui/Botao'
+import { CampoSenha } from '@/shared/ui/CampoSenha'
 import { CampoTexto } from '@/shared/ui/CampoTexto'
 
 export function FormularioEntrar({ voltar }: { voltar?: string }) {
@@ -27,7 +28,7 @@ export function FormularioEntrar({ voltar }: { voltar?: string }) {
         >
             {mensagem && <Alerta>{mensagem}</Alerta>}
             <CampoTexto name="email" type="email" rotulo="E-mail" autoComplete="username" isRequired autoFocus />
-            <CampoTexto name="senha" type="password" rotulo="Senha" autoComplete="current-password" isRequired />
+            <CampoSenha name="senha" rotulo="Senha" autoComplete="current-password" isRequired />
             <div className="flex items-center justify-between gap-4">
                 <Link to="/conta/senha" className="text-sm text-acento-texto underline-offset-4 hover:underline">
                     Esqueci a senha

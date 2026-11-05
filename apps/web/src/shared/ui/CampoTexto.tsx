@@ -2,7 +2,9 @@ import type { Ref } from 'react'
 import { FieldError, Input, Text, TextArea, TextField, type TextFieldProps } from 'react-aria-components'
 import { Rotulo } from './Rotulo'
 
-interface Props extends Omit<TextFieldProps, 'children'> {
+interface Props extends Omit<TextFieldProps, 'children' | 'type'> {
+    /** Senha não: use `CampoSenha` (convenções §4). */
+    type?: Exclude<TextFieldProps['type'], 'password'>
     rotulo: string
     descricao?: string
     /** Várias linhas (observações, mensagens). */
@@ -11,7 +13,7 @@ interface Props extends Omit<TextFieldProps, 'children'> {
     refEntrada?: Ref<HTMLInputElement>
 }
 
-const estiloEntrada =
+export const estiloEntrada =
     'rounded-couro border border-linha bg-superficie px-3 py-2 text-tinta placeholder:text-suave data-[invalid]:border-vermelho'
 
 /**

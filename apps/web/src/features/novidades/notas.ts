@@ -15,6 +15,20 @@ export const NOTAS: NotaVersao[] = [
     {
         data: '2026-11-04',
         publico: 'equipe',
+        titulo: 'Ver a senha enquanto digita',
+        itens: [
+            'Os campos de senha (entrar, criar conta, nova senha e aceite de convite) ganharam o botão de olho para mostrar o que foi digitado. A senha começa oculta.',
+        ],
+    },
+    {
+        data: '2026-11-04',
+        publico: 'cliente',
+        titulo: 'Mostrar a senha no portal',
+        itens: ['Ao entrar ou aceitar o convite do portal, o botão de olho mostra a senha que você digitou.'],
+    },
+    {
+        data: '2026-11-04',
+        publico: 'equipe',
         titulo: 'Cliente pelo CNPJ',
         itens: [
             'Ao digitar o CNPJ de um cliente, o Acordu busca os dados abertos da Receita e preenche o que estiver vazio: nome, razão social, endereço, telefone e e-mail. O que você já digitou não muda.',
