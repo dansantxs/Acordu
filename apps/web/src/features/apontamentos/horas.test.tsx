@@ -61,6 +61,9 @@ describe('horas', () => {
         })
         const roteador = await abrir('/horas')
 
+        expect(
+            await screen.findByRole('heading', { level: 1, name: 'Horas trabalhadas na semana' }),
+        ).toBeInTheDocument()
         expect(await screen.findByText('2h15')).toBeInTheDocument()
         expect(screen.getByText(/1h45 faturáveis/)).toBeInTheDocument()
         const diaSegunda = within(screen.getByRole('region', { name: /segunda-feira/ }))

@@ -2,8 +2,10 @@ import { useSyncExternalStore } from 'react'
 import { notasDo, type NotaVersao } from './notas'
 
 /**
- * "Já vi" das novidades (M4): fica no navegador, por público, como a data da nota mais nova que a pessoa abriu. Sem
- * armazenamento (aba privada, bloqueio), o ponto aparece até a tela ser aberta nesta visita.
+ * "Já vi" das novidades (M4): fica no navegador, por público, como a marca da nota mais nova que a pessoa abriu: a data
+ * e quantas notas há nela (`2026-11-05|002`), para uma nota nova no mesmo dia também acender o ponto. Marca antiga, só
+ * com a data, fica menor que qualquer marca do mesmo dia: o ponto acende uma vez. Sem armazenamento (aba privada,
+ * bloqueio), o ponto aparece até a tela ser aberta nesta visita.
  */
 const CHAVE = (publico: NotaVersao['publico']) => `acordu.novidades.${publico}`
 const EVENTO = 'acordu:novidades'
@@ -17,7 +19,12 @@ function lerVista(publico: NotaVersao['publico']): string {
     }
 }
 
-const maisNova = (publico: NotaVersao['publico']) => notasDo(publico).reduce((m, n) => (n.data > m ? n.data : m), '')
+function maisNova(publico: NotaVersao['publico']): string {
+    const notas = notasDo(publico)
+    const data = notas.reduce((m, n) => (n.data > m ? n.data : m), '')
+    if (!data) return ''
+    return `${data}|${String(notas.filter((n) => n.data === data).length).padStart(3, '0')}`
+}
 
 export function marcarVistas(publico: NotaVersao['publico']) {
     const data = maisNova(publico)
