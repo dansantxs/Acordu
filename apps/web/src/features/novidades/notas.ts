@@ -23,7 +23,7 @@ export const NOTAS: NotaVersao[] = [
     {
         data: '2026-11-04',
         publico: 'cliente',
-        titulo: 'Ver a senha enquanto digita',
+        titulo: 'Mostrar a senha no portal',
         itens: ['Ao entrar ou aceitar o convite do portal, o botão de olho mostra a senha que você digitou.'],
     },
     {
