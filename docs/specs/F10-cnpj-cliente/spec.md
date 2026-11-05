@@ -23,13 +23,15 @@ Ao digitar o CNPJ no cadastro do cliente, o formulário busca os dados abertos d
 | F10-02 | formulário de cliente novo, vazio | o CNPJ é de empresa sem nome fantasia | o nome recebe a razão social (decisão 2) | `clientes.test › sem nome fantasia, o nome recebe a razão social` |
 | F10-03 | nome, razão social, e-mail ou telefone já digitados | a consulta responde | o que já foi digitado fica como está; só os campos vazios recebem dados | `clientes.test › o que já foi digitado fica` |
 | F10-04 | algum campo do endereço já preenchido (inclusive pelo CEP) | a consulta responde | o endereço inteiro fica como está: não mistura endereço digitado com o da Receita | `clientes.test › o que já foi digitado fica` |
-| F10-05 | o endereço veio do CNPJ | a pessoa não mexe no CEP | o ViaCEP não é chamado de novo para esse CEP e não sobrescreve o que veio da Receita | `clientes.test › CNPJ completo preenche…` (ViaCEP não chamado) |
+| F10-05 | o endereço veio do CNPJ | a pessoa não mexe no CEP | o ViaCEP não é chamado de novo para esse CEP e não sobrescreve o que veio da Receita (exceção: o F10-29, quando só o CEP vem) | `clientes.test › CNPJ completo preenche…` (ViaCEP não chamado) |
 | F10-06 | a consulta preencheu campos | a pessoa olha o formulário | uma linha discreta diz o que veio da Receita ("Preenchido com os dados da Receita; confira antes de salvar. O telefone pode ser o do escritório de contabilidade.", ajustado em 05/11: o e-mail não vem) | `clientes.test › CNPJ completo preenche…` |
 | F10-07 | um CNPJ completo | a consulta está em andamento | o campo mostra que está buscando, como o CEP | `clientes.test › mostra que está buscando, e só a resposta do CNPJ atual vale` |
 | F10-08 | um CNPJ sendo consultado | a pessoa troca o CNPJ antes da resposta | só a resposta do CNPJ atual é aplicada | `clientes.test › mostra que está buscando, e só a resposta do CNPJ atual vale` |
 | F10-09 | um CNPJ sendo consultado | a pessoa fecha a janela | nada é aplicado e nenhum erro aparece | `clientes.test › fechar a janela durante a consulta abandona tudo` |
 | F10-10 | edição de um cliente que já tem CNPJ | o formulário abre | nada é consultado (decisão 3) | `clientes.test › na edição, o CNPJ salvo não é consultado` |
 | F10-11 | edição de um cliente | a pessoa troca o CNPJ por outro válido | consulta e preenche só os campos vazios, como no F10-03 e F10-04 | `clientes.test › na edição, o CNPJ salvo não é consultado` |
+| F10-29 | CNPJ de empresário individual (MEI, por exemplo) e endereço vazio | a consulta responde | a BrasilAPI não traz logradouro, número, complemento nem telefone (privacidade do Minha Receita): CEP, bairro, cidade e UF da Receita entram, e o ViaCEP completa só o que ficou vazio (logradouro, bairro) e a grafia da cidade se ninguém mexeu nela, sem tirar o foco do CNPJ; a resposta do ViaCEP vale só para o CNPJ atual e com a janela aberta (05/11) | `clientes.test › empresário individual: …` (4 testes) |
+| F10-30 | formulário de cliente | abre | CPF ou CNPJ é o primeiro campo, com o foco; no cliente novo, diz que o CNPJ busca os dados na Receita (pedido do Daniel, 05/11) | `clientes.test › o CNPJ é o primeiro campo e já abre com o foco` |
 
 ### Situação cadastral (F10a)
 
@@ -55,8 +57,6 @@ Ao digitar o CNPJ no cadastro do cliente, o formulário busca os dados abertos d
 |---|---|---|---|---|
 | F10-20 | uma consulta de CNPJ | ela sai do navegador | `credentials: 'omit'`, `referrerPolicy: 'no-referrer'` e só o CNPJ na URL, como no ViaCEP | `cnpj.test › traduz a resposta, sem cookie nem Referer` |
 | F10-21 | o build do SPA | roda `pnpm csp:conferir` | o `connect-src` tem a origem do provedor (e a da reserva, se a decisão 1 for b) e a do ViaCEP, sem curinga; o `apps/web/scripts/conferir-csp.mjs` passa a conferir o `connect-src`, que hoje não confere | `pnpm csp:conferir` (CI, job Web) |
-| F10-29 | CNPJ de empresário individual (MEI, por exemplo) | a consulta responde | a BrasilAPI não traz logradouro, número, complemento nem telefone (privacidade do Minha Receita), mas traz o CEP: o CEP entra e o ViaCEP completa o endereço como se a pessoa o tivesse digitado, sem tirar o foco do CNPJ (05/11) | `clientes.test › empresário individual: só o CEP vem da Receita` |
-| F10-30 | formulário de cliente | abre | CPF ou CNPJ é o primeiro campo, com o foco, e diz que o CNPJ busca os dados na Receita (pedido do Daniel, 05/11) | `clientes.test › o CNPJ é o primeiro campo e já abre com o foco` |
 
 ### Validação e CNPJ alfanumérico (F10b)
 
@@ -139,6 +139,7 @@ Cada PR contra a `main`, sem empilhar, com testes e CI verde.
 |---|---|---|
 | F10b | API e front: CNPJ alfanumérico no `Documento` (maiúsculas), na busca da lista, na máscara e no cursor do `CampoMascarado`, na exibição da lista e da ficha; validação dos dígitos no front; ERS (RF-CLI-01), contrato §4, domínio e read side | F10-22 a F10-28 |
 | F10a | Front: conferência de CORS e dos campos do provedor (primeiro passo), `shared/api/cnpj.ts` no padrão do `viaCep.ts`, preenchimento no `JanelaCliente` (nome, razão social, documento, e-mail e telefone passam a campos controlados), avisos, CSP e `csp:conferir` do `connect-src`, convenções §4 e segurança §9 | F10-01 a F10-21 |
+| ajuste de 05/11 | Front: modo de privacidade da BrasilAPI (empresário individual, e-mail), CNPJ como primeiro campo | F10-29, F10-30 |
 
 Ordem: F10b primeiro (corrige um defeito que já existe e não depende de nada); o F10a parte da máscara e da validação dele.
 
@@ -148,4 +149,4 @@ Ordem: F10b primeiro (corrige um defeito que já existe e não depende de nada);
 - 04/11 — F10b implementado (CNPJ alfanumérico na API e no front, validação no front). O read side não descreve a busca de clientes; a regra nova ficou no contrato §4. Revisão: erro também ao sair do campo, rótulo colado ("CNPJ: …") ignorado na máscara, busca só compara o documento quando o termo tem dígito, teste de tela da lista e da ficha, nota em Novidades.
 - 04/11 — F10a. CORS da BrasilAPI conferido no navegador do Daniel (resposta com `razao_social`) e no código dela (`origin: '*'`); os campos vêm do Minha Receita, inclusive `email`. A Receita manda tudo em maiúsculas e sem acento: razão social fica como vem (nome oficial); nome, logradouro (tipo + nome), complemento, bairro e cidade vão em forma de título com as preposições em minúsculas, sem recuperar acentos (opção recomendada, assumida sem resposta do Daniel). Aviso de situação abaixo da linha do documento e da inscrição estadual, ocupando a largura.
 - 04/11 — revisão do F10a: siglas de tipo de empresa (ME, EPP, S/A…) e números romanos ficam em maiúsculas, hífen e apóstrofo começam palavra, "e" no fim fica maiúsculo; a frase do F10-06 só aparece se algum campo foi preenchido; e-mail fora do formato vem vazio; ajuda da tela de clientes atualizada.
-- 05/11 — teste do Daniel com um CNPJ de empresário individual: só vieram razão social e nome. O Minha Receita, fonte da BrasilAPI, publica em modo de privacidade: o e-mail nunca vem, e para natureza jurídica "individual" também somem logradouro, número, complemento e telefones (ficam CEP, bairro, cidade e UF). O registro de 04/11 estava errado ao dizer que o e-mail vinha. Ajustes: F10-29 (o CEP passa pelo ViaCEP), F10-30 (CNPJ como primeiro campo), frase do F10-06 sem e-mail.
+- 05/11 — teste do Daniel com um CNPJ de empresário individual: só vieram razão social e nome. O Minha Receita, fonte da BrasilAPI, publica em modo de privacidade: o e-mail nunca vem, e para natureza jurídica "individual" também somem logradouro, número, complemento e telefones (ficam CEP, bairro, cidade e UF). O registro de 04/11 estava errado ao dizer que o e-mail vinha. Ajustes: F10-29 (CEP, bairro, cidade e UF da Receita, e o ViaCEP completa a rua), F10-30 (CNPJ como primeiro campo), frase do F10-06 sem e-mail.
