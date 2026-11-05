@@ -29,6 +29,7 @@ describe('BrasilAPI (CNPJ)', () => {
                 },
                 telefone: '(11) 2385-1939',
                 email: '',
+                cep: '01311-902',
             },
         })
         expect(buscar).toHaveBeenCalledWith(
@@ -61,6 +62,17 @@ describe('BrasilAPI (CNPJ)', () => {
         )
         const exterior = await buscarCnpj('19131243000197')
         expect(exterior.tipo === 'achou' && exterior.empresa.endereco).toBeNull()
+
+        // Empresário individual: a BrasilAPI apaga logradouro e telefone, mas o CEP continua vindo à parte.
+        vi.stubGlobal(
+            'fetch',
+            vi.fn(async () =>
+                Response.json({ ...respostaDaReceita, logradouro: '', descricao_tipo_de_logradouro: '' }),
+            ),
+        )
+        const individual = await buscarCnpj('19131243000197')
+        expect(individual.tipo === 'achou' && individual.empresa.endereco).toBeNull()
+        expect(individual.tipo === 'achou' && individual.empresa.cep).toBe('01311-902')
         expect(exterior.tipo === 'achou' && exterior.empresa.email).toBe('contato@ok.org.br')
     })
 

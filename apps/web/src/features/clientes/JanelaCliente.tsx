@@ -84,10 +84,10 @@ function avisoDeSituacao(empresa: EmpresaDoCnpj): string | null {
 }
 
 const DESCRICAO_CNPJ = {
-    parado: undefined,
+    parado: 'Com o CNPJ, buscamos os dados na Receita.',
     buscando: 'Buscando os dados na Receita…',
     preencheu:
-        'Preenchido com os dados da Receita. Telefone e e-mail podem ser do escritório de contabilidade; confira antes de salvar.',
+        'Preenchido com os dados da Receita; confira antes de salvar. O telefone pode ser o do escritório de contabilidade.',
     'nao-encontrado': 'Não encontramos este CNPJ na Receita. Preencha à mão.',
     falhou: 'Não deu para buscar os dados agora. Preencha à mão.',
 } as const
@@ -182,7 +182,8 @@ function JanelaClienteAberta({
     const mudarEndereco = (campo: keyof CamposEndereco) => (valor: string) =>
         setEndereco((atual) => ({ ...atual, [campo]: valor }))
 
-    async function mudarCep(valor: string) {
+    /** `focar`: depois de achar, leva ao número (digitando o CEP); vindo do CNPJ, o foco fica onde está. */
+    async function mudarCep(valor: string, focar = true) {
         setEndereco((atual) => ({ ...atual, cep: valor }))
         const numeros = digitos(valor)
         if (numeros.length !== 8 || numeros === ultimoCep.current) return
@@ -202,7 +203,7 @@ function JanelaClienteAberta({
             cidade: achado.cidade,
             uf: achado.uf,
         }))
-        numero.current?.focus()
+        if (focar) numero.current?.focus()
     }
 
     async function mudarDocumento(valor: string) {
@@ -244,11 +245,18 @@ function JanelaClienteAberta({
         seVazio(agora.email, empresa.email, setEmail)
         seVazio(agora.telefone, empresa.telefone, setTelefone)
         const veio = empresa.endereco
-        if (veio && Object.values(agora.endereco).every(vazio)) {
-            // O CEP veio da Receita: o ViaCEP não é chamado para ele (F10-05).
-            ultimoCep.current = digitos(veio.cep)
-            setEndereco(veio)
-            preencheu = true
+        if (Object.values(agora.endereco).every(vazio)) {
+            if (veio) {
+                // O CEP veio da Receita: o ViaCEP não é chamado para ele (F10-05).
+                ultimoCep.current = digitos(veio.cep)
+                setEndereco(veio)
+                preencheu = true
+            } else if (empresa.cep) {
+                // Só o CEP (empresário individual, sem logradouro por privacidade): o ViaCEP completa como se a pessoa
+                // tivesse digitado o CEP, sem tirar o foco do CNPJ (F10-29).
+                void mudarCep(empresa.cep, false)
+                preencheu = true
+            }
         }
         return preencheu
     }
@@ -296,23 +304,9 @@ function JanelaClienteAberta({
                 {mensagem && <Alerta>{mensagem}</Alerta>}
 
                 <div className="grid gap-4 sm:grid-cols-2">
-                    <CampoTexto
-                        name="nome"
-                        rotulo="Nome"
-                        descricao="Como a equipe chama o cliente."
-                        value={nome}
-                        onChange={setNome}
-                        isRequired
-                        autoFocus
-                    />
-                    <CampoTexto
-                        name="razaoSocial"
-                        rotulo="Razão social"
-                        value={razaoSocial}
-                        onChange={setRazaoSocial}
-                    />
                     <CampoMascarado
                         name="documento"
+                        autoFocus
                         rotulo="CPF ou CNPJ"
                         mascara={formatarDocumento}
                         caracteres={caracteresDoDocumento}
@@ -333,6 +327,20 @@ function JanelaClienteAberta({
                             <Alerta tom="aviso">{situacao}</Alerta>
                         </div>
                     )}
+                    <CampoTexto
+                        name="nome"
+                        rotulo="Nome"
+                        descricao="Como a equipe chama o cliente."
+                        value={nome}
+                        onChange={setNome}
+                        isRequired
+                    />
+                    <CampoTexto
+                        name="razaoSocial"
+                        rotulo="Razão social"
+                        value={razaoSocial}
+                        onChange={setRazaoSocial}
+                    />
                 </div>
 
                 <Secao titulo="Contato da empresa">

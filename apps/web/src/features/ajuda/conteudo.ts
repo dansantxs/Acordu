@@ -208,12 +208,12 @@ export const SECOES_AJUDA: SecaoAjuda[] = [
         tela: '/clientes',
         resumo: 'O cadastro dos clientes e, na ficha de cada um, tudo o que acontece com ele.',
         passos: [
-            'Cadastre o cliente: CPF ou CNPJ, endereço (o CEP preenche o resto), responsável na equipe e etiquetas. Com o CNPJ, o Acordu busca os dados abertos da Receita e preenche o que estiver vazio (nome, razão social, endereço, telefone e e-mail).',
+            'Cadastre o cliente começando pelo CPF ou CNPJ: com o CNPJ, o Acordu busca os dados abertos da Receita e preenche o que estiver vazio (nome, razão social, endereço e telefone). Depois, responsável na equipe e etiquetas.',
             'Na ficha: Resumo (régua dos contratos), Em aberto, Contratos, Contatos e portal, Arquivos e Movimentos.',
             'Em "Contatos e portal", adicione os contatos e convide para o portal. "Só as próprias" mostra ao contato só as solicitações dele; "Todas do cliente", todas.',
         ],
         dicas: [
-            'Telefone e e-mail que vêm da Receita costumam ser do escritório de contabilidade: confira antes de salvar. Se a empresa não estiver ativa na Receita, aparece um aviso, mas dá para salvar.',
+            'O telefone que vem da Receita costuma ser do escritório de contabilidade: confira antes de salvar. O e-mail não vem, e para empresário individual (MEI) a Receita só publica o CEP, que completa o endereço pelo ViaCEP. Se a empresa não estiver ativa na Receita, aparece um aviso, mas dá para salvar.',
             'Inativar um cliente tira o acesso de todos os contatos ao portal; reativar não devolve: é preciso convidar de novo.',
             '"Arquivos" junta os anexos de todas as conversas e comentários do cliente.',
         ],

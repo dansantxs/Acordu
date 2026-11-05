@@ -26,6 +26,11 @@ export interface EmpresaDoCnpj {
     situacaoDesde: string | null
     /** Nulo quando a Receita não traz o mínimo (CEP, logradouro, cidade e UF). */
     endereco: EnderecoDoCnpj | null
+    /**
+     * CEP formatado, mesmo sem o resto do endereço: para empresário individual (MEI, por exemplo), a BrasilAPI (Minha
+     * Receita) apaga logradouro, número, complemento e telefone por privacidade, mas mantém CEP, bairro, cidade e UF.
+     */
+    cep: string
     telefone: string
     email: string
 }
@@ -113,8 +118,10 @@ function empresa(dados: unknown): EmpresaDoCnpj | null {
         situacao,
         situacaoDesde: /^\d{4}-\d{2}-\d{2}$/.test(desde) ? desde : null,
         endereco: endereco(d),
+        cep: texto(d.cep).replace(/\D/g, '').length === 8 ? formatarCep(texto(d.cep).replace(/\D/g, '')) : '',
         telefone: formatarTelefone(texto(d.ddd_telefone_1).replace(/\D/g, '')),
-        // E-mail fora do formato mínimo travaria o salvar (campo `type="email"`): melhor vazio.
+        // A BrasilAPI (Minha Receita) não publica e-mail por privacidade; se um dia vier, entra. Fora do formato mínimo
+        // travaria o salvar (campo `type="email"`): melhor vazio.
         email: /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(texto(d.email)) ? texto(d.email).toLowerCase() : '',
     }
 }
