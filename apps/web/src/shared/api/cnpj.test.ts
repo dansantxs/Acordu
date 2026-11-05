@@ -29,6 +29,7 @@ describe('BrasilAPI (CNPJ)', () => {
                 },
                 telefone: '(11) 2385-1939',
                 email: '',
+                semLogradouro: null,
             },
         })
         expect(buscar).toHaveBeenCalledWith(
@@ -62,6 +63,27 @@ describe('BrasilAPI (CNPJ)', () => {
         const exterior = await buscarCnpj('19131243000197')
         expect(exterior.tipo === 'achou' && exterior.empresa.endereco).toBeNull()
         expect(exterior.tipo === 'achou' && exterior.empresa.email).toBe('contato@ok.org.br')
+
+        // Empresário individual: a BrasilAPI apaga a rua (e o telefone), mas CEP, bairro, cidade e UF continuam vindo.
+        vi.stubGlobal(
+            'fetch',
+            vi.fn(async () =>
+                Response.json({
+                    ...respostaDaReceita,
+                    logradouro: '',
+                    descricao_tipo_de_logradouro: '',
+                    ddd_telefone_1: '',
+                }),
+            ),
+        )
+        const individual = await buscarCnpj('19131243000197')
+        expect(individual.tipo === 'achou' && individual.empresa.endereco).toBeNull()
+        expect(individual.tipo === 'achou' && individual.empresa.semLogradouro).toEqual({
+            cep: '01311-902',
+            bairro: 'Bela Vista',
+            cidade: 'Sao Paulo',
+            uf: 'SP',
+        })
     })
 
     it('e-mail fora do formato vem vazio, para não travar o salvar', async () => {

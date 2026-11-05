@@ -15,6 +15,16 @@ export const NOTAS: NotaVersao[] = [
     {
         data: '2026-11-05',
         publico: 'equipe',
+        titulo: 'Cliente pelo CNPJ, mais certeiro',
+        itens: [
+            'No cadastro do cliente, CPF ou CNPJ agora é o primeiro campo: digite o CNPJ e o resto se preenche.',
+            'Para empresário individual (MEI), os dados abertos da Receita não trazem rua nem telefone: o Acordu usa CEP, bairro e cidade e completa a rua pelo CEP.',
+            'O e-mail não vem nos dados abertos da Receita; preencha à mão.',
+        ],
+    },
+    {
+        data: '2026-11-05',
+        publico: 'equipe',
         titulo: 'Menu na ordem de uso',
         itens: [
             'A barra lateral agora segue a ordem do trabalho, em grupos: Hoje e Agenda; Cadastros (Clientes e Contratos); Atendimento (Solicitações, Tarefas, Projetos e Recorrências); Acompanhamento (Horas e Panorama); e, no fim, Configurações, Novidades e Ajuda.',

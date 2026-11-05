@@ -26,6 +26,12 @@ export interface EmpresaDoCnpj {
     situacaoDesde: string | null
     /** Nulo quando a Receita não traz o mínimo (CEP, logradouro, cidade e UF). */
     endereco: EnderecoDoCnpj | null
+    /**
+     * Endereço sem a rua: para empresário individual (MEI, por exemplo), a BrasilAPI (Minha Receita) apaga logradouro,
+     * número, complemento e telefone por privacidade, mas mantém CEP, bairro, cidade e UF. Nulo quando há `endereco`
+     * ou quando nem o CEP de 8 dígitos vem.
+     */
+    semLogradouro: Omit<EnderecoDoCnpj, 'logradouro' | 'numero' | 'complemento'> | null
     telefone: string
     email: string
 }
@@ -100,6 +106,18 @@ function endereco(dados: Record<string, unknown>): EnderecoDoCnpj | null {
     }
 }
 
+function semLogradouro(dados: Record<string, unknown>): EmpresaDoCnpj['semLogradouro'] {
+    const cep = texto(dados.cep).replace(/\D/g, '')
+    if (cep.length !== 8) return null
+    const uf = texto(dados.uf).toUpperCase()
+    return {
+        cep: formatarCep(cep),
+        bairro: formaDeTitulo(texto(dados.bairro)),
+        cidade: formaDeTitulo(texto(dados.municipio)),
+        uf: UFS.has(uf) ? uf : '',
+    }
+}
+
 function empresa(dados: unknown): EmpresaDoCnpj | null {
     if (typeof dados !== 'object' || dados === null) return null
     const d = dados as Record<string, unknown>
@@ -107,14 +125,17 @@ function empresa(dados: unknown): EmpresaDoCnpj | null {
     const situacao = texto(d.descricao_situacao_cadastral).toUpperCase()
     if (!razaoSocial || !situacao) return null
     const desde = texto(d.data_situacao_cadastral)
+    const completo = endereco(d)
     return {
         razaoSocial,
         nomeFantasia: formaDeTitulo(texto(d.nome_fantasia)),
         situacao,
         situacaoDesde: /^\d{4}-\d{2}-\d{2}$/.test(desde) ? desde : null,
-        endereco: endereco(d),
+        endereco: completo,
+        semLogradouro: completo ? null : semLogradouro(d),
         telefone: formatarTelefone(texto(d.ddd_telefone_1).replace(/\D/g, '')),
-        // E-mail fora do formato mínimo travaria o salvar (campo `type="email"`): melhor vazio.
+        // A BrasilAPI (Minha Receita) não publica e-mail por privacidade; se um dia vier, entra. Fora do formato mínimo
+        // travaria o salvar (campo `type="email"`): melhor vazio.
         email: /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(texto(d.email)) ? texto(d.email).toLowerCase() : '',
     }
 }

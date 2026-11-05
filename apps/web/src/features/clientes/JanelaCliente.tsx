@@ -84,10 +84,10 @@ function avisoDeSituacao(empresa: EmpresaDoCnpj): string | null {
 }
 
 const DESCRICAO_CNPJ = {
-    parado: undefined,
+    parado: 'Com o CNPJ, buscamos os dados na Receita.',
     buscando: 'Buscando os dados na Receita…',
     preencheu:
-        'Preenchido com os dados da Receita. Telefone e e-mail podem ser do escritório de contabilidade; confira antes de salvar.',
+        'Preenchido com os dados da Receita; confira antes de salvar. O telefone pode ser o do escritório de contabilidade.',
     'nao-encontrado': 'Não encontramos este CNPJ na Receita. Preencha à mão.',
     falhou: 'Não deu para buscar os dados agora. Preencha à mão.',
 } as const
@@ -205,6 +205,27 @@ function JanelaClienteAberta({
         numero.current?.focus()
     }
 
+    /**
+     * Empresário individual (F10-29): CEP, bairro, cidade e UF da Receita entram na hora; o ViaCEP só completa o que
+     * ficou vazio (logradouro, bairro) e troca a cidade pela grafia com acento se ninguém mexeu nela. A resposta só vale
+     * para o CNPJ e o CEP de agora e com a janela aberta (F10-08, F10-09); o foco fica onde está.
+     */
+    async function completarPeloCep(base: NonNullable<EmpresaDoCnpj['semLogradouro']>, cnpj: string) {
+        const numeros = digitos(base.cep)
+        ultimoCep.current = numeros
+        setEndereco({ ...enderecoVazio, ...base })
+        const sinal = desmontado.current?.signal
+        const achado = await buscarCep(numeros, sinal)
+        if (!achado || sinal?.aborted || ultimoCnpj.current !== cnpj || ultimoCep.current !== numeros) return
+        setEndereco((atual) => ({
+            ...atual,
+            logradouro: atual.logradouro || achado.logradouro,
+            bairro: atual.bairro || achado.bairro,
+            cidade: atual.cidade === base.cidade || !atual.cidade ? achado.cidade : atual.cidade,
+            uf: atual.uf || achado.uf,
+        }))
+    }
+
     async function mudarDocumento(valor: string) {
         setDocumento(valor)
         const completo = cnpjCompleto(valor)
@@ -224,13 +245,13 @@ function JanelaClienteAberta({
         }
         setSituacao(avisoDeSituacao(resultado.empresa))
         // A frase do F10-06 só aparece quando algum campo foi de fato preenchido.
-        setCnpj(preencher(resultado.empresa) ? 'preencheu' : 'parado')
+        setCnpj(preencher(resultado.empresa, completo) ? 'preencheu' : 'parado')
     }
 
     /**
      * Só os campos vazios (F10-03); o endereço só como bloco, e só se estiver todo vazio (F10-04). Diz se preencheu algo.
      */
-    function preencher(empresa: EmpresaDoCnpj): boolean {
+    function preencher(empresa: EmpresaDoCnpj, cnpj: string): boolean {
         const agora = atuais.current
         const vazio = (v: string) => v.trim() === ''
         let preencheu = false
@@ -244,11 +265,16 @@ function JanelaClienteAberta({
         seVazio(agora.email, empresa.email, setEmail)
         seVazio(agora.telefone, empresa.telefone, setTelefone)
         const veio = empresa.endereco
-        if (veio && Object.values(agora.endereco).every(vazio)) {
-            // O CEP veio da Receita: o ViaCEP não é chamado para ele (F10-05).
-            ultimoCep.current = digitos(veio.cep)
-            setEndereco(veio)
-            preencheu = true
+        if (Object.values(agora.endereco).every(vazio)) {
+            if (veio) {
+                // O CEP veio da Receita: o ViaCEP não é chamado para ele (F10-05).
+                ultimoCep.current = digitos(veio.cep)
+                setEndereco(veio)
+                preencheu = true
+            } else if (empresa.semLogradouro) {
+                void completarPeloCep(empresa.semLogradouro, cnpj)
+                preencheu = true
+            }
         }
         return preencheu
     }
@@ -296,23 +322,9 @@ function JanelaClienteAberta({
                 {mensagem && <Alerta>{mensagem}</Alerta>}
 
                 <div className="grid gap-4 sm:grid-cols-2">
-                    <CampoTexto
-                        name="nome"
-                        rotulo="Nome"
-                        descricao="Como a equipe chama o cliente."
-                        value={nome}
-                        onChange={setNome}
-                        isRequired
-                        autoFocus
-                    />
-                    <CampoTexto
-                        name="razaoSocial"
-                        rotulo="Razão social"
-                        value={razaoSocial}
-                        onChange={setRazaoSocial}
-                    />
                     <CampoMascarado
                         name="documento"
+                        autoFocus
                         rotulo="CPF ou CNPJ"
                         mascara={formatarDocumento}
                         caracteres={caracteresDoDocumento}
@@ -320,7 +332,8 @@ function JanelaClienteAberta({
                         validate={validarDocumento}
                         value={documento}
                         onChange={(v) => void mudarDocumento(v)}
-                        descricao={DESCRICAO_CNPJ[cnpj]}
+                        // A dica só no cliente novo: na edição, o CNPJ salvo não é consultado (F10-10).
+                        descricao={cnpj === 'parado' && cliente ? undefined : DESCRICAO_CNPJ[cnpj]}
                     />
                     <CampoTexto
                         name="inscricaoEstadual"
@@ -333,6 +346,20 @@ function JanelaClienteAberta({
                             <Alerta tom="aviso">{situacao}</Alerta>
                         </div>
                     )}
+                    <CampoTexto
+                        name="nome"
+                        rotulo="Nome"
+                        descricao="Como a equipe chama o cliente."
+                        value={nome}
+                        onChange={setNome}
+                        isRequired
+                    />
+                    <CampoTexto
+                        name="razaoSocial"
+                        rotulo="Razão social"
+                        value={razaoSocial}
+                        onChange={setRazaoSocial}
+                    />
                 </div>
 
                 <Secao titulo="Contato da empresa">

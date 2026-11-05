@@ -75,7 +75,7 @@ async function novoCliente() {
 }
 
 const PREENCHIDO =
-    'Preenchido com os dados da Receita. Telefone e e-mail podem ser do escritório de contabilidade; confira antes de salvar.'
+    'Preenchido com os dados da Receita; confira antes de salvar. O telefone pode ser o do escritório de contabilidade.'
 
 describe('clientes', () => {
     beforeEach(() => reiniciarParaTestes())
@@ -467,6 +467,105 @@ describe('clientes', () => {
                 telefone: '(11) 2385-1939',
                 endereco: { cep: '01311-902', logradouro: 'Avenida Paulista 37', cidade: 'Sao Paulo', uf: 'SP' },
             })
+        })
+
+        it('o CNPJ é o primeiro campo e já abre com o foco (F10-30)', async () => {
+            app(GERENCIAR, { 'GET /api/v1/clientes': () => pagina([]) })
+            provedores({})
+            const { janela, campo } = await novoCliente()
+            expect(within(janela).getAllByRole('textbox')[0]).toBe(campo('CPF ou CNPJ'))
+            expect(campo('CPF ou CNPJ')).toHaveFocus()
+            expect(within(janela).getByText('Com o CNPJ, buscamos os dados na Receita.')).toBeInTheDocument()
+        })
+
+        const individual = receita({
+            razao_social: 'ANA PRADO 12345678909',
+            natureza_juridica: 'Empresário (Individual)',
+            descricao_tipo_de_logradouro: '',
+            logradouro: '',
+            numero: '',
+            complemento: '',
+            ddd_telefone_1: '',
+            cep: '19700000',
+            bairro: 'VILA NOVA',
+            municipio: 'BASTOS',
+            uf: 'SP',
+        })
+        const viaCepDeBastos = () =>
+            Response.json({ logradouro: 'Rua das Flores', bairro: '', localidade: 'Bastos', uf: 'SP' })
+
+        it('empresário individual: CEP, bairro e cidade da Receita, e o ViaCEP completa a rua sem tirar o foco (F10-29)', async () => {
+            app(GERENCIAR, { 'GET /api/v1/clientes': () => pagina([]) })
+            const espioes = provedores({ viaCep: viaCepDeBastos, brasilApi: individual })
+            const { usuario, janela, campo } = await novoCliente()
+            await usuario.type(campo('CPF ou CNPJ'), '19131243000197')
+            await within(janela).findByText(PREENCHIDO)
+            await vi.waitFor(() => expect(campo('Logradouro')).toHaveValue('Rua das Flores'))
+            expect(campo('CEP')).toHaveValue('19700-000')
+            // O bairro da Receita fica (o ViaCEP não tem), e a cidade ganha a grafia do ViaCEP.
+            expect(campo('Bairro')).toHaveValue('Vila Nova')
+            expect(campo('Cidade')).toHaveValue('Bastos')
+            expect(campo('Telefone')).toHaveValue('')
+            expect(espioes.viaCep).toHaveBeenCalledWith('https://viacep.com.br/ws/19700000/json/', expect.anything())
+            expect(campo('CPF ou CNPJ')).toHaveFocus()
+        })
+
+        it('empresário individual com o ViaCEP fora: cidade e UF da Receita continuam (F10-29)', async () => {
+            app(GERENCIAR, { 'GET /api/v1/clientes': () => pagina([]) })
+            provedores({ viaCep: () => new Response(null, { status: 502 }), brasilApi: individual })
+            const { usuario, janela, campo } = await novoCliente()
+            await usuario.type(campo('CPF ou CNPJ'), '19131243000197')
+            await within(janela).findByText(PREENCHIDO)
+            expect(campo('CEP')).toHaveValue('19700-000')
+            expect(campo('Cidade')).toHaveValue('Bastos')
+            expect(within(janela).getByRole('combobox', { name: 'UF' })).toHaveValue('SP')
+            expect(campo('Logradouro')).toHaveValue('')
+        })
+
+        it('trocar o CNPJ com o ViaCEP do anterior pendente não traz a rua dele (F10-08, F10-29)', async () => {
+            app(GERENCIAR, { 'GET /api/v1/clientes': () => pagina([]) })
+            let responderViaCep: (r: Response) => void = () => {}
+            provedores({
+                viaCep: () => new Promise<Response>((resolver) => (responderViaCep = resolver)),
+                brasilApi: individual,
+            })
+            const { usuario, janela, campo } = await novoCliente()
+            await usuario.type(campo('CPF ou CNPJ'), '19131243000197')
+            await within(janela).findByText(PREENCHIDO)
+            await usuario.type(campo('CPF ou CNPJ'), '{Backspace}')
+            responderViaCep(viaCepDeBastos())
+            await new Promise((r) => setTimeout(r, 50))
+            expect(campo('Logradouro')).toHaveValue('')
+        })
+
+        it('fechar a janela aborta também o ViaCEP disparado pelo CNPJ (F10-09, F10-29)', async () => {
+            app(GERENCIAR, { 'GET /api/v1/clientes': () => pagina([]) })
+            let sinal: AbortSignal | undefined
+            provedores({
+                viaCep: (_, opcoes) => {
+                    sinal = opcoes?.signal ?? undefined
+                    return new Promise<Response>(() => {})
+                },
+                brasilApi: individual,
+            })
+            const { usuario, janela, campo } = await novoCliente()
+            await usuario.type(campo('CPF ou CNPJ'), '19131243000197')
+            await within(janela).findByText(PREENCHIDO)
+            await vi.waitFor(() => expect(sinal).toBeDefined())
+            await usuario.click(within(janela).getByRole('button', { name: 'Cancelar' }))
+            await vi.waitFor(() => expect(sinal?.aborted).toBe(true))
+        })
+
+        it('empresário individual com o endereço já começado: nada do endereço muda e o ViaCEP não é chamado (F10-04)', async () => {
+            app(GERENCIAR, { 'GET /api/v1/clientes': () => pagina([]) })
+            const espioes = provedores({ viaCep: viaCepDeBastos, brasilApi: individual })
+            const { usuario, janela, campo } = await novoCliente()
+            await usuario.type(campo('Cidade'), 'Tupã')
+            await usuario.type(campo('CPF ou CNPJ'), '19131243000197')
+            await within(janela).findByText(PREENCHIDO)
+            expect(campo('CEP')).toHaveValue('')
+            expect(campo('Cidade')).toHaveValue('Tupã')
+            expect(espioes.viaCep).not.toHaveBeenCalled()
         })
 
         it('sem nome fantasia, o nome recebe a razão social (F10-02)', async () => {
