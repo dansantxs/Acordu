@@ -9,7 +9,7 @@ import { aceitarConvitePortal } from '@/shared/sessao/acoes'
 import { descartarTokenDeLink } from '@/shared/sessao/tokenDaUrl'
 import { Alerta } from '@/shared/ui/Alerta'
 import { Botao } from '@/shared/ui/Botao'
-import { CampoTexto } from '@/shared/ui/CampoTexto'
+import { CampoSenha, CampoTexto } from '@/shared/ui/CampoTexto'
 
 /**
  * Aceite do convite do portal (contrato §2, F7a): conta nova pede nome (já sugerido pelo contato) e senha; conta que já
@@ -66,9 +66,8 @@ export function AceiteConvitePortal({ token }: { token: string | null }) {
             </p>
             {mensagem && <Alerta>{mensagem}</Alerta>}
             {temConta ? (
-                <CampoTexto
+                <CampoSenha
                     name="senha"
-                    type="password"
                     rotulo="Senha da sua conta"
                     descricao="Você já tem conta no Acordu: entre com a mesma senha."
                     autoComplete="current-password"
@@ -85,9 +84,8 @@ export function AceiteConvitePortal({ token }: { token: string | null }) {
                         isRequired
                         autoFocus
                     />
-                    <CampoTexto
+                    <CampoSenha
                         name="senha"
-                        type="password"
                         rotulo="Crie uma senha"
                         descricao={`Pelo menos ${SENHA_MINIMA} caracteres.`}
                         autoComplete="new-password"

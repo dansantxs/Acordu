@@ -17,7 +17,7 @@ test('cria a conta, mantém a sessão, navega e sai', async ({ page }) => {
     await page.goto('/cadastro')
     await page.getByLabel('Seu nome').fill(conta.nome)
     await page.getByLabel('E-mail').fill(conta.email)
-    await page.getByLabel('Senha').fill(conta.senha)
+    await page.getByLabel('Senha', { exact: true }).fill(conta.senha)
     await page.getByLabel('Nome da empresa').fill(conta.empresa)
     // O tempo real abre assim que a casca aparece: confere que o SSE passa pelo proxy com o Bearer.
     const eventos = page.waitForResponse((r) => r.url().endsWith('/api/v1/eventos') && r.status() === 200)
@@ -57,11 +57,11 @@ test('cria a conta, mantém a sessão, navega e sai', async ({ page }) => {
 test('recusa a senha errada e entra com a certa', async ({ page }) => {
     await page.goto('/entrar?voltar=%2Fclientes')
     await page.getByLabel('E-mail').fill(conta.email)
-    await page.getByLabel('Senha').fill('senha-errada-123')
+    await page.getByLabel('Senha', { exact: true }).fill('senha-errada-123')
     await page.getByRole('button', { name: 'Entrar' }).click()
     await expect(page.getByRole('alert')).toContainText('E-mail ou senha inválidos')
 
-    await page.getByLabel('Senha').fill(conta.senha)
+    await page.getByLabel('Senha', { exact: true }).fill(conta.senha)
     await page.getByRole('button', { name: 'Entrar' }).click()
     await expect(page).toHaveURL(/\/clientes$/)
 })
@@ -69,7 +69,7 @@ test('recusa a senha errada e entra com a certa', async ({ page }) => {
 test('duas abas renovando ao mesmo tempo não derrubam a sessão', async ({ page, context }) => {
     await page.goto('/entrar')
     await page.getByLabel('E-mail').fill(conta.email)
-    await page.getByLabel('Senha').fill(conta.senha)
+    await page.getByLabel('Senha', { exact: true }).fill(conta.senha)
     await page.getByRole('button', { name: 'Entrar' }).click()
     await expect(saudacao(page)).toBeVisible()
 

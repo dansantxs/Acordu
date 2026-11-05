@@ -7,7 +7,7 @@ import { redefinirSenha } from '@/shared/sessao/acoes'
 import { descartarTokenDeLink } from '@/shared/sessao/tokenDaUrl'
 import { Alerta } from '@/shared/ui/Alerta'
 import { Botao } from '@/shared/ui/Botao'
-import { CampoTexto } from '@/shared/ui/CampoTexto'
+import { CampoSenha } from '@/shared/ui/CampoTexto'
 import { SENHA_MINIMA, validarSenha } from './FormularioCadastro'
 import { linkRecusado } from './linkInvalido'
 
@@ -51,9 +51,8 @@ export function FormularioNovaSenha({ token }: { token: string | null }) {
             }}
         >
             {mensagem && <Alerta>{mensagem}</Alerta>}
-            <CampoTexto
+            <CampoSenha
                 name="novaSenha"
-                type="password"
                 rotulo="Senha nova"
                 autoComplete="new-password"
                 descricao={`Pelo menos ${SENHA_MINIMA} caracteres.`}
@@ -63,9 +62,8 @@ export function FormularioNovaSenha({ token }: { token: string | null }) {
                 isRequired
                 autoFocus
             />
-            <CampoTexto
+            <CampoSenha
                 name="confirmacao"
-                type="password"
                 rotulo="Repita a senha nova"
                 autoComplete="new-password"
                 validate={(valor) => (valor !== senha ? 'As senhas não são iguais.' : null)}

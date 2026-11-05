@@ -8,7 +8,7 @@ import { CHAVE_TURNSTILE } from '@/shared/config/ambiente'
 import { cadastrar } from '@/shared/sessao/acoes'
 import { Alerta } from '@/shared/ui/Alerta'
 import { Botao } from '@/shared/ui/Botao'
-import { CampoTexto } from '@/shared/ui/CampoTexto'
+import { CampoSenha, CampoTexto } from '@/shared/ui/CampoTexto'
 import { DesafioTurnstile } from './DesafioTurnstile'
 
 /** Mesma regra da API (contrato §2): senha com pelo menos 10 caracteres. */
@@ -68,9 +68,8 @@ export function FormularioCadastro({ chaveTurnstile = CHAVE_TURNSTILE }: { chave
             {mensagem && <Alerta>{mensagem}</Alerta>}
             <CampoTexto name="nome" rotulo="Seu nome" autoComplete="name" isRequired autoFocus />
             <CampoTexto name="email" type="email" rotulo="E-mail" autoComplete="email" isRequired />
-            <CampoTexto
+            <CampoSenha
                 name="senha"
-                type="password"
                 rotulo="Senha"
                 autoComplete="new-password"
                 descricao={`Pelo menos ${SENHA_MINIMA} caracteres.`}
