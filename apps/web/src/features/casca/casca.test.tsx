@@ -27,6 +27,66 @@ describe('casca do app', () => {
             .getAllByRole('link')
             .map((l) => l.textContent?.replace(', há novidades', ''))
         expect(links).toEqual(['Hoje', 'Agenda', 'Solicitações', 'Tarefas', 'Horas', 'Novidades', 'Ajuda'])
+        // Grupo sem nenhum destino do papel (Cadastros) não aparece.
+        expect(within(capa).queryByText('Cadastros')).not.toBeInTheDocument()
+        expect(within(capa).getByRole('list', { name: 'Atendimento' })).toBeInTheDocument()
+    })
+
+    it('a capa segue a ordem de uso, em grupos com título (pedido de 05/11)', async () => {
+        app([
+            'solicitacao.ver',
+            'tarefa.ver',
+            'cliente.ver',
+            'contrato.ver',
+            'projeto.ver',
+            'recorrencia.ver',
+            'dashboard.ver',
+            'configuracao.gerenciar',
+        ])
+        await abrir('/')
+        const capa = await screen.findByRole('navigation', { name: 'Principal' })
+        const nomes = (lista: HTMLElement) =>
+            within(lista)
+                .getAllByRole('link')
+                .map((l) => l.textContent?.replace(', há novidades', ''))
+        expect(nomes(capa)).toEqual([
+            'Hoje',
+            'Agenda',
+            'Clientes',
+            'Contratos',
+            'Solicitações',
+            'Tarefas',
+            'Projetos',
+            'Recorrências',
+            'Horas',
+            'Panorama',
+            'Configurações',
+            'Novidades',
+            'Ajuda',
+        ])
+        expect(nomes(within(capa).getByRole('list', { name: 'Cadastros' }))).toEqual(['Clientes', 'Contratos'])
+        expect(nomes(within(capa).getByRole('list', { name: 'Atendimento' }))).toEqual([
+            'Solicitações',
+            'Tarefas',
+            'Projetos',
+            'Recorrências',
+        ])
+        expect(nomes(within(capa).getByRole('list', { name: 'Acompanhamento' }))).toEqual(['Horas', 'Panorama'])
+        // O grupo do sistema vem por último, sem título (só a linha).
+        const listas = within(capa).getAllByRole('list')
+        expect(nomes(listas.at(-1)!)).toEqual(['Configurações', 'Novidades', 'Ajuda'])
+        expect(listas.at(-1)).not.toHaveAccessibleName()
+    })
+
+    it('na gaveta do celular, os títulos dos grupos não repetem id com a capa fixa', async () => {
+        app(['cliente.ver', 'contrato.ver', 'solicitacao.ver'])
+        await abrir('/')
+        const usuario = userEvent.setup()
+        await usuario.click(await screen.findByRole('button', { name: 'Abrir menu' }))
+        const gaveta = await screen.findByRole('dialog', { name: 'Menu' })
+        expect(within(gaveta).getByRole('list', { name: 'Cadastros' })).toBeInTheDocument()
+        const ids = [...document.querySelectorAll('[id]')].map((e) => e.id).filter(Boolean)
+        expect(new Set(ids).size).toBe(ids.length)
     })
 
     it('o couro escolhido no menu vale no app e fica no navegador', async () => {

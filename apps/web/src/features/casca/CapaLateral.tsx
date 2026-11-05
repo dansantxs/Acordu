@@ -1,4 +1,5 @@
 import { Link } from '@tanstack/react-router'
+import { useId } from 'react'
 import { Button } from 'react-aria-components'
 import type { Perfil } from '@/shared/sessao/perfil'
 import { Icone } from '@/shared/ui/Icone'
@@ -6,7 +7,7 @@ import { MenuUsuario } from './MenuUsuario'
 import { IndicadorCronometro } from '@/features/cronometro/Cronometro'
 import { PontoNovidade } from '@/features/novidades/ListaNotas'
 import { useHaNovidade } from '@/features/novidades/vistas'
-import { navegacaoDe, pode } from './navegacao'
+import { gruposDe, pode } from './navegacao'
 import { Sino } from './Sino'
 
 const estiloLink =
@@ -26,6 +27,8 @@ export function CapaLateral({
     aoNavegar?: () => void
 }) {
     const haNovidade = useHaNovidade('equipe')
+    // A capa aparece duas vezes no DOM (fixa e na gaveta do celular): os ids dos títulos não podem repetir.
+    const prefixo = useId()
     return (
         <nav
             aria-label="Principal"
@@ -41,24 +44,43 @@ export function CapaLateral({
                 <Sino fuso={perfil.tenant.fusoHorario} />
             </div>
 
-            <ul className="flex flex-col gap-px">
-                {navegacaoDe(perfil).map((item) => (
-                    <li key={item.para} className="flex flex-col">
-                        {item.separar && <span aria-hidden="true" className="mx-2 my-2 h-px bg-lateral-linha" />}
-                        <Link
-                            to={item.para}
-                            activeOptions={{ exact: item.para === '/' }}
-                            className={estiloLink}
-                            onClick={aoNavegar}
+            {/* Rola sozinha em tela baixa, para o cronômetro, a busca e o menu do usuário continuarem ao alcance. */}
+            <div className="-mx-1 flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto px-1">
+                {gruposDe(perfil).map(({ grupo, titulo, itens }, i) => (
+                    <div key={grupo} className="flex flex-col gap-px">
+                        {titulo ? (
+                            <span
+                                id={`${prefixo}-${grupo}`}
+                                className="px-2.5 pb-1 text-[11px] font-semibold tracking-wide text-lateral-suave uppercase"
+                            >
+                                {titulo}
+                            </span>
+                        ) : (
+                            i > 0 && <span aria-hidden="true" className="mx-2 mb-2 h-px bg-lateral-linha" />
+                        )}
+                        <ul
+                            aria-labelledby={titulo ? `${prefixo}-${grupo}` : undefined}
+                            className="flex flex-col gap-px"
                         >
-                            {item.rotulo}
-                            {item.para === '/novidades' && haNovidade && <PontoNovidade />}
-                        </Link>
-                    </li>
+                            {itens.map((item) => (
+                                <li key={item.para} className="flex flex-col">
+                                    <Link
+                                        to={item.para}
+                                        activeOptions={{ exact: item.para === '/' }}
+                                        className={estiloLink}
+                                        onClick={aoNavegar}
+                                    >
+                                        {item.rotulo}
+                                        {item.para === '/novidades' && haNovidade && <PontoNovidade />}
+                                    </Link>
+                                </li>
+                            ))}
+                        </ul>
+                    </div>
                 ))}
-            </ul>
+            </div>
 
-            <div className="mt-auto flex flex-col gap-2">
+            <div className="flex shrink-0 flex-col gap-2">
                 {pode(perfil, 'apontamento.criar') && <IndicadorCronometro />}
                 <Button
                     onPress={aoBuscar}
