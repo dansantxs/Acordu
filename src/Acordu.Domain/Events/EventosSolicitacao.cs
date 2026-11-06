@@ -28,8 +28,12 @@ public sealed record SolicitacaoStatusAlterado(
     StatusSolicitacao Para,
     StatusExterno ExternoDe,
     StatusExterno ExternoPara,
-    DateTimeOffset Em) : IEventoDominio
+    DateTimeOffset Em,
+    bool AvisoNaMensagem = false) : IEventoDominio
 {
+    // AvisoNaMensagem (F11a): a espera veio junto com uma resposta ao cliente ("Enviar e aguardar"); o e-mail da
+    // mensagem já pede o retorno, e o de "aguardando você" não sai em dobro.
+
     public bool ExternoMudou => ExternoDe != ExternoPara;
 }
 

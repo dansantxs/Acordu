@@ -226,12 +226,15 @@ public sealed class Solicitacao : RaizComCliente
         MudarStatus(StatusSolicitacao.EmAndamento, agora);
     }
 
-    /// <summary>Pausa o prazo de resolução (o de primeira resposta não pausa).</summary>
-    public void AguardarCliente(DateTimeOffset agora)
+    /// <summary>
+    /// Pausa o prazo de resolução (o de primeira resposta não pausa). <paramref name="avisoNaMensagem"/>: a espera vem
+    /// com uma resposta ao cliente (F11a), cujo e-mail já pede o retorno.
+    /// </summary>
+    public void AguardarCliente(DateTimeOffset agora, bool avisoNaMensagem = false)
     {
         Exigir(nameof(AguardarCliente), StatusSolicitacao.Aberta, StatusSolicitacao.EmAndamento);
         Sla = Sla?.Pausar(agora);
-        MudarStatus(StatusSolicitacao.AguardandoCliente, agora);
+        MudarStatus(StatusSolicitacao.AguardandoCliente, agora, avisoNaMensagem);
     }
 
     /// <summary>Espera por fornecedor: aparece ao cliente como "em andamento" e o SLA <b>não</b> pausa.</summary>
@@ -359,12 +362,13 @@ public sealed class Solicitacao : RaizComCliente
         _ => 0,
     };
 
-    private void MudarStatus(StatusSolicitacao novo, DateTimeOffset agora)
+    private void MudarStatus(StatusSolicitacao novo, DateTimeOffset agora, bool avisoNaMensagem = false)
     {
         var anterior = Status;
         Status = novo;
         Registrar(new SolicitacaoStatusAlterado(
-            Id, TenantId, ClienteId, anterior, novo, ParaExterno(anterior), ParaExterno(novo), agora.ToUniversalTime()));
+            Id, TenantId, ClienteId, anterior, novo, ParaExterno(anterior), ParaExterno(novo), agora.ToUniversalTime(),
+            avisoNaMensagem));
     }
 
     private void Exigir(string operacao, params StatusSolicitacao[] permitidos)
