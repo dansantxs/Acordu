@@ -14,7 +14,7 @@
     "csp:conferir": "node scripts/conferir-csp.mjs",
     "rotas": "tsr generate",
     "typecheck": "tsr generate && tsc -b",
-    "lint": "eslint .",
+    "lint": "eslint . && node scripts/conferir-nomes.mjs",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "test": "vitest run",
