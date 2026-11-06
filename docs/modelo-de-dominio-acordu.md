@@ -264,7 +264,7 @@ AjusteSaldo ..> Contrato : ref por Id
 ### 3.1 `Interacao` fora de `Solicitacao`
 Uma solicitação pode ter dezenas de comentários e anexos; mudar o status não deve carregar todos. `Interacao` é agregado próprio referenciando `SolicitacaoId`.
 
-**Consequência:** a regra "primeira resposta = primeiro comentário EXTERNO da equipe" cruza agregados. É orquestrada na Application: ao registrar uma interação externa de autor interno, o handler chama `solicitacao.RegistrarPrimeiraResposta(agora)`, que é idempotente (só grava na primeira vez). O mesmo handler move AGUARDANDO_CLIENTE → EM_ANDAMENTO quando o **cliente** responde (RF-POR-05).
+**Consequência:** a regra "primeira resposta = primeiro comentário EXTERNO da equipe" cruza agregados. É orquestrada na Application: ao registrar uma interação externa de autor interno, o handler chama `solicitacao.RegistrarPrimeiraResposta(agora)`, que é idempotente (só grava na primeira vez). O mesmo handler move AGUARDANDO_CLIENTE → EM_ANDAMENTO quando o **cliente** responde (RF-POR-05) e ABERTA → EM_ANDAMENTO quando a **equipe** responde ao cliente (F11-05). "Enviar e aguardar" (F11-04) chama `AguardarCliente(agora, avisoNaMensagem: true)` no caso de uso, antes de salvar; o evento `SolicitacaoStatusAlterado.AvisoNaMensagem` evita o segundo e-mail ao contato.
 
 ### 3.2 `Apontamento` e `AjusteSaldo` fora de `Contrato`
 Crescem sem limite. **Consumo do contrato não é estado**: é read model (soma de apontamentos faturáveis + ajustes no período) — ver `read-side-acordu-v1.md` (a escrever). Não existe `Contrato.Consumo()`.
