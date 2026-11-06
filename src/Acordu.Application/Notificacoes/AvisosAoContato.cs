@@ -102,22 +102,35 @@ public sealed class AvisosAoContato :
             return;
 
         var mensagem = string.IsNullOrWhiteSpace(interacao.Texto) ? "(mensagem com anexos)" : interacao.Texto;
-        await AvisarAsync(evento.SolicitacaoId, "aviso-mensagem", a => (
-            $"Nova mensagem na solicitação #{a.Solicitacao.Numero}",
-            $"""
-            Olá, {a.Contato.Nome}!
+        // Resposta com espera (F11-04, ou solicitação que já aguarda o cliente): o mesmo e-mail pede o retorno.
+        await AvisarAsync(evento.SolicitacaoId, "aviso-mensagem", a => a.Solicitacao.Status == StatusSolicitacao.AguardandoCliente
+            ? (
+                $"Precisamos de você na solicitação #{a.Solicitacao.Numero}",
+                $"""
+                Olá, {a.Contato.Nome}!
 
-            {a.Prestador} escreveu na solicitação #{a.Solicitacao.Numero} — {a.Solicitacao.Titulo}:
+                {a.Prestador} escreveu na solicitação #{a.Solicitacao.Numero} — {a.Solicitacao.Titulo}, e aguarda a sua resposta para continuar:
 
-            {mensagem}
-            {Link(a, "Para responder, acesse:")}
-            """), cancellationToken);
+                {mensagem}
+                {Link(a, "Responda por aqui:")}
+                """)
+            : (
+                $"Nova mensagem na solicitação #{a.Solicitacao.Numero}",
+                $"""
+                Olá, {a.Contato.Nome}!
+
+                {a.Prestador} escreveu na solicitação #{a.Solicitacao.Numero} — {a.Solicitacao.Titulo}:
+
+                {mensagem}
+                {Link(a, "Para responder, acesse:")}
+                """), cancellationToken);
     }
 
     public Task TratarAsync(SolicitacaoStatusAlterado evento, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(evento);
-        if (evento.Para != StatusSolicitacao.AguardandoCliente)
+        // Com AvisoNaMensagem, o e-mail da própria resposta já pede o retorno (F11-04): não sai outro.
+        if (evento.Para != StatusSolicitacao.AguardandoCliente || evento.AvisoNaMensagem)
             return Task.CompletedTask;
 
         return AvisarAsync(evento.SolicitacaoId, "aviso-aguardando", a => (
