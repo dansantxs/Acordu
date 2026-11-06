@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| **Status** | Aprovada (recomendações) |
+| **Status** | Em implementação |
 | **Data** | 06/11/2026 |
 | **Requisitos** | RF-SOL-03, RF-SOL-06, RF-SOL-07, RF-SOL-08, RF-SOL-10, RF-TAR-01, RF-TAR-02, RF-PRJ-01, RF-POR-05 (ERS) |
 | **ADRs** | 0011 |
@@ -33,11 +33,11 @@ As letras entre colchetes ligam o cenário à decisão da §5 de que ele depende
 
 | Id | Dado | Quando | Então | Teste |
 |---|---|---|---|---|
-| F11-01 | solicitação aberta e quem tem `solicitacao.comentar` | abre a caixa de conversa | "Resposta ao cliente" vem marcada, e o botão diz "Enviar ao cliente" [D1] | — |
-| F11-02 | caixa em "Nota interna" | a pessoa escreve | o fundo e o botão mudam ("Salvar nota interna"), para não haver dúvida sobre quem vai ler [D1] | — |
-| F11-03 | a pessoa trocou para "Nota interna" e enviou | a caixa volta vazia | volta para "Resposta ao cliente": o padrão não muda conforme o último uso [D1] | — |
-| F11-04 | solicitação ABERTA, EM_ANDAMENTO ou AGUARDANDO_TERCEIRO | a pessoa escolhe "Enviar e aguardar o cliente" | a resposta é registrada e a solicitação vai para AGUARDANDO_CLIENTE numa só ação, com o SLA pausado como no RF-SOL-05 [D7-c] | — |
-| F11-05 | solicitação ABERTA | a equipe envia a primeira resposta ao cliente | a primeira resposta é registrada (RF-SOL-07) e a solicitação passa a EM_ANDAMENTO [D7-a] | — |
+| F11-01 | solicitação aberta e quem tem `solicitacao.comentar` | abre a caixa de conversa | "Resposta ao cliente" vem marcada, e o botão diz "Enviar ao cliente" [D1] | `conversa.test › abre em "Resposta ao cliente"` |
+| F11-02 | caixa em "Nota interna" | a pessoa escreve | o fundo e o botão mudam ("Salvar nota interna"), para não haver dúvida sobre quem vai ler [D1] | `conversa.test › registra nota interna com menção` (botão "Salvar nota interna"; fundo âmbar do `destaque`) |
+| F11-03 | a pessoa trocou para "Nota interna" e enviou | a caixa volta vazia | volta para "Resposta ao cliente": o padrão não muda conforme o último uso [D1] | `conversa.test › registra nota interna com menção` (volta a "Resposta ao cliente") |
+| F11-04 | solicitação ABERTA, EM_ANDAMENTO ou AGUARDANDO_TERCEIRO | a pessoa escolhe "Enviar e aguardar o cliente" | a resposta é registrada e a solicitação vai para AGUARDANDO_CLIENTE numa só ação, com o SLA pausado como no RF-SOL-05 [D7-c] | `SolicitacoesTests › Interacoes_EnviarEAguardar_*` (3); `AvisosAoContatoTests › EnviarEAguardar_UmSoEmailQuePedeORetorno`; `conversa.test › "Enviar e aguardar o cliente"` |
+| F11-05 | solicitação ABERTA | a equipe envia a primeira resposta ao cliente | a primeira resposta é registrada (RF-SOL-07) e a solicitação passa a EM_ANDAMENTO [D7-a] | `SolicitacoesTests › Interacoes_PrimeiraRespostaEmAberta_PassaParaEmAndamento` |
 
 ### Solicitação encerrada
 
@@ -172,3 +172,4 @@ O F11a e o F11b são independentes e podem sair primeiro. O F11e depende do F11d
 
 - 06/11 — rascunho a partir do pedido do Daniel (quatro pontos e "verifique outras situações").
 - 06/11 — o Daniel aprovou todas as recomendações (D1 a D7) e pediu o PR da spec.
+- 06/11 — F11a: na API, sem `visibilidade`, continua INTERNA (compatível); o padrão novo é da tela. "Enviar e aguardar" manda um só e-mail ao contato (o da mensagem, com assunto de espera), decidido pelo pedido da própria ação (`InteracaoRegistrada.PedeRetorno`), não pelo status lido depois. Encerrada (FECHADA/CANCELADA) já abre em nota interna; o bloqueio completo vem no F11b. A transição automática gera, como qualquer mudança de status, o aviso aos seguidores e a linha no histórico.

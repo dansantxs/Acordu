@@ -5428,6 +5428,7 @@ export interface components {
         InteracaoRequest: {
             texto: null | string
             visibilidade: null | components['schemas']['Visibilidade']
+            aguardarCliente?: null | boolean
         }
         ItemAgendaDto: {
             tipo: components['schemas']['TipoItemAgenda']

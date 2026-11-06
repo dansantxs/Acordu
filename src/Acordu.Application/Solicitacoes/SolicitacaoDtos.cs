@@ -95,7 +95,11 @@ public sealed record MotivoRequest(string Motivo);
 /// Corpo do <c>POST /solicitacoes/{id}/interacoes</c>. Só texto por enquanto (JSON); com anexos, vira multipart no
 /// marco de anexos. Visibilidade padrão: INTERNA.
 /// </summary>
-public sealed record InteracaoRequest(string? Texto, Visibilidade? Visibilidade);
+/// <summary>
+/// Corpo do <c>POST /solicitacoes/{id}/interacoes</c>. <see cref="AguardarCliente"/> (F11a): resposta ao cliente que já
+/// põe a solicitação em AGUARDANDO_CLIENTE; exige também <c>solicitacao.editar</c>.
+/// </summary>
+public sealed record InteracaoRequest(string? Texto, Visibilidade? Visibilidade, bool? AguardarCliente = null);
 
 /// <summary>Corpo do <c>PUT /solicitacoes/{id}/contrato</c>; nulo remove o contrato (e o SLA).</summary>
 public sealed record TrocaContratoRequest(Guid? ContratoId);

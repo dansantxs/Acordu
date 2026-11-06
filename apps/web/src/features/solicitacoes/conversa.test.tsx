@@ -166,7 +166,11 @@ describe('conversa da solicitação', () => {
         const c = await conversa()
         const usuario = userEvent.setup()
 
+        await usuario.click(c.getByRole('radio', { name: 'Nota interna' }))
+        expect(c.getByRole('button', { name: 'Salvar nota interna' })).toBeInTheDocument()
         const caixa = c.getByRole('combobox', { name: 'Nota interna' })
+        // F11-02: a nota interna tem o fundo âmbar.
+        expect(caixa.className).toMatch(/bg-ambar/)
         await usuario.type(caixa, 'Veja @raf')
         expect(await c.findByRole('option', { name: 'Rafael Moura' })).toBeInTheDocument()
         await usuario.keyboard('{Enter}')
@@ -177,8 +181,41 @@ describe('conversa da solicitação', () => {
         expect(chamadas.find((ch) => ch.metodo === 'POST' && ch.caminho.endsWith('/interacoes'))?.corpo).toEqual({
             texto: `Veja @{${RAFAEL}} isso`,
             visibilidade: 'INTERNA',
+            aguardarCliente: false,
         })
         expect(await c.findByText('@Rafael Moura')).toBeInTheDocument()
+        // Depois de enviar, a caixa volta ao padrão (F11-03).
+        expect(c.getByRole('radio', { name: 'Resposta ao cliente' })).toBeChecked()
+    })
+
+    it('abre em "Resposta ao cliente", sem "Enviar e aguardar" para quem não edita a solicitação (F11-01)', async () => {
+        app(COMENTAR)
+        await abrir(`/solicitacoes/${ID}`)
+        const c = await conversa()
+        expect(c.getByRole('radio', { name: 'Resposta ao cliente' })).toBeChecked()
+        expect(c.getByRole('button', { name: 'Enviar ao cliente' })).toBeInTheDocument()
+        expect(c.queryByRole('button', { name: 'Enviar e aguardar o cliente' })).not.toBeInTheDocument()
+    })
+
+    it('"Enviar e aguardar o cliente" manda a resposta com a espera (F11-04)', async () => {
+        const chamadas = app([...COMENTAR, 'solicitacao.editar'], {
+            [`POST /api/v1/solicitacoes/${ID}/interacoes`]: () => json(interacao({}), 201),
+        })
+        await abrir(`/solicitacoes/${ID}`)
+        const c = await conversa()
+        const usuario = userEvent.setup()
+        await usuario.type(c.getByRole('textbox', { name: 'Resposta ao cliente' }), 'Pode mandar a logo?')
+        await usuario.click(c.getByRole('button', { name: 'Enviar e aguardar o cliente' }))
+        await vi.waitFor(() =>
+            expect(chamadas.find((ch) => ch.metodo === 'POST' && ch.caminho.endsWith('/interacoes'))?.corpo).toEqual({
+                texto: 'Pode mandar a logo?',
+                visibilidade: 'EXTERNA',
+                aguardarCliente: true,
+            }),
+        )
+        // Nota interna não aguarda o cliente: o botão some.
+        await usuario.click(c.getByRole('radio', { name: 'Nota interna' }))
+        expect(c.queryByRole('button', { name: 'Enviar e aguardar o cliente' })).not.toBeInTheDocument()
     })
 
     it('responde ao cliente com anexo em multipart', async () => {

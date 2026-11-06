@@ -207,6 +207,12 @@ public sealed class ComandosSolicitacao
     {
         ArgumentNullException.ThrowIfNull(dados);
         var solicitacao = await CarregarAsync(solicitacaoId, Permissoes.SolicitacaoComentar, null, cancellationToken);
+        if (dados.AguardarCliente == true)
+        {
+            _contexto.Exigir(Permissoes.SolicitacaoEditar);
+            if (dados.Visibilidade != Visibilidade.Externa)
+                throw ErroDeCampo.Criar("aguardarCliente", "Só a resposta ao cliente pode pôr a solicitação aguardando o cliente.");
+        }
         if ((dados.Visibilidade ?? Visibilidade.Interna) == Visibilidade.Interna)
             await _mencoes.GarantirAsync(dados.Texto, _contexto.Usuario(), Permissoes.SolicitacaoVer, cancellationToken);
         var anexos = await _anexos.EnviarAsync(solicitacao.TenantId, solicitacao.Id, arquivos, cancellationToken);
@@ -235,8 +241,17 @@ public sealed class ComandosSolicitacao
             dados.Visibilidade ?? Visibilidade.Interna,
             anexos,
             PoliticaPadrao,
-            _relogio.Agora);
+            _relogio.Agora,
+            pedeRetorno: dados.AguardarCliente == true);
         _interacoes.Adicionar(interacao);
+        if (dados.AguardarCliente == true)
+        {
+            // "Enviar e aguardar" (F11-04): de AGUARDANDO_TERCEIRO passa por EM_ANDAMENTO; na mesma transação da
+            // mensagem, então uma transição inválida (ex.: RESOLVIDA) desfaz tudo.
+            if (solicitacao.Status == StatusSolicitacao.AguardandoTerceiro)
+                solicitacao.Retomar(_relogio.Agora, await _calendarios.DoTenantAsync(cancellationToken));
+            solicitacao.AguardarCliente(_relogio.Agora, avisoNaMensagem: true);
+        }
         await _unidade.SalvarAsync(cancellationToken);
         return interacao.Id;
     }

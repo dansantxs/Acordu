@@ -1,6 +1,7 @@
 using System.Net;
 using System.Text.Json;
 using Acordu.Api.FunctionalTests.Apoio;
+using Acordu.Domain.Acesso;
 using Acordu.Domain.Entities;
 
 namespace Acordu.Api.FunctionalTests;
@@ -182,6 +183,78 @@ public sealed class SolicitacoesTests(ApiFixture api)
         depoisDaExterna.GetProperty("sla").GetProperty("primeiraRespostaEm").ValueKind.Should().Be(JsonValueKind.String);
         vazia.GetProperty("errors").TryGetProperty("texto", out _).Should().BeTrue();
         linha.EnumerateArray().Select(i => i.GetProperty("visibilidade").GetString()).Should().Equal("INTERNA", "EXTERNA");
+    }
+
+    [Fact]
+    public async Task Interacoes_PrimeiraRespostaEmAberta_PassaParaEmAndamento() // F11-05
+    {
+        var (equipe, cliente) = await ClienteAsync(api);
+        var id = Id(await AbrirAsync(equipe, cliente));
+        var rota = $"/api/v1/solicitacoes/{id}";
+
+        await equipe.EsperarAsync(HttpStatusCode.Created, HttpMethod.Post, $"{rota}/interacoes", new { texto = "Vou olhar amanhã." });
+        (await equipe.EsperarAsync(HttpStatusCode.OK, HttpMethod.Get, rota)).GetProperty("status").GetString()
+            .Should().Be("ABERTA", "nota interna não mexe no status");
+        await equipe.EsperarAsync(HttpStatusCode.Created, HttpMethod.Post, $"{rota}/interacoes",
+            new { texto = "Recebido, já estamos ajustando.", visibilidade = "EXTERNA" });
+        (await equipe.EsperarAsync(HttpStatusCode.OK, HttpMethod.Get, rota)).GetProperty("status").GetString().Should().Be("EM_ANDAMENTO");
+    }
+
+    [Fact]
+    public async Task Interacoes_EnviarEAguardar_PoeAguardandoClienteNaMesmaAcao() // F11-04
+    {
+        var (equipe, cliente) = await ClienteAsync(api);
+        var id = Id(await AbrirAsync(equipe, cliente));
+        var rota = $"/api/v1/solicitacoes/{id}";
+
+        await equipe.EsperarAsync(HttpStatusCode.Created, HttpMethod.Post, $"{rota}/interacoes",
+            new { texto = "Pode mandar a logo em alta?", visibilidade = "EXTERNA", aguardarCliente = true });
+        var aguardando = await equipe.EsperarAsync(HttpStatusCode.OK, HttpMethod.Get, rota);
+
+        aguardando.GetProperty("status").GetString().Should().Be("AGUARDANDO_CLIENTE");
+        aguardando.GetProperty("sla").GetProperty("primeiraRespostaEm").ValueKind.Should().Be(JsonValueKind.String);
+        aguardando.GetProperty("sla").GetProperty("pausado").GetBoolean().Should().BeTrue("o SLA pausa como no RF-SOL-05");
+    }
+
+    [Fact]
+    public async Task Interacoes_EnviarEAguardarDeAguardandoTerceiro_PassaAAguardandoCliente() // F11-04
+    {
+        var (equipe, cliente) = await ClienteAsync(api);
+        var id = Id(await AbrirAsync(equipe, cliente));
+        var rota = $"/api/v1/solicitacoes/{id}";
+        await equipe.EsperarAsync(HttpStatusCode.OK, HttpMethod.Post, $"{rota}/aguardando-terceiro");
+
+        await equipe.EsperarAsync(HttpStatusCode.Created, HttpMethod.Post, $"{rota}/interacoes",
+            new { texto = "O fornecedor respondeu; confirma o horário?", visibilidade = "EXTERNA", aguardarCliente = true });
+
+        (await equipe.EsperarAsync(HttpStatusCode.OK, HttpMethod.Get, rota)).GetProperty("status").GetString().Should().Be("AGUARDANDO_CLIENTE");
+    }
+
+    [Fact]
+    public async Task Interacoes_EnviarEAguardar_RecusasNaoGravamNada() // F11-04
+    {
+        var (equipe, cliente) = await ClienteAsync(api);
+        var id = Id(await AbrirAsync(equipe, cliente));
+        var rota = $"/api/v1/solicitacoes/{id}";
+
+        var interna = await equipe.EsperarAsync(HttpStatusCode.BadRequest, HttpMethod.Post, $"{rota}/interacoes",
+            new { texto = "Nota", aguardarCliente = true });
+        interna.GetProperty("errors").TryGetProperty("aguardarCliente", out _).Should().BeTrue();
+
+        await equipe.EsperarAsync(HttpStatusCode.Created, HttpMethod.Post, "/api/v1/papeis", new
+        {
+            nome = "Só comenta", permissoes = new[] { Permissoes.SolicitacaoVer, Permissoes.SolicitacaoComentar },
+        });
+        var soComenta = await equipe.ComPapelAsync("Só comenta");
+        await equipe.EsperarAsync(HttpStatusCode.Forbidden, HttpMethod.Post, $"{rota}/interacoes",
+            new { texto = "Oi", visibilidade = "EXTERNA", aguardarCliente = true }, token: soComenta);
+
+        await equipe.EsperarAsync(HttpStatusCode.OK, HttpMethod.Post, $"{rota}/resolucao", new { solucao = new { texto = "Feito" } });
+        await equipe.EsperarAsync(HttpStatusCode.UnprocessableEntity, HttpMethod.Post, $"{rota}/interacoes",
+            new { texto = "Mais uma coisa?", visibilidade = "EXTERNA", aguardarCliente = true });
+
+        (await equipe.EsperarAsync(HttpStatusCode.OK, HttpMethod.Get, $"{rota}/interacoes")).GetArrayLength()
+            .Should().Be(0, "nenhuma recusa grava a mensagem");
     }
 
     [Fact]

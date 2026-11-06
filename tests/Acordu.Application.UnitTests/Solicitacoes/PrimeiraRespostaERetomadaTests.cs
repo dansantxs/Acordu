@@ -51,6 +51,28 @@ public sealed class PrimeiraRespostaERetomadaTests
     }
 
     [Fact]
+    public async Task ExternaDaEquipeEmAberta_PassaAEmAndamento() // F11-05
+    {
+        var solicitacao = Abrir();
+
+        await _manipulador.TratarAsync(Interacao(solicitacao, false, Visibilidade.Externa, 40), CancellationToken.None);
+
+        solicitacao.Status.Should().Be(StatusSolicitacao.EmAndamento);
+    }
+
+    [Fact]
+    public async Task ExternaDaEquipeJaAguardandoCliente_NaoInicia() // F11-04: "Enviar e aguardar" muda antes de salvar
+    {
+        var solicitacao = Abrir();
+        solicitacao.AguardarCliente(Abertura.AddMinutes(30), avisoNaMensagem: true);
+
+        await _manipulador.TratarAsync(Interacao(solicitacao, false, Visibilidade.Externa, 30), CancellationToken.None);
+
+        solicitacao.Status.Should().Be(StatusSolicitacao.AguardandoCliente);
+        solicitacao.PrimeiraRespostaEm.Should().Be(Abertura.AddMinutes(30));
+    }
+
+    [Fact]
     public async Task InternaDaEquipe_NaoContaComoResposta()
     {
         var solicitacao = Abrir();
@@ -58,6 +80,7 @@ public sealed class PrimeiraRespostaERetomadaTests
         await _manipulador.TratarAsync(Interacao(solicitacao, false, Visibilidade.Interna, 40), CancellationToken.None);
 
         solicitacao.PrimeiraRespostaEm.Should().BeNull();
+        solicitacao.Status.Should().Be(StatusSolicitacao.Aberta);
     }
 
     [Fact]

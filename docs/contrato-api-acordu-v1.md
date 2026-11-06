@@ -301,7 +301,8 @@ Decidido na implementação (6c2):
 - `semResponsavel=true` (19/10, F2d3): só as sem responsável, a fila "de ninguém"; junto com `responsavelId` → `400` em `errors.semResponsavel`.
 - `PATCH` recebe título, descrição, prioridade, categoria e responsável (formulário inteiro). Responsável precisa ser da equipe (`400` no campo).
 - `PUT /solicitacoes/{id}/contrato` `{ "contratoId": "k9..." | null }` (`solicitacao.editar`, `If-Match` opcional) → `200` com a solicitação. O contrato precisa ser do mesmo cliente e vigente hoje (`422 contrato-incoerente`); resolvida ou final → `422 transicao-invalida`. SLA: com prazo correndo, recalcula pelo início do ciclo com os prazos do novo contrato (mantém pausas); sem SLA antes, começa agora; `null` remove contrato e SLA. Apontamentos já feitos não mudam. Fora do `PATCH` de propósito: o formulário inteiro sem o campo removeria o contrato.
-- Transições respondem `200` com a solicitação. `POST /interacoes` aceita JSON `{ "texto": "...", "visibilidade": "EXTERNA" }` (sem anexos) ou multipart (abaixo). Interação EXTERNA da equipe registra a primeira resposta.
+- Transições respondem `200` com a solicitação. `POST /interacoes` aceita JSON `{ "texto": "...", "visibilidade": "EXTERNA", "aguardarCliente": false }` (sem anexos) ou multipart (abaixo). Interação EXTERNA da equipe registra a primeira resposta e, com a solicitação ABERTA, a põe EM_ANDAMENTO (F11-05).
+- `aguardarCliente: true` (F11-04): só com `visibilidade: EXTERNA` (senão `400` no campo `aguardarCliente`) e exige também `solicitacao.editar` (senão `403`). Na mesma transação da mensagem, a solicitação vai para AGUARDANDO_CLIENTE (de AGUARDANDO_TERCEIRO passa por EM_ANDAMENTO); de outro status, `422` (`transicao-invalida`) e nada é gravado. O contato recebe um só e-mail, o da mensagem, com o assunto "Precisamos de você…".
 - O detalhe traz também `descricao`, `categoriaId`, `situacaoSla` (fora do bloco `sla`, para solicitações sem contrato), `resolvidaEm`, `fechadaEm`, `canceladaEm` e `motivoCancelamento`.
 
 **POST `/solicitacoes`** → `201`
@@ -341,7 +342,7 @@ Contrato de outro cliente ou não vigente → `422`. Sem `contratoId`, a API usa
   "texto": "Arte refeita com a data 15/10 e publicada." } }
 ```
 
-**POST `/solicitacoes/{id}/interacoes`** — `multipart/form-data`: `texto`, `visibilidade` (`INTERNA`|`EXTERNA`, padrão `INTERNA`), `anexos` (repetido; até 5, 20 MB cada). → `201` com a interação. Também aceita JSON sem anexos.
+**POST `/solicitacoes/{id}/interacoes`** — `multipart/form-data`: `texto`, `visibilidade` (`INTERNA`|`EXTERNA`, padrão `INTERNA`), `aguardarCliente` (`true`|`false`, opcional), `anexos` (repetido; até 5, 20 MB cada). → `201` com a interação. Também aceita JSON sem anexos.
 - O tipo do arquivo é detectado pelo conteúdo (PNG, JPEG, GIF, WebP, PDF, ZIP, Office novo e antigo, texto UTF-8/CSV); o declarado pelo navegador é ignorado. Fora da lista → `422 anexo-invalido`; acima de 20 MB → `413 anexo-grande-demais`.
 - Interação (aqui e na linha do tempo) traz `anexos: [{ id, nomeArquivo, tipoConteudo, tamanhoBytes }]`. `GET /anexos/{id}/download` → `200 { "url": "..." }` com a URL assinada de 5 minutos, sempre como `attachment`; o navegador abre a URL. Era `302` até 19/10: com o token no cabeçalho (ADR 0007), o SPA busca por `fetch`, e um redirect seguido pelo `fetch` não vira download.
 

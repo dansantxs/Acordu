@@ -262,6 +262,16 @@ public sealed class SolicitacaoTests
         }
 
         [Fact]
+        public void AguardarCliente_ComAvisoNaMensagem_MarcaOEvento() // F11-04
+        {
+            var solicitacao = Em(StatusSolicitacao.EmAndamento);
+
+            solicitacao.AguardarCliente(Brasilia(6, 11), avisoNaMensagem: true);
+
+            solicitacao.Eventos.OfType<SolicitacaoStatusAlterado>().Last().AvisoNaMensagem.Should().BeTrue();
+        }
+
+        [Fact]
         public void AguardarTerceiro_NaoPausa()
         {
             var solicitacao = Em(StatusSolicitacao.EmAndamento);

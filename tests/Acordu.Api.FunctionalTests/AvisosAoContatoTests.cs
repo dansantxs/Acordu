@@ -46,6 +46,26 @@ public sealed class AvisosAoContatoTests(ApiFixture api)
     }
 
     [Fact]
+    public async Task EnviarEAguardar_UmSoEmailQuePedeORetorno() // F11-04
+    {
+        var equipe = await Equipe.CriarAsync(api);
+        var cliente = await Cenarios.ClienteAsync(equipe);
+        var (contato, email) = await ContatoAsync(equipe, cliente);
+        var solicitacao = Cenarios.Id(await equipe.EsperarAsync(HttpStatusCode.Created, HttpMethod.Post, "/api/v1/solicitacoes", new
+        {
+            clienteId = cliente, contatoId = contato, titulo = "Trocar a logo do site", prioridade = "MEDIA",
+        }));
+
+        await equipe.EsperarAsync(HttpStatusCode.Created, HttpMethod.Post, $"/api/v1/solicitacoes/{solicitacao}/interacoes",
+            new { texto = "Pode mandar a logo em alta resolução?", visibilidade = "EXTERNA", aguardarCliente = true });
+
+        var mensagem = Ultimo(email, "aviso-mensagem");
+        mensagem.Assunto.Should().Contain("Precisamos de você");
+        mensagem.Texto.Should().Contain("Pode mandar a logo em alta resolução?");
+        api.Emails.Para(email).Should().NotContain(m => m.Categoria == "aviso-aguardando", "o aviso de espera já foi na mensagem");
+    }
+
+    [Fact]
     public async Task ContatoComConta_RecebeLinkDoPortal_ENaoEhAvisadoDaPropriaResposta()
     {
         var equipe = await Equipe.CriarAsync(api);

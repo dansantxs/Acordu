@@ -5,7 +5,9 @@ namespace Acordu.Domain.Events;
 
 /// <summary>
 /// Gatilho das regras entre agregados (modelo §3.1): interação EXTERNA da equipe registra a primeira resposta;
-/// resposta do cliente em AGUARDANDO_CLIENTE retoma a solicitação; notificar a outra parte.
+/// resposta do cliente em AGUARDANDO_CLIENTE retoma a solicitação; notificar a outra parte. <see cref="PedeRetorno"/>
+/// (F11-04): resposta enviada com "Enviar e aguardar", cujo e-mail ao contato pede o retorno; vem da ação, e não do
+/// status lido depois, para uma nova tentativa da outbox não mudar o e-mail.
 /// </summary>
 public sealed record InteracaoRegistrada(
     Guid InteracaoId,
@@ -15,4 +17,5 @@ public sealed record InteracaoRegistrada(
     Guid AutorId,
     bool AutorEhCliente,
     Visibilidade Visibilidade,
-    DateTimeOffset Em) : IEventoDominio;
+    DateTimeOffset Em,
+    bool PedeRetorno = false) : IEventoDominio;
