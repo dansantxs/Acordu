@@ -13,6 +13,16 @@ export interface NotaVersao {
 
 export const NOTAS: NotaVersao[] = [
     {
+        data: '2026-11-06',
+        publico: 'equipe',
+        titulo: 'Responder ao cliente ficou mais direto',
+        itens: [
+            'Na conversa da solicitação, "Resposta ao cliente" agora vem marcada. A nota interna continua a um clique, com fundo diferente e o botão "Salvar nota interna".',
+            '"Enviar e aguardar o cliente" responde e já põe a solicitação esperando o retorno, numa ação só. O cliente recebe um único e-mail.',
+            'A primeira resposta ao cliente tira a solicitação de "Aberta" sozinha.',
+        ],
+    },
+    {
         data: '2026-11-05',
         publico: 'equipe',
         titulo: '"Horas" agora é "Horas trabalhadas"',

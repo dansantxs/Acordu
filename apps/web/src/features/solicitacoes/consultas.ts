@@ -181,26 +181,31 @@ export function consultaInteracoes(id: string) {
 /** Sem anexos vai em JSON; com anexos, multipart (`anexos` repetido, contrato §7). */
 export async function registrarInteracao(
     id: string,
-    dados: { texto: string | null; visibilidade: Visibilidade; anexos: File[] },
+    dados: { texto: string | null; visibilidade: Visibilidade; anexos: File[]; aguardarCliente?: boolean },
 ): Promise<Interacao> {
-    const { texto, visibilidade, anexos } = dados
+    const { texto, visibilidade, anexos, aguardarCliente = false } = dados
     if (anexos.length === 0) {
         return (
             await api.POST('/api/v1/solicitacoes/{id}/interacoes', {
                 params: { path: { id } },
-                body: { texto, visibilidade },
+                body: { texto, visibilidade, aguardarCliente },
             })
         ).data!
     }
     const formulario = new FormData()
     if (texto) formulario.append('texto', texto)
     formulario.append('visibilidade', visibilidade)
+    if (aguardarCliente) formulario.append('aguardarCliente', 'true')
     anexos.forEach((arquivo) => formulario.append('anexos', arquivo, arquivo.name))
     return (
         await api.POST('/api/v1/solicitacoes/{id}/interacoes', {
             params: { path: { id } },
             // O openapi-fetch manda FormData como está e deixa o navegador pôr o boundary.
-            body: formulario as unknown as { texto: string | null; visibilidade: Visibilidade },
+            body: formulario as unknown as {
+                texto: string | null
+                visibilidade: Visibilidade
+                aguardarCliente: boolean
+            },
         })
     ).data!
 }

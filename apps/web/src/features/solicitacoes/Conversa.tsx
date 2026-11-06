@@ -24,10 +24,13 @@ export function Conversa({
     solicitacao,
     fuso,
     podeComentar,
+    podeAguardar = false,
 }: {
     solicitacao: Solicitacao
     fuso: string
     podeComentar: boolean
+    /** `solicitacao.editar`: além de responder, pôr em AGUARDANDO_CLIENTE (F11-04). */
+    podeAguardar?: boolean
 }) {
     const interacoes = useQuery(consultaInteracoes(solicitacao.id))
     // O histórico é complemento: se falhar, a conversa aparece sem ele.
@@ -57,7 +60,9 @@ export function Conversa({
                     )}
                 </ol>
             )}
-            {podeComentar && <Composicao solicitacao={solicitacao} equipe={equipe.data ?? []} />}
+            {podeComentar && (
+                <Composicao solicitacao={solicitacao} equipe={equipe.data ?? []} podeAguardar={podeAguardar} />
+            )}
         </section>
     )
 }
@@ -131,12 +136,30 @@ function Mensagem({
     )
 }
 
-function Composicao({ solicitacao, equipe }: { solicitacao: Solicitacao; equipe: Pessoa[] }) {
+/** De onde "Enviar e aguardar o cliente" leva a AGUARDANDO_CLIENTE (F11-04). */
+const PODE_AGUARDAR: Solicitacao['status'][] = ['ABERTA', 'EM_ANDAMENTO', 'AGUARDANDO_TERCEIRO']
+
+function Composicao({
+    solicitacao,
+    equipe,
+    podeAguardar,
+}: {
+    solicitacao: Solicitacao
+    equipe: Pessoa[]
+    podeAguardar: boolean
+}) {
     const consultas = useQueryClient()
-    // RF-SOL-06: o padrão é INTERNA; mandar ao cliente é escolha explícita.
-    const [visibilidade, setVisibilidade] = useState<Visibilidade>('INTERNA')
+    // RF-SOL-06 (F11-01): o padrão é a resposta ao cliente; a nota interna é escolha explícita, com outro visual, e a
+    // caixa volta ao padrão depois de cada envio (F11-03).
+    const [visibilidade, setVisibilidade] = useState<Visibilidade>('EXTERNA')
     const interna = visibilidade === 'INTERNA'
     const destinatario = solicitacao.contato?.nome
+    async function enviar(dados: { texto: string | null; anexos: File[] }, aguardarCliente = false) {
+        await registrarInteracao(solicitacao.id, { ...dados, visibilidade, aguardarCliente })
+        setVisibilidade('EXTERNA')
+        // A resposta ao cliente marca a primeira resposta do SLA e pode mudar o status; a do contato pode retomar.
+        await consultas.invalidateQueries({ queryKey: ['solicitacoes'] })
+    }
     return (
         <CaixaMensagem
             rotulo={interna ? 'Nota interna' : 'Resposta ao cliente'}
@@ -153,12 +176,13 @@ function Composicao({ solicitacao, equipe }: { solicitacao: Solicitacao; equipe:
                       ? `${destinatario} recebe por e-mail e vê no portal.`
                       : 'Aparece no portal do cliente (sem contato, ninguém recebe e-mail).'
             }
-            rotuloEnviar={interna ? 'Registrar nota' : 'Enviar ao cliente'}
-            enviar={async ({ texto, anexos }) => {
-                await registrarInteracao(solicitacao.id, { texto, visibilidade, anexos })
-                // A primeira mensagem ao cliente marca a primeira resposta do SLA; a resposta do contato pode retomar.
-                await consultas.invalidateQueries({ queryKey: ['solicitacoes'] })
-            }}
+            rotuloEnviar={interna ? 'Salvar nota interna' : 'Enviar ao cliente'}
+            enviar={(dados) => enviar(dados)}
+            outraAcao={
+                !interna && podeAguardar && PODE_AGUARDAR.includes(solicitacao.status)
+                    ? { rotulo: 'Enviar e aguardar o cliente', enviar: (dados) => enviar(dados, true) }
+                    : undefined
+            }
             topo={
                 <RadioGroup
                     aria-label="Tipo de mensagem"
@@ -167,7 +191,7 @@ function Composicao({ solicitacao, equipe }: { solicitacao: Solicitacao; equipe:
                     onChange={(v) => setVisibilidade(v as Visibilidade)}
                     className="flex w-fit gap-1 rounded-couro bg-trilho p-1"
                 >
-                    {(['INTERNA', 'EXTERNA'] as const).map((v) => (
+                    {(['EXTERNA', 'INTERNA'] as const).map((v) => (
                         <Radio
                             key={v}
                             value={v}

@@ -82,6 +82,7 @@ export function CaixaMensagem({
     rotuloEnviar,
     topo,
     enviar,
+    outraAcao,
 }: {
     /** Nome acessível do campo (o tipo da mensagem). */
     rotulo: string
@@ -95,6 +96,8 @@ export function CaixaMensagem({
     /** Acima do campo (a escolha entre nota interna e resposta, na solicitação). */
     topo?: ReactNode
     enviar: (dados: { texto: string | null; anexos: File[] }) => Promise<unknown>
+    /** Segundo botão, antes do principal, com o mesmo texto e anexos (ex.: "Enviar e aguardar o cliente"). */
+    outraAcao?: { rotulo: string; enviar: (dados: { texto: string | null; anexos: File[] }) => Promise<unknown> }
 }) {
     const idLista = useId()
     const campo = useRef<HTMLTextAreaElement>(null)
@@ -153,12 +156,12 @@ export function CaixaMensagem({
     }
 
     const vazio = !texto.trim() && anexos.length === 0
-    async function mandar() {
+    async function mandar(acao = enviar) {
         if (vazio || enviando) return
         setEnviando(true)
         setErro(null)
         try {
-            await enviar({ texto: textoComTokens(texto, comMencoes ? mencionados : []).trim() || null, anexos })
+            await acao({ texto: textoComTokens(texto, comMencoes ? mencionados : []).trim() || null, anexos })
             setTexto('')
             setAnexos([])
             setMencionados([])
@@ -286,7 +289,22 @@ export function CaixaMensagem({
                     </Botao>
                 </FileTrigger>
                 <span className="text-xs text-suave">ou arraste até aqui (até 5, de 20 MB)</span>
-                <Botao onPress={() => void mandar()} isDisabled={vazio} isPending={enviando} className="ml-auto">
+                {outraAcao && (
+                    <Botao
+                        variante="secundario"
+                        onPress={() => void mandar(outraAcao.enviar)}
+                        isDisabled={vazio || enviando}
+                        className="ml-auto"
+                    >
+                        {outraAcao.rotulo}
+                    </Botao>
+                )}
+                <Botao
+                    onPress={() => void mandar()}
+                    isDisabled={vazio}
+                    isPending={enviando}
+                    className={outraAcao ? '' : 'ml-auto'}
+                >
                     {rotuloEnviar}
                 </Botao>
             </div>

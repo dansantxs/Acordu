@@ -375,7 +375,12 @@ function Detalhe({
                 aoCriar={() => undefined}
             />
 
-            <Conversa solicitacao={s} fuso={fuso} podeComentar={pode(perfil, 'solicitacao.comentar')} />
+            <Conversa
+                solicitacao={s}
+                fuso={fuso}
+                podeComentar={pode(perfil, 'solicitacao.comentar')}
+                podeAguardar={pode(perfil, 'solicitacao.editar')}
+            />
 
             <JanelaLinkPortal
                 solicitacao={s}
