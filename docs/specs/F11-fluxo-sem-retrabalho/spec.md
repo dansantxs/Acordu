@@ -172,4 +172,4 @@ O F11a e o F11b são independentes e podem sair primeiro. O F11e depende do F11d
 
 - 06/11 — rascunho a partir do pedido do Daniel (quatro pontos e "verifique outras situações").
 - 06/11 — o Daniel aprovou todas as recomendações (D1 a D7) e pediu o PR da spec.
-- 06/11 — F11a: na API, sem `visibilidade`, continua INTERNA (compatível); o padrão novo é da tela. "Enviar e aguardar" manda um só e-mail ao contato (o da mensagem, com assunto de espera).
+- 06/11 — F11a: na API, sem `visibilidade`, continua INTERNA (compatível); o padrão novo é da tela. "Enviar e aguardar" manda um só e-mail ao contato (o da mensagem, com assunto de espera), decidido pelo pedido da própria ação (`InteracaoRegistrada.PedeRetorno`), não pelo status lido depois. Encerrada (FECHADA/CANCELADA) já abre em nota interna; o bloqueio completo vem no F11b. A transição automática gera, como qualquer mudança de status, o aviso aos seguidores e a linha no histórico.
