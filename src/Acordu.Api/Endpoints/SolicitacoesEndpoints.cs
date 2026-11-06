@@ -135,7 +135,7 @@ internal static class SolicitacoesEndpoints
                     {
                         null => null,
                         var valor when bool.TryParse(valor, out var aguardar) => aguardar,
-                        _ => throw new BadHttpRequestException("O campo aguardarCliente deve ser true ou false."),
+                        _ => throw ErroDeCampo.Criar("aguardarCliente", "Use true ou false."),
                     });
             var interacaoId = await comandos.ComentarAsync(id, corpo, formulario?.Arquivos, cancellationToken);
             var linha = await consultas.InteracoesAsync(id, cancellationToken);
