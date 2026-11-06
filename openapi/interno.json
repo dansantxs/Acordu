@@ -7082,6 +7082,12 @@
                 "$ref": "#/components/schemas/Visibilidade"
               }
             ]
+          },
+          "aguardarCliente": {
+            "type": [
+              "null",
+              "boolean"
+            ]
           }
         }
       },
