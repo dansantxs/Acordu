@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| **Status** | Rascunho |
+| **Status** | Aprovada (recomendações) |
 | **Data** | 06/11/2026 |
 | **Requisitos** | RF-SOL-03, RF-SOL-06, RF-SOL-07, RF-SOL-08, RF-SOL-10, RF-TAR-01, RF-TAR-02, RF-PRJ-01, RF-POR-05 (ERS) |
 | **ADRs** | 0011 |
@@ -171,3 +171,4 @@ O F11a e o F11b são independentes e podem sair primeiro. O F11e depende do F11d
 ## 8. Registro
 
 - 06/11 — rascunho a partir do pedido do Daniel (quatro pontos e "verifique outras situações").
+- 06/11 — o Daniel aprovou todas as recomendações (D1 a D7) e pediu o PR da spec.
