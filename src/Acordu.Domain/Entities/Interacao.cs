@@ -55,9 +55,12 @@ public sealed class Interacao : RaizComCliente
         Visibilidade visibilidade,
         IReadOnlyList<NovoAnexo> anexos,
         PoliticaAnexos politica,
-        DateTimeOffset agora)
+        DateTimeOffset agora,
+        bool pedeRetorno = false)
     {
         ArgumentNullException.ThrowIfNull(anexos);
+        if (pedeRetorno && (autorEhCliente || visibilidade != Visibilidade.Externa))
+            throw new ArgumentException("Só a resposta da equipe ao cliente pede retorno.", nameof(pedeRetorno));
         ArgumentNullException.ThrowIfNull(politica);
         if (!Enum.IsDefined(visibilidade))
             throw new ArgumentOutOfRangeException(nameof(visibilidade), visibilidade, "Visibilidade inválida.");
@@ -87,7 +90,7 @@ public sealed class Interacao : RaizComCliente
 
         interacao.Registrar(new InteracaoRegistrada(
             id, tenantId, clienteId, interacao.SolicitacaoId, interacao.AutorId, autorEhCliente, visibilidade,
-            interacao.RegistradaEm));
+            interacao.RegistradaEm, pedeRetorno));
         if (mencionados.Count > 0)
         {
             interacao.Registrar(new PessoasMencionadas(
