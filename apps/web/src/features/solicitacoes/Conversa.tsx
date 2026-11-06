@@ -151,12 +151,14 @@ function Composicao({
     const consultas = useQueryClient()
     // RF-SOL-06 (F11-01): o padrão é a resposta ao cliente; a nota interna é escolha explícita, com outro visual, e a
     // caixa volta ao padrão depois de cada envio (F11-03).
-    const [visibilidade, setVisibilidade] = useState<Visibilidade>('EXTERNA')
+    // Encerrada (FECHADA/CANCELADA) abre em nota interna: a conversa com o cliente acabou (F11-09 completa no F11b).
+    const padrao: Visibilidade = ['FECHADA', 'CANCELADA'].includes(solicitacao.status) ? 'INTERNA' : 'EXTERNA'
+    const [visibilidade, setVisibilidade] = useState<Visibilidade>(padrao)
     const interna = visibilidade === 'INTERNA'
     const destinatario = solicitacao.contato?.nome
     async function enviar(dados: { texto: string | null; anexos: File[] }, aguardarCliente = false) {
         await registrarInteracao(solicitacao.id, { ...dados, visibilidade, aguardarCliente })
-        setVisibilidade('EXTERNA')
+        setVisibilidade(padrao)
         // A resposta ao cliente marca a primeira resposta do SLA e pode mudar o status; a do contato pode retomar.
         await consultas.invalidateQueries({ queryKey: ['solicitacoes'] })
     }

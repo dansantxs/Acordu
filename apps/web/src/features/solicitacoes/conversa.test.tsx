@@ -169,6 +169,8 @@ describe('conversa da solicitação', () => {
         await usuario.click(c.getByRole('radio', { name: 'Nota interna' }))
         expect(c.getByRole('button', { name: 'Salvar nota interna' })).toBeInTheDocument()
         const caixa = c.getByRole('combobox', { name: 'Nota interna' })
+        // F11-02: a nota interna tem o fundo âmbar.
+        expect(caixa.className).toMatch(/bg-ambar/)
         await usuario.type(caixa, 'Veja @raf')
         expect(await c.findByRole('option', { name: 'Rafael Moura' })).toBeInTheDocument()
         await usuario.keyboard('{Enter}')
