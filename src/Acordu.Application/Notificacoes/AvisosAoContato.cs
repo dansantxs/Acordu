@@ -102,8 +102,8 @@ public sealed class AvisosAoContato :
             return;
 
         var mensagem = string.IsNullOrWhiteSpace(interacao.Texto) ? "(mensagem com anexos)" : interacao.Texto;
-        // Resposta com espera (F11-04, ou solicitação que já aguarda o cliente): o mesmo e-mail pede o retorno.
-        await AvisarAsync(evento.SolicitacaoId, "aviso-mensagem", a => a.Solicitacao.Status == StatusSolicitacao.AguardandoCliente
+        // "Enviar e aguardar" (F11-04): o mesmo e-mail pede o retorno. Decide pela ação, não pelo status de agora.
+        await AvisarAsync(evento.SolicitacaoId, "aviso-mensagem", a => evento.PedeRetorno
             ? (
                 $"Precisamos de você na solicitação #{a.Solicitacao.Numero}",
                 $"""

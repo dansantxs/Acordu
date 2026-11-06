@@ -207,8 +207,7 @@ public sealed class ComandosSolicitacao
     {
         ArgumentNullException.ThrowIfNull(dados);
         var solicitacao = await CarregarAsync(solicitacaoId, Permissoes.SolicitacaoComentar, null, cancellationToken);
-        var aguardar = dados.AguardarCliente == true;
-        if (aguardar)
+        if (dados.AguardarCliente == true)
         {
             _contexto.Exigir(Permissoes.SolicitacaoEditar);
             if (dados.Visibilidade != Visibilidade.Externa)
@@ -242,7 +241,8 @@ public sealed class ComandosSolicitacao
             dados.Visibilidade ?? Visibilidade.Interna,
             anexos,
             PoliticaPadrao,
-            _relogio.Agora);
+            _relogio.Agora,
+            pedeRetorno: dados.AguardarCliente == true);
         _interacoes.Adicionar(interacao);
         if (dados.AguardarCliente == true)
         {
