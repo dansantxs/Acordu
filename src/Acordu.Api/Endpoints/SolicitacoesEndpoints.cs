@@ -119,7 +119,7 @@ internal static class SolicitacoesEndpoints
             .RequirePermissao(Permissoes.SolicitacaoVer)
             .Produces<IReadOnlyList<InteracaoDto>>();
 
-        // JSON { texto, visibilidade } ou multipart (texto, visibilidade, anexos[]) — contrato §7.
+        // JSON { texto, visibilidade, aguardarCliente } ou multipart (texto, visibilidade, aguardarCliente, anexos[]) — contrato §7.
         solicitacoes.MapPost("/{id:guid}/interacoes", async (
             Guid id, HttpRequest requisicao, ComandosSolicitacao comandos, IConsultasSolicitacao consultas,
             CancellationToken cancellationToken) =>
@@ -129,7 +129,14 @@ internal static class SolicitacoesEndpoints
                 ? await CorpoOpcional.LerAsync<InteracaoRequest>(requisicao, cancellationToken)
                     ?? throw new BadHttpRequestException("Envie o comentário em JSON ou multipart/form-data.")
                 : new InteracaoRequest(
-                    formulario.Campo("texto"), EnumsDaApi.Ler<Visibilidade>(formulario.Campo("visibilidade"), "visibilidade"));
+                    formulario.Campo("texto"),
+                    EnumsDaApi.Ler<Visibilidade>(formulario.Campo("visibilidade"), "visibilidade"),
+                    formulario.Campo("aguardarCliente") switch
+                    {
+                        null => null,
+                        var valor when bool.TryParse(valor, out var aguardar) => aguardar,
+                        _ => throw new BadHttpRequestException("O campo aguardarCliente deve ser true ou false."),
+                    });
             var interacaoId = await comandos.ComentarAsync(id, corpo, formulario?.Arquivos, cancellationToken);
             var linha = await consultas.InteracoesAsync(id, cancellationToken);
             return Results.Created($"/api/v1/solicitacoes/{id}/interacoes", linha!.Single(i => i.Id == interacaoId));
