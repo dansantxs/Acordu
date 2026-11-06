@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { CAPTURAS } from './capturas'
-import { SECOES_AJUDA_PORTAL } from '@/features/portal/ajudaPortal'
+import { SECOES_AJUDA_PORTAL } from '@/features/portal/secoesAjudaPortal'
 import { SECOES_AJUDA } from './conteudo'
 
 // Só os nomes dos arquivos interessam: o glob preguiçoso não carrega as imagens.

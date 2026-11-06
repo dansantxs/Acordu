@@ -4,7 +4,7 @@ import { notasDo } from '@/features/novidades/notas'
 import { marcarVistas } from '@/features/novidades/vistas'
 import { Captura } from '@/shared/ui/Captura'
 import { useEffect } from 'react'
-import { SECOES_AJUDA_PORTAL } from './ajudaPortal'
+import { SECOES_AJUDA_PORTAL } from './secoesAjudaPortal'
 import { TituloPortal } from './CascaPortal'
 import type { PortalEu } from './consultas'
 
