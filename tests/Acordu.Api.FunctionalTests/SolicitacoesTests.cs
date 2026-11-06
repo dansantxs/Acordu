@@ -249,7 +249,7 @@ public sealed class SolicitacoesTests(ApiFixture api)
             new { texto = "Oi", visibilidade = "EXTERNA", aguardarCliente = true }, token: soComenta);
 
         await equipe.EsperarAsync(HttpStatusCode.OK, HttpMethod.Post, $"{rota}/resolucao", new { solucao = new { texto = "Feito" } });
-        await equipe.EsperarAsync(HttpStatusCode.Conflict, HttpMethod.Post, $"{rota}/interacoes",
+        await equipe.EsperarAsync(HttpStatusCode.UnprocessableEntity, HttpMethod.Post, $"{rota}/interacoes",
             new { texto = "Mais uma coisa?", visibilidade = "EXTERNA", aguardarCliente = true });
 
         (await equipe.EsperarAsync(HttpStatusCode.OK, HttpMethod.Get, $"{rota}/interacoes")).GetArrayLength()
