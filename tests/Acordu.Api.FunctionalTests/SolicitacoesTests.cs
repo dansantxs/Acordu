@@ -213,10 +213,11 @@ public sealed class SolicitacoesTests(ApiFixture api)
 
         aguardando.GetProperty("status").GetString().Should().Be("AGUARDANDO_CLIENTE");
         aguardando.GetProperty("sla").GetProperty("primeiraRespostaEm").ValueKind.Should().Be(JsonValueKind.String);
+        aguardando.GetProperty("sla").GetProperty("pausado").GetBoolean().Should().BeTrue("o SLA pausa como no RF-SOL-05");
     }
 
     [Fact]
-    public async Task Interacoes_EnviarEAguardar_DeAguardandoTerceiro() // F11-04
+    public async Task Interacoes_EnviarEAguardarDeAguardandoTerceiro_PassaAAguardandoCliente() // F11-04
     {
         var (equipe, cliente) = await ClienteAsync(api);
         var id = Id(await AbrirAsync(equipe, cliente));
