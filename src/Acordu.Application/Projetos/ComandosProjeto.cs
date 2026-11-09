@@ -32,22 +32,22 @@ public sealed class ComandosProjeto
         IUnitOfWork unidade,
         IControleVersao versoes)
     {
-        ArgumentNullException.ThrowIfNull(tarefas);
-        ArgumentNullException.ThrowIfNull(abertas);
-        ArgumentNullException.ThrowIfNull(relogio);
-        _tarefas = tarefas;
-        _abertas = abertas;
-        _relogio = relogio;
         ArgumentNullException.ThrowIfNull(contexto);
         ArgumentNullException.ThrowIfNull(projetos);
         ArgumentNullException.ThrowIfNull(clientes);
         ArgumentNullException.ThrowIfNull(contratos);
+        ArgumentNullException.ThrowIfNull(tarefas);
+        ArgumentNullException.ThrowIfNull(abertas);
+        ArgumentNullException.ThrowIfNull(relogio);
         ArgumentNullException.ThrowIfNull(unidade);
         ArgumentNullException.ThrowIfNull(versoes);
         _contexto = contexto;
         _projetos = projetos;
         _clientes = clientes;
         _contratos = contratos;
+        _tarefas = tarefas;
+        _abertas = abertas;
+        _relogio = relogio;
         _unidade = unidade;
         _versoes = versoes;
     }
