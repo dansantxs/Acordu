@@ -181,8 +181,13 @@ describe('cronômetro', () => {
 
         expect(await within(janela).findByText('O início pode ser de até 12 horas atrás.')).toBeInTheDocument()
         const enviado = chamadas.find((c) => c.caminho === '/api/v1/cronometro/inicio')?.corpo as { iniciadoEm: string }
-        const hora = new Date(enviado.iniciadoEm)
-        expect([hora.getHours(), hora.getMinutes()]).toEqual([8, 40])
+        // 08:40 no fuso da empresa, qualquer que seja o fuso da máquina que roda o teste.
+        const noFuso = new Intl.DateTimeFormat('pt-BR', {
+            timeZone: 'America/Sao_Paulo',
+            hour: '2-digit',
+            minute: '2-digit',
+        }).format(new Date(enviado.iniciadoEm))
+        expect(noFuso).toBe('08:40')
         await usuario.click(within(janela).getByRole('button', { name: 'Iniciar cronômetro' }))
         await vi.waitFor(() => expect(screen.queryByRole('dialog', { name: 'Começou antes' })).not.toBeInTheDocument())
     })
