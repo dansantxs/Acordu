@@ -61,7 +61,13 @@ export function Conversa({
                 </ol>
             )}
             {podeComentar && (
-                <Composicao solicitacao={solicitacao} equipe={equipe.data ?? []} podeAguardar={podeAguardar} />
+                <Composicao
+                    // Cancelar ou fechar com a tela aberta recomeça a caixa no padrão de encerrada (F11-09).
+                    key={['FECHADA', 'CANCELADA'].includes(solicitacao.status) ? 'encerrada' : 'aberta'}
+                    solicitacao={solicitacao}
+                    equipe={equipe.data ?? []}
+                    podeAguardar={podeAguardar}
+                />
             )}
         </section>
     )
@@ -151,8 +157,9 @@ function Composicao({
     const consultas = useQueryClient()
     // RF-SOL-06 (F11-01): o padrão é a resposta ao cliente; a nota interna é escolha explícita, com outro visual, e a
     // caixa volta ao padrão depois de cada envio (F11-03).
-    // Encerrada (FECHADA/CANCELADA) abre em nota interna: a conversa com o cliente acabou (F11-09 completa no F11b).
-    const padrao: Visibilidade = ['FECHADA', 'CANCELADA'].includes(solicitacao.status) ? 'INTERNA' : 'EXTERNA'
+    // Encerrada (FECHADA/CANCELADA): só nota interna, sem anexo (F11-07, F11-09); a API recusa o resto (F11-06).
+    const encerrada = ['FECHADA', 'CANCELADA'].includes(solicitacao.status)
+    const padrao: Visibilidade = encerrada ? 'INTERNA' : 'EXTERNA'
     const [visibilidade, setVisibilidade] = useState<Visibilidade>(padrao)
     const interna = visibilidade === 'INTERNA'
     const destinatario = solicitacao.contato?.nome
@@ -171,12 +178,15 @@ function Composicao({
             placeholder={
                 interna ? 'Só a equipe vê. Use @ para chamar alguém.' : `Mensagem para ${destinatario ?? 'o cliente'}`
             }
+            semAnexos={encerrada}
             dica={
-                interna
-                    ? 'Nota interna: o cliente não vê.'
-                    : destinatario
-                      ? `${destinatario} recebe por e-mail e vê no portal.`
-                      : 'Aparece no portal do cliente (sem contato, ninguém recebe e-mail).'
+                encerrada
+                    ? 'Solicitação encerrada: a conversa com o cliente acabou. A nota interna fica só na equipe.'
+                    : interna
+                      ? 'Nota interna: o cliente não vê.'
+                      : destinatario
+                        ? `${destinatario} recebe por e-mail e vê no portal.`
+                        : 'Aparece no portal do cliente (sem contato, ninguém recebe e-mail).'
             }
             rotuloEnviar={interna ? 'Salvar nota interna' : 'Enviar ao cliente'}
             enviar={(dados) => enviar(dados)}
@@ -186,23 +196,25 @@ function Composicao({
                     : undefined
             }
             topo={
-                <RadioGroup
-                    aria-label="Tipo de mensagem"
-                    orientation="horizontal"
-                    value={visibilidade}
-                    onChange={(v) => setVisibilidade(v as Visibilidade)}
-                    className="flex w-fit gap-1 rounded-couro bg-trilho p-1"
-                >
-                    {(['EXTERNA', 'INTERNA'] as const).map((v) => (
-                        <Radio
-                            key={v}
-                            value={v}
-                            className="cursor-default rounded-couro px-3 py-1 text-sm text-suave outline-none data-[focus-visible]:ring-2 data-[focus-visible]:ring-acento data-[selected]:bg-superficie data-[selected]:font-semibold data-[selected]:text-tinta data-[selected]:shadow-sm"
-                        >
-                            {v === 'INTERNA' ? 'Nota interna' : 'Resposta ao cliente'}
-                        </Radio>
-                    ))}
-                </RadioGroup>
+                encerrada ? undefined : (
+                    <RadioGroup
+                        aria-label="Tipo de mensagem"
+                        orientation="horizontal"
+                        value={visibilidade}
+                        onChange={(v) => setVisibilidade(v as Visibilidade)}
+                        className="flex w-fit gap-1 rounded-couro bg-trilho p-1"
+                    >
+                        {(['EXTERNA', 'INTERNA'] as const).map((v) => (
+                            <Radio
+                                key={v}
+                                value={v}
+                                className="cursor-default rounded-couro px-3 py-1 text-sm text-suave outline-none data-[focus-visible]:ring-2 data-[focus-visible]:ring-acento data-[selected]:bg-superficie data-[selected]:font-semibold data-[selected]:text-tinta data-[selected]:shadow-sm"
+                            >
+                                {v === 'INTERNA' ? 'Nota interna' : 'Resposta ao cliente'}
+                            </Radio>
+                        ))}
+                    </RadioGroup>
+                )
             }
         />
     )

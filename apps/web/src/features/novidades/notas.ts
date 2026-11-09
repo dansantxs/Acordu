@@ -13,6 +13,20 @@ export interface NotaVersao {
 
 export const NOTAS: NotaVersao[] = [
     {
+        data: '2026-11-09',
+        publico: 'equipe',
+        titulo: 'Solicitação encerrada é encerrada',
+        itens: [
+            'Solicitação fechada ou cancelada não recebe mais resposta ao cliente nem anexo. A nota interna continua, para registros como "o cliente ligou agradecendo".',
+        ],
+    },
+    {
+        data: '2026-11-09',
+        publico: 'cliente',
+        titulo: 'Assunto novo, solicitação nova',
+        itens: ['Uma solicitação encerrada não recebe mais mensagens: para continuar, abra uma nova solicitação.'],
+    },
+    {
         data: '2026-11-06',
         publico: 'equipe',
         titulo: 'Responder ao cliente ficou mais direto',

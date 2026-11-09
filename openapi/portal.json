@@ -932,6 +932,10 @@
           },
           "podeAprovar": {
             "type": "boolean"
+          },
+          "encerrada": {
+            "type": "boolean",
+            "default": false
           }
         }
       },

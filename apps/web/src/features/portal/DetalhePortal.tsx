@@ -38,7 +38,18 @@ const STATUS_TAREFA = {
  * tarefas que a equipe deixou visíveis) e a conversa só com as mensagens externas. Responder em "Esperando você"
  * retoma o atendimento (contrato §12).
  */
-export function DetalhePortal({ id, fuso, voltar = true }: { id: string; fuso: string; voltar?: boolean }) {
+export function DetalhePortal({
+    id,
+    fuso,
+    voltar = true,
+    podeAbrirNova = false,
+}: {
+    id: string
+    fuso: string
+    voltar?: boolean
+    /** `portal.solicitacao.criar`, e só na sessão com conta (o link vê uma solicitação só). */
+    podeAbrirNova?: boolean
+}) {
     const consulta = useQuery(consultaSolicitacaoPortal(id))
     if (consulta.isPending) return <p className="text-sm text-suave">Carregando…</p>
     if (consulta.isError)
@@ -50,7 +61,9 @@ export function DetalhePortal({ id, fuso, voltar = true }: { id: string; fuso: s
             </Alerta>
         )
     const s = consulta.data
-    const encerrada = s.statusExterno === 'CONCLUIDA' || s.statusExterno === 'CANCELADA'
+    // FECHADA ou CANCELADA (F11-08), pela API: RESOLVIDA aparece como CONCLUIDA para quem não aprova, mas a conversa
+    // segue aberta até fechar (F11-10), e só o status externo não separa os dois.
+    const encerrada = s.encerrada
     return (
         <>
             {voltar && (
@@ -77,7 +90,7 @@ export function DetalhePortal({ id, fuso, voltar = true }: { id: string; fuso: s
                     <p className="text-sm whitespace-pre-line">{s.descricao}</p>
                 </section>
             )}
-            <Conversa solicitacao={s} fuso={fuso} encerrada={encerrada} />
+            <Conversa solicitacao={s} fuso={fuso} encerrada={encerrada} podeAbrirNova={podeAbrirNova} />
         </>
     )
 }
@@ -218,10 +231,13 @@ function Conversa({
     solicitacao: s,
     fuso,
     encerrada,
+    podeAbrirNova,
 }: {
     solicitacao: SolicitacaoPortal
     fuso: string
     encerrada: boolean
+    /** Sessão com conta (no link, o contato só vê esta solicitação). */
+    podeAbrirNova: boolean
 }) {
     const consultas = useQueryClient()
     const interacoes = useQuery(consultaInteracoesPortal(s.id))
@@ -255,9 +271,21 @@ function Conversa({
                 </ol>
             )}
             {encerrada ? (
-                <p className="text-sm text-suave">
-                    Esta solicitação foi encerrada. Para outro assunto, abra uma nova solicitação.
-                </p>
+                <div className="flex flex-wrap items-center gap-3">
+                    <p className="text-sm text-suave">
+                        {podeAbrirNova
+                            ? 'Esta solicitação foi encerrada. Para continuar, abra uma nova.'
+                            : 'Esta solicitação foi encerrada. Para outro assunto, fale com a equipe.'}
+                    </p>
+                    {podeAbrirNova && (
+                        <Link
+                            to="/portal/nova"
+                            className="rounded-couro border border-linha px-3 py-1.5 text-sm font-semibold text-tinta hover:bg-trilho"
+                        >
+                            Nova solicitação
+                        </Link>
+                    )}
+                </div>
             ) : (
                 <CaixaMensagem
                     rotulo="Mensagem para a equipe"

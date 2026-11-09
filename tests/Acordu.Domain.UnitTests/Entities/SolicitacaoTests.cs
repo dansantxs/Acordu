@@ -261,6 +261,30 @@ public sealed class SolicitacaoTests
             solicitacao.Sla!.PausadoDesde.Should().Be(Brasilia(6, 11));
         }
 
+        [Theory]
+        [InlineData(StatusSolicitacao.Fechada)]
+        [InlineData(StatusSolicitacao.Cancelada)]
+        public void GarantirConversaAberta_Encerrada_SoNotaInternaSemAnexo(StatusSolicitacao status) // F11-06 a F11-08
+        {
+            var solicitacao = Em(status);
+
+            solicitacao.Invoking(s => s.GarantirConversaAberta(false, Visibilidade.Interna, false)).Should().NotThrow();
+            solicitacao.Invoking(s => s.GarantirConversaAberta(false, Visibilidade.Interna, true))
+                .Should().Throw<SolicitacaoEncerradaException>();
+            solicitacao.Invoking(s => s.GarantirConversaAberta(false, Visibilidade.Externa, false))
+                .Should().Throw<SolicitacaoEncerradaException>();
+            solicitacao.Invoking(s => s.GarantirConversaAberta(true, Visibilidade.Externa, false))
+                .Should().Throw<SolicitacaoEncerradaException>();
+        }
+
+        [Fact]
+        public void GarantirConversaAberta_Resolvida_Permite() // F11-10
+        {
+            var solicitacao = Em(StatusSolicitacao.Resolvida);
+
+            solicitacao.Invoking(s => s.GarantirConversaAberta(true, Visibilidade.Externa, true)).Should().NotThrow();
+        }
+
         [Fact]
         public void AguardarCliente_ComAvisoNaMensagem_MarcaOEvento() // F11-04
         {

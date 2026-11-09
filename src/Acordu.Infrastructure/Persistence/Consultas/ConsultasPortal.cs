@@ -118,7 +118,8 @@ public sealed class ConsultasPortal : IConsultasPortal
             s.Sla is { } sla ? new SlaPortalDto(sla.PrazoResolucao, s.SituacaoSla(agora, calendario), sla.Pausado) : null,
             tarefas,
             tempoVisivel,
-            s.Status == StatusSolicitacao.Resolvida);
+            s.Status == StatusSolicitacao.Resolvida,
+            s.EstaFinalizada);
     }
 
     public async Task<IReadOnlyList<InteracaoPortalDto>?> InteracoesAsync(

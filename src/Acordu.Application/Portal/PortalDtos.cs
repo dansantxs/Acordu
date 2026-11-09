@@ -29,6 +29,10 @@ public sealed record PrestadorPortalDto(string Nome, Uri? LogoUrl = null);
 public sealed record SolicitacaoPortalResumoDto(
     Guid Id, int Numero, string Titulo, StatusExterno StatusExterno, DateTimeOffset AbertaEm, bool PodeAprovar);
 
+/// <summary>
+/// Detalhe no portal. <c>Encerrada</c> (F11-08, RF-SOL-13): FECHADA ou CANCELADA. RESOLVIDA aparece como
+/// CONCLUIDA para quem não aprova, mas a conversa segue aberta: o status externo sozinho não separa os dois.
+/// </summary>
 public sealed record SolicitacaoPortalDto(
     Guid Id,
     int Numero,
@@ -40,7 +44,8 @@ public sealed record SolicitacaoPortalDto(
     SlaPortalDto? Sla,
     IReadOnlyList<TarefaPortalDto> TarefasVisiveis,
     int TempoVisivelMinutos,
-    bool PodeAprovar);
+    bool PodeAprovar,
+    bool Encerrada = false);
 
 /// <summary>Só o nome de quem atende.</summary>
 public sealed record ResponsavelPortalDto(string Nome);

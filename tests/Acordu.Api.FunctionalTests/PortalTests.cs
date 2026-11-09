@@ -32,6 +32,33 @@ public sealed class PortalTests(ApiFixture api)
     }
 
     [Fact]
+    public async Task Responder_ComContaEAnexo_SolicitacaoEncerrada_409SemGuardarArquivo() // F11-08
+    {
+        var equipe = await Equipe.CriarAsync(api);
+        var cliente = await Cenarios.ClienteAsync(equipe);
+        var contato = await ContatosDoPortal.CriarAsync(api, equipe, cliente);
+        var solicitacao = await Cenarios.SolicitacaoAsync(equipe, cliente);
+        var rota = $"{Portal}/solicitacoes/{solicitacao}";
+        (await equipe.EsperarAsync(HttpStatusCode.OK, HttpMethod.Get, rota, token: contato.Token))
+            .GetProperty("encerrada").GetBoolean().Should().BeFalse();
+        await equipe.EsperarAsync(HttpStatusCode.OK, HttpMethod.Post, $"/api/v1/solicitacoes/{solicitacao}/cancelamento",
+            new { motivo = "Cliente desistiu" });
+
+        using var formulario = new MultipartFormDataContent();
+        formulario.Add(new StringContent("Segue o print"), "texto");
+        formulario.Add(new ByteArrayContent([0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A, 1, 2]), "anexos", "tela.png");
+        using var http = api.NovoHttp();
+        using var pedido = new HttpRequestMessage(HttpMethod.Post, new Uri($"{rota}/interacoes", UriKind.Relative)) { Content = formulario };
+        pedido.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", contato.Token);
+        using var resposta = await http.SendAsync(pedido);
+
+        resposta.StatusCode.Should().Be(HttpStatusCode.Conflict);
+        api.Arquivos.ComPrefixo($"{equipe.TenantId}/").Should().Be(0, "o arquivo nem chega ao armazenamento");
+        (await equipe.EsperarAsync(HttpStatusCode.OK, HttpMethod.Get, rota, token: contato.Token))
+            .GetProperty("encerrada").GetBoolean().Should().BeTrue();
+    }
+
+    [Fact]
     public async Task Abrir_OrigemPortal_ComOContatoLogadoEOContratoVigente()
     {
         var equipe = await Equipe.CriarAsync(api);

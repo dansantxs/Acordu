@@ -302,6 +302,7 @@ Decidido na implementação (6c2):
 - `PATCH` recebe título, descrição, prioridade, categoria e responsável (formulário inteiro). Responsável precisa ser da equipe (`400` no campo).
 - `PUT /solicitacoes/{id}/contrato` `{ "contratoId": "k9..." | null }` (`solicitacao.editar`, `If-Match` opcional) → `200` com a solicitação. O contrato precisa ser do mesmo cliente e vigente hoje (`422 contrato-incoerente`); resolvida ou final → `422 transicao-invalida`. SLA: com prazo correndo, recalcula pelo início do ciclo com os prazos do novo contrato (mantém pausas); sem SLA antes, começa agora; `null` remove contrato e SLA. Apontamentos já feitos não mudam. Fora do `PATCH` de propósito: o formulário inteiro sem o campo removeria o contrato.
 - Transições respondem `200` com a solicitação. `POST /interacoes` aceita JSON `{ "texto": "...", "visibilidade": "EXTERNA", "aguardarCliente": false }` (sem anexos) ou multipart (abaixo). Interação EXTERNA da equipe registra a primeira resposta e, com a solicitação ABERTA, a põe EM_ANDAMENTO (F11-05).
+- Solicitação FECHADA ou CANCELADA (RF-SOL-13, F11b): resposta ao cliente ou anexo → `409 solicitacao-encerrada`, antes de o arquivo chegar ao armazenamento; nota interna sem anexo → `201`. O mesmo vale para `POST /portal/solicitacoes/{id}/interacoes` (conta ou link), sempre `409`. `GET /portal/solicitacoes/{id}` traz `encerrada` (FECHADA ou CANCELADA): o status externo CONCLUIDA também cobre a RESOLVIDA, que ainda aceita mensagem.
 - `aguardarCliente: true` (F11-04): só com `visibilidade: EXTERNA` (senão `400` no campo `aguardarCliente`) e exige também `solicitacao.editar` (senão `403`). Na mesma transação da mensagem, a solicitação vai para AGUARDANDO_CLIENTE (de AGUARDANDO_TERCEIRO passa por EM_ANDAMENTO); de outro status, `422` (`transicao-invalida`) e nada é gravado. O contato recebe um só e-mail, o da mensagem, com o assunto "Precisamos de você…".
 - O detalhe traz também `descricao`, `categoriaId`, `situacaoSla` (fora do bloco `sla`, para solicitações sem contrato), `resolvidaEm`, `fechadaEm`, `canceladaEm` e `motivoCancelamento`.
 
@@ -825,7 +826,7 @@ O `tick` responde também `alertasSla` (solicitações alertadas), `tarefasRecor
 }
 ```
 
-Tipos (`type`) do v1: `validacao` (com `errors` por campo), `transicao-invalida`, `periodo-fechado`, `contrato-incoerente`, `anexo-invalido` (422: tipo não permitido, vazio, mais de 5), `anexo-grande-demais` (413), `conflito-versao`, `cronometro-ativo`, `nao-encontrado`, `sem-permissao`, `email-nao-confirmado` (422: a empresa ainda não envia a terceiros, §2), `nao-autenticado` (401), `limite-requisicoes` (429), `erro-interno` (500).
+Tipos (`type`) do v1: `validacao` (com `errors` por campo), `transicao-invalida`, `periodo-fechado`, `contrato-incoerente`, `anexo-invalido` (422: tipo não permitido, vazio, mais de 5), `anexo-grande-demais` (413), `conflito-versao`, `cronometro-ativo`, `solicitacao-encerrada` (409), `nao-encontrado`, `sem-permissao`, `email-nao-confirmado` (422: a empresa ainda não envia a terceiros, §2), `nao-autenticado` (401), `limite-requisicoes` (429), `erro-interno` (500).
 
 ---
 
@@ -838,7 +839,7 @@ Tipos (`type`) do v1: `validacao` (com `errors` por campo), `transicao-invalida`
 | `401` | Sem token, token inválido, link inválido/expirado. |
 | `403` | Sem permissão; papel Cliente em rota interna; sessão de link fora do seu escopo. |
 | `404` | Inexistente, de outro tenant **ou de outro cliente**. |
-| `409` | Versão divergente (`If-Match`); cronômetro já ativo. |
+| `409` | Versão divergente (`If-Match`); cronômetro já ativo; solicitação encerrada (RF-SOL-13). |
 | `413` | Anexo acima do limite. |
 | `422` | Regra de negócio violada. |
 | `429` | Rate limit (login, portal, link). |

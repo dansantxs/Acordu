@@ -159,6 +159,7 @@ Convenções: **RF** = requisito funcional, **RNF** = não funcional. Verificaç
 | RF-SOL-10 | Reabrir solicitação RESOLVIDA (equipe ou cliente) dentro do prazo do RF-SOL-09. | T |
 | RF-SOL-11 **(v2)** | Criar solicitação a partir de e-mail recebido, com threading de respostas. | T |
 | RF-SOL-12 **(v2)** | Criar solicitação a partir de WhatsApp (API oficial via provedor). | T |
+| RF-SOL-13 | Solicitação FECHADA ou CANCELADA não recebe resposta ao cliente nem anexo, da equipe ou do portal; nota interna da equipe sem anexo continua (registro posterior). RESOLVIDA segue aberta à conversa enquanto pode ser reaberta. (F11, 06/11) | T |
 
 **Tarefas e projetos**
 | ID | Requisito | Verif. |

@@ -213,6 +213,8 @@ public sealed class ComandosSolicitacao
             if (dados.Visibilidade != Visibilidade.Externa)
                 throw ErroDeCampo.Criar("aguardarCliente", "Só a resposta ao cliente pode pôr a solicitação aguardando o cliente.");
         }
+        solicitacao.GarantirConversaAberta(
+            doCliente: false, dados.Visibilidade ?? Visibilidade.Interna, comAnexos: arquivos is { Count: > 0 });
         if ((dados.Visibilidade ?? Visibilidade.Interna) == Visibilidade.Interna)
             await _mencoes.GarantirAsync(dados.Texto, _contexto.Usuario(), Permissoes.SolicitacaoVer, cancellationToken);
         var anexos = await _anexos.EnviarAsync(solicitacao.TenantId, solicitacao.Id, arquivos, cancellationToken);

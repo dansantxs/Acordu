@@ -531,6 +531,8 @@ export interface components {
             /** Format: int32 */
             tempoVisivelMinutos: number | string
             podeAprovar: boolean
+            /** @default false */
+            encerrada: boolean
         }
         SolicitacaoPortalResumoDto: {
             /** Format: uuid */
