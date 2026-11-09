@@ -6,11 +6,14 @@ export function Marcador({
     valor,
     aoMudar,
     isDisabled,
+    descritoPor,
     children,
 }: {
     valor: boolean
     aoMudar: (valor: boolean) => void
     isDisabled?: boolean
+    /** Id do texto que explica o estado (por exemplo, por que está desabilitado). */
+    descritoPor?: string
     children: ReactNode
 }) {
     return (
@@ -18,6 +21,7 @@ export function Marcador({
             isSelected={valor}
             onChange={aoMudar}
             isDisabled={isDisabled}
+            aria-describedby={descritoPor}
             className="group flex items-center gap-2 text-sm data-[disabled]:opacity-60"
         >
             <span

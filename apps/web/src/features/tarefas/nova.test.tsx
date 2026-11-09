@@ -137,17 +137,33 @@ describe('nova tarefa', () => {
                 ...rotas,
             })
         const criar = async (marcar: boolean) => {
-            await abrir('/tarefas')
+            const roteador = await abrir('/tarefas')
             const usuario = userEvent.setup()
             await usuario.click(await screen.findByRole('button', { name: 'Nova tarefa' }))
             const janela = await screen.findByRole('dialog', { name: 'Nova tarefa' })
             await usuario.type(within(janela).getByLabelText('Título'), 'Revisar cardápio')
-            if (marcar) await usuario.click(within(janela).getByRole('checkbox', { name: 'Iniciar o cronômetro' }))
+            const marcador = within(janela).getByRole('checkbox', { name: 'Iniciar o cronômetro' })
+            expect(marcador).not.toBeChecked()
+            if (marcar) await usuario.click(marcador)
             await usuario.click(within(janela).getByRole('button', { name: 'Criar tarefa' }))
+            return roteador
         }
 
         it('marcado, cria a tarefa e inicia nela', async () => {
-            const chamadas = comCronometro(['apontamento.criar'])
+            let ativo = false
+            const cronometro = {
+                id: 'c1',
+                tarefa: { id: 't9', nome: 'Revisar cardápio' },
+                iniciadoEm: daquiA(0),
+                decorridoMinutos: 0,
+            }
+            const chamadas = comCronometro(['apontamento.criar'], {
+                'GET /api/v1/cronometro': () => (ativo ? json(cronometro) : new Response(null, { status: 204 })),
+                'POST /api/v1/cronometro/inicio': () => {
+                    ativo = true
+                    return json(cronometro, 201)
+                },
+            })
             await criar(true)
             expect(
                 await screen.findByText('Tarefa "Revisar cardápio" criada, com o cronômetro correndo.'),
@@ -159,6 +175,11 @@ describe('nova tarefa', () => {
             expect(chamadas.find((c) => c.caminho === '/api/v1/cronometro/inicio')?.corpo).toMatchObject({
                 tarefaId: 't9',
             })
+            // O cronômetro é consultado de novo depois do início (a capa lateral passa a mostrá-lo).
+            const inicio = chamadas.findIndex((c) => c.caminho === '/api/v1/cronometro/inicio')
+            await vi.waitFor(() =>
+                expect(chamadas.slice(inicio + 1).some((c) => c.caminho === '/api/v1/cronometro')).toBe(true),
+            )
         })
 
         it('desmarcado (padrão), só cria', async () => {
@@ -168,13 +189,14 @@ describe('nova tarefa', () => {
             expect(chamadas.some((c) => c.caminho === '/api/v1/cronometro/inicio')).toBe(false)
         })
 
-        it('sem apontamento.criar, a opção não aparece', async () => {
-            comCronometro([])
+        it('sem apontamento.criar, a opção não aparece e o cronômetro nem é consultado', async () => {
+            const chamadas = comCronometro([])
             await abrir('/tarefas')
             const usuario = userEvent.setup()
             await usuario.click(await screen.findByRole('button', { name: 'Nova tarefa' }))
             const janela = await screen.findByRole('dialog', { name: 'Nova tarefa' })
             expect(within(janela).queryByRole('checkbox', { name: 'Iniciar o cronômetro' })).not.toBeInTheDocument()
+            expect(chamadas.some((c) => c.caminho === '/api/v1/cronometro')).toBe(false)
         })
 
         it('com outro cronômetro correndo, vem desabilitada e diz onde', async () => {
@@ -194,11 +216,12 @@ describe('nova tarefa', () => {
             expect(await within(janela).findByText('Já há um cronômetro em "Manutenção".')).toBeInTheDocument()
             const marcador = within(janela).getByRole('checkbox', { name: 'Iniciar o cronômetro' })
             expect(marcador).toBeDisabled()
+            expect(marcador).toHaveAccessibleDescription('Já há um cronômetro em "Manutenção".')
             expect(marcador).not.toBeChecked()
         })
 
         it('se iniciar falhar, a tarefa fica criada e o aviso diz que o cronômetro não começou', async () => {
-            comCronometro(['apontamento.criar'], {
+            const chamadas = comCronometro(['apontamento.criar'], {
                 'POST /api/v1/cronometro/inicio': () =>
                     json(
                         {
@@ -210,8 +233,12 @@ describe('nova tarefa', () => {
                         409,
                     ),
             })
-            await criar(true)
+            const roteador = await criar(true)
             expect(await screen.findByText(/criada, mas o cronômetro não começou/)).toBeInTheDocument()
+            // A tarefa continua criada: a janela fecha e a tarefa abre, sem nada desfeito.
+            await vi.waitFor(() => expect(roteador.state.location.pathname).toBe('/tarefas/t9'))
+            expect(screen.queryByRole('dialog', { name: 'Nova tarefa' })).not.toBeInTheDocument()
+            expect(chamadas.some((c) => c.metodo === 'DELETE')).toBe(false)
         })
     })
 })

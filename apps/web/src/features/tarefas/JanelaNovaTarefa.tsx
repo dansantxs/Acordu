@@ -216,11 +216,18 @@ function Formulario({
             )}
             {podeCronometrar && (
                 <div className="flex flex-col gap-1">
-                    <Marcador valor={iniciarJunto} aoMudar={setCronometrar} isDisabled={outroCronometro !== null}>
+                    <Marcador
+                        valor={iniciarJunto}
+                        aoMudar={setCronometrar}
+                        isDisabled={outroCronometro !== null}
+                        {...(outroCronometro ? { descritoPor: 'nova-cronometro-d' } : {})}
+                    >
                         Iniciar o cronômetro
                     </Marcador>
                     {outroCronometro && (
-                        <p className="text-xs text-suave">Já há um cronômetro em "{outroCronometro.tarefa.nome}".</p>
+                        <p id="nova-cronometro-d" className="text-xs text-suave">
+                            Já há um cronômetro em "{outroCronometro.tarefa.nome}".
+                        </p>
                     )}
                 </div>
             )}
