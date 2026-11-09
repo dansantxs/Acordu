@@ -1,7 +1,7 @@
-using Acordu.Application.Apontamentos;
 using Acordu.Domain.Entities;
+using Acordu.Domain.Services;
 
-namespace Acordu.Application.UnitTests.Apontamentos;
+namespace Acordu.Domain.UnitTests.Services;
 
 /// <summary>F12-17 (decisão D5): 30 min depois do fim do expediente do dia do início, ou 10 h rodando.</summary>
 public sealed class CronometroEsquecidoTests
@@ -18,6 +18,7 @@ public sealed class CronometroEsquecidoTests
 
         esquecido.Should().BeFalse();
         sugestao.Should().Be(240);
+        CronometroEsquecido.Avaliar(Segunda(14), Segunda(17), Calendario).SugestaoMinutos.Should().BeNull("o fim ainda não chegou");
     }
 
     [Fact]
@@ -27,11 +28,20 @@ public sealed class CronometroEsquecidoTests
     }
 
     [Fact]
-    public void DezHorasAntesDoFim_Esta()
+    public void DezHorasAntesDoFim_Esta_ESemSugestaoNoFuturo()
     {
-        // Começou às 07:00 (antes do expediente): 10 h é às 17:00, antes das 18:30.
-        CronometroEsquecido.Avaliar(Segunda(7), Segunda(17), Calendario).Esquecido.Should().BeTrue();
+        // Começou às 07:00 (antes do expediente): 10 h é às 17:00, antes das 18:30. O fim (18:00) ainda não chegou:
+        // sugerir até ele apontaria uma hora que não correu.
+        var (esquecido, sugestao) = CronometroEsquecido.Avaliar(Segunda(7), Segunda(17), Calendario);
+        esquecido.Should().BeTrue();
+        sugestao.Should().BeNull();
         CronometroEsquecido.Avaliar(Segunda(7), Segunda(16, 59), Calendario).Esquecido.Should().BeFalse();
+    }
+
+    [Fact]
+    public void FimJaPassou_SugereDoInicioAteOFim()
+    {
+        CronometroEsquecido.Avaliar(Segunda(7), Segunda(19), Calendario).SugestaoMinutos.Should().Be(660);
     }
 
     [Fact]

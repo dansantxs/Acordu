@@ -1,11 +1,12 @@
 using Acordu.Domain.Entities;
 
-namespace Acordu.Application.Apontamentos;
+namespace Acordu.Domain.Services;
 
 /// <summary>
 /// Cronômetro esquecido (F12, decisão D5): passou 30 min do fim do expediente do dia em que começou, ou 10 h rodando, o
 /// que vier primeiro. Sem expediente no dia do início (fim de semana, feriado) ou começado depois do fim, vale só as 10 h.
-/// A sugestão de duração ao parar vai até o fim do expediente, quando ele vem depois do início.
+/// A sugestão de duração ao parar vai do início ao fim do expediente, só quando esse fim já passou: nunca aponta tempo
+/// que ainda não correu. Pura, como a <see cref="CalculadoraSla"/>: recebe o instante, não lê o relógio.
 /// </summary>
 public static class CronometroEsquecido
 {
@@ -20,7 +21,9 @@ public static class CronometroEsquecido
         var limite = iniciadoEm + Maximo;
         if (fim is { } f && f + DepoisDoExpediente < limite)
             limite = f + DepoisDoExpediente;
-        int? sugestao = fim is { } fimDoDia ? Math.Max((int)Math.Floor((fimDoDia - iniciadoEm).TotalMinutes), 1) : null;
+        int? sugestao = fim is { } fimDoDia && fimDoDia <= agora
+            ? Math.Max((int)Math.Floor((fimDoDia - iniciadoEm).TotalMinutes), 1)
+            : null;
         return (agora >= limite, sugestao);
     }
 
@@ -31,8 +34,7 @@ public static class CronometroEsquecido
         var dia = DateOnly.FromDateTime(local.DateTime);
         if (calendario.JanelaDe(dia) is not { } janela)
             return null;
-        var fimLocal = dia.ToDateTime(janela.Fim);
-        var fim = new DateTimeOffset(fimLocal, calendario.Fuso.GetUtcOffset(fimLocal));
+        var fim = CalculadoraSla.ParaUtc(dia.ToDateTime(janela.Fim), calendario.Fuso);
         return fim > iniciadoEm ? fim : null;
     }
 }

@@ -81,7 +81,8 @@ public static class CalculadoraSla
         return Duracao.FromMinutos((int)total.TotalMinutes);
     }
 
-    private static DateTimeOffset ParaUtc(DateTime local, TimeZoneInfo fuso)
+    /// <summary>Hora local do tenant para UTC, pulando a hora inexistente do horário de verão (também usado pelo <see cref="CronometroEsquecido"/>).</summary>
+    internal static DateTimeOffset ParaUtc(DateTime local, TimeZoneInfo fuso)
     {
         // Hora inexistente (início de horário de verão) avança até existir.
         while (fuso.IsInvalidTime(local))
