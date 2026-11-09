@@ -168,7 +168,7 @@ Convenções: **RF** = requisito funcional, **RNF** = não funcional. Verificaç
 | RF-TAR-02 | Status de tarefa: A_FAZER → FAZENDO → CONCLUIDA; CANCELADA. Visualização em lista e **quadro (kanban)**. | T |
 | RF-TAR-03 | Checklist de subitens dentro da tarefa. | D |
 | RF-TAR-04 | Marcar tarefa como **visível ao cliente** (aparece no portal quando vinculada a uma solicitação dele). | T |
-| RF-PRJ-01 | Criar projeto para um cliente (nome, contrato, prazo, estimativa total de horas) e agrupar tarefas. | T |
+| RF-PRJ-01 | Criar projeto para um cliente (nome, contrato, prazo, estimativa total de horas) e agrupar tarefas. O projeto pode nascer de uma solicitação, levando as tarefas abertas dela, e ser concluído ou cancelado junto com as tarefas abertas (F11e). | T |
 | RF-PRJ-02 | Exibir progresso do projeto: tarefas concluídas/total e horas apontadas × estimadas. | T |
 
 **Planejamento e agenda** — incluído em 14/10 (marco 13)

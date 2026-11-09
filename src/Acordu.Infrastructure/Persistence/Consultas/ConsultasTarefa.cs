@@ -85,6 +85,13 @@ public sealed class ConsultasTarefa : IConsultasTarefa
             .Select(t => t.Id)
             .ToListAsync(cancellationToken);
 
+    public async Task<IReadOnlyList<Guid>> AbertasDoProjetoAsync(Guid projetoId, CancellationToken cancellationToken = default) =>
+        await _db.Tarefas.AsNoTracking()
+            .Where(t => t.ProjetoId == projetoId && (t.Status == StatusTarefa.AFazer || t.Status == StatusTarefa.Fazendo))
+            .OrderBy(t => t.Id)
+            .Select(t => t.Id)
+            .ToListAsync(cancellationToken);
+
     public async Task<TarefaDto?> DetalharAsync(Guid id, CancellationToken cancellationToken = default)
     {
         var linha = await _db.Tarefas.AsNoTracking()

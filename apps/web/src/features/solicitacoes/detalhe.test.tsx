@@ -390,6 +390,125 @@ describe('detalhe da solicitação', () => {
         expect(within(aside).getByText('Disponível depois que você confirmar seu e-mail.')).toBeInTheDocument()
     })
 
+    describe('criar projeto a partir da solicitação (F11-21, F11-22)', () => {
+        const comProjeto = (permissoes: string[], contratoAtivo = true) =>
+            app(permissoes, {
+                [`GET /api/v1/solicitacoes/${ID}`]: () =>
+                    json(
+                        solicitacao({
+                            contratoId: 'k9',
+                            tarefas: [
+                                { id: 't1', titulo: 'Trocar resistência', status: 'FAZENDO', projetoId: null },
+                                { id: 't2', titulo: 'Já no projeto', status: 'A_FAZER', projetoId: 'p0' },
+                                { id: 't3', titulo: 'Feita', status: 'CONCLUIDA', projetoId: null },
+                            ],
+                        }),
+                    ),
+                'GET /api/v1/contratos': () =>
+                    json({
+                        itens: contratoAtivo
+                            ? [{ id: 'k9', tipo: 'BANCO_HORAS', inicio: '2026-01-01', status: 'ATIVO' }]
+                            : [],
+                        pagina: 1,
+                        tamanhoPagina: 50,
+                        total: 1,
+                    }),
+                'POST /api/v1/projetos': () =>
+                    json(
+                        {
+                            id: 'p1',
+                            versao: '1',
+                            nome: 'Forno não liga',
+                            cliente: { id: PADARIA, nome: 'Padaria Bom Grão' },
+                            contratoId: 'k9',
+                            inicio: null,
+                            prazo: null,
+                            estimativaMinutos: null,
+                            status: 'EM_ANDAMENTO',
+                            progresso: {
+                                tarefasConcluidas: 0,
+                                tarefasTotal: 1,
+                                apontadoMinutos: 0,
+                                estimativaMinutos: null,
+                            },
+                        },
+                        201,
+                    ),
+            })
+
+        it('abre com cliente, contrato e título da solicitação e leva as abertas sem projeto', async () => {
+            const chamadas = comProjeto([...EDITAR, 'projeto.gerenciar', 'tarefa.editar'])
+            await abrir(`/solicitacoes/${ID}`)
+            const usuario = userEvent.setup()
+            await usuario.click(within(await painel()).getByRole('button', { name: 'Criar projeto' }))
+            const janela = await screen.findByRole('dialog', { name: 'Novo projeto' })
+            expect(within(janela).getByText('Cliente: Padaria Bom Grão')).toBeInTheDocument()
+            expect(within(janela).getByLabelText('Nome')).toHaveValue('Forno não liga')
+            expect(within(janela).getByText('Uma tarefa da solicitação está aberta e sem projeto:')).toBeInTheDocument()
+            expect(within(janela).getByText('Trocar resistência')).toBeInTheDocument()
+            expect(within(janela).getByRole('checkbox', { name: 'Levar para o projeto' })).toBeChecked()
+
+            await usuario.click(within(janela).getByRole('button', { name: 'Criar projeto' }))
+            await vi.waitFor(() =>
+                expect(
+                    chamadas.find((c) => c.metodo === 'POST' && c.caminho === '/api/v1/projetos')?.corpo,
+                ).toMatchObject({
+                    clienteId: PADARIA,
+                    nome: 'Forno não liga',
+                    contratoId: 'k9',
+                    tarefaIds: ['t1'],
+                }),
+            )
+            expect(await screen.findByText('Projeto "Forno não liga" criado.')).toBeInTheDocument()
+        })
+
+        it('contrato da solicitação que já não está ativo não vem sugerido', async () => {
+            // A lista de contratos ativos não traz mais o k9 da solicitação.
+            const chamadas = comProjeto([...EDITAR, 'projeto.gerenciar'], false)
+            await abrir(`/solicitacoes/${ID}`)
+            const usuario = userEvent.setup()
+            await usuario.click(within(await painel()).getByRole('button', { name: 'Criar projeto' }))
+            const janela = await screen.findByRole('dialog', { name: 'Novo projeto' })
+            await usuario.click(within(janela).getByRole('button', { name: 'Criar projeto' }))
+            await vi.waitFor(() =>
+                expect(
+                    chamadas.find((c) => c.metodo === 'POST' && c.caminho === '/api/v1/projetos')?.corpo,
+                ).toMatchObject({ contratoId: null }),
+            )
+        })
+
+        it('sem tarefa.editar, mostra as tarefas só como aviso e cria sem levá-las', async () => {
+            const chamadas = comProjeto([...EDITAR, 'projeto.gerenciar'])
+            await abrir(`/solicitacoes/${ID}`)
+            const usuario = userEvent.setup()
+            await usuario.click(within(await painel()).getByRole('button', { name: 'Criar projeto' }))
+            const janela = await screen.findByRole('dialog', { name: 'Novo projeto' })
+            expect(within(janela).queryByRole('checkbox', { name: 'Levar para o projeto' })).not.toBeInTheDocument()
+            expect(within(janela).getByText('Trocar resistência')).toBeInTheDocument()
+            expect(within(janela).getByText(/mudar tarefas pede outra permissão/)).toBeInTheDocument()
+            await usuario.click(within(janela).getByRole('button', { name: 'Criar projeto' }))
+            await vi.waitFor(() =>
+                expect(
+                    chamadas.find((c) => c.metodo === 'POST' && c.caminho === '/api/v1/projetos')?.corpo,
+                ).not.toHaveProperty('tarefaIds'),
+            )
+        })
+
+        it('sem projeto.gerenciar, não oferece', async () => {
+            comProjeto([...EDITAR, 'tarefa.editar'])
+            await abrir(`/solicitacoes/${ID}`)
+            expect(within(await painel()).queryByRole('button', { name: 'Criar projeto' })).not.toBeInTheDocument()
+        })
+
+        it('com a solicitação encerrada, não oferece', async () => {
+            app([...EDITAR, 'projeto.gerenciar'], {
+                [`GET /api/v1/solicitacoes/${ID}`]: () => json(solicitacao({ status: 'FECHADA', encerrada: true })),
+            })
+            await abrir(`/solicitacoes/${ID}`)
+            expect(within(await painel()).queryByRole('button', { name: 'Criar projeto' })).not.toBeInTheDocument()
+        })
+    })
+
     describe('tarefas abertas ao resolver e cancelar (F11-11 a F11-14, F11-20)', () => {
         const comResolucao = (permissoes: string[]) =>
             app(permissoes, {

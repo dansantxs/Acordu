@@ -14,8 +14,20 @@ import { Botao } from '@/shared/ui/Botao'
 import { CampoSelecao } from '@/shared/ui/CampoSelecao'
 import { CampoTexto } from '@/shared/ui/CampoTexto'
 import { Janela } from '@/shared/ui/Janela'
+import { Marcador } from '@/shared/ui/Marcador'
 import { LegendaObrigatorios } from '@/shared/ui/Rotulo'
 import { criarProjeto, editarProjeto, type Projeto } from './consultas'
+
+/** Projeto novo a partir de uma solicitação (F11-21, F11-22): cliente fixo, contrato e nome sugeridos. */
+export interface ProjetoDaSolicitacao {
+    cliente: { id: string; nome: string }
+    contratoId: string | null
+    nome: string
+    /** Abertas e sem projeto: vão marcadas com "Levar para o projeto". */
+    tarefas: { id: string; titulo: string }[]
+    /** Levar tarefas pede `tarefa.editar`; sem, a lista aparece só como aviso (convenções §4). */
+    podeLevarTarefas: boolean
+}
 
 /**
  * Criar ou editar projeto (RF-PRJ-01): cliente (fixo depois de criado), nome, contrato do cliente (as horas das
@@ -25,34 +37,50 @@ export function JanelaProjeto({
     aberta,
     aoMudar,
     projeto,
+    daSolicitacao,
     aoSalvar,
 }: {
     aberta: boolean
     aoMudar: (aberta: boolean) => void
     projeto?: Projeto
+    daSolicitacao?: ProjetoDaSolicitacao
     aoSalvar: (projeto: Projeto) => void
 }) {
     return (
         <Janela titulo={projeto ? 'Editar projeto' : 'Novo projeto'} aberta={aberta} aoMudar={aoMudar} larga>
-            {aberta && <Formulario projeto={projeto} aoFechar={() => aoMudar(false)} aoSalvar={aoSalvar} />}
+            {aberta && (
+                <Formulario
+                    projeto={projeto}
+                    {...(daSolicitacao ? { daSolicitacao } : {})}
+                    aoFechar={() => aoMudar(false)}
+                    aoSalvar={aoSalvar}
+                />
+            )}
         </Janela>
     )
 }
 
 function Formulario({
     projeto: p,
+    daSolicitacao: origem,
     aoFechar,
     aoSalvar,
 }: {
     projeto?: Projeto
+    daSolicitacao?: ProjetoDaSolicitacao
     aoFechar: () => void
     aoSalvar: (projeto: Projeto) => void
 }) {
     const consultas = useQueryClient()
-    const [clienteId, setClienteId] = useState<string | null>(p?.cliente.id ?? null)
-    const [contrato, setContrato] = useState<string | null>(p?.contratoId ?? null)
+    const [clienteId, setClienteId] = useState<string | null>(p?.cliente.id ?? origem?.cliente.id ?? null)
+    const [escolhido, setContrato] = useState<string | null>(p?.contratoId ?? origem?.contratoId ?? null)
     const [estimativaInvalida, setEstimativaInvalida] = useState(false)
+    const [levar, setLevar] = useState(true)
     const contratos = useQuery({ ...consultaContratosAtivos(clienteId ?? ''), enabled: clienteId !== null })
+    // O contrato da solicitação pode ter encerrado: só vale o sugerido se ainda estiver ativo.
+    const contrato =
+        origem && !p && contratos.isSuccess && !contratos.data.some((c) => c.id === escolhido) ? null : escolhido
+    const tarefasLevadas = origem?.podeLevarTarefas && levar ? origem.tarefas.map((t) => t.id) : []
 
     const envio = useMutation({
         mutationFn: (dados: {
@@ -63,7 +91,11 @@ function Formulario({
         }) => {
             const comuns = { ...dados, contratoId: contrato }
             if (p) return editarProjeto(p, comuns)
-            return criarProjeto({ ...comuns, clienteId: clienteId! })
+            return criarProjeto({
+                ...comuns,
+                clienteId: clienteId!,
+                ...(tarefasLevadas.length > 0 ? { tarefaIds: tarefasLevadas } : {}),
+            })
         },
         onSuccess: async (salvo) => {
             await consultas.invalidateQueries({ queryKey: ['projetos'] })
@@ -99,8 +131,8 @@ function Formulario({
         >
             <LegendaObrigatorios />
             {mensagem && <Alerta>{mensagem}</Alerta>}
-            {p ? (
-                <p className="text-sm text-suave">Cliente: {p.cliente.nome}</p>
+            {p || origem ? (
+                <p className="text-sm text-suave">Cliente: {(p?.cliente ?? origem!.cliente).nome}</p>
             ) : (
                 <CampoCliente
                     name="clienteId"
@@ -113,7 +145,14 @@ function Formulario({
                     isRequired
                 />
             )}
-            <CampoTexto name="nome" rotulo="Nome" defaultValue={p?.nome ?? ''} maxLength={200} isRequired autoFocus />
+            <CampoTexto
+                name="nome"
+                rotulo="Nome"
+                defaultValue={p?.nome ?? origem?.nome ?? ''}
+                maxLength={200}
+                isRequired
+                autoFocus
+            />
             {clienteId && (
                 <CampoSelecao
                     name="contratoId"
@@ -153,6 +192,35 @@ function Formulario({
                     </p>
                 </div>
             </div>
+            {origem && origem.tarefas.length > 0 && (
+                <section
+                    aria-label="Tarefas da solicitação"
+                    className="flex flex-col gap-2 rounded-couro border border-linha p-3"
+                >
+                    <p className="text-sm">
+                        {origem.tarefas.length === 1
+                            ? 'Uma tarefa da solicitação está aberta e sem projeto:'
+                            : `${origem.tarefas.length} tarefas da solicitação estão abertas e sem projeto:`}
+                    </p>
+                    <ul className="list-disc pl-5 text-sm text-suave">
+                        {origem.tarefas.map((t) => (
+                            <li key={t.id}>{t.titulo}</li>
+                        ))}
+                    </ul>
+                    {origem.podeLevarTarefas ? (
+                        <>
+                            <Marcador valor={levar} aoMudar={setLevar}>
+                                Levar para o projeto
+                            </Marcador>
+                            <p className="text-xs text-suave">Elas continuam ligadas à solicitação.</p>
+                        </>
+                    ) : (
+                        <p className="text-xs text-suave">
+                            Elas ficam fora do projeto: mudar tarefas pede outra permissão.
+                        </p>
+                    )}
+                </section>
+            )}
             <div className="flex justify-end gap-3">
                 <Botao variante="secundario" onPress={aoFechar} isDisabled={envio.isPending}>
                     Cancelar

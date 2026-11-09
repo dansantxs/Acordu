@@ -11,4 +11,7 @@ public interface IConsultasTarefa
 
     /// <summary>Ids das tarefas A_FAZER ou FAZENDO da solicitação (F11c), sob os filtros do contexto.</summary>
     Task<IReadOnlyList<Guid>> AbertasDaSolicitacaoAsync(Guid solicitacaoId, CancellationToken cancellationToken = default);
+
+    /// <summary>Ids das tarefas A_FAZER ou FAZENDO do projeto (F11e), sob os filtros do contexto.</summary>
+    Task<IReadOnlyList<Guid>> AbertasDoProjetoAsync(Guid projetoId, CancellationToken cancellationToken = default);
 }

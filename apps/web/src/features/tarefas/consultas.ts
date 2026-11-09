@@ -156,6 +156,9 @@ export async function editarTarefa(t: Tarefa, mudanca: Partial<EdicaoTarefa>): P
     ).data!
 }
 
+/** O que fazer com as tarefas abertas junto com a solicitação ou o projeto (F11c, F11e). */
+export type TarefasAbertas = components['schemas']['TarefasAbertasRequest']
+
 /** Vincula, troca ou tira o projeto (F11-23); fora do PATCH, como o contrato da solicitação. */
 export async function moverTarefaDeProjeto(t: Tarefa, projetoId: string | null): Promise<Tarefa> {
     return (

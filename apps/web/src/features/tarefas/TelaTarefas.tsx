@@ -175,6 +175,7 @@ export function TelaTarefas({ perfil, filtros }: { perfil: Perfil; filtros: Filt
                     hoje={hojeNoFuso(fuso)}
                     podeEditar={pode(perfil, 'tarefa.editar')}
                     podeEditarSolicitacao={pode(perfil, 'solicitacao.editar')}
+                    podeGerenciarProjeto={pode(perfil, 'projeto.gerenciar')}
                 />
             ) : lista.isPending ? (
                 <p className="text-sm text-suave">Carregando…</p>

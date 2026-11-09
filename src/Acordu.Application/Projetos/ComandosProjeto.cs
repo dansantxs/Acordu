@@ -1,5 +1,6 @@
 using Acordu.Application.Abstractions;
 using Acordu.Application.Common;
+using Acordu.Application.Tarefas;
 using Acordu.Domain.Acesso;
 using Acordu.Domain.Entities;
 using Acordu.Domain.Exceptions;
@@ -14,6 +15,9 @@ public sealed class ComandosProjeto
     private readonly IRepositorio<Projeto> _projetos;
     private readonly IRepositorio<Cliente> _clientes;
     private readonly IRepositorio<Contrato> _contratos;
+    private readonly IRepositorio<Tarefa> _tarefas;
+    private readonly TarefasAbertas _abertas;
+    private readonly RelogioDoTenant _relogio;
     private readonly IUnitOfWork _unidade;
     private readonly IControleVersao _versoes;
 
@@ -22,6 +26,9 @@ public sealed class ComandosProjeto
         IRepositorio<Projeto> projetos,
         IRepositorio<Cliente> clientes,
         IRepositorio<Contrato> contratos,
+        IRepositorio<Tarefa> tarefas,
+        TarefasAbertas abertas,
+        RelogioDoTenant relogio,
         IUnitOfWork unidade,
         IControleVersao versoes)
     {
@@ -29,12 +36,18 @@ public sealed class ComandosProjeto
         ArgumentNullException.ThrowIfNull(projetos);
         ArgumentNullException.ThrowIfNull(clientes);
         ArgumentNullException.ThrowIfNull(contratos);
+        ArgumentNullException.ThrowIfNull(tarefas);
+        ArgumentNullException.ThrowIfNull(abertas);
+        ArgumentNullException.ThrowIfNull(relogio);
         ArgumentNullException.ThrowIfNull(unidade);
         ArgumentNullException.ThrowIfNull(versoes);
         _contexto = contexto;
         _projetos = projetos;
         _clientes = clientes;
         _contratos = contratos;
+        _tarefas = tarefas;
+        _abertas = abertas;
+        _relogio = relogio;
         _unidade = unidade;
         _versoes = versoes;
     }
@@ -53,6 +66,7 @@ public sealed class ComandosProjeto
             Guid.CreateVersion7(), _contexto.TenantId!.Value, cliente.Id, dados.Nome, dados.ContratoId, dados.Prazo,
             Estimativa(dados.EstimativaMinutos), dados.Inicio);
         _projetos.Adicionar(projeto);
+        await LevarTarefasAsync(projeto, dados.TarefaIds, cancellationToken);
         await _unidade.SalvarAsync(cancellationToken);
         return projeto.Id;
     }
@@ -71,18 +85,40 @@ public sealed class ComandosProjeto
         await _unidade.SalvarAsync(cancellationToken);
     }
 
-    public async Task ConcluirAsync(Guid id, string? versao, CancellationToken cancellationToken = default)
+    /// <param name="tarefas">Concluir as abertas junto (F11-27); nulo ou MANTER deixa como estão.</param>
+    public async Task ConcluirAsync(
+        Guid id, string? versao, TarefasAbertasRequest? tarefas = null, CancellationToken cancellationToken = default)
     {
         var projeto = await CarregarAsync(id, versao, cancellationToken);
+        await _abertas.AplicarNoProjetoAsync(
+            id, tarefas, AcaoTarefasAbertas.Concluir, _relogio.Agora, cancellationToken);
         projeto.Concluir();
         await _unidade.SalvarAsync(cancellationToken);
     }
 
-    public async Task CancelarAsync(Guid id, string? versao, CancellationToken cancellationToken = default)
+    /// <param name="tarefas">Cancelar as abertas junto (F11-27); nulo ou MANTER deixa como estão.</param>
+    public async Task CancelarAsync(
+        Guid id, string? versao, TarefasAbertasRequest? tarefas = null, CancellationToken cancellationToken = default)
     {
         var projeto = await CarregarAsync(id, versao, cancellationToken);
+        await _abertas.AplicarNoProjetoAsync(
+            id, tarefas, AcaoTarefasAbertas.Cancelar, _relogio.Agora, cancellationToken);
         projeto.Cancelar();
         await _unidade.SalvarAsync(cancellationToken);
+    }
+
+    /// <summary>F11-22: as tarefas escolhidas passam para o projeto novo, na mesma transação (regras do F11d).</summary>
+    private async Task LevarTarefasAsync(Projeto projeto, IReadOnlyList<Guid>? ids, CancellationToken cancellationToken)
+    {
+        if (ids is not { Count: > 0 })
+            return;
+        _contexto.Exigir(Permissoes.TarefaEditar);
+        foreach (var tarefaId in ids.Distinct())
+        {
+            var tarefa = await _tarefas.ObterPorIdAsync(tarefaId, cancellationToken)
+                ?? throw ErroDeCampo.Criar("tarefaIds", "Tarefa não encontrada.");
+            tarefa.MoverParaProjeto(projeto);
+        }
     }
 
     private async Task<Projeto> CarregarAsync(Guid id, string? versao, CancellationToken cancellationToken)

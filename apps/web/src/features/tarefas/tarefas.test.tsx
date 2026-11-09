@@ -186,4 +186,25 @@ describe('tarefas', () => {
         await usuario.click(screen.getByRole('button', { name: 'Resolver' }))
         await vi.waitFor(() => expect(roteador.state.location.pathname).toBe('/solicitacoes/s1'))
     })
+    it('concluir no quadro a última tarefa do projeto sugere concluir o projeto (F11-28)', async () => {
+        const arte = tarefa({ titulo: 'Arte', status: 'FAZENDO', solicitacaoId: null, projetoId: 'p1' })
+        let concluida = false
+        comPerfil(['tarefa.ver', 'tarefa.editar', 'projeto.ver', 'projeto.gerenciar'], {
+            'GET /api/v1/tarefas': () => pagina([{ ...arte, status: concluida ? 'CONCLUIDA' : 'FAZENDO' }]),
+            'GET /api/v1/equipe': () => json([]),
+            [`POST /api/v1/tarefas/${arte.id}/conclusao`]: () => {
+                concluida = true
+                return json({ ...arte, status: 'CONCLUIDA', versao: '2', checklist: [], apontadoMinutos: 0 })
+            },
+            'GET /api/v1/projetos/p1': () => json({ id: 'p1', nome: 'Site', status: 'EM_ANDAMENTO', versao: '2' }),
+        })
+        const roteador = await abrir('/tarefas?modo=quadro')
+        const usuario = userEvent.setup()
+
+        await usuario.click(await screen.findByRole('button', { name: 'Mover Arte' }))
+        await usuario.click(await screen.findByRole('menuitem', { name: 'Mover para concluída' }))
+        expect(await screen.findByText('Era a última tarefa do projeto. Concluir o projeto agora?')).toBeInTheDocument()
+        await usuario.click(screen.getByRole('button', { name: 'Concluir projeto' }))
+        await vi.waitFor(() => expect(roteador.state.location.pathname).toBe('/projetos/p1'))
+    })
 })

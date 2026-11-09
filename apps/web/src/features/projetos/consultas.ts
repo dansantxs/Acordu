@@ -1,4 +1,5 @@
 import { keepPreviousData, queryOptions } from '@tanstack/react-query'
+import type { TarefasAbertas } from '@/features/tarefas/consultas'
 import { api, seVersao } from '@/shared/api/cliente'
 import type { components } from '@/shared/api/interno'
 
@@ -90,8 +91,13 @@ export async function editarProjeto(p: Projeto, dados: EdicaoProjeto): Promise<P
     ).data!
 }
 
-export async function encerrarProjeto(p: Projeto, acao: 'conclusao' | 'cancelamento'): Promise<Projeto> {
-    const opcoes = { params: { path: { id: p.id } }, ...seVersao(p.versao) }
+/** `tarefas`: concluir ou cancelar as abertas junto (F11-27); sem, ficam como estão. */
+export async function encerrarProjeto(
+    p: Projeto,
+    acao: 'conclusao' | 'cancelamento',
+    tarefas?: TarefasAbertas,
+): Promise<Projeto> {
+    const opcoes = { params: { path: { id: p.id } }, body: { tarefas: tarefas ?? null }, ...seVersao(p.versao) }
     return acao === 'conclusao'
         ? (await api.POST('/api/v1/projetos/{id}/conclusao', opcoes)).data!
         : (await api.POST('/api/v1/projetos/{id}/cancelamento', opcoes)).data!

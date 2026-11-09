@@ -30,6 +30,7 @@ import {
 } from './consultas'
 import { JanelaNovaTarefa } from '@/features/tarefas/JanelaNovaTarefa'
 import { consultaContrato } from '@/features/contratos/consultas'
+import { JanelaProjeto } from '@/features/projetos/JanelaProjeto'
 import { Conversa } from './Conversa'
 import { JanelaContrato } from './JanelaContrato'
 import { JanelaLinkPortal } from './JanelaLinkPortal'
@@ -141,8 +142,10 @@ function Detalhe({
     const motivoLink = useId()
     const [janelaContrato, setJanelaContrato] = useState(false)
     const [novaTarefa, setNovaTarefa] = useState(false)
-    // Tarefa nova não entra em solicitação fechada ou cancelada.
+    const [novoProjeto, setNovoProjeto] = useState(false)
+    // Tarefa nova não entra em solicitação fechada ou cancelada; projeto a partir dela também não (F11-21).
     const podeCriarTarefa = pode(perfil, 'tarefa.criar') && !FINAIS.includes(s.status)
+    const podeCriarProjeto = pode(perfil, 'projeto.gerenciar') && !FINAIS.includes(s.status)
 
     const podeEditar = pode(perfil, 'solicitacao.editar')
     const final = FINAIS.includes(s.status)
@@ -354,10 +357,15 @@ function Detalhe({
 
             {EM_ABERTO.includes(s.status) && <Semelhantes solicitacaoId={s.id} fuso={fuso} />}
 
-            {(s.tarefas.length > 0 || podeCriarTarefa) && (
+            {(s.tarefas.length > 0 || podeCriarTarefa || podeCriarProjeto) && (
                 <section aria-labelledby="tarefas" className="flex flex-col gap-2">
-                    <h3 id="tarefas" className="flex items-baseline justify-between text-sm font-semibold">
-                        Tarefas
+                    <h3 id="tarefas" className="flex items-baseline gap-4 text-sm font-semibold">
+                        <span className="mr-auto">Tarefas</span>
+                        {podeCriarProjeto && (
+                            <Botao variante="discreto" onPress={() => setNovoProjeto(true)} className="!p-0">
+                                Criar projeto
+                            </Botao>
+                        )}
                         {podeCriarTarefa && (
                             <Botao variante="discreto" onPress={() => setNovaTarefa(true)} className="!p-0">
                                 Nova tarefa
@@ -396,6 +404,21 @@ function Detalhe({
                 aoMudar={setNovaTarefa}
                 origem={{ tipo: 'solicitacao', id: s.id, numero: s.numero, clienteNome: s.cliente.nome }}
                 aoCriar={() => undefined}
+            />
+
+            <JanelaProjeto
+                aberta={novoProjeto}
+                aoMudar={setNovoProjeto}
+                daSolicitacao={{
+                    cliente: s.cliente,
+                    contratoId: s.contratoId,
+                    nome: s.titulo,
+                    tarefas: s.tarefas.filter(
+                        (t) => !t.projetoId && (t.status === 'A_FAZER' || t.status === 'FAZENDO'),
+                    ),
+                    podeLevarTarefas: pode(perfil, 'tarefa.editar'),
+                }}
+                aoSalvar={() => void consultas.invalidateQueries({ queryKey: chave })}
             />
 
             <Conversa

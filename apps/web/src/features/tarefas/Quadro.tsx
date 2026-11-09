@@ -11,6 +11,7 @@ import {
     useDragAndDrop,
 } from 'react-aria-components'
 import { useNavigate } from '@tanstack/react-router'
+import { useSugestaoConclusaoProjeto } from '@/features/projetos/sugestaoConclusao'
 import { useSugestaoResolucao } from '@/features/solicitacoes/sugestaoResolucao'
 import { mensagemDeErro } from '@/shared/api/mensagens'
 import { avisar, avisarErro } from '@/shared/avisos/avisos'
@@ -42,14 +43,17 @@ export function Quadro({
     hoje,
     podeEditar,
     podeEditarSolicitacao = false,
+    podeGerenciarProjeto = false,
 }: {
     filtros: FiltrosTarefas
     hoje: string
     podeEditar: boolean
     podeEditarSolicitacao?: boolean
+    podeGerenciarProjeto?: boolean
 }) {
     const consultas = useQueryClient()
     const sugerirResolucao = useSugestaoResolucao(podeEditarSolicitacao)
+    const sugerirConclusao = useSugestaoConclusaoProjeto(podeGerenciarProjeto)
     const consulta = consultaQuadro(filtros)
     const quadro = useQuery({ ...consulta, refetchInterval: intervaloDePolling() })
 
@@ -71,7 +75,10 @@ export function Quadro({
             void consultas.invalidateQueries({ queryKey: ['tarefas'] })
             if (desfazendo) return
             // Concluída no quadro e era a última da solicitação: sugere resolver depois do aviso (F11-15).
-            if (para === 'CONCLUIDA') void sugerirResolucao(tarefa)
+            if (para === 'CONCLUIDA') {
+                void sugerirResolucao(tarefa)
+                void sugerirConclusao(tarefa)
+            }
             avisar(`"${tarefa.titulo}" em ${STATUS_TAREFA[para].toLowerCase()}.`, {
                 desfazer: () =>
                     movimento.mutate({
