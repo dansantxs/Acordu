@@ -391,6 +391,7 @@ export const SECOES_AJUDA: SecaoAjuda[] = [
             'Abra pelo menu com o seu nome, no pé da barra lateral.',
             'Marque quais avisos também chegam por e-mail; o sino continua mostrando tudo.',
             'Em "Neste navegador", ligue as notificações para ver os avisos como pop-up do sistema (Windows, macOS, Android) enquanto o Acordu estiver aberto, mesmo minimizado. Vale só para o navegador em que você ligou.',
+            'Quem aponta horas pode ligar o "Lembrete do cronômetro": no expediente da empresa, com o Acordu aberto, ele avisa quando nenhum cronômetro está rodando há 15, 30 ou 60 minutos.',
             'Gere o link da agenda e cole no Google Agenda, Outlook ou Apple Calendário. O modo discreto esconde títulos e clientes.',
         ],
     },

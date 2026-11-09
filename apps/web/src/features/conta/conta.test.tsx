@@ -140,4 +140,49 @@ describe('minha conta', () => {
             expect(screen.queryByRole('checkbox', { name: 'Notificações neste navegador' })).not.toBeInTheDocument()
         })
     })
+    describe('lembrete do cronômetro (F12-13, F12-16)', () => {
+        afterEach(() => localStorage.clear())
+
+        it('vem desligado e guarda o intervalo escolhido neste navegador', async () => {
+            app(['tarefa.ver', 'apontamento.criar'])
+            await abrir('/conta')
+            const usuario = userEvent.setup()
+            const campo = await screen.findByRole('combobox', { name: 'Lembrete do cronômetro' })
+            expect(campo).toHaveAttribute('placeholder', 'Desligado')
+            expect(campo).toHaveValue('')
+            await usuario.click(campo)
+            await usuario.click(await screen.findByRole('option', { name: 'Depois de 30 min sem cronômetro' }))
+            expect(await screen.findByText('Lembrete a cada 30 min sem cronômetro.')).toBeInTheDocument()
+            expect(
+                [...Array(localStorage.length).keys()].map((i) => localStorage.getItem(localStorage.key(i)!)),
+            ).toContain('30')
+        })
+
+        it('voltar para Desligado apaga a escolha e avisa', async () => {
+            localStorage.setItem(`acordu:lembrete-cronometro:t1:u1`, '30')
+            app(['tarefa.ver', 'apontamento.criar'])
+            await abrir('/conta')
+            const usuario = userEvent.setup()
+            await usuario.click(await screen.findByRole('combobox', { name: 'Lembrete do cronômetro' }))
+            await usuario.click(await screen.findByRole('option', { name: 'Desligado' }))
+            expect(await screen.findByText('Lembrete do cronômetro desligado.')).toBeInTheDocument()
+            expect(localStorage.getItem('acordu:lembrete-cronometro:t1:u1')).toBeNull()
+        })
+
+        it('navegador sem notificação: a seção mostra só o lembrete', async () => {
+            vi.stubGlobal('Notification', undefined)
+            delete (window as { Notification?: unknown }).Notification
+            app(['tarefa.ver', 'apontamento.criar'])
+            await abrir('/conta')
+            expect(await screen.findByRole('combobox', { name: 'Lembrete do cronômetro' })).toBeInTheDocument()
+            expect(screen.queryByRole('checkbox', { name: 'Notificações neste navegador' })).not.toBeInTheDocument()
+        })
+
+        it('sem apontamento.criar, não aparece', async () => {
+            app(['tarefa.ver'])
+            await abrir('/conta')
+            await screen.findByRole('heading', { name: 'E-mails' })
+            expect(screen.queryByRole('combobox', { name: 'Lembrete do cronômetro' })).not.toBeInTheDocument()
+        })
+    })
 })

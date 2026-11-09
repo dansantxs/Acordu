@@ -15,6 +15,14 @@ export const NOTAS: NotaVersao[] = [
     {
         data: '2026-11-09',
         publico: 'equipe',
+        titulo: 'Lembrete do cronômetro',
+        itens: [
+            'Em Minha conta > Neste navegador, ligue o "Lembrete do cronômetro": no expediente da empresa, o Acordu avisa quando nenhum cronômetro está rodando há 15, 30 ou 60 minutos.',
+        ],
+    },
+    {
+        data: '2026-11-09',
+        publico: 'equipe',
         titulo: 'Avisos como notificação do sistema',
         itens: [
             'Em Minha conta > Neste navegador, ligue as notificações: os avisos do sino aparecem como pop-up do Windows (ou do sistema que você usa) enquanto o Acordu estiver aberto, mesmo minimizado.',

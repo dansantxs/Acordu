@@ -1,7 +1,10 @@
-import { Outlet } from '@tanstack/react-router'
-import { useEffect, useState } from 'react'
+import { Outlet, useRouter } from '@tanstack/react-router'
+import { useCallback, useEffect, useState } from 'react'
 import { Button, Dialog, Modal, ModalOverlay } from 'react-aria-components'
+import { pode } from '@/features/casca/navegacao'
 import { AvisoEnvioBloqueado } from '@/features/sessao/AvisoConfirmacao'
+import { useLembreteCronometro } from '@/shared/cronometro/useLembreteCronometro'
+import { escopoNotificacoes } from '@/shared/notificacoes/navegador'
 import type { Perfil } from '@/shared/sessao/perfil'
 import { aplicarCouro, couroAtual } from '@/shared/tema/tema'
 import { useTempoReal } from '@/shared/tempoReal/useTempoReal'
@@ -19,6 +22,10 @@ export function Casca({ perfil }: { perfil: Perfil }) {
     const [paletaAberta, setPaletaAberta] = useAtalhoPaleta()
     const [gaveta, setGaveta] = useState(false)
     useTempoReal(perfil.tenant.id)
+    // Lembrete no expediente (F12d): montado aqui, uma vez, e não na capa (que aparece duas vezes no DOM).
+    const roteador = useRouter()
+    const abrirCaminho = useCallback((caminho: string) => roteador.history.push(caminho), [roteador])
+    useLembreteCronometro(escopoNotificacoes(perfil), pode(perfil, 'apontamento.criar'), abrirCaminho)
     // O couro escolhido vale no app da equipe (o portal tira; ver CascaPortal).
     useEffect(() => aplicarCouro(couroAtual()), [])
     const abrirBusca = () => {
