@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| **Status** | Aprovada |
+| **Status** | Em implementação |
 | **Data** | 09/11/2026 |
 | **Requisitos** | RF-APT-01, RF-APT-02, RF-NOT-03, RF-NOT-05, RNF-UX-01 (ERS) |
 | **ADRs** | 0003 (horas úteis e expediente), 0004 (tempo em minutos), 0009 (tempo real, emenda do polling), 0010 (hospedagem) |
@@ -24,14 +24,14 @@ Hoje: `POST /cronometro/inicio` começa no instante da chamada, `POST /cronometr
 
 | Id | Dado | Quando | Então | Teste |
 |---|---|---|---|---|
-| F12-01 | pessoa com `apontamento.criar`, sem cronômetro | inicia informando "Começou às 08:40" (hoje, já passado) [D1] | o cronômetro começa às 08:40 e o decorrido conta desde então | — |
-| F12-02 | idem | informa um horário no futuro | `400` em `errors.iniciadoEm`, nada começa | — |
-| F12-03 | idem | informa um horário mais antigo que o limite [D1] | `400` em `errors.iniciadoEm`, com o limite na mensagem | — |
-| F12-04 | cronômetro rodando | abre "Parar cronômetro" | a duração vem preenchida com o decorrido e pode ser alterada [D2] | — |
-| F12-05 | idem | para com outra duração (1 min a 24 h) | o apontamento sai com a duração informada, e não com o decorrido | — |
-| F12-06 | idem | para com duração 0 ou acima de 24 h | `400` em `errors.duracaoMinutos`, e o cronômetro continua rodando | — |
-| F12-07 | cronômetro iniciado ontem às 17:30 no fuso da empresa | para hoje | o apontamento sai na data do início (ontem), não na de hoje [D1] | — |
-| F12-08 | período do contrato fechado na data do início | para | `422 periodo-fechado`, e o cronômetro continua para a pessoa ajustar ou descartar (como hoje) | — |
+| F12-01 | pessoa com `apontamento.criar`, sem cronômetro | inicia informando "Começou às 08:40" (hoje, já passado) [D1] | o cronômetro começa às 08:40 e o decorrido conta desde então | `ApontamentosTests › Cronometro_ComecouAntes_DecorridoContaDesdeOInicio`; `cronometro.test › começou antes…`; `cronometro.test (shared) › inicioPelaHora` |
+| F12-02 | idem | informa um horário no futuro | `400` em `errors.iniciadoEm`, nada começa | `ApontamentosTests › Cronometro_InicioForaDoLimite_400ENadaComeca(10)` |
+| F12-03 | idem | informa um horário mais antigo que o limite [D1] | `400` em `errors.iniciadoEm`, com o limite na mensagem | `ApontamentosTests › Cronometro_InicioForaDoLimite_400ENadaComeca(-721)`; `cronometro.test › começou antes… mostra o erro da API na janela` |
+| F12-04 | cronômetro rodando | abre "Parar cronômetro" | a duração vem preenchida com o decorrido e pode ser alterada [D2] | `cronometro.test › parar com outra duração…` |
+| F12-05 | idem | para com outra duração (1 min a 24 h) | o apontamento sai com a duração informada, e não com o decorrido | `ApontamentosTests › Cronometro_PararComOutraDuracao_ApontaAEscolhida`; `cronometro.test › parar com outra duração…` |
+| F12-06 | idem | para com duração 0 ou acima de 24 h | `400` em `errors.duracaoMinutos`, e o cronômetro continua rodando | `ApontamentosTests › Cronometro_PararComDuracaoInvalida_400EContinuaRodando`; `cronometro.test › … inválida não manda` |
+| F12-07 | cronômetro iniciado ontem às 17:30 no fuso da empresa | para hoje | o apontamento sai na data do início (ontem), não na de hoje [D1] | `ApontamentosTests › Cronometro_PararNoDiaSeguinte_ApontaNoDiaDoInicio` |
+| F12-08 | período do contrato fechado na data do início | para | `422 periodo-fechado`, e o cronômetro continua para a pessoa ajustar ou descartar (como hoje) | o caminho de hoje (`PeriodoFechadoException` antes de remover o cronômetro); a data passou a ser a do início |
 
 ### Iniciar junto com a tarefa
 
@@ -172,4 +172,5 @@ O F12a, o F12b e o F12f são independentes. O F12d e o F12e usam a notificação
 
 - 09/11 — rascunho a partir do pedido do Daniel de 06/11 (cronômetro, pop-up do Windows com a aba minimizada, "baixar o sistema como o YouTube permite"; "pode incluir").
 - 09/11 — o Daniel aprovou todas as recomendações (D1 a D8) e pediu o PR da spec.
+- 09/11 — F12a: o domínio não mudou (`Cronometro.Iniciar` já recebia o instante; a Application valida o limite com o relógio). "Começou às" é hora do aparelho: hoje, ou ontem se ainda não chegou. A Duração só vai à API se a pessoa mudou o texto.
 - A spec é viva: mudou o comportamento, a spec muda no mesmo PR.
