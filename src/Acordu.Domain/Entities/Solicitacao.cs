@@ -82,6 +82,16 @@ public sealed class Solicitacao : RaizComCliente
 
     public bool EstaFinalizada => Status is StatusSolicitacao.Fechada or StatusSolicitacao.Cancelada;
 
+    /// <summary>
+    /// Encerrada (FECHADA/CANCELADA): só nota interna da equipe, sem anexo (F11-06 a F11-08). RESOLVIDA continua aberta à
+    /// conversa, porque o cliente ainda pode reabrir (RF-SOL-10). Chamado antes de enviar os arquivos ao armazenamento.
+    /// </summary>
+    public void GarantirConversaAberta(bool doCliente, Visibilidade visibilidade, bool comAnexos)
+    {
+        if (EstaFinalizada && (doCliente || visibilidade != Visibilidade.Interna || comAnexos))
+            throw new SolicitacaoEncerradaException();
+    }
+
     /// <summary>Status exibido no portal (RF-POR-02).</summary>
     public StatusExterno StatusExterno => ParaExterno(Status);
 
