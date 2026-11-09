@@ -193,6 +193,47 @@ describe('casca do app', () => {
         await vi.waitFor(() => expect(roteador.state.location.pathname).toBe('/solicitacoes/s1'))
         expect(chamadas.some((c) => c.caminho === '/api/v1/notificacoes/n1/leitura')).toBe(true)
     })
+
+    it('com a notificação do navegador ligada, aviso novo do sino vira notificação, e o clique abre o item (F12-22, F12-23)', async () => {
+        const criadas: { titulo: string; onclick: (() => void) | null; close: () => void }[] = []
+        vi.stubGlobal(
+            'Notification',
+            class {
+                static permission = 'granted'
+                onclick: (() => void) | null = null
+                close = vi.fn()
+                constructor(public titulo: string) {
+                    criadas.push(this)
+                }
+            },
+        )
+        localStorage.setItem('acordu:notificacoes-navegador', String(Date.now() - 60_000))
+        const aviso = {
+            id: 'n7',
+            categoria: 'ATRIBUICAO',
+            titulo: 'Rafael passou a tarefa "Arte" para você',
+            link: 'http://localhost:5173/tarefas/t1',
+            criadaEm: new Date().toISOString(),
+            lidaEm: null,
+        }
+        const chamadas = app([], {
+            '/api/v1/notificacoes': () => json({ itens: [aviso], pagina: 1, tamanhoPagina: 10, total: 1, naoLidas: 1 }),
+            '/api/v1/notificacoes/n7/leitura': () => new Response(null, { status: 204 }),
+        })
+        try {
+            const roteador = await abrir('/')
+            await vi.waitFor(() => expect(criadas).toHaveLength(1))
+            expect(criadas[0]!.titulo).toBe('Rafael passou a tarefa "Arte" para você')
+            vi.spyOn(window, 'focus').mockImplementation(() => undefined)
+            criadas[0]!.onclick!()
+            await vi.waitFor(() => expect(roteador.state.location.pathname).toBe('/tarefas/t1'))
+            await vi.waitFor(() =>
+                expect(chamadas.some((c) => c.caminho === '/api/v1/notificacoes/n7/leitura')).toBe(true),
+            )
+        } finally {
+            localStorage.clear()
+        }
+    })
     it('endereço inexistente mostra a página não encontrada dentro da casca', async () => {
         app([])
         await abrir('/nao-existe')

@@ -4,6 +4,12 @@ import { pode } from '@/features/casca/navegacao'
 import { mensagemDeErro } from '@/shared/api/mensagens'
 import { avisar, avisarErro } from '@/shared/avisos/avisos'
 import { dataHora } from '@/shared/format/prazo'
+import {
+    desligarNotificacoes,
+    estadoNotificacoes,
+    ligarNotificacoes,
+    type EstadoNotificacoes,
+} from '@/shared/notificacoes/navegador'
 import type { Perfil } from '@/shared/sessao/perfil'
 import { Alerta } from '@/shared/ui/Alerta'
 import { Botao } from '@/shared/ui/Botao'
@@ -42,9 +48,57 @@ export function TelaConta({ perfil }: { perfil: Perfil }) {
         <Pagina ajuda="conta" titulo="Minha conta" contexto={`${perfil.nome} · ${perfil.email}`}>
             <div className="flex max-w-2xl flex-col gap-10">
                 <Emails />
+                <NotificacoesNavegador />
                 {pode(perfil, ...LEITURA_AGENDA) && <Agenda fuso={perfil.tenant.fusoHorario} />}
             </div>
         </Pagina>
+    )
+}
+
+/**
+ * Notificação do sistema pelo navegador (F12-20, F12-21, F12-25): por navegador, com o Acordu aberto. Sem suporte, a
+ * seção não aparece.
+ */
+function NotificacoesNavegador() {
+    const [estado, setEstado] = useState<EstadoNotificacoes>(estadoNotificacoes)
+    const [pedindo, setPedindo] = useState(false)
+    if (estado === 'sem-suporte') return null
+    return (
+        <section aria-labelledby="conta-navegador" className="flex flex-col gap-3">
+            <h2 id="conta-navegador" className="font-titulo text-2xl font-semibold tracking-tight">
+                Neste navegador
+            </h2>
+            <p className="text-sm text-suave">
+                Os avisos do sino aparecem também como notificação do sistema, enquanto o Acordu estiver aberto, mesmo
+                minimizado. Vale só para este navegador.
+            </p>
+            <Marcador
+                valor={estado === 'ligada'}
+                isDisabled={estado === 'negada' || pedindo}
+                aoMudar={async (ligar) => {
+                    if (!ligar) {
+                        desligarNotificacoes()
+                        setEstado('desligada')
+                        return
+                    }
+                    setPedindo(true)
+                    try {
+                        setEstado(await ligarNotificacoes())
+                    } finally {
+                        setPedindo(false)
+                    }
+                }}
+                {...(estado === 'negada' ? { descritoPor: 'conta-navegador-negada' } : {})}
+            >
+                Notificações neste navegador
+            </Marcador>
+            {estado === 'negada' && (
+                <p id="conta-navegador-negada" className="text-xs text-suave">
+                    O navegador bloqueou as notificações do Acordu. Para liberar, clique no cadeado ao lado do endereço,
+                    em Notificações escolha Permitir, e volte aqui.
+                </p>
+            )}
+        </section>
     )
 }
 

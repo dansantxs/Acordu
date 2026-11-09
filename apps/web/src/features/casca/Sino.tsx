@@ -1,10 +1,12 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useRouter } from '@tanstack/react-router'
+import { useEffect } from 'react'
 import { Button, Dialog, DialogTrigger, Heading, Popover } from 'react-aria-components'
 import { api } from '@/shared/api/cliente'
 import { avisarErro } from '@/shared/avisos/avisos'
 import type { components } from '@/shared/api/interno'
 import { quando } from '@/shared/format/quando'
+import { notificar } from '@/shared/notificacoes/navegador'
 import { Icone } from '@/shared/ui/Icone'
 
 type Notificacao = components['schemas']['NotificacaoDto']
@@ -41,6 +43,23 @@ export function Sino({ fuso }: { fuso: string }) {
         onError: avisarErro,
         onSettled: atualizar,
     })
+
+    // Aviso novo também vira notificação do sistema, se a pessoa ligou neste navegador (F12-22, F12-23).
+    const itens = sino.data?.itens
+    useEffect(() => {
+        for (const aviso of itens ?? []) {
+            if (aviso.lidaEm) continue
+            notificar(
+                { id: aviso.id, titulo: aviso.titulo, caminho: caminhoDoLink(aviso.link), criadoEm: aviso.criadaEm },
+                (caminho) => {
+                    lerUm.mutate(aviso.id)
+                    roteador.history.push(caminho)
+                },
+            )
+        }
+        // `lerUm` muda a cada render; o efeito é sobre a lista de avisos.
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [itens, roteador])
 
     const naoLidas = Number(sino.data?.naoLidas ?? 0)
     const rotulo = naoLidas > 0 ? `Avisos, ${naoLidas} não lidos` : 'Avisos'
