@@ -34,11 +34,14 @@ public sealed class AtividadesTests(ApiFixture api)
         var daSolicitacao = await equipe.EsperarAsync(
             HttpStatusCode.OK, HttpMethod.Get, $"/api/v1/atividades?solicitacaoId={solicitacao}");
 
+        // A tarefa criada na solicitação ABERTA a põe EM_ANDAMENTO (F11-18): o feed ganha o SOLICITACAO_STATUS.
         Tipos(feed).Should().Equal(
-            "TAREFA_CRIADA", "COMENTARIO_TAREFA", "TAREFA_STATUS", "TAREFA_CRIADA", "NOTA_INTERNA", "SOLICITACAO_ABERTA");
-        Tipos(doCliente).Should().Equal("COMENTARIO_TAREFA", "TAREFA_STATUS", "TAREFA_CRIADA", "NOTA_INTERNA", "SOLICITACAO_ABERTA");
-        Tipos(minhas).Should().HaveCount(6);
-        Tipos(daSolicitacao).Should().Equal("NOTA_INTERNA", "SOLICITACAO_ABERTA");
+            "TAREFA_CRIADA", "COMENTARIO_TAREFA", "TAREFA_STATUS", "TAREFA_CRIADA", "SOLICITACAO_STATUS", "NOTA_INTERNA",
+            "SOLICITACAO_ABERTA");
+        Tipos(doCliente).Should().Equal(
+            "COMENTARIO_TAREFA", "TAREFA_STATUS", "TAREFA_CRIADA", "SOLICITACAO_STATUS", "NOTA_INTERNA", "SOLICITACAO_ABERTA");
+        Tipos(minhas).Should().HaveCount(7);
+        Tipos(daSolicitacao).Should().Equal("SOLICITACAO_STATUS", "NOTA_INTERNA", "SOLICITACAO_ABERTA");
         feed.GetProperty("proximo").ValueKind.Should().Be(JsonValueKind.Null);
         var status = feed.GetProperty("itens")[2];
         status.GetProperty("autor").GetProperty("id").GetGuid().Should().Be(eu);
