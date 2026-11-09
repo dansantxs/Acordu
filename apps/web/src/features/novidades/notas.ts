@@ -19,6 +19,7 @@ export const NOTAS: NotaVersao[] = [
         itens: [
             'Esqueceu de iniciar o cronômetro? "Começou antes?", no painel da tarefa, começa a contar a partir do horário informado, de até 12 horas atrás.',
             'Ao parar, a duração vem preenchida e pode ser ajustada antes de apontar. O apontamento sai no dia em que o cronômetro começou.',
+            'Na janela de nova tarefa, "Iniciar o cronômetro" já começa a contar na tarefa criada.',
         ],
     },
     {

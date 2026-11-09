@@ -6,6 +6,7 @@ import { CampoCliente } from '@/features/clientes/CampoCliente'
 import { opcional } from '@/features/clientes/consultas'
 import { errosDeCampo, mensagemDeErro } from '@/shared/api/mensagens'
 import { avisar } from '@/shared/avisos/avisos'
+import { consultaCronometro, iniciarCronometro } from '@/shared/cronometro/cronometro'
 import { consultaEquipe } from '@/shared/equipe/consultaEquipe'
 import { lerDuracao } from '@/shared/format/duracao'
 import type { Perfil } from '@/shared/sessao/perfil'
@@ -14,6 +15,7 @@ import { Botao } from '@/shared/ui/Botao'
 import { CampoSelecao } from '@/shared/ui/CampoSelecao'
 import { CampoTexto } from '@/shared/ui/CampoTexto'
 import { Janela } from '@/shared/ui/Janela'
+import { Marcador } from '@/shared/ui/Marcador'
 import { LegendaObrigatorios } from '@/shared/ui/Rotulo'
 import { criarTarefa, type Tarefa } from './consultas'
 
@@ -65,14 +67,33 @@ function Formulario({
     const [visivel, setVisivel] = useState(origem?.tipo === 'solicitacao')
     const [estimativaInvalida, setEstimativaInvalida] = useState(false)
     const temCliente = Boolean(origem) || clienteId !== null
+    // Iniciar junto (F12-09 a F12-12): só com `apontamento.criar`, e desabilitado com outro cronômetro correndo.
+    const podeCronometrar = pode(perfil, 'apontamento.criar')
+    const cronometro = useQuery({ ...consultaCronometro, enabled: podeCronometrar })
+    const outroCronometro = cronometro.data ?? null
+    const [cronometrar, setCronometrar] = useState(false)
+    const iniciarJunto = podeCronometrar && cronometrar && !outroCronometro
 
     const envio = useMutation({
-        mutationFn: criarTarefa,
-        onSuccess: async (tarefa) => {
+        mutationFn: async (dados: Parameters<typeof criarTarefa>[0]) => {
+            const tarefa = await criarTarefa(dados)
+            if (!iniciarJunto) return { tarefa, cronometro: 'nao-pedido' as const }
+            // A tarefa já existe: se iniciar falhar, ela continua criada e o aviso diz isso (F12-12, decisão D3).
+            try {
+                await iniciarCronometro(tarefa.id)
+                return { tarefa, cronometro: 'iniciado' as const }
+            } catch (erro) {
+                return { tarefa, cronometro: erro }
+            }
+        },
+        onSuccess: async ({ tarefa, cronometro: resultado }) => {
             await consultas.invalidateQueries({ queryKey: ['tarefas'] })
             if (origem?.tipo === 'solicitacao') await consultas.invalidateQueries({ queryKey: ['solicitacoes'] })
             if (origem?.tipo === 'projeto') await consultas.invalidateQueries({ queryKey: ['projetos'] })
-            avisar(`Tarefa "${tarefa.titulo}" criada.`)
+            if (resultado !== 'nao-pedido') await consultas.invalidateQueries({ queryKey: ['cronometro'] })
+            if (resultado === 'nao-pedido') avisar(`Tarefa "${tarefa.titulo}" criada.`)
+            else if (resultado === 'iniciado') avisar(`Tarefa "${tarefa.titulo}" criada, com o cronômetro correndo.`)
+            else avisar(`Tarefa "${tarefa.titulo}" criada, mas o cronômetro não começou: ${mensagemDeErro(resultado)}`)
             aoFechar()
             aoCriar(tarefa)
         },
@@ -192,6 +213,23 @@ function Formulario({
                     </span>
                     O cliente vê esta tarefa no portal
                 </Checkbox>
+            )}
+            {podeCronometrar && (
+                <div className="flex flex-col gap-1">
+                    <Marcador
+                        valor={iniciarJunto}
+                        aoMudar={setCronometrar}
+                        isDisabled={outroCronometro !== null}
+                        {...(outroCronometro ? { descritoPor: 'nova-cronometro-d' } : {})}
+                    >
+                        Iniciar o cronômetro
+                    </Marcador>
+                    {outroCronometro && (
+                        <p id="nova-cronometro-d" className="text-xs text-suave">
+                            Já há um cronômetro em "{outroCronometro.tarefa.nome}".
+                        </p>
+                    )}
+                </div>
             )}
             <div className="flex justify-end gap-3">
                 <Botao variante="secundario" onPress={aoFechar} isDisabled={envio.isPending}>
