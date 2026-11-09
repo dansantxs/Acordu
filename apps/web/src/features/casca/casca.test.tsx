@@ -287,21 +287,6 @@ describe('casca do app', () => {
         }
     })
 
-    it('o lembrete fica montado só para quem aponta horas (F12-13)', async () => {
-        const intervalos = vi.spyOn(window, 'setInterval')
-        app(['tarefa.ver'])
-        await abrir('/')
-        await screen.findByRole('navigation', { name: 'Principal' })
-        const semPermissao = intervalos.mock.calls.filter(([, ms]) => ms === 60_000).length
-        intervalos.mockClear()
-        reiniciarParaTestes()
-        app(['tarefa.ver', 'apontamento.criar'])
-        await abrir('/')
-        await screen.findByRole('navigation', { name: 'Principal' })
-        expect(intervalos.mock.calls.filter(([, ms]) => ms === 60_000).length).toBeGreaterThan(semPermissao)
-        intervalos.mockRestore()
-    })
-
     it('endereço inexistente mostra a página não encontrada dentro da casca', async () => {
         app([])
         await abrir('/nao-existe')

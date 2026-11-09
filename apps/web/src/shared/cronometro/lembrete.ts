@@ -7,6 +7,26 @@ export const INTERVALOS_LEMBRETE = [15, 30, 60] as const
 export type IntervaloLembrete = (typeof INTERVALOS_LEMBRETE)[number]
 
 const PREFIXO = 'acordu:lembrete-cronometro:'
+const PREFIXO_LIGADO = 'acordu:lembrete-cronometro-ligado:'
+const PREFIXO_ULTIMO = 'acordu:lembrete-cronometro-ultimo:'
+
+function ler(chave: string): number | null {
+    try {
+        const valor = Number(window.localStorage.getItem(chave))
+        return Number.isFinite(valor) && valor > 0 ? valor : null
+    } catch {
+        return null
+    }
+}
+
+function gravar(chave: string, valor: number | null): void {
+    try {
+        if (valor === null) window.localStorage.removeItem(chave)
+        else window.localStorage.setItem(chave, String(valor))
+    } catch {
+        // Sem armazenamento (navegação privada restrita): o lembrete fica desligado.
+    }
+}
 
 export function intervaloLembrete(escopo: string): IntervaloLembrete | null {
     try {
@@ -17,13 +37,24 @@ export function intervaloLembrete(escopo: string): IntervaloLembrete | null {
     }
 }
 
-export function definirLembrete(escopo: string, intervalo: IntervaloLembrete | null): void {
-    try {
-        if (intervalo === null) window.localStorage.removeItem(PREFIXO + escopo)
-        else window.localStorage.setItem(PREFIXO + escopo, String(intervalo))
-    } catch {
-        // Sem armazenamento (navegação privada restrita): o lembrete fica desligado.
-    }
+export function definirLembrete(escopo: string, intervalo: IntervaloLembrete | null, agora = Date.now()): void {
+    gravar(PREFIXO + escopo, intervalo)
+    // Ligar no meio do dia é ponto de partida: o primeiro aviso vem depois de um intervalo inteiro.
+    gravar(PREFIXO_LIGADO + escopo, intervalo === null ? null : agora)
+}
+
+/** Quando a pessoa ligou (ou mudou o intervalo) neste navegador. */
+export function lembreteLigadoEm(escopo: string): number | null {
+    return ler(PREFIXO_LIGADO + escopo)
+}
+
+/** Último lembrete mostrado por qualquer aba deste navegador (F12-15). */
+export function ultimoLembrete(escopo: string): number | null {
+    return ler(PREFIXO_ULTIMO + escopo)
+}
+
+export function registrarLembrete(escopo: string, agora: number): void {
+    gravar(PREFIXO_ULTIMO + escopo, agora)
 }
 
 /**

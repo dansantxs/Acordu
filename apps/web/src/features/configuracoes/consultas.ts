@@ -19,10 +19,8 @@ export async function salvarEmpresa(dados: components['schemas']['ConfiguracaoEm
     return (await api.PUT('/api/v1/configuracoes/empresa', { body: dados })).data!
 }
 
-export const consultaCalendario = queryOptions({
-    queryKey: ['configuracoes', 'calendario'],
-    queryFn: async () => (await api.GET('/api/v1/configuracoes/calendario')).data!,
-})
+/** Em `shared/` porque o lembrete do cronômetro (F12d) também lê; aqui, reexportada para as telas de configuração. */
+export { consultaCalendario } from '@/shared/calendario/consultaCalendario'
 
 export async function salvarCalendario(dados: components['schemas']['CalendarioRequest']): Promise<Calendario> {
     return (await api.PUT('/api/v1/configuracoes/calendario', { body: dados })).data!

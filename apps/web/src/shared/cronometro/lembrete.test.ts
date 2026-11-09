@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it } from 'vitest'
-import { definirLembrete, deveLembrar, intervaloLembrete } from './lembrete'
+import { definirLembrete, deveLembrar, intervaloLembrete, lembreteLigadoEm } from './lembrete'
 
 const MIN = 60_000
 const AGORA = 1_000 * MIN
@@ -14,6 +14,7 @@ describe('lembrete do cronômetro', () => {
         expect(intervaloLembrete('t1:bruno')).toBeNull()
         definirLembrete('t1:ana', null)
         expect(intervaloLembrete('t1:ana')).toBeNull()
+        expect(lembreteLigadoEm('t1:ana')).toBeNull()
     })
 
     it('lembra depois do intervalo sem cronômetro, no expediente (F12-13)', () => {

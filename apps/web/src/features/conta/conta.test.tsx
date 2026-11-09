@@ -158,6 +158,26 @@ describe('minha conta', () => {
             ).toContain('30')
         })
 
+        it('voltar para Desligado apaga a escolha e avisa', async () => {
+            localStorage.setItem(`acordu:lembrete-cronometro:t1:u1`, '30')
+            app(['tarefa.ver', 'apontamento.criar'])
+            await abrir('/conta')
+            const usuario = userEvent.setup()
+            await usuario.click(await screen.findByRole('combobox', { name: 'Lembrete do cronômetro' }))
+            await usuario.click(await screen.findByRole('option', { name: 'Desligado' }))
+            expect(await screen.findByText('Lembrete do cronômetro desligado.')).toBeInTheDocument()
+            expect(localStorage.getItem('acordu:lembrete-cronometro:t1:u1')).toBeNull()
+        })
+
+        it('navegador sem notificação: a seção mostra só o lembrete', async () => {
+            vi.stubGlobal('Notification', undefined)
+            delete (window as { Notification?: unknown }).Notification
+            app(['tarefa.ver', 'apontamento.criar'])
+            await abrir('/conta')
+            expect(await screen.findByRole('combobox', { name: 'Lembrete do cronômetro' })).toBeInTheDocument()
+            expect(screen.queryByRole('checkbox', { name: 'Notificações neste navegador' })).not.toBeInTheDocument()
+        })
+
         it('sem apontamento.criar, não aparece', async () => {
             app(['tarefa.ver'])
             await abrir('/conta')
