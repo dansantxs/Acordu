@@ -2584,6 +2584,46 @@
         }
       }
     },
+    "/api/v1/tarefas/{id}/projeto": {
+      "put": {
+        "tags": [
+          "Tarefas"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ProjetoDaTarefaRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TarefaDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/tarefas/{id}/inicio": {
       "post": {
         "tags": [
@@ -6560,6 +6600,26 @@
                 "$ref": "#/components/schemas/Referencia"
               }
             ]
+          },
+          "projetoDe": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/Referencia"
+              }
+            ]
+          },
+          "projetoPara": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/Referencia"
+              }
+            ]
           }
         }
       },
@@ -8215,6 +8275,21 @@
               "string"
             ],
             "format": "int32"
+          }
+        }
+      },
+      "ProjetoDaTarefaRequest": {
+        "required": [
+          "projetoId"
+        ],
+        "type": "object",
+        "properties": {
+          "projetoId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
           }
         }
       },
@@ -9889,7 +9964,8 @@
           "TAREFA_CRIADA",
           "TAREFA_ATRIBUIDA",
           "TAREFA_STATUS",
-          "COMENTARIO_TAREFA"
+          "COMENTARIO_TAREFA",
+          "TAREFA_PROJETO"
         ]
       },
       "TipoContrato": {

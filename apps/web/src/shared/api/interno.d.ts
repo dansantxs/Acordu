@@ -2526,6 +2526,47 @@ export interface paths {
         }
         trace?: never
     }
+    '/api/v1/tarefas/{id}/projeto': {
+        parameters: {
+            query?: never
+            header?: never
+            path?: never
+            cookie?: never
+        }
+        get?: never
+        put: {
+            parameters: {
+                query?: never
+                header?: never
+                path: {
+                    id: string
+                }
+                cookie?: never
+            }
+            requestBody: {
+                content: {
+                    'application/json': components['schemas']['ProjetoDaTarefaRequest']
+                }
+            }
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown
+                    }
+                    content: {
+                        'application/json': components['schemas']['TarefaDto']
+                    }
+                }
+            }
+        }
+        post?: never
+        delete?: never
+        options?: never
+        head?: never
+        patch?: never
+        trace?: never
+    }
     '/api/v1/tarefas/{id}/inicio': {
         parameters: {
             query?: never
@@ -5302,6 +5343,8 @@ export interface components {
             statusDe: null | string
             statusPara: null | string
             responsavel: null | components['schemas']['Referencia']
+            projetoDe?: null | components['schemas']['Referencia']
+            projetoPara?: null | components['schemas']['Referencia']
         }
         DiaAgendaDto: {
             /** Format: date */
@@ -5709,6 +5752,10 @@ export interface components {
             apontadoMinutos: number | string
             /** Format: int32 */
             estimativaMinutos: null | number | string
+        }
+        ProjetoDaTarefaRequest: {
+            /** Format: uuid */
+            projetoId: null | string
         }
         ProjetoDto: {
             /** Format: uuid */
@@ -6119,6 +6166,7 @@ export interface components {
             | 'TAREFA_ATRIBUIDA'
             | 'TAREFA_STATUS'
             | 'COMENTARIO_TAREFA'
+            | 'TAREFA_PROJETO'
         /** @enum {unknown} */
         TipoContrato: 'MENSAL_FIXO' | 'BANCO_HORAS' | 'AVULSO'
         /** @enum {unknown} */
