@@ -4,7 +4,7 @@
 |---|---|
 | **Status** | Em implementação |
 | **Data** | 06/11/2026 |
-| **Requisitos** | RF-SOL-03, RF-SOL-06, RF-SOL-07, RF-SOL-08, RF-SOL-10, RF-TAR-01, RF-TAR-02, RF-PRJ-01, RF-POR-05 (ERS) |
+| **Requisitos** | RF-SOL-03, RF-SOL-06, RF-SOL-07, RF-SOL-08, RF-SOL-10, RF-SOL-13 (novo), RF-TAR-01, RF-TAR-02, RF-PRJ-01, RF-POR-05 (ERS) |
 | **ADRs** | 0011 |
 
 ## 1. Objetivo
@@ -45,7 +45,7 @@ As letras entre colchetes ligam o cenário à decisão da §5 de que ele depende
 |---|---|---|---|---|
 | F11-06 | solicitação FECHADA ou CANCELADA | a equipe tenta enviar resposta ao cliente ou anexo pela API | 409 `solicitacao-encerrada`, e nada é gravado (nem o arquivo) [D4] | `AnexosTests › Comentario_SolicitacaoEncerrada_SoNotaInternaSemAnexo`; `SolicitacaoTests › GarantirConversaAberta_Encerrada_SoNotaInternaSemAnexo` |
 | F11-07 | solicitação FECHADA ou CANCELADA | a equipe registra nota interna sem anexo | entra (registro posterior, como "o cliente ligou agradecendo") e não muda o status [D4] | `AnexosTests › Comentario_SolicitacaoEncerrada_SoNotaInternaSemAnexo` |
-| F11-08 | solicitação FECHADA ou CANCELADA | o contato responde pelo portal (conta ou link) | 409 `solicitacao-encerrada`; o portal esconde a caixa e mostra "Esta solicitação foi encerrada. Para continuar, abra uma nova." com o botão de nova solicitação [D4] | `PortalLinkTests › Responder_SolicitacaoEncerrada_409`; `detalhe.test › encerrada não tem caixa de mensagem` |
+| F11-08 | solicitação FECHADA ou CANCELADA | o contato responde pelo portal (conta ou link) | 409 `solicitacao-encerrada`; o portal esconde a caixa e mostra "Esta solicitação foi encerrada. Para continuar, abra uma nova." com o botão de nova solicitação [D4] | `PortalLinkTests › Responder_SolicitacaoEncerrada_409`; `PortalTests › Responder_ComContaEAnexo_SolicitacaoEncerrada_409SemGuardarArquivo`; `detalhe.test › encerrada não tem caixa de mensagem`, `no link, encerrada orienta a falar com a equipe` |
 | F11-09 | solicitação FECHADA ou CANCELADA no detalhe da equipe | a tela abre | a caixa mostra só "Nota interna", sem anexo, com a frase "Solicitação encerrada: a conversa com o cliente acabou." [D4] | `conversa.test › encerrada: só nota interna, sem anexo, com o aviso` |
 | F11-10 | solicitação RESOLVIDA (ainda dentro do prazo de reabertura) | equipe ou cliente escrevem | continua permitido, como hoje: o cliente pode reabrir pelo RF-SOL-10 [D4] | `SolicitacoesTests › Interacoes_Resolvida_ContinuaAbertaAConversa`; `SolicitacaoTests › GarantirConversaAberta_Resolvida_Permite`; `detalhe.test › resolvida, para quem não aprova, ainda tem a caixa` |
 
@@ -82,7 +82,7 @@ As letras entre colchetes ligam o cenário à decisão da §5 de que ele depende
 | Id | Dado | Quando | Então | Teste |
 |---|---|---|---|---|
 | F11-29 | tarefa ou projeto de outro tenant | qualquer ação deste marco cita o Id | 404, como em todo o resto (ADR 0002) | — |
-| F11-30 | contato do portal | tenta qualquer rota de equipe deste marco | 403/404 como hoje; no portal, só o F11-08 se aplica | `PortalLinkTests` (rotas da equipe seguem fechadas ao contato, sem mudança) |
+| F11-30 | contato do portal | tenta qualquer rota de equipe deste marco | 403/404 como hoje; no portal, só o F11-08 se aplica | `AutenticacaoTests › Cliente_403NaRotaInterna_200NoPortal_ETrocaDeTenant` (sem mudança neste marco) |
 | F11-31 | ação conjunta (F11-12, F11-20, F11-27) com uma tarefa alterada por outra pessoa no meio | confirma | 412 pela versão da tarefa, nada muda, e a janela recarrega a lista | — |
 
 ## 4. Fora de escopo
@@ -173,4 +173,4 @@ O F11a e o F11b são independentes e podem sair primeiro. O F11e depende do F11d
 - 06/11 — rascunho a partir do pedido do Daniel (quatro pontos e "verifique outras situações").
 - 06/11 — o Daniel aprovou todas as recomendações (D1 a D7) e pediu o PR da spec.
 - 06/11 — F11a: na API, sem `visibilidade`, continua INTERNA (compatível); o padrão novo é da tela. "Enviar e aguardar" manda um só e-mail ao contato (o da mensagem, com assunto de espera), decidido pelo pedido da própria ação (`InteracaoRegistrada.PedeRetorno`), não pelo status lido depois. Encerrada (FECHADA/CANCELADA) já abre em nota interna; o bloqueio completo vem no F11b. A transição automática gera, como qualquer mudança de status, o aviso aos seguidores e a linha no histórico.
-- 09/11 — F11b: no portal, RESOLVIDA aparece como "Concluída" para quem não aprova; a caixa de mensagem passa a ficar aberta nela (antes sumia), como pede o F11-10. O botão "Nova solicitação" só aparece na sessão com conta (no link, o contato vê só aquela solicitação).
+- 09/11 — F11b: no portal, RESOLVIDA aparece como "Concluída" para quem não aprova, e o status externo não a separa da FECHADA; o detalhe do portal ganhou `encerrada`, e a caixa de mensagem fica aberta na RESOLVIDA (antes sumia), como pede o F11-10. "Nova solicitação" aparece para quem tem `portal.solicitacao.criar` (a sessão de link não tem); no link, a orientação é falar com a equipe. Limitação conhecida: a checagem de encerrada e a gravação da interação não travam a versão da solicitação, então um cancelamento no mesmo instante pode deixar passar uma resposta (risco baixo, sem tratamento).
