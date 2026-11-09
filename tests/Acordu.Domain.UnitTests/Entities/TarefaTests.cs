@@ -242,6 +242,20 @@ public sealed class TarefaTests
         }
 
         [Fact]
+        public void DeSolicitacao_EventosLevamOSolicitacaoId() // F11-18, F11-19
+        {
+            var cliente = Guid.NewGuid();
+            var solicitacao = Guid.NewGuid();
+
+            var tarefa = Tarefa.Criar(
+                Guid.NewGuid(), Calendarios.Tenant, "Arte", null, cliente, solicitacao, null, null, null, null, false);
+            tarefa.Iniciar();
+
+            tarefa.Eventos.OfType<TarefaCriada>().Single().SolicitacaoId.Should().Be(solicitacao);
+            tarefa.Eventos.OfType<TarefaStatusAlterada>().Single().SolicitacaoId.Should().Be(solicitacao);
+        }
+
+        [Fact]
         public void Atribuir_SoEmiteQuandoMuda()
         {
             var tarefa = Em(StatusTarefa.AFazer);

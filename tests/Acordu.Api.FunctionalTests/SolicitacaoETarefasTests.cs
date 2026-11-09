@@ -28,7 +28,7 @@ public sealed class SolicitacaoETarefasTests(ApiFixture api)
         (await equipe.EsperarAsync(HttpStatusCode.OK, HttpMethod.Get, rota)).GetProperty("status").GetString()!;
 
     [Fact]
-    public async Task Resolver_ConcluirTarefasJunto_TudoNumaTransacao() // F11-12
+    public async Task Resolver_ConcluirTarefasJunto_TudoMuda() // F11-12
     {
         var c = await CenarioAsync(api);
 
@@ -126,6 +126,22 @@ public sealed class SolicitacaoETarefasTests(ApiFixture api)
         (await StatusAsync(c.Equipe, c.Rota)).Should().Be("CANCELADA");
         (await StatusAsync(c.Equipe, $"/api/v1/tarefas/{c.AFazer}")).Should().Be("CANCELADA");
         (await StatusAsync(c.Equipe, $"/api/v1/tarefas/{c.Fazendo}")).Should().Be("CANCELADA");
+    }
+
+    [Fact]
+    public async Task Cancelar_SolicitacaoRecusaDepoisDasTarefas_NadaMuda() // F11-12, F11-20: uma transação só
+    {
+        var c = await CenarioAsync(api);
+
+        // As tarefas são canceladas em memória antes; o motivo em branco faz a solicitação recusar, e nada é gravado.
+        await c.Equipe.EsperarAsync(HttpStatusCode.BadRequest, HttpMethod.Post, $"{c.Rota}/cancelamento", new
+        {
+            motivo = "   ", tarefas = new { acao = "CANCELAR", ids = new[] { c.AFazer, c.Fazendo } },
+        });
+
+        (await StatusAsync(c.Equipe, c.Rota)).Should().Be("EM_ANDAMENTO");
+        (await StatusAsync(c.Equipe, $"/api/v1/tarefas/{c.AFazer}")).Should().Be("A_FAZER");
+        (await StatusAsync(c.Equipe, $"/api/v1/tarefas/{c.Fazendo}")).Should().Be("FAZENDO");
     }
 
     [Fact]
