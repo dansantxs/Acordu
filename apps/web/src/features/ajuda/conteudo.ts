@@ -277,6 +277,7 @@ export const SECOES_AJUDA: SecaoAjuda[] = [
             'No quadro, arraste o cartão entre as colunas; o aviso tem "Desfazer".',
             'No painel da tarefa: checklist, comentários com @menções, anexos e quem segue a tarefa.',
             'Use o cronômetro da tarefa: ele fica visível na barra lateral e, ao parar, abre o apontamento já preenchido. Iniciar o cronômetro põe a tarefa em "Fazendo".',
+            'Esqueceu de iniciar? Use "Começou antes?" e informe o horário (até 12 horas atrás). Ao parar, a duração vem preenchida e pode ser ajustada; o apontamento sai no dia em que o cronômetro começou.',
             'Ao concluir a última tarefa de uma solicitação, o aviso oferece "Resolver" para fechar a solicitação logo em seguida.',
             'Para levar a tarefa a um projeto, trocar de projeto ou tirá-la, use o campo Projeto no painel: aparecem os projetos em andamento do mesmo cliente. As horas já apontadas passam a contar no projeto novo e continuam no contrato em que foram lançadas.',
         ],

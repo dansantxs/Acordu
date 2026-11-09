@@ -15,6 +15,15 @@ export const NOTAS: NotaVersao[] = [
     {
         data: '2026-11-09',
         publico: 'equipe',
+        titulo: 'Cronômetro ajustável',
+        itens: [
+            'Esqueceu de iniciar o cronômetro? "Começou antes?", no painel da tarefa, começa a contar a partir do horário informado, de até 12 horas atrás.',
+            'Ao parar, a duração vem preenchida e pode ser ajustada antes de apontar. O apontamento sai no dia em que o cronômetro começou.',
+        ],
+    },
+    {
+        data: '2026-11-09',
+        publico: 'equipe',
         titulo: 'Projeto a partir da solicitação',
         itens: [
             'No detalhe da solicitação, "Criar projeto" abre o projeto novo com o cliente, o contrato e o título dela, e leva as tarefas abertas para o projeto.',

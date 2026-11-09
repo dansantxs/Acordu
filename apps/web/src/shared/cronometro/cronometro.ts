@@ -19,8 +19,24 @@ export function decorridoMinutos(c: Cronometro, agora = Date.now()): number {
     return Math.max(0, Math.round((agora - new Date(c.iniciadoEm).getTime()) / 60_000))
 }
 
-export async function iniciarCronometro(tarefaId: string): Promise<void> {
-    await api.POST('/api/v1/cronometro/inicio', { body: { tarefaId } })
+/** `iniciadoEm` (ISO): começou antes (F12-01), até 12 h atrás; sem, começa agora. */
+export async function iniciarCronometro(tarefaId: string, iniciadoEm?: string): Promise<void> {
+    await api.POST('/api/v1/cronometro/inicio', { body: { tarefaId, iniciadoEm: iniciadoEm ?? null } })
+}
+
+/**
+ * "Começou às HH:MM" no relógio do aparelho: hoje ou, se esse horário ainda não chegou, ontem (a API limita a 12 h
+ * atrás). Devolve `null` para um horário mal escrito.
+ */
+export function inicioPelaHora(hora: string, agora = new Date()): Date | null {
+    const casamento = /^(\d{1,2}):(\d{2})$/.exec(hora.trim())
+    if (!casamento) return null
+    const [h, m] = [Number(casamento[1]), Number(casamento[2])]
+    if (h > 23 || m > 59) return null
+    const inicio = new Date(agora)
+    inicio.setHours(h, m, 0, 0)
+    if (inicio.getTime() > agora.getTime()) inicio.setDate(inicio.getDate() - 1)
+    return inicio
 }
 
 export interface Parada {
@@ -28,6 +44,8 @@ export interface Parada {
     descricaoExterna: string | null
     faturavel: boolean
     visivelCliente: boolean
+    /** Só quando a pessoa mudou a duração (F12-05); sem, a API aponta o decorrido. */
+    duracaoMinutos?: number
 }
 
 export async function pararCronometro(dados: Parada): Promise<Apontamento> {
