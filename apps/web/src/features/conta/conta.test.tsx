@@ -140,4 +140,29 @@ describe('minha conta', () => {
             expect(screen.queryByRole('checkbox', { name: 'Notificações neste navegador' })).not.toBeInTheDocument()
         })
     })
+    describe('lembrete do cronômetro (F12-13, F12-16)', () => {
+        afterEach(() => localStorage.clear())
+
+        it('vem desligado e guarda o intervalo escolhido neste navegador', async () => {
+            app(['tarefa.ver', 'apontamento.criar'])
+            await abrir('/conta')
+            const usuario = userEvent.setup()
+            const campo = await screen.findByRole('combobox', { name: 'Lembrete do cronômetro' })
+            expect(campo).toHaveAttribute('placeholder', 'Desligado')
+            expect(campo).toHaveValue('')
+            await usuario.click(campo)
+            await usuario.click(await screen.findByRole('option', { name: 'Depois de 30 min sem cronômetro' }))
+            expect(await screen.findByText('Lembrete a cada 30 min sem cronômetro.')).toBeInTheDocument()
+            expect(
+                [...Array(localStorage.length).keys()].map((i) => localStorage.getItem(localStorage.key(i)!)),
+            ).toContain('30')
+        })
+
+        it('sem apontamento.criar, não aparece', async () => {
+            app(['tarefa.ver'])
+            await abrir('/conta')
+            await screen.findByRole('heading', { name: 'E-mails' })
+            expect(screen.queryByRole('combobox', { name: 'Lembrete do cronômetro' })).not.toBeInTheDocument()
+        })
+    })
 })

@@ -12,8 +12,15 @@ import {
     type EstadoNotificacoes,
 } from '@/shared/notificacoes/navegador'
 import type { Perfil } from '@/shared/sessao/perfil'
+import {
+    definirLembrete,
+    intervaloLembrete,
+    INTERVALOS_LEMBRETE,
+    type IntervaloLembrete,
+} from '@/shared/cronometro/lembrete'
 import { Alerta } from '@/shared/ui/Alerta'
 import { Botao } from '@/shared/ui/Botao'
+import { CampoSelecao } from '@/shared/ui/CampoSelecao'
 import { Confirmacao } from '@/shared/ui/Confirmacao'
 import { Marcador } from '@/shared/ui/Marcador'
 import { Pagina } from '@/shared/ui/Pagina'
@@ -49,7 +56,10 @@ export function TelaConta({ perfil }: { perfil: Perfil }) {
         <Pagina ajuda="conta" titulo="Minha conta" contexto={`${perfil.nome} · ${perfil.email}`}>
             <div className="flex max-w-2xl flex-col gap-10">
                 <Emails />
-                <NotificacoesNavegador escopo={escopoNotificacoes(perfil)} />
+                <NotificacoesNavegador
+                    escopo={escopoNotificacoes(perfil)}
+                    podeCronometrar={pode(perfil, 'apontamento.criar')}
+                />
                 {pode(perfil, ...LEITURA_AGENDA) && <Agenda fuso={perfil.tenant.fusoHorario} />}
             </div>
         </Pagina>
@@ -60,7 +70,7 @@ export function TelaConta({ perfil }: { perfil: Perfil }) {
  * Notificação do sistema pelo navegador (F12-20, F12-21, F12-25): por navegador, com o Acordu aberto. Sem suporte, a
  * seção não aparece.
  */
-function NotificacoesNavegador({ escopo }: { escopo: string }) {
+function NotificacoesNavegador({ escopo, podeCronometrar }: { escopo: string; podeCronometrar: boolean }) {
     const [estado, setEstado] = useState<EstadoNotificacoes>(() => estadoNotificacoes(escopo))
     const pedindo = useRef(false)
     // Liberou no cadeado e voltou (F12-21): relê ao voltar o foco ou a aba ficar visível.
@@ -73,54 +83,82 @@ function NotificacoesNavegador({ escopo }: { escopo: string }) {
             document.removeEventListener('visibilitychange', reler)
         }
     }, [escopo])
-    if (estado === 'sem-suporte') return null
+    // Sem a API de notificação, o lembrete continua valendo (aviso no app): a seção some só sem os dois.
+    if (estado === 'sem-suporte' && !podeCronometrar) return null
     return (
         <section aria-labelledby="conta-navegador" className="flex flex-col gap-3">
             <h2 id="conta-navegador" className="font-titulo text-2xl font-semibold tracking-tight">
                 Neste navegador
             </h2>
-            <p className="text-sm text-suave">
-                Os avisos do sino aparecem também como notificação do sistema, enquanto o Acordu estiver aberto, mesmo
-                minimizado. Vale só para este navegador.
-            </p>
-            <Marcador
-                valor={estado === 'ligada'}
-                isDisabled={estado === 'negada'}
-                aoMudar={async (ligar) => {
-                    if (!ligar) {
-                        desligarNotificacoes(escopo)
-                        setEstado('desligada')
-                        avisar('Notificações deste navegador desligadas.')
-                        return
-                    }
-                    // Sem desabilitar durante o pedido: o foco fica no marcador; um segundo clique só é ignorado.
-                    if (pedindo.current) return
-                    pedindo.current = true
-                    try {
-                        const novo = await ligarNotificacoes(escopo)
-                        setEstado(novo)
-                        avisar(
-                            novo === 'ligada'
-                                ? 'Notificações deste navegador ligadas.'
-                                : novo === 'negada'
-                                  ? 'O navegador bloqueou as notificações. Veja abaixo como liberar.'
-                                  : 'As notificações continuam desligadas: o navegador não deu a permissão.',
-                        )
-                    } finally {
-                        pedindo.current = false
-                    }
-                }}
-                {...(estado === 'negada' ? { descritoPor: 'conta-navegador-negada' } : {})}
-            >
-                Notificações neste navegador
-            </Marcador>
-            {estado === 'negada' && (
-                <p id="conta-navegador-negada" className="text-xs text-suave">
-                    O navegador bloqueou as notificações do Acordu. Para liberar, clique no cadeado ao lado do endereço,
-                    em Notificações escolha Permitir, e volte aqui.
-                </p>
+            {estado !== 'sem-suporte' && (
+                <>
+                    <p className="text-sm text-suave">
+                        Os avisos do sino aparecem também como notificação do sistema, enquanto o Acordu estiver aberto,
+                        mesmo minimizado. Vale só para este navegador.
+                    </p>
+                    <Marcador
+                        valor={estado === 'ligada'}
+                        isDisabled={estado === 'negada'}
+                        aoMudar={async (ligar) => {
+                            if (!ligar) {
+                                desligarNotificacoes(escopo)
+                                setEstado('desligada')
+                                avisar('Notificações deste navegador desligadas.')
+                                return
+                            }
+                            // Sem desabilitar durante o pedido: o foco fica no marcador; um segundo clique só é ignorado.
+                            if (pedindo.current) return
+                            pedindo.current = true
+                            try {
+                                const novo = await ligarNotificacoes(escopo)
+                                setEstado(novo)
+                                avisar(
+                                    novo === 'ligada'
+                                        ? 'Notificações deste navegador ligadas.'
+                                        : novo === 'negada'
+                                          ? 'O navegador bloqueou as notificações. Veja abaixo como liberar.'
+                                          : 'As notificações continuam desligadas: o navegador não deu a permissão.',
+                                )
+                            } finally {
+                                pedindo.current = false
+                            }
+                        }}
+                        {...(estado === 'negada' ? { descritoPor: 'conta-navegador-negada' } : {})}
+                    >
+                        Notificações neste navegador
+                    </Marcador>
+                    {estado === 'negada' && (
+                        <p id="conta-navegador-negada" className="text-xs text-suave">
+                            O navegador bloqueou as notificações do Acordu. Para liberar, clique no cadeado ao lado do
+                            endereço, em Notificações escolha Permitir, e volte aqui.
+                        </p>
+                    )}
+                </>
             )}
+            {podeCronometrar && <LembreteCronometro escopo={escopo} />}
         </section>
+    )
+}
+
+/** Lembrete no expediente (F12-13 a F12-16): por navegador e por pessoa, desligado por padrão. */
+function LembreteCronometro({ escopo }: { escopo: string }) {
+    const [intervalo, setIntervalo] = useState<IntervaloLembrete | null>(() => intervaloLembrete(escopo))
+    return (
+        <CampoSelecao
+            rotulo="Lembrete do cronômetro"
+            descricao="No expediente da empresa, com o Acordu aberto, avisa quando nenhum cronômetro está rodando há esse tempo."
+            opcoes={INTERVALOS_LEMBRETE.map((m) => ({ id: String(m), rotulo: `Depois de ${m} min sem cronômetro` }))}
+            valor={intervalo === null ? null : String(intervalo)}
+            aoMudar={(v) => {
+                const novo = v === null ? null : (Number(v) as IntervaloLembrete)
+                definirLembrete(escopo, novo)
+                setIntervalo(novo)
+                avisar(
+                    novo === null ? 'Lembrete do cronômetro desligado.' : `Lembrete a cada ${novo} min sem cronômetro.`,
+                )
+            }}
+            vazio="Desligado"
+        />
     )
 }
 
