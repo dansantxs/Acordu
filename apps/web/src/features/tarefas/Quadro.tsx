@@ -1,4 +1,3 @@
-import { useSugestaoResolucao } from '@/features/solicitacoes/sugestaoResolucao'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import {
     Button,
@@ -12,6 +11,7 @@ import {
     useDragAndDrop,
 } from 'react-aria-components'
 import { useNavigate } from '@tanstack/react-router'
+import { useSugestaoResolucao } from '@/features/solicitacoes/sugestaoResolucao'
 import { mensagemDeErro } from '@/shared/api/mensagens'
 import { avisar, avisarErro } from '@/shared/avisos/avisos'
 import { intervaloDePolling } from '@/shared/config/ambiente'

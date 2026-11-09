@@ -17,8 +17,19 @@ type TarefaAberta = { id: string; titulo: string }
  * Tarefas abertas na hora de resolver ou cancelar (F11-11, F11-14, F11-20): com `tarefa.editar`, a ação conjunta vem
  * marcada; sem, a lista fica só como aviso. Devolve o pedido para a API (as tarefas que a pessoa viu, F11-31).
  */
-function useTarefasAbertas(tarefas: TarefaAberta[], podeMexer: boolean, acao: 'CONCLUIR' | 'CANCELAR') {
+function useTarefasAbertas(
+    tarefas: TarefaAberta[],
+    podeMexer: boolean,
+    acao: 'CONCLUIR' | 'CANCELAR',
+    aberta: boolean,
+) {
     const [junto, setJunto] = useState(true)
+    // A janela fica montada fechada: cada abertura volta ao padrão (marcado), mesmo que a anterior tenha desmarcado.
+    const [abertaAntes, setAbertaAntes] = useState(aberta)
+    if (aberta !== abertaAntes) {
+        setAbertaAntes(aberta)
+        if (aberta) setJunto(true)
+    }
     const pedido: TarefasAbertas | undefined =
         tarefas.length > 0 && podeMexer ? { acao: junto ? acao : 'MANTER', ids: tarefas.map((t) => t.id) } : undefined
     const quadro =
@@ -137,7 +148,7 @@ export function JanelaResolucao({
     podeMexerTarefas?: boolean
 }) {
     const mensagem = erro ? mensagemDeErro(erro) : null
-    const tarefas = useTarefasAbertas(tarefasAbertas, podeMexerTarefas, 'CONCLUIR')
+    const tarefas = useTarefasAbertas(tarefasAbertas, podeMexerTarefas, 'CONCLUIR', aberta)
     return (
         <Janela titulo="Resolver solicitação" aberta={aberta} aoMudar={aoMudar} ocupada={ocupada} larga>
             <Form
@@ -224,7 +235,12 @@ export function JanelaMotivo({
     acaoTarefas?: 'CANCELAR'
 }) {
     const mensagem = erro ? mensagemDeErro(erro) : null
-    const tarefas = useTarefasAbertas(acaoTarefas ? tarefasAbertas : [], podeMexerTarefas, acaoTarefas ?? 'CANCELAR')
+    const tarefas = useTarefasAbertas(
+        acaoTarefas ? tarefasAbertas : [],
+        podeMexerTarefas,
+        acaoTarefas ?? 'CANCELAR',
+        aberta,
+    )
     return (
         <Janela titulo={titulo} aberta={aberta} aoMudar={aoMudar} ocupada={ocupada}>
             <Form

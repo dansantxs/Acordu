@@ -538,6 +538,12 @@ function AcoesStatus({
     const [janela, setJanela] = useState<'resolucao' | 'reabertura' | 'cancelamento' | null>(() =>
         abrirResolucao && TRANSICOES[s.status].includes('resolucao') ? 'resolucao' : null,
     )
+    const consultas = useQueryClient()
+    const navegar = useNavigate()
+    // O `?resolver=true` já fez seu papel: sai do endereço para recarregar ou voltar não reabrir a janela.
+    useEffect(() => {
+        if (abrirResolucao) void navegar({ to: '/solicitacoes/$id', params: { id: s.id }, search: {}, replace: true })
+    }, [abrirResolucao, navegar, s.id])
     const tarefasAbertas = s.tarefas.filter((t) => t.status === 'A_FAZER' || t.status === 'FAZENDO')
     const transicao = useMutation({
         mutationFn: (t: Transicao) => transicionar(s, t),
@@ -545,6 +551,11 @@ function AcoesStatus({
             aoMudar(nova)
             setJanela(null)
             avisar(`Solicitação #${nova.numero}: ${STATUS[nova.status].toLowerCase()}.`)
+        },
+        // Lista de tarefas ou versão velha (F11-31): a janela fica aberta com a mensagem e recebe a lista de agora.
+        onError: (erro) => {
+            if (erro instanceof ErroApi && erro.status === 409)
+                void consultas.invalidateQueries({ queryKey: ['solicitacoes', 'detalhe', s.id] })
         },
     })
     const acoes = TRANSICOES[s.status]

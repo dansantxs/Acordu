@@ -465,10 +465,95 @@ describe('detalhe da solicitação', () => {
             )
         })
 
-        it('com ?resolver=true, abre direto a janela de resolução (F11-15)', async () => {
+        it('com ?resolver=true, abre direto a janela de resolução e limpa o endereço (F11-15)', async () => {
             comResolucao(EDITAR)
-            await abrir(`/solicitacoes/${ID}?resolver=true`)
+            const roteador = await abrir(`/solicitacoes/${ID}?resolver=true`)
             expect(await screen.findByRole('dialog', { name: 'Resolver solicitação' })).toBeInTheDocument()
+            await vi.waitFor(() => expect(roteador.state.location.search).not.toHaveProperty('resolver'))
+            expect(screen.getByRole('dialog', { name: 'Resolver solicitação' })).toBeInTheDocument()
+        })
+
+        it('desmarcar, fechar e reabrir volta ao padrão marcado', async () => {
+            comResolucao([...EDITAR, 'tarefa.editar'])
+            await abrir(`/solicitacoes/${ID}`)
+            const usuario = userEvent.setup()
+            const resolver = () =>
+                usuario.click(
+                    within(screen.getByRole('complementary', { name: 'Forno não liga' })).getByRole('button', {
+                        name: 'Resolver',
+                    }),
+                )
+            await painel()
+            await resolver()
+            let janela = await screen.findByRole('dialog', { name: 'Resolver solicitação' })
+            await usuario.click(within(janela).getByRole('checkbox', { name: 'Concluir as tarefas abertas junto' }))
+            await usuario.keyboard('{Escape}')
+            await vi.waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument())
+            await resolver()
+            janela = await screen.findByRole('dialog', { name: 'Resolver solicitação' })
+            expect(within(janela).getByRole('checkbox', { name: 'Concluir as tarefas abertas junto' })).toBeChecked()
+        })
+
+        it('cancelar sem tarefa.editar só avisa e manda sem tarefas (F11-20)', async () => {
+            const chamadas = comResolucao(EDITAR)
+            await abrir(`/solicitacoes/${ID}`)
+            const usuario = userEvent.setup()
+            await usuario.click(within(await painel()).getByRole('button', { name: 'Cancelar solicitação' }))
+            const janela = await screen.findByRole('dialog', { name: 'Cancelar a solicitação #1042?' })
+            expect(within(janela).getByText(/mudar tarefas pede outra permissão/)).toBeInTheDocument()
+            expect(within(janela).queryByRole('checkbox')).not.toBeInTheDocument()
+            await usuario.type(within(janela).getByLabelText('Motivo'), 'Duplicada')
+            await usuario.click(within(janela).getByRole('button', { name: 'Cancelar solicitação' }))
+            await vi.waitFor(() =>
+                expect(chamadas.find((c) => c.caminho.endsWith('/cancelamento'))?.corpo).toEqual({
+                    motivo: 'Duplicada',
+                    tarefas: null,
+                }),
+            )
+        })
+
+        it('lista mudou no meio: mostra o 409 e a janela recebe a lista de agora (F11-31)', async () => {
+            let tarefas = [{ id: 't1', titulo: 'Trocar resistência', status: 'FAZENDO' }]
+            let tentativas = 0
+            const chamadas = app([...EDITAR, 'tarefa.editar'], {
+                [`GET /api/v1/solicitacoes/${ID}`]: () => json(solicitacao({ tarefas })),
+                [`POST /api/v1/solicitacoes/${ID}/resolucao`]: () => {
+                    tentativas++
+                    if (tentativas === 1) {
+                        // Outra pessoa abriu uma tarefa enquanto a janela estava aberta.
+                        tarefas = [...tarefas, { id: 't2', titulo: 'Testar o forno', status: 'A_FAZER' }]
+                        return json(
+                            {
+                                status: 409,
+                                type: 'https://acordu.app.br/erros/conflito-versao',
+                                title: 'Versão divergente',
+                                detail: 'A lista de tarefas abertas mudou. Confira e confirme de novo.',
+                            },
+                            409,
+                        )
+                    }
+                    return json(solicitacao({ versao: '9', status: 'RESOLVIDA', resolvidaEm: daquiA(0) }))
+                },
+            })
+            await abrir(`/solicitacoes/${ID}`)
+            const usuario = userEvent.setup()
+            await usuario.click(within(await painel()).getByRole('button', { name: 'Resolver' }))
+            const janela = await screen.findByRole('dialog', { name: 'Resolver solicitação' })
+            await usuario.type(within(janela).getByLabelText('Solução'), 'Feito.')
+            await usuario.click(within(janela).getByRole('button', { name: 'Resolver' }))
+
+            expect(
+                await within(janela).findByText('A lista de tarefas abertas mudou. Confira e confirme de novo.'),
+            ).toBeInTheDocument()
+            expect(await within(janela).findByText('Testar o forno')).toBeInTheDocument()
+            expect(within(janela).getByText('2 tarefas ainda estão abertas:')).toBeInTheDocument()
+
+            await usuario.click(within(janela).getByRole('button', { name: 'Resolver' }))
+            await vi.waitFor(() =>
+                expect(chamadas.filter((c) => c.caminho.endsWith('/resolucao')).at(-1)?.corpo).toMatchObject({
+                    tarefas: { acao: 'CONCLUIR', ids: ['t1', 't2'] },
+                }),
+            )
         })
     })
 })

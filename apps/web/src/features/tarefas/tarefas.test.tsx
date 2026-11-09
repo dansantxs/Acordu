@@ -160,4 +160,30 @@ describe('tarefas', () => {
             ]),
         )
     })
+    it('concluir no quadro a última tarefa da solicitação sugere resolver (F11-15)', async () => {
+        const arte = tarefa({ titulo: 'Arte', status: 'FAZENDO' })
+        comPerfil(['tarefa.ver', 'tarefa.editar', 'solicitacao.ver', 'solicitacao.editar'], {
+            'GET /api/v1/tarefas': () => pagina([arte]),
+            'GET /api/v1/equipe': () => json([]),
+            [`POST /api/v1/tarefas/${arte.id}/conclusao`]: () =>
+                json({ ...arte, status: 'CONCLUIDA', versao: '2', checklist: [], apontadoMinutos: 0 }),
+            'GET /api/v1/solicitacoes/s1': () =>
+                json({
+                    id: 's1',
+                    numero: 1042,
+                    status: 'EM_ANDAMENTO',
+                    tarefas: [{ id: arte.id, status: 'CONCLUIDA' }],
+                }),
+        })
+        const roteador = await abrir('/tarefas?modo=quadro')
+        const usuario = userEvent.setup()
+
+        await usuario.click(await screen.findByRole('button', { name: 'Mover Arte' }))
+        await usuario.click(await screen.findByRole('menuitem', { name: 'Mover para concluída' }))
+        expect(
+            await screen.findByText('Era a última tarefa da solicitação #1042. Resolver a solicitação agora?'),
+        ).toBeInTheDocument()
+        await usuario.click(screen.getByRole('button', { name: 'Resolver' }))
+        await vi.waitFor(() => expect(roteador.state.location.pathname).toBe('/solicitacoes/s1'))
+    })
 })
