@@ -12,6 +12,8 @@ public sealed class ApontamentosTests(ApiFixture api)
 {
     private const string Base = "https://acordu.app.br/erros/";
 
+    private static readonly TimeZoneInfo SaoPaulo = TimeZoneInfo.FindSystemTimeZoneById("America/Sao_Paulo");
+
     private static object Apontamento(Guid tarefa, string data = "2026-10-05", int minutos = 90) => new
     {
         tarefaId = tarefa, data, duracaoMinutos = minutos, descricao = "Ajuste de layout e exportação",
@@ -199,13 +201,22 @@ public sealed class ApontamentosTests(ApiFixture api)
     {
         var equipe = await Equipe.CriarAsync(api);
         var tarefa = await TarefaAsync(equipe);
-        await equipe.EsperarAsync(HttpStatusCode.Created, HttpMethod.Post, "/api/v1/cronometro/inicio", new { tarefaId = tarefa });
-        api.Relogio.Agora = api.Relogio.Agora.AddMinutes(200);
-
-        var apontamento = await equipe.EsperarAsync(HttpStatusCode.Created, HttpMethod.Post, "/api/v1/cronometro/parada", new
+        var antes = api.Relogio.Agora;
+        JsonElement apontamento;
+        try
         {
-            duracaoMinutos = 45,
-        });
+            await equipe.EsperarAsync(HttpStatusCode.Created, HttpMethod.Post, "/api/v1/cronometro/inicio", new { tarefaId = tarefa });
+            // Abaixo dos 60 min do token de acesso, que vale pelo mesmo relógio.
+            api.Relogio.Agora = antes.AddMinutes(40);
+            apontamento = await equipe.EsperarAsync(HttpStatusCode.Created, HttpMethod.Post, "/api/v1/cronometro/parada", new
+            {
+                duracaoMinutos = 45,
+            });
+        }
+        finally
+        {
+            api.Relogio.Agora = antes;
+        }
 
         apontamento.GetProperty("duracaoMinutos").GetInt32().Should().Be(45);
     }
@@ -232,19 +243,17 @@ public sealed class ApontamentosTests(ApiFixture api)
     [Fact]
     public async Task Cronometro_PararNoDiaSeguinte_ApontaNoDiaDoInicio() // F12-07
     {
-        var equipe = await Equipe.CriarAsync(api);
-        var tarefa = await TarefaAsync(equipe);
-        // Leva o relógio às 23:30 do dia seguinte no fuso da empresa e devolve no fim (os testes da coleção são em série).
+        // 23:30 do dia seguinte no fuso da empresa; a equipe nasce depois de mexer no relógio (o token vale 60 min por ele).
         var antes = api.Relogio.Agora;
-        var fuso = TimeZoneInfo.FindSystemTimeZoneById("America/Sao_Paulo");
-        var local = TimeZoneInfo.ConvertTime(antes, fuso);
-        var noite = new DateTimeOffset(local.Date.AddDays(1).AddHours(23).AddMinutes(30), local.Offset);
+        var noite = NoFuso(antes, diasDepois: 1, hora: 23, minuto: 30);
         JsonElement apontamento;
         try
         {
             api.Relogio.Agora = noite;
+            var equipe = await Equipe.CriarAsync(api);
+            var tarefa = await TarefaAsync(equipe);
             await equipe.EsperarAsync(HttpStatusCode.Created, HttpMethod.Post, "/api/v1/cronometro/inicio", new { tarefaId = tarefa });
-            api.Relogio.Agora = noite.AddHours(2);
+            api.Relogio.Agora = noite.AddMinutes(50);
             apontamento = await equipe.EsperarAsync(HttpStatusCode.Created, HttpMethod.Post, "/api/v1/cronometro/parada");
         }
         finally
@@ -252,8 +261,49 @@ public sealed class ApontamentosTests(ApiFixture api)
             api.Relogio.Agora = antes;
         }
 
-        apontamento.GetProperty("data").GetString().Should().Be(
-            DateOnly.FromDateTime(noite.DateTime).ToString("yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture));
-        apontamento.GetProperty("duracaoMinutos").GetInt32().Should().Be(120);
+        apontamento.GetProperty("data").GetString().Should().Be(Dia(noite));
+        apontamento.GetProperty("duracaoMinutos").GetInt32().Should().Be(50);
     }
+
+    [Fact]
+    public async Task Cronometro_PeriodoDoDiaDoInicioFechado_422EContinuaRodando() // F12-08
+    {
+        // Começou às 23:40 do último dia de um mês fechado e para às 00:20 do mês seguinte.
+        var antes = api.Relogio.Agora;
+        var local = TimeZoneInfo.ConvertTime(antes, SaoPaulo);
+        var primeiroDoMes = new DateTimeOffset(new DateTime(local.Year, local.Month, 1).AddMonths(2), local.Offset);
+        var inicio = primeiroDoMes.AddMinutes(-20);
+        var mesFechado = inicio.ToString("yyyy-MM", System.Globalization.CultureInfo.InvariantCulture);
+        try
+        {
+            api.Relogio.Agora = primeiroDoMes.AddMinutes(20);
+            var equipe = await Equipe.CriarAsync(api);
+            var cliente = await ClienteAsync(equipe);
+            var contrato = await ContratoAsync(equipe, cliente);
+            var tarefa = await TarefaAsync(equipe, await SolicitacaoAsync(equipe, cliente));
+            await equipe.EsperarAsync(HttpStatusCode.NoContent, HttpMethod.Post, $"/api/v1/contratos/{contrato}/periodos/{mesFechado}/fechamento");
+            await equipe.EsperarAsync(HttpStatusCode.Created, HttpMethod.Post, "/api/v1/cronometro/inicio", new
+            {
+                tarefaId = tarefa, iniciadoEm = inicio,
+            });
+
+            var problema = await equipe.EsperarAsync(HttpStatusCode.UnprocessableEntity, HttpMethod.Post, "/api/v1/cronometro/parada");
+
+            problema.GetProperty("type").GetString().Should().Be(Base + "periodo-fechado");
+            await equipe.EsperarAsync(HttpStatusCode.OK, HttpMethod.Get, "/api/v1/cronometro");
+        }
+        finally
+        {
+            api.Relogio.Agora = antes;
+        }
+    }
+
+    private static DateTimeOffset NoFuso(DateTimeOffset referencia, int diasDepois, int hora, int minuto)
+    {
+        var local = TimeZoneInfo.ConvertTime(referencia, SaoPaulo);
+        return new DateTimeOffset(local.Date.AddDays(diasDepois).AddHours(hora).AddMinutes(minuto), local.Offset);
+    }
+
+    private static string Dia(DateTimeOffset instanteLocal) =>
+        DateOnly.FromDateTime(instanteLocal.DateTime).ToString("yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture);
 }
