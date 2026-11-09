@@ -434,7 +434,11 @@ Decidido no marco 14 (14/10):
 |---|---|---|---|
 | GET/POST | `/projetos` | Lista (`?clienteId=&status=`) / cria. | `projeto.ver` / `projeto.gerenciar` |
 | GET/PATCH | `/projetos/{id}` | Detalha (com progresso) / edita. | `projeto.ver` / `projeto.gerenciar` |
-| POST | `/projetos/{id}/conclusao` · `/cancelamento` | Transições. | `projeto.gerenciar` |
+| POST | `/projetos/{id}/conclusao` · `/cancelamento` | Transições; corpo opcional com as tarefas abertas (F11e). | `projeto.gerenciar` |
+
+F11e (spec do F11):
+- `POST /projetos` aceita `tarefaIds` (opcional): as tarefas passam para o projeto novo na mesma transação, com as regras de `PUT /tarefas/{id}/projeto` (§8.1: mesmo cliente, `422 projeto-de-outro-cliente`; tarefa CANCELADA → `422 transicao-invalida`; tarefa que não existe → `400` em `errors.tarefaIds`) e `tarefa.editar` (`403`). É o "Criar projeto" da solicitação (F11-21, F11-22): as tarefas continuam ligadas à solicitação. Nada é criado se uma falhar.
+- `POST /projetos/{id}/conclusao` e `/cancelamento` aceitam o corpo opcional `{ "tarefas": { "acao": "MANTER" | "CONCLUIR" | "CANCELAR", "ids": [...] } }`, como a resolução e o cancelamento da solicitação (§7, F11-27): na conclusão vale `CONCLUIR`, no cancelamento `CANCELAR` (a outra → `400` em `errors["tarefas.acao"]`); exige `tarefa.editar`; `ids` diferentes das abertas de agora → `409 conflito-versao` e nada muda. Sem corpo, as tarefas ficam como estão.
 
 `inicio` (opcional, decidido em 14/10, marco 13) é o início planejado: com ele o projeto vira uma barra `inicio`–`prazo` na linha do tempo; sem ele aparece só no prazo. Não pode ser depois do prazo (`400` em `errors.inicio`). Está no corpo do `POST`/`PATCH`, na lista e no detalhe.
 

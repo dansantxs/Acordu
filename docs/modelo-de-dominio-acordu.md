@@ -406,6 +406,7 @@ Regras:
 - Transições: EM_ANDAMENTO → CONCLUIDO / CANCELADO (finais). Progresso (tarefas concluídas, horas × estimativa) é read model.
 - `Inicio` (marco 13) opcional; com `Prazo`, `Inicio ≤ Prazo`.
 - `Editar` e `AlterarContrato` só em EM_ANDAMENTO. Trocar o contrato não reescreve apontamentos já feitos (contrato congelado no apontamento).
+- Ação conjunta (F11e, convenções §4): criar o projeto levando tarefas e concluir/cancelar com as tarefas abertas são casos de uso da Application (`ComandosProjeto` com `TarefasAbertas`), numa transação; o projeto não mexe nas tarefas.
 
 ### 4.8 Apontamento
 - **Invariantes:**
