@@ -25,7 +25,7 @@ public sealed class MoverTarefaProjetoTests(ApiFixture api)
             .GetProperty("progresso").GetProperty("apontadoMinutos").GetInt32();
 
     [Fact]
-    public async Task Mover_DeSolicitacaoParaProjetoTrocarETirar() // F11-23
+    public async Task Mover_VincularTrocarETirar_MantemASolicitacao() // F11-23
     {
         var equipe = await Equipe.CriarAsync(api);
         var cliente = await ClienteAsync(equipe);
@@ -142,11 +142,13 @@ public sealed class MoverTarefaProjetoTests(ApiFixture api)
         (await ApontadoAsync(equipe, site)).Should().Be(0);
         (await ApontadoAsync(equipe, campanha)).Should().Be(90);
 
+        // O feed mostra o nome de agora do projeto, não o da hora da mudança.
+        await equipe.EsperarAsync(HttpStatusCode.OK, HttpMethod.Patch, $"/api/v1/projetos/{campanha}", new { nome = "Campanha de verão" });
         var feed = await equipe.EsperarAsync(HttpStatusCode.OK, HttpMethod.Get, "/api/v1/atividades");
         var linha = feed.GetProperty("itens").EnumerateArray().First(i => i.GetProperty("tipo").GetString() == "TAREFA_PROJETO");
         var detalhe = linha.GetProperty("detalhe");
         detalhe.GetProperty("projetoDe").GetProperty("nome").GetString().Should().Be("Site novo");
-        detalhe.GetProperty("projetoPara").GetProperty("nome").GetString().Should().Be("Campanha");
+        detalhe.GetProperty("projetoPara").GetProperty("nome").GetString().Should().Be("Campanha de verão");
         detalhe.GetProperty("statusPara").ValueKind.Should().Be(JsonValueKind.Null);
         linha.GetProperty("alvo").GetProperty("id").GetGuid().Should().Be(tarefa);
     }
