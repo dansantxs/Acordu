@@ -467,7 +467,7 @@ Decidido na implementação (6c3):
 | DELETE | `/apontamentos/{id}` | Exclui (idem). | `apontamento.criar` |
 | GET | `/cronometro` | Cronômetro ativo do usuário (ou `204`). | `apontamento.criar` |
 | POST | `/cronometro/inicio` | Inicia numa tarefa (`{ "tarefaId": "...", "iniciadoEm": null }`). | `apontamento.criar` |
-| POST | `/cronometro/parada` | Para e cria o apontamento (corpo opcional: descrição, faturável). | `apontamento.criar` |
+| POST | `/cronometro/parada` | Para e cria o apontamento (corpo opcional: descrição, descrição externa, faturável, visível, `duracaoMinutos`). | `apontamento.criar` |
 | DELETE | `/cronometro` | Descarta sem apontar. | `apontamento.criar` |
 
 > **Contrato do apontamento (marco 12):** o da origem da tarefa (solicitação, projeto ou recorrência), só se a data cai na vigência dele e ele não está SUSPENSO; senão `contratoId: null` (avulso). Fica congelado no registro.

@@ -31,7 +31,7 @@ Hoje: `POST /cronometro/inicio` começa no instante da chamada, `POST /cronometr
 | F12-05 | idem | para com outra duração (1 min a 24 h) | o apontamento sai com a duração informada, e não com o decorrido | `ApontamentosTests › Cronometro_PararComOutraDuracao_ApontaAEscolhida`; `cronometro.test › parar com outra duração…` |
 | F12-06 | idem | para com duração 0 ou acima de 24 h | `400` em `errors.duracaoMinutos`, e o cronômetro continua rodando | `ApontamentosTests › Cronometro_PararComDuracaoInvalida_400EContinuaRodando`; `cronometro.test › … inválida não manda` |
 | F12-07 | cronômetro iniciado ontem às 17:30 no fuso da empresa | para hoje | o apontamento sai na data do início (ontem), não na de hoje [D1] | `ApontamentosTests › Cronometro_PararNoDiaSeguinte_ApontaNoDiaDoInicio` |
-| F12-08 | período do contrato fechado na data do início | para | `422 periodo-fechado`, e o cronômetro continua para a pessoa ajustar ou descartar (como hoje) | o caminho de hoje (`PeriodoFechadoException` antes de remover o cronômetro); a data passou a ser a do início |
+| F12-08 | período do contrato fechado na data do início | para | `422 periodo-fechado`, e o cronômetro continua para a pessoa ajustar ou descartar (como hoje) | `ApontamentosTests › Cronometro_PeriodoDoDiaDoInicioFechado_422EContinuaRodando` |
 
 ### Iniciar junto com a tarefa
 
@@ -146,7 +146,7 @@ Hoje: `POST /cronometro/inicio` começa no instante da chamada, `POST /cronometr
   - `POST /cronometro/parada` com `duracaoMinutos` opcional e a data do apontamento pelo início;
   - `GET /cronometro` com `esquecido` (bool) e `sugestaoMinutos`;
   - a categoria `CRONOMETRO` em §12b.
-- **Modelo de domínio:** `Cronometro.Iniciar` aceita um início anterior (validado pela Application, que tem o relógio), `Parar` aceita a duração escolhida, e entra `MarcarAvisoEsquecido`.
+- **Modelo de domínio:** `Cronometro.Iniciar` aceita um início anterior (validado pela Application, que tem o relógio), a Application troca a duração do `Parar` pela escolhida, e entra `MarcarAvisoEsquecido`.
 - **Segurança:** a permissão de notificação e o lembrete ficam no navegador; o service worker não guarda resposta da API (isolamento entre tenants e clientes no aparelho compartilhado).
 - **Deploy:** o tick ganha o passo `cronometros-esquecidos` (§5); `_headers` com `Cache-Control: no-cache` para `sw.js` e `manifest.webmanifest`.
 - **Convenções:** notificação do navegador só com a aba aberta, uma por aviso e uma aba só; o service worker não guarda resposta da API.
@@ -172,5 +172,5 @@ O F12a, o F12b e o F12f são independentes. O F12d e o F12e usam a notificação
 
 - 09/11 — rascunho a partir do pedido do Daniel de 06/11 (cronômetro, pop-up do Windows com a aba minimizada, "baixar o sistema como o YouTube permite"; "pode incluir").
 - 09/11 — o Daniel aprovou todas as recomendações (D1 a D8) e pediu o PR da spec.
-- 09/11 — F12a: o domínio não mudou (`Cronometro.Iniciar` já recebia o instante; a Application valida o limite com o relógio). "Começou às" é hora do aparelho: hoje, ou ontem se ainda não chegou. A Duração só vai à API se a pessoa mudou o texto.
+- 09/11 — F12a: o domínio não mudou (`Cronometro.Iniciar` já recebia o instante; a Application valida o limite com o relógio). "Começou às" é hora no fuso da empresa (convenções: instantes no fuso do tenant), hoje, ou ontem se ainda não chegou. A Duração vem congelada ao abrir a janela e só vai à API se a pessoa mudou o texto.
 - A spec é viva: mudou o comportamento, a spec muda no mesmo PR.
