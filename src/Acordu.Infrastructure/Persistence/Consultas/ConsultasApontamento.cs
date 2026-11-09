@@ -81,6 +81,14 @@ public sealed class ConsultasApontamento : IConsultasApontamento
         return new CronometroDto(linha.Id, new Referencia(linha.TarefaId, linha.Titulo ?? string.Empty), linha.IniciadoEm, Math.Max(decorrido, 0));
     }
 
+    public async Task<IReadOnlyList<CronometroAtivo>> CronometrosAtivosAsync(CancellationToken cancellationToken = default) =>
+        await (from c in _db.Cronometros.AsNoTracking()
+               join t in _db.Tarefas on c.TarefaId equals t.Id into tarefas
+               from t in tarefas.DefaultIfEmpty()
+               orderby c.IniciadoEm
+               select new CronometroAtivo(c.Id, c.UsuarioId, c.TarefaId, t == null ? string.Empty : t.Titulo, c.IniciadoEm))
+            .ToListAsync(cancellationToken);
+
     private async Task<List<ApontamentoDto>> MontarAsync(
         IReadOnlyList<(Apontamento Apontamento, uint Versao)> linhas, CancellationToken cancellationToken)
     {

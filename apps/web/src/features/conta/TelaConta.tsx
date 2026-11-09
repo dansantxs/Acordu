@@ -45,6 +45,10 @@ const CATEGORIAS: Record<CategoriaAviso, { rotulo: string; descricao: string }> 
     CONSUMO: { rotulo: 'Consumo de contrato', descricao: 'Quando um contrato passa de 80% e de 100% das horas.' },
     MENCAO: { rotulo: 'Menções', descricao: 'Quando alguém cita você numa nota ou comentário.' },
     SEGUIDAS: { rotulo: 'O que você segue', descricao: 'Novas mensagens e mudanças de status no que você acompanha.' },
+    CRONOMETRO: {
+        rotulo: 'Cronômetro esquecido',
+        descricao: 'Quando o seu cronômetro fica ligado depois do expediente ou por mais de 10 horas.',
+    },
 }
 
 /** Permissões que dão acesso à agenda e, por isso, ao link ICS (contrato §11b e §11d). */

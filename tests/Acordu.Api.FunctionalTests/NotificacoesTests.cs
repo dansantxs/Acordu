@@ -71,7 +71,7 @@ public sealed class NotificacoesTests(ApiFixture api)
         }, membro);
         await Cenarios.SolicitacaoAsync(equipe, cliente);
 
-        padrao.GetProperty("categorias").GetArrayLength().Should().Be(6);
+        padrao.GetProperty("categorias").GetArrayLength().Should().Be(7, "seis categorias e a CRONOMETRO do F12e");
         padrao.GetProperty("categorias").EnumerateArray()
             .Where(c => c.GetProperty("categoria").GetString() != "SEGUIDAS")
             .Should().OnlyContain(c => c.GetProperty("email").GetBoolean());

@@ -220,4 +220,35 @@ describe('cronômetro', () => {
             }),
         )
     })
+    it('esquecido: o indicador pergunta se ficou ligado e a janela sugere até o fim do expediente (F12-17)', async () => {
+        const chamadas = app({
+            'GET /api/v1/cronometro': () =>
+                json({ ...cronometro(undefined, 11 * 60), esquecido: true, sugestaoMinutos: 240 }),
+            'POST /api/v1/cronometro/parada': () =>
+                json({ id: 'a1', duracaoMinutos: 240, tarefa: { id: ID, nome: 'Trocar resistência' } }, 201),
+        })
+        await abrir('/tarefas')
+        const usuario = userEvent.setup()
+        const aside = await indicador()
+        expect(within(aside).getByText('Ficou ligado?')).toBeInTheDocument()
+        await usuario.click(within(aside).getByRole('button', { name: 'Parar e ajustar' }))
+        const janela = await screen.findByRole('dialog', { name: 'Parar cronômetro' })
+        expect(within(janela).getByLabelText('Duração')).toHaveValue('4h')
+        expect(within(janela).getByText(/Parece que ficou ligado/)).toBeInTheDocument()
+        await usuario.click(within(janela).getByRole('button', { name: 'Parar e apontar' }))
+        // A sugerida é diferente do decorrido: vai à API mesmo sem a pessoa mexer.
+        await vi.waitFor(() =>
+            expect(chamadas.find((c) => c.caminho === '/api/v1/cronometro/parada')?.corpo).toMatchObject({
+                duracaoMinutos: 240,
+            }),
+        )
+    })
+
+    it('não esquecido: indicador e janela como sempre', async () => {
+        app({ 'GET /api/v1/cronometro': () => json({ ...cronometro(), esquecido: false, sugestaoMinutos: 300 }) })
+        await abrir('/tarefas')
+        const aside = await indicador()
+        expect(within(aside).queryByText('Ficou ligado?')).not.toBeInTheDocument()
+        expect(within(aside).getByRole('button', { name: 'Parar' })).toBeInTheDocument()
+    })
 })

@@ -465,7 +465,7 @@ Decidido na implementação (6c3):
 | POST | `/apontamentos` | Registra. | `apontamento.criar` |
 | PATCH | `/apontamentos/{id}` | Edita (autor ou `apontamento.editar_todos`). | `apontamento.criar` |
 | DELETE | `/apontamentos/{id}` | Exclui (idem). | `apontamento.criar` |
-| GET | `/cronometro` | Cronômetro ativo do usuário (ou `204`). | `apontamento.criar` |
+| GET | `/cronometro` | Cronômetro ativo do usuário (ou `204`), com `esquecido` e `sugestaoMinutos` (F12e). | `apontamento.criar` |
 | POST | `/cronometro/inicio` | Inicia numa tarefa (`{ "tarefaId": "...", "iniciadoEm": null }`). | `apontamento.criar` |
 | POST | `/cronometro/parada` | Para e cria o apontamento (corpo opcional: descrição, descrição externa, faturável, visível, `duracaoMinutos`). | `apontamento.criar` |
 | DELETE | `/cronometro` | Descarta sem apontar. | `apontamento.criar` |
@@ -478,7 +478,7 @@ Decidido na implementação (6c3):
   "descricao": "Ajuste de layout e exportação", "descricaoExterna": "Arte refeita",
   "faturavel": true, "visivelCliente": true }
 ```
-`contratoId` não é enviado: é resolvido pela tarefa e congelado (ADR 0004). Origem do contrato: solicitação, senão projeto, senão recorrência da tarefa; tarefa avulsa → sem contrato (sem período fechado). Editar/excluir de outra pessoa sem `apontamento.editar_todos` → `403`. `POST /cronometro/parada` sem corpo usa o título da tarefa como descrição, `faturavel: true`, data do início no fuso do tenant; responde `201` com o apontamento. `GET /cronometro` traz `decorridoMinutos`. Data em período fechado → `422` (`tipo: .../periodo-fechado`). Iniciar cronômetro com outro ativo → `409`. Iniciar numa tarefa A_FAZER a passa a FAZENDO (F11-19). F12a: `iniciadoEm` opcional começa antes, até 12 h atrás e nunca no futuro (1 min de folga), senão `400` em `errors.iniciadoEm`; a parada aceita `duracaoMinutos` (1 a 1440, senão `400` em `errors.duracaoMinutos`, e o cronômetro continua), e o apontamento sai na data do início no fuso do tenant, não na de hoje.
+`contratoId` não é enviado: é resolvido pela tarefa e congelado (ADR 0004). Origem do contrato: solicitação, senão projeto, senão recorrência da tarefa; tarefa avulsa → sem contrato (sem período fechado). Editar/excluir de outra pessoa sem `apontamento.editar_todos` → `403`. `POST /cronometro/parada` sem corpo usa o título da tarefa como descrição, `faturavel: true`, data do início no fuso do tenant; responde `201` com o apontamento. `GET /cronometro` traz `decorridoMinutos`. Data em período fechado → `422` (`tipo: .../periodo-fechado`). Iniciar cronômetro com outro ativo → `409`. Iniciar numa tarefa A_FAZER a passa a FAZENDO (F11-19). F12e: `GET /cronometro` traz `esquecido` (passou 30 min do fim do expediente do dia do início, ou 10 h rodando) e `sugestaoMinutos` (do início ao fim do expediente desse dia; nulo sem expediente depois do início), para a janela de parar sugerir. F12a: `iniciadoEm` opcional começa antes, até 12 h atrás e nunca no futuro (1 min de folga), senão `400` em `errors.iniciadoEm`; a parada aceita `duracaoMinutos` (1 a 1440, senão `400` em `errors.duracaoMinutos`, e o cronômetro continua), e o apontamento sai na data do início no fuso do tenant, não na de hoje.
 
 ---
 
@@ -528,7 +528,7 @@ Decidido na implementação (6c3):
 | GET/PUT | `/notificacoes/preferencias` | Quais e-mails receber (RF-NOT-04). | autenticado |
 
 **Notificações (11b).** O sino recebe os mesmos avisos internos dos e-mails (§12b): nova solicitação, atribuição, SLA em risco/violado e consumo de contrato. Só a equipe (contato → 403); cada pessoa vê as suas.
-- `GET /notificacoes` → `{ itens: [{ id, categoria, titulo, link, criadaEm, lidaEm }], pagina, tamanhoPagina, total, naoLidas }`, mais recentes primeiro; `categoria`: `NOVA_SOLICITACAO`, `ATRIBUICAO`, `SLA`, `CONSUMO`, `MENCAO`, `SEGUIDAS`; `link` aponta para a solicitação, a tarefa ou o contrato no app.
+- `GET /notificacoes` → `{ itens: [{ id, categoria, titulo, link, criadaEm, lidaEm }], pagina, tamanhoPagina, total, naoLidas }`, mais recentes primeiro; `categoria`: `NOVA_SOLICITACAO`, `ATRIBUICAO`, `SLA`, `CONSUMO`, `MENCAO`, `SEGUIDAS`, `CRONOMETRO` (F12e); `link` aponta para a solicitação, a tarefa ou o contrato no app.
 - `POST /notificacoes/{id}/leitura` e `POST /notificacoes/leitura` (todas) → `204`; de outra pessoa → `404`. Notificações com mais de 90 dias são apagadas pelo job diário.
 - `GET/PUT /notificacoes/preferencias` `{ categorias: [{ categoria, email }] }`: liga ou desliga o **e-mail** de uma categoria (no PUT, categoria ausente volta ao padrão: ligada, exceto `SEGUIDAS`, que nasce desligada); o sino continua. E-mails de conta e os enviados ao contato não entram.
 
@@ -816,6 +816,7 @@ Empresa não liberada (RF-AUT-06, F9b): o sino recebe tudo como sempre; o e-mail
 | Solicitação aberta (equipe ou portal) | Responsável; sem ele, quem tem `solicitacao.editar`. Nunca quem abriu. |
 | Responsável alterado | O novo responsável, se não atribuiu a si mesmo. |
 | Menção (`MENCAO`, 14b) em interação interna ou comentário de tarefa | Cada pessoa mencionada que ainda é da equipe (nunca o autor). Sino com "{autor} mencionou você na solicitação #N …" ou "na tarefa …"; e-mail com um trecho de até 280 caracteres em que as menções viram `@Nome`. Um aviso por (interação ou comentário, pessoa). |
+| Cronômetro esquecido (`CRONOMETRO`, F12e): 30 min depois do fim do expediente do dia do início, ou 10 h rodando | Só o dono do cronômetro, uma vez por cronômetro, pelo tick. E-mail ligado por padrão. |
 | Novidade no que a pessoa segue (`SEGUIDAS`, 14c): interação na solicitação, comentário na tarefa, mudança de status | Quem segue o item e ainda pode vê-lo, menos quem causou o evento e quem foi mencionado no mesmo texto (recebe a `MENCAO`). E-mail desligado por padrão; o sino sempre. |
 | SLA em risco (75% do prazo útil) ou violado | Responsável; sem ele, quem tem `solicitacao.editar`. Verificado no `tick`; situação = a pior entre primeira resposta e resolução (read side §5); um alerta por (solicitação, ciclo do SLA, situação); reabrir inicia novo ciclo. |
 

@@ -57,17 +57,18 @@ internal static class ApontamentosEndpoints
 
         var cronometro = interno.MapGroup("/cronometro").WithTags("Apontamentos");
 
-        cronometro.MapGet(string.Empty, async (ITenantContext contexto, IConsultasApontamento consultas, CancellationToken cancellationToken) =>
-            await consultas.CronometroAsync(contexto.Usuario(), cancellationToken) is { } ativo ? Results.Ok(ativo) : Results.NoContent())
+        cronometro.MapGet(string.Empty, async (ITenantContext contexto, LeituraCronometro leitura, CancellationToken cancellationToken) =>
+            await leitura.ObterAsync(contexto.Usuario(), cancellationToken) is { } ativo ? Results.Ok(ativo) : Results.NoContent())
             .RequirePermissao(Permissoes.ApontamentoCriar)
             .Produces<CronometroDto>();
 
         cronometro.MapPost("/inicio", async (
-            InicioCronometroRequest corpo, ITenantContext contexto, ComandosApontamento comandos, IConsultasApontamento consultas,
+            InicioCronometroRequest corpo, ITenantContext contexto, ComandosApontamento comandos, LeituraCronometro leitura,
             CancellationToken cancellationToken) =>
         {
             await comandos.IniciarCronometroAsync(corpo, cancellationToken);
-            return Results.Created("/api/v1/cronometro", await consultas.CronometroAsync(contexto.Usuario(), cancellationToken));
+            // Mesma leitura do GET: começou antes (F12-01) pode já nascer esquecido (F12-17).
+            return Results.Created("/api/v1/cronometro", await leitura.ObterAsync(contexto.Usuario(), cancellationToken));
         })
             .RequirePermissao(Permissoes.ApontamentoCriar)
             .Produces<CronometroDto>(StatusCodes.Status201Created);

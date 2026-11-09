@@ -16,4 +16,7 @@ public enum CategoriaAviso
     /// (<see cref="PadroesDeAviso.EmailDesligadoPorPadrao"/>).
     /// </summary>
     Seguidas = 6,
+
+    /// <summary>Cronômetro que ficou ligado além do expediente ou de 10 h (F12-18).</summary>
+    Cronometro = 7,
 }

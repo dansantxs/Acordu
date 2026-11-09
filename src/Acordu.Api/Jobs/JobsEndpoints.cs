@@ -56,12 +56,18 @@ internal static class JobsEndpoints
                 "alertas-sla",
                 (servicos, ct) => servicos.GetRequiredService<AlertasSla>().ExecutarAsync(ct),
                 cancellationToken);
+            // Cronômetros esquecidos (F12-18): aviso ao dono, uma vez por cronômetro.
+            var esquecidos = await executor.ExecutarAsync(
+                "cronometros-esquecidos",
+                (servicos, ct) => servicos.GetRequiredService<AvisosCronometroEsquecido>().ExecutarAsync(ct),
+                cancellationToken);
             return Results.Ok(new
             {
                 tarefasRecorrentes = recorrencias.Tratados,
                 outboxProcessadas = total,
                 alertasSla = alertas.Tratados,
-                falhas = recorrencias.Falhas + alertas.Falhas,
+                cronometrosEsquecidos = esquecidos.Tratados,
+                falhas = recorrencias.Falhas + alertas.Falhas + esquecidos.Falhas,
             });
         });
 

@@ -14,4 +14,7 @@ public interface IConsultasApontamento
     Task<Guid?> CronometroDoUsuarioAsync(Guid usuarioId, CancellationToken cancellationToken = default);
 
     Task<CronometroDto?> CronometroAsync(Guid usuarioId, CancellationToken cancellationToken = default);
+
+    /// <summary>Todos os cronômetros ativos do tenant do contexto (F12-18).</summary>
+    Task<IReadOnlyList<CronometroAtivo>> CronometrosAtivosAsync(CancellationToken cancellationToken = default);
 }

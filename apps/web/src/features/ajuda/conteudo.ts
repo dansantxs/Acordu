@@ -278,6 +278,7 @@ export const SECOES_AJUDA: SecaoAjuda[] = [
             'No painel da tarefa: checklist, comentários com @menções, anexos e quem segue a tarefa.',
             'Use o cronômetro da tarefa: ele fica visível na barra lateral e, ao parar, abre o apontamento já preenchido. Iniciar o cronômetro põe a tarefa em "Fazendo".',
             'Vai começar agora? Marque "Iniciar o cronômetro" ao criar a tarefa.',
+            'Se o cronômetro ficar ligado depois do expediente (ou por mais de 10 horas), o indicador pergunta "Ficou ligado?", a janela de parar sugere a duração até o fim do expediente e você recebe um aviso no sino e por e-mail.',
             'Esqueceu de iniciar? Use "Começou antes?" e informe o horário (até 12 horas atrás). Ao parar, a duração vem preenchida e pode ser ajustada; o apontamento sai no dia em que o cronômetro começou.',
             'Ao concluir a última tarefa de uma solicitação, o aviso oferece "Resolver" para fechar a solicitação logo em seguida.',
             'Para levar a tarefa a um projeto, trocar de projeto ou tirá-la, use o campo Projeto no painel: aparecem os projetos em andamento do mesmo cliente. As horas já apontadas passam a contar no projeto novo e continuam no contrato em que foram lançadas.',
