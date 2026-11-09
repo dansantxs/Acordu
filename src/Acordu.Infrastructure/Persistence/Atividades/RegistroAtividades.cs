@@ -74,6 +74,17 @@ public sealed class RegistroAtividades : IAtividades
             .Select(t => new { t.Id, t.Titulo }).ToDictionaryAsync(t => t.Id, cancellationToken);
         var nomesClientes = await _db.Clientes.AsNoTracking().Where(c => clientes.Contains(c.Id))
             .ToDictionaryAsync(c => c.Id, c => c.Nome, cancellationToken);
+        // TAREFA_PROJETO guarda os ids dos projetos em status_de/status_para; a leitura mostra os nomes de agora.
+        var tipoProjeto = Texto(TipoAtividade.TarefaProjeto);
+        var idsProjetos = linhas.Where(l => l.Tipo == tipoProjeto)
+            .SelectMany(l => new[] { l.StatusDe, l.StatusPara })
+            .Select(v => Guid.TryParse(v, out var id) ? id : (Guid?)null)
+            .OfType<Guid>().Distinct().ToList();
+        Dictionary<Guid, string> nomesProjetos = idsProjetos.Count == 0
+            ? []
+            : await _db.Projetos.AsNoTracking().Where(p => idsProjetos.Contains(p.Id))
+                .ToDictionaryAsync(p => p.Id, p => p.Nome, cancellationToken);
+
         var pessoas = await Nomes.DeUsuariosAsync(
             _db,
             linhas.SelectMany(l => new[] { l.AutorId, l.ResponsavelId }).OfType<Guid>(),
@@ -97,7 +108,10 @@ public sealed class RegistroAtividades : IAtividades
                 continue;
             var detalhe = l.StatusDe is null && l.StatusPara is null && l.ResponsavelId is null
                 ? null
-                : new DetalheAtividadeDto(l.StatusDe, l.StatusPara, Nomes.Pessoa(l.ResponsavelId, pessoas));
+                : l.Tipo == tipoProjeto
+                    ? new DetalheAtividadeDto(
+                        null, null, null, Projeto(l.StatusDe, nomesProjetos), Projeto(l.StatusPara, nomesProjetos))
+                    : new DetalheAtividadeDto(l.StatusDe, l.StatusPara, Nomes.Pessoa(l.ResponsavelId, pessoas), null, null);
             itens.Add(new AtividadeDto(
                 l.Id,
                 Enum.GetValues<TipoAtividade>().First(x => Texto(x) == l.Tipo),
@@ -111,4 +125,7 @@ public sealed class RegistroAtividades : IAtividades
 
         return new PaginaAtividadesDto(itens, temMais ? linhas[^1].Sequencia : null);
     }
+
+    private static Referencia? Projeto(string? valor, Dictionary<Guid, string> nomes) =>
+        Guid.TryParse(valor, out var id) ? new Referencia(id, nomes.GetValueOrDefault(id, string.Empty)) : null;
 }

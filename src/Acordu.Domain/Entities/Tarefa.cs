@@ -165,6 +165,31 @@ public sealed class Tarefa : EntidadeBase
         Estimativa = ValidarEstimativa(estimativa);
     }
 
+    /// <summary>
+    /// Vincula, troca ou tira o projeto (F11-23 a F11-26): só projeto EM_ANDAMENTO do mesmo cliente; <c>null</c> tira.
+    /// Lê o projeto, não o altera. Apontamentos já feitos mantêm o contrato que consumiram (ADR 0004); o progresso dos
+    /// projetos segue a tarefa.
+    /// </summary>
+    public void MoverParaProjeto(Projeto? projeto)
+    {
+        GarantirNaoCancelada(nameof(MoverParaProjeto));
+        if (projeto?.Id == ProjetoId)
+            return;
+        if (projeto is not null)
+        {
+            if (ClienteId is null)
+                throw new ProjetoDeOutroClienteException("Tarefa sem cliente não entra em projeto.");
+            if (projeto.TenantId != TenantId || projeto.ClienteId != ClienteId)
+                throw new ProjetoDeOutroClienteException();
+            if (projeto.Status != StatusProjeto.EmAndamento)
+                throw new ProjetoEncerradoException();
+        }
+
+        var de = ProjetoId;
+        ProjetoId = projeto?.Id;
+        Registrar(new TarefaProjetoAlterado(Id, TenantId, de, ProjetoId));
+    }
+
     /// <summary>Só tarefa com cliente pode ficar visível no portal.</summary>
     public void TornarVisivelAoCliente(bool visivel)
     {

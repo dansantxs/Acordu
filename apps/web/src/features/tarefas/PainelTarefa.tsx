@@ -4,6 +4,7 @@ import { useCallback, useEffect, useId, useRef, useState, type FormEvent } from 
 import { Button, Checkbox, Form, Switch } from 'react-aria-components'
 import { pode } from '@/features/casca/navegacao'
 import { opcional } from '@/features/clientes/consultas'
+import { consultaProjetosDoCliente } from '@/features/projetos/consultas'
 import { useSugestaoResolucao } from '@/features/solicitacoes/sugestaoResolucao'
 import { errosDeCampo, mensagemDeErro } from '@/shared/api/mensagens'
 import { ErroApi } from '@/shared/api/problema'
@@ -27,6 +28,7 @@ import {
     editarItem,
     editarTarefa,
     formularioDaTarefa,
+    moverTarefaDeProjeto,
     removerItem,
     transicionarTarefa,
     type AcaoTarefa,
@@ -226,6 +228,9 @@ function Detalhe({
                     />
                 ) : (
                     <Dado rotulo="Responsável">{t.responsavel?.nome ?? 'Sem responsável'}</Dado>
+                )}
+                {editavel && t.clienteId && pode(perfil, 'projeto.ver') && (
+                    <CampoProjeto tarefa={t} clienteId={t.clienteId} aoMudar={guardar} aoFalhar={falhou} />
                 )}
                 <CampoData rotulo="Prazo" valor={t.prazo} editavel={editavel} aoMudar={(prazo) => salvar({ prazo })} />
                 <CampoData
@@ -514,6 +519,64 @@ function Checklist({ tarefa: t, editavel, aoMudar }: { tarefa: Tarefa; editavel:
                 </form>
             )}
         </section>
+    )
+}
+
+/**
+ * Projeto da tarefa (F11-23): os em andamento do mesmo cliente, ou "Sem projeto". Salva na hora, com desfazer quando dá
+ * para voltar (o anterior ainda em andamento, ou nenhum). As horas já apontadas seguem a tarefa no progresso (F11-26).
+ */
+function CampoProjeto({
+    tarefa: t,
+    clienteId,
+    aoMudar,
+    aoFalhar,
+}: {
+    tarefa: Tarefa
+    clienteId: string
+    aoMudar: (nova: Tarefa) => void
+    aoFalhar: (erro: unknown) => void
+}) {
+    const consultas = useQueryClient()
+    const projetos = useQuery(consultaProjetosDoCliente(clienteId))
+    const emAndamento = projetos.data ?? []
+    const opcoes = emAndamento.map((p) => ({ id: p.id, rotulo: p.nome }))
+    // O projeto atual pode já estar encerrado: continua na lista para o campo mostrar onde a tarefa está. Só se sabe
+    // que está encerrado depois que a lista chega; antes, aparece só o nome.
+    if (t.projetoId && !opcoes.some((o) => o.id === t.projetoId))
+        opcoes.unshift({
+            id: t.projetoId,
+            rotulo: projetos.isSuccess ? `${t.projetoNome ?? 'Projeto'} (encerrado)` : (t.projetoNome ?? 'Projeto'),
+        })
+    const mudanca = useMutation({
+        mutationFn: ({ base, projetoId }: { base: Tarefa; projetoId: string | null; desfazendo?: boolean }) =>
+            moverTarefaDeProjeto(base, projetoId),
+        onSuccess: (nova, { base, desfazendo }) => {
+            aoMudar(nova)
+            void consultas.invalidateQueries({ queryKey: ['projetos'] })
+            void consultas.invalidateQueries({ queryKey: ['tarefas', 'do-projeto'] })
+            if (desfazendo) return
+            // Sem a lista (carregando ou falhou), oferece desfazer: se o anterior encerrou, a API recusa e o aviso explica.
+            const volta =
+                base.projetoId === null || !projetos.isSuccess || emAndamento.some((p) => p.id === base.projetoId)
+            avisar(
+                nova.projetoNome ? `Projeto: ${nova.projetoNome}.` : 'Sem projeto agora.',
+                volta
+                    ? { desfazer: () => mudanca.mutate({ base: nova, projetoId: base.projetoId, desfazendo: true }) }
+                    : {},
+            )
+        },
+        onError: aoFalhar,
+    })
+    return (
+        <CampoSelecao
+            rotulo="Projeto"
+            opcoes={opcoes}
+            valor={t.projetoId}
+            // Uma mudança por vez: a segunda iria com a versão antiga e daria 409.
+            aoMudar={(v) => v !== t.projetoId && !mudanca.isPending && mudanca.mutate({ base: t, projetoId: v })}
+            vazio="Sem projeto"
+        />
     )
 }
 

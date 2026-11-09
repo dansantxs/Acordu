@@ -175,6 +175,17 @@ describe('ficha: portal, arquivos e movimentos', () => {
                                   alvo: { tipo: 'TAREFA', id: 't1', titulo: 'Trocar cabo', numero: null },
                                   detalhe: { statusDe: 'A_FAZER', statusPara: 'FAZENDO', responsavel: null },
                               }),
+                              atividade('a4', {
+                                  tipo: 'TAREFA_PROJETO',
+                                  alvo: { tipo: 'TAREFA', id: 't1', titulo: 'Trocar cabo', numero: null },
+                                  detalhe: {
+                                      statusDe: null,
+                                      statusPara: null,
+                                      responsavel: null,
+                                      projetoDe: { id: 'p1', nome: 'Site novo' },
+                                      projetoPara: { id: 'p2', nome: 'Campanha' },
+                                  },
+                              }),
                               atividade('a2', {
                                   tipo: 'RESPOSTA_DO_CLIENTE',
                                   autor: { id: 'k1', nome: 'Marta Souza' },
@@ -187,6 +198,7 @@ describe('ficha: portal, arquivos e movimentos', () => {
         await abrir(`/clientes/${C}?secao=movimentos`)
         expect(await screen.findByText(/moveu para fazendo/)).toBeInTheDocument()
         expect(screen.getByText(/\(cliente\) respondeu pelo portal/)).toBeInTheDocument()
+        expect(screen.getByText(/passou do projeto Site novo para Campanha/)).toBeInTheDocument()
         expect(chamadas.find((c) => c.caminho === '/api/v1/atividades')?.consulta.get('clienteId')).toBe(C)
 
         await userEvent.setup().click(screen.getByRole('button', { name: 'Ver mais' }))

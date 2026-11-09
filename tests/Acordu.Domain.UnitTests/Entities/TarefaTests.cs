@@ -386,6 +386,138 @@ public sealed class TarefaTests
         }
     }
 
+    /// <summary>F11-23 a F11-26: vincular, trocar ou tirar o projeto.</summary>
+    public sealed class MoverParaProjeto
+    {
+        private static Projeto NovoProjeto(Guid? clienteId = null, Guid? tenantId = null) =>
+            Projeto.Criar(
+                Guid.NewGuid(), tenantId ?? Calendarios.Tenant, clienteId ?? Contratos.Cliente, "Site novo", null, null, null);
+
+        [Theory]
+        [InlineData(StatusTarefa.AFazer)]
+        [InlineData(StatusTarefa.Fazendo)]
+        [InlineData(StatusTarefa.Concluida)]
+        public void ParaProjetoDoMesmoCliente_MudaEEmite(StatusTarefa status)
+        {
+            var tarefa = Em(status);
+            var projeto = NovoProjeto();
+
+            tarefa.MoverParaProjeto(projeto);
+
+            tarefa.ProjetoId.Should().Be(projeto.Id);
+            tarefa.Eventos.Should().Equal(new TarefaProjetoAlterado(tarefa.Id, Calendarios.Tenant, null, projeto.Id));
+        }
+
+        [Fact]
+        public void TrocarETirar_GuardaDeOndeVeio()
+        {
+            var tarefa = Em(StatusTarefa.AFazer);
+            var primeiro = NovoProjeto();
+            var segundo = NovoProjeto();
+            tarefa.MoverParaProjeto(primeiro);
+
+            tarefa.MoverParaProjeto(segundo);
+            tarefa.MoverParaProjeto(null);
+
+            tarefa.ProjetoId.Should().BeNull();
+            tarefa.Eventos.OfType<TarefaProjetoAlterado>().Select(e => (e.De, e.Para)).Should().Equal(
+                (null, primeiro.Id), (primeiro.Id, segundo.Id), (segundo.Id, null));
+        }
+
+        [Fact]
+        public void MesmoProjeto_NaoEmite()
+        {
+            var tarefa = Em(StatusTarefa.AFazer);
+            var projeto = NovoProjeto();
+            tarefa.MoverParaProjeto(projeto);
+            tarefa.LimparEventos();
+
+            tarefa.MoverParaProjeto(projeto);
+
+            tarefa.Eventos.Should().BeEmpty();
+        }
+
+        [Fact]
+        public void SemProjeto_TirarDeNovo_NaoEmite()
+        {
+            var tarefa = Em(StatusTarefa.AFazer);
+
+            tarefa.MoverParaProjeto(null);
+
+            tarefa.Eventos.Should().BeEmpty();
+        }
+
+        [Fact]
+        public void ProjetoDeOutroCliente_Recusa() // F11-24
+        {
+            var tarefa = Em(StatusTarefa.AFazer);
+
+            var acao = () => tarefa.MoverParaProjeto(NovoProjeto(Guid.NewGuid()));
+
+            acao.Should().Throw<ProjetoDeOutroClienteException>();
+            tarefa.ProjetoId.Should().BeNull();
+        }
+
+        [Fact]
+        public void TarefaSemCliente_NaoEntraEmProjeto()
+        {
+            var tarefa = Criar();
+
+            var acao = () => tarefa.MoverParaProjeto(NovoProjeto());
+
+            acao.Should().Throw<ProjetoDeOutroClienteException>();
+        }
+
+        [Fact]
+        public void ProjetoDeOutroTenant_Recusa()
+        {
+            var tarefa = Em(StatusTarefa.AFazer);
+
+            var acao = () => tarefa.MoverParaProjeto(NovoProjeto(tenantId: Guid.NewGuid()));
+
+            acao.Should().Throw<ProjetoDeOutroClienteException>();
+        }
+
+        [Theory]
+        [InlineData(true)]
+        [InlineData(false)]
+        public void ProjetoEncerrado_Recusa(bool concluido) // F11-25
+        {
+            var tarefa = Em(StatusTarefa.AFazer);
+            var projeto = NovoProjeto();
+            if (concluido)
+                projeto.Concluir();
+            else
+                projeto.Cancelar();
+
+            var acao = () => tarefa.MoverParaProjeto(projeto);
+
+            acao.Should().Throw<ProjetoEncerradoException>();
+        }
+
+        [Fact]
+        public void SairDeProjetoEncerrado_Pode()
+        {
+            var projeto = NovoProjeto();
+            var tarefa = Criar(Contratos.Cliente, projetoId: projeto.Id);
+            projeto.Concluir();
+
+            tarefa.MoverParaProjeto(null);
+
+            tarefa.ProjetoId.Should().BeNull();
+        }
+
+        [Fact]
+        public void TarefaCancelada_Recusa()
+        {
+            var tarefa = Em(StatusTarefa.Cancelada);
+
+            var acao = () => tarefa.MoverParaProjeto(NovoProjeto());
+
+            acao.Should().Throw<TransicaoInvalidaException>();
+        }
+    }
+
     public sealed class Checklist
     {
         [Fact]

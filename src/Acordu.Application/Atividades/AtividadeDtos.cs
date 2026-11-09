@@ -16,6 +16,9 @@ public enum TipoAtividade
     TarefaAtribuida = 8,
     TarefaStatus = 9,
     ComentarioTarefa = 10,
+
+    /// <summary>A tarefa mudou de projeto (F11-26): <see cref="DetalheAtividadeDto.ProjetoDe"/> e <c>ProjetoPara</c>.</summary>
+    TarefaProjeto = 11,
 }
 
 /// <summary>
@@ -35,8 +38,12 @@ public sealed record AtividadeDto(
 /// <param name="Numero">Só solicitação.</param>
 public sealed record AlvoAtividadeDto(AlvoColaboracao Tipo, Guid Id, string Titulo, int? Numero);
 
-/// <summary>Status de/para (SNAKE, como no resto da API) e o novo responsável, conforme o tipo.</summary>
-public sealed record DetalheAtividadeDto(string? StatusDe, string? StatusPara, Referencia? Responsavel);
+/// <summary>
+/// Status de/para (SNAKE, como no resto da API), o novo responsável ou, em <c>TAREFA_PROJETO</c>, o projeto de antes e o
+/// de agora (nulo = sem projeto), conforme o tipo.
+/// </summary>
+public sealed record DetalheAtividadeDto(
+    string? StatusDe, string? StatusPara, Referencia? Responsavel, Referencia? ProjetoDe, Referencia? ProjetoPara);
 
 /// <summary>Página do feed; <see cref="Proximo"/> é o cursor da próxima (<c>antes</c>), nulo no fim.</summary>
 public sealed record PaginaAtividadesDto(IReadOnlyList<AtividadeDto> Itens, long? Proximo);

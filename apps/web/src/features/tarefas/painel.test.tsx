@@ -267,6 +267,80 @@ describe('detalhe da tarefa', () => {
         expect(await within(aside).findByText('você')).toBeInTheDocument()
     })
 
+    describe('mover para projeto (F11-23)', () => {
+        const projeto = (id: string, nome: string) => ({
+            id,
+            nome,
+            cliente: { id: 'c1', nome: 'Padaria Bom Grão' },
+            contratoId: null,
+            inicio: null,
+            prazo: null,
+            estimativaMinutos: null,
+            status: 'EM_ANDAMENTO',
+        })
+        const comProjetos = (permissoes: string[], inicial: Record<string, unknown> = {}) => {
+            let atual = tarefa(inicial)
+            return app(permissoes, {
+                [`GET /api/v1/tarefas/${ID}`]: () => json(atual),
+                'GET /api/v1/projetos': () =>
+                    json({
+                        itens: [projeto('p1', 'Site novo'), projeto('p2', 'Campanha')],
+                        pagina: 1,
+                        tamanhoPagina: 200,
+                        total: 2,
+                    }),
+                [`PUT /api/v1/tarefas/${ID}/projeto`]: (corpo) => {
+                    const id = (corpo as { projetoId: string | null }).projetoId
+                    const nome = id === 'p1' ? 'Site novo' : id === 'p2' ? 'Campanha' : null
+                    atual = tarefa({ projetoId: id, projetoNome: nome, versao: String(Number(atual.versao) + 1) })
+                    return json(atual)
+                },
+            })
+        }
+
+        it('mover para projeto: os em andamento do cliente, com desfazer', async () => {
+            const chamadas = comProjetos([...EDITAR, 'projeto.ver'])
+            await abrir(`/tarefas/${ID}`)
+            const usuario = userEvent.setup()
+            const aside = await painel()
+            await usuario.click(within(aside).getByRole('combobox', { name: 'Projeto' }))
+            expect(await screen.findByRole('option', { name: 'Sem projeto' })).toBeInTheDocument()
+            await usuario.click(screen.getByRole('option', { name: 'Site novo' }))
+
+            expect(await screen.findByText('Projeto: Site novo.')).toBeInTheDocument()
+            const lista = chamadas.find((c) => c.caminho === '/api/v1/projetos')
+            expect(lista?.consulta.get('clienteId')).toBe('c1')
+            expect(lista?.consulta.get('status')).toBe('EM_ANDAMENTO')
+            const puts = () => chamadas.filter((c) => c.metodo === 'PUT')
+            expect(puts()[0]).toMatchObject({ ifMatch: '"3"', corpo: { projetoId: 'p1' } })
+
+            await usuario.click(screen.getByRole('button', { name: 'Desfazer' }))
+            await vi.waitFor(() => expect(puts()[1]).toMatchObject({ ifMatch: '"4"', corpo: { projetoId: null } }))
+        })
+
+        it('no projeto encerrado, mostra onde está e tirar não oferece desfazer', async () => {
+            const chamadas = comProjetos([...EDITAR, 'projeto.ver'], { projetoId: 'p9', projetoNome: 'Antigo' })
+            await abrir(`/tarefas/${ID}`)
+            const usuario = userEvent.setup()
+            const aside = await painel()
+            const campo = within(aside).getByRole('combobox', { name: 'Projeto' })
+            // Só depois da lista dá para saber que encerrou.
+            await vi.waitFor(() => expect(chamadas.some((c) => c.caminho === '/api/v1/projetos')).toBe(true))
+            await vi.waitFor(() => expect(campo).toHaveValue('Antigo (encerrado)'))
+            await usuario.click(campo)
+            await usuario.click(await screen.findByRole('option', { name: 'Sem projeto' }))
+            expect(await screen.findByText('Sem projeto agora.')).toBeInTheDocument()
+            expect(screen.queryByRole('button', { name: 'Desfazer' })).not.toBeInTheDocument()
+        })
+
+        it('sem projeto.ver, não oferece', async () => {
+            comProjetos(EDITAR)
+            await abrir(`/tarefas/${ID}`)
+            const aside = await painel()
+            expect(within(aside).queryByRole('combobox', { name: 'Projeto' })).not.toBeInTheDocument()
+        })
+    })
+
     describe('última tarefa da solicitação (F11-15 a F11-17)', () => {
         const OUTRA_ABERTA = { id: 't0', titulo: 'Diagnóstico', status: 'A_FAZER' }
         const solicitacaoComTarefas = (status: string, outra = { ...OUTRA_ABERTA, status: 'CONCLUIDA' }) => ({

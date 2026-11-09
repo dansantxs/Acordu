@@ -156,6 +156,17 @@ export async function editarTarefa(t: Tarefa, mudanca: Partial<EdicaoTarefa>): P
     ).data!
 }
 
+/** Vincula, troca ou tira o projeto (F11-23); fora do PATCH, como o contrato da solicitação. */
+export async function moverTarefaDeProjeto(t: Tarefa, projetoId: string | null): Promise<Tarefa> {
+    return (
+        await api.PUT('/api/v1/tarefas/{id}/projeto', {
+            params: { path: { id: t.id } },
+            body: { projetoId },
+            ...seVersao(t.versao),
+        })
+    ).data!
+}
+
 export type AcaoTarefa = 'inicio' | 'retorno' | 'conclusao' | 'reabertura' | 'cancelamento'
 
 export async function transicionarTarefa(t: Tarefa, acao: AcaoTarefa): Promise<Tarefa> {

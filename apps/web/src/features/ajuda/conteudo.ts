@@ -278,6 +278,7 @@ export const SECOES_AJUDA: SecaoAjuda[] = [
             'No painel da tarefa: checklist, comentários com @menções, anexos e quem segue a tarefa.',
             'Use o cronômetro da tarefa: ele fica visível na barra lateral e, ao parar, abre o apontamento já preenchido. Iniciar o cronômetro põe a tarefa em "Fazendo".',
             'Ao concluir a última tarefa de uma solicitação, o aviso oferece "Resolver" para fechar a solicitação logo em seguida.',
+            'Para levar a tarefa a um projeto, trocar de projeto ou tirá-la, use o campo Projeto no painel: aparecem os projetos em andamento do mesmo cliente. As horas já apontadas passam a contar no projeto novo e continuam no contrato em que foram lançadas.',
         ],
         dicas: [
             'Marque "O cliente vê esta tarefa" para ela aparecer como etapa no portal.',
