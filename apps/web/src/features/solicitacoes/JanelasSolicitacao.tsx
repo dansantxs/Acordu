@@ -1,4 +1,5 @@
 import { useMutation } from '@tanstack/react-query'
+import { useState } from 'react'
 import { Form } from 'react-aria-components'
 import { opcional } from '@/features/clientes/consultas'
 import { errosDeCampo, mensagemDeErro } from '@/shared/api/mensagens'
@@ -6,8 +7,46 @@ import { Alerta } from '@/shared/ui/Alerta'
 import { Botao } from '@/shared/ui/Botao'
 import { CampoTexto } from '@/shared/ui/CampoTexto'
 import { Janela } from '@/shared/ui/Janela'
+import { Marcador } from '@/shared/ui/Marcador'
 import { LegendaObrigatorios } from '@/shared/ui/Rotulo'
-import { editarSolicitacao, type Solicitacao, type Solucao } from './consultas'
+import { editarSolicitacao, type Solicitacao, type Solucao, type TarefasAbertas } from './consultas'
+
+type TarefaAberta = { id: string; titulo: string }
+
+/**
+ * Tarefas abertas na hora de resolver ou cancelar (F11-11, F11-14, F11-20): com `tarefa.editar`, a ação conjunta vem
+ * marcada; sem, a lista fica só como aviso. Devolve o pedido para a API (as tarefas que a pessoa viu, F11-31).
+ */
+function useTarefasAbertas(tarefas: TarefaAberta[], podeMexer: boolean, acao: 'CONCLUIR' | 'CANCELAR') {
+    const [junto, setJunto] = useState(true)
+    const pedido: TarefasAbertas | undefined =
+        tarefas.length > 0 && podeMexer ? { acao: junto ? acao : 'MANTER', ids: tarefas.map((t) => t.id) } : undefined
+    const quadro =
+        tarefas.length === 0 ? null : (
+            <section aria-label="Tarefas abertas" className="flex flex-col gap-2 rounded-couro border border-linha p-3">
+                <p className="text-sm">
+                    {tarefas.length === 1
+                        ? 'Uma tarefa ainda está aberta:'
+                        : `${tarefas.length} tarefas ainda estão abertas:`}
+                </p>
+                <ul className="list-disc pl-5 text-sm text-suave">
+                    {tarefas.map((t) => (
+                        <li key={t.id}>{t.titulo}</li>
+                    ))}
+                </ul>
+                {podeMexer ? (
+                    <Marcador valor={junto} aoMudar={setJunto}>
+                        {acao === 'CONCLUIR'
+                            ? 'Concluir as tarefas abertas junto'
+                            : 'Cancelar as tarefas abertas junto'}
+                    </Marcador>
+                ) : (
+                    <p className="text-xs text-suave">Elas ficam como estão: mudar tarefas pede outra permissão.</p>
+                )}
+            </section>
+        )
+    return { pedido, quadro }
+}
 
 /** Título e descrição (o resto do formulário muda direto no painel). */
 export function JanelaEdicao({
@@ -86,14 +125,19 @@ export function JanelaResolucao({
     ocupada,
     erro,
     aoResolver,
+    tarefasAbertas = [],
+    podeMexerTarefas = false,
 }: {
     aberta: boolean
     aoMudar: (aberta: boolean) => void
     ocupada: boolean
     erro: unknown
-    aoResolver: (solucao: Solucao) => void
+    aoResolver: (solucao: Solucao, tarefas?: TarefasAbertas) => void
+    tarefasAbertas?: TarefaAberta[]
+    podeMexerTarefas?: boolean
 }) {
     const mensagem = erro ? mensagemDeErro(erro) : null
+    const tarefas = useTarefasAbertas(tarefasAbertas, podeMexerTarefas, 'CONCLUIR')
     return (
         <Janela titulo="Resolver solicitação" aberta={aberta} aoMudar={aoMudar} ocupada={ocupada} larga>
             <Form
@@ -102,11 +146,14 @@ export function JanelaResolucao({
                 onSubmit={(evento) => {
                     evento.preventDefault()
                     const dados = new FormData(evento.currentTarget)
-                    aoResolver({
-                        texto: String(dados.get('texto')).trim(),
-                        problema: opcional(dados.get('problema')),
-                        causa: opcional(dados.get('causa')),
-                    })
+                    aoResolver(
+                        {
+                            texto: String(dados.get('texto')).trim(),
+                            problema: opcional(dados.get('problema')),
+                            causa: opcional(dados.get('causa')),
+                        },
+                        tarefas.pedido,
+                    )
                 }}
             >
                 <p className="text-sm text-suave">
@@ -128,6 +175,7 @@ export function JanelaResolucao({
                     <CampoTexto name="problema" rotulo="Problema" maxLength={2_000} />
                     <CampoTexto name="causa" rotulo="Causa" maxLength={2_000} />
                 </div>
+                {tarefas.quadro}
                 <div className="flex justify-end gap-3">
                     <Botao variante="secundario" onPress={() => aoMudar(false)} isDisabled={ocupada}>
                         Voltar
@@ -157,6 +205,9 @@ export function JanelaMotivo({
     ocupada,
     erro,
     aoConfirmar,
+    tarefasAbertas = [],
+    podeMexerTarefas = false,
+    acaoTarefas,
 }: {
     titulo: string
     acao: string
@@ -166,9 +217,14 @@ export function JanelaMotivo({
     aoMudar: (aberta: boolean) => void
     ocupada: boolean
     erro: unknown
-    aoConfirmar: (motivo: string) => void
+    aoConfirmar: (motivo: string, tarefas?: TarefasAbertas) => void
+    tarefasAbertas?: TarefaAberta[]
+    podeMexerTarefas?: boolean
+    /** Só no cancelamento (F11-20); sem, a janela não fala de tarefas. */
+    acaoTarefas?: 'CANCELAR'
 }) {
     const mensagem = erro ? mensagemDeErro(erro) : null
+    const tarefas = useTarefasAbertas(acaoTarefas ? tarefasAbertas : [], podeMexerTarefas, acaoTarefas ?? 'CANCELAR')
     return (
         <Janela titulo={titulo} aberta={aberta} aoMudar={aoMudar} ocupada={ocupada}>
             <Form
@@ -176,12 +232,13 @@ export function JanelaMotivo({
                 validationErrors={errosDeCampo(erro)}
                 onSubmit={(evento) => {
                     evento.preventDefault()
-                    aoConfirmar(String(new FormData(evento.currentTarget).get('motivo')).trim())
+                    aoConfirmar(String(new FormData(evento.currentTarget).get('motivo')).trim(), tarefas.pedido)
                 }}
             >
                 <p className="text-sm text-suave">{explicacao}</p>
                 {mensagem && <Alerta>{mensagem}</Alerta>}
                 <CampoTexto name="motivo" rotulo="Motivo" maxLength={1_000} multilinha isRequired autoFocus />
+                {tarefas.quadro}
                 <div className="flex justify-end gap-3">
                     <Botao variante="secundario" onPress={() => aoMudar(false)} isDisabled={ocupada}>
                         Voltar

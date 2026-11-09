@@ -140,8 +140,12 @@ export type Solucao = components['schemas']['SolucaoDto']
 /** Transições simples (sem corpo) e as que pedem solução ou motivo. */
 export type Transicao =
     | { acao: 'inicio' | 'aguardando-cliente' | 'aguardando-terceiro' | 'retomada' }
-    | { acao: 'resolucao'; solucao: Solucao }
-    | { acao: 'reabertura' | 'cancelamento'; motivo: string }
+    | { acao: 'resolucao'; solucao: Solucao; tarefas?: TarefasAbertas }
+    | { acao: 'reabertura'; motivo: string }
+    | { acao: 'cancelamento'; motivo: string; tarefas?: TarefasAbertas }
+
+/** O que fazer com as tarefas abertas junto com a transição (F11c); `ids`: as que a pessoa viu. */
+export type TarefasAbertas = components['schemas']['TarefasAbertasRequest']
 
 export async function transicionar(s: Solicitacao, t: Transicao): Promise<Solicitacao> {
     const opcoes = { params: { path: { id: s.id } }, ...seVersao(s.versao) }
@@ -155,14 +159,22 @@ export async function transicionar(s: Solicitacao, t: Transicao): Promise<Solici
         case 'retomada':
             return (await api.POST('/api/v1/solicitacoes/{id}/retomada', opcoes)).data!
         case 'resolucao':
-            return (await api.POST('/api/v1/solicitacoes/{id}/resolucao', { ...opcoes, body: { solucao: t.solucao } }))
-                .data!
+            return (
+                await api.POST('/api/v1/solicitacoes/{id}/resolucao', {
+                    ...opcoes,
+                    body: { solucao: t.solucao, tarefas: t.tarefas ?? null },
+                })
+            ).data!
         case 'reabertura':
             return (await api.POST('/api/v1/solicitacoes/{id}/reabertura', { ...opcoes, body: { motivo: t.motivo } }))
                 .data!
         case 'cancelamento':
-            return (await api.POST('/api/v1/solicitacoes/{id}/cancelamento', { ...opcoes, body: { motivo: t.motivo } }))
-                .data!
+            return (
+                await api.POST('/api/v1/solicitacoes/{id}/cancelamento', {
+                    ...opcoes,
+                    body: { motivo: t.motivo, tarefas: t.tarefas ?? null },
+                })
+            ).data!
     }
 }
 

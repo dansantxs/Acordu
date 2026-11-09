@@ -170,7 +170,12 @@ export function TelaTarefas({ perfil, filtros }: { perfil: Perfil; filtros: Filt
             </div>
 
             {quadro ? (
-                <Quadro filtros={filtros} hoje={hojeNoFuso(fuso)} podeEditar={pode(perfil, 'tarefa.editar')} />
+                <Quadro
+                    filtros={filtros}
+                    hoje={hojeNoFuso(fuso)}
+                    podeEditar={pode(perfil, 'tarefa.editar')}
+                    podeEditarSolicitacao={pode(perfil, 'solicitacao.editar')}
+                />
             ) : lista.isPending ? (
                 <p className="text-sm text-suave">Carregando…</p>
             ) : lista.isError ? (

@@ -205,7 +205,10 @@ describe('detalhe da solicitação', () => {
         await usuario.click(within(denovo).getByRole('button', { name: 'Cancelar solicitação' }))
 
         expect(await within(aside).findByText(/Cancelada.*: Duplicada/)).toBeInTheDocument()
-        expect(chamadas.find((c) => c.caminho.endsWith('/cancelamento'))?.corpo).toEqual({ motivo: 'Duplicada' })
+        expect(chamadas.find((c) => c.caminho.endsWith('/cancelamento'))?.corpo).toEqual({
+            motivo: 'Duplicada',
+            tarefas: null,
+        })
         expect(within(aside).queryByRole('button', { name: /Cancelar|Resolver/ })).not.toBeInTheDocument()
     })
 
@@ -385,5 +388,87 @@ describe('detalhe da solicitação', () => {
         const aside = await painel()
         expect(within(aside).getByRole('button', { name: 'Link do portal' })).toBeDisabled()
         expect(within(aside).getByText('Disponível depois que você confirmar seu e-mail.')).toBeInTheDocument()
+    })
+
+    describe('tarefas abertas ao resolver e cancelar (F11-11 a F11-14, F11-20)', () => {
+        const comResolucao = (permissoes: string[]) =>
+            app(permissoes, {
+                [`POST /api/v1/solicitacoes/${ID}/resolucao`]: () =>
+                    json(solicitacao({ versao: '8', status: 'RESOLVIDA', resolvidaEm: daquiA(0) })),
+                [`POST /api/v1/solicitacoes/${ID}/cancelamento`]: () =>
+                    json(solicitacao({ versao: '8', status: 'CANCELADA', motivoCancelamento: 'Duplicada' })),
+            })
+
+        it('lista as abertas e conclui junto, marcado por padrão', async () => {
+            const chamadas = comResolucao([...EDITAR, 'tarefa.editar'])
+            await abrir(`/solicitacoes/${ID}`)
+            const usuario = userEvent.setup()
+            await usuario.click(within(await painel()).getByRole('button', { name: 'Resolver' }))
+            const janela = await screen.findByRole('dialog', { name: 'Resolver solicitação' })
+            expect(within(janela).getByText('Uma tarefa ainda está aberta:')).toBeInTheDocument()
+            expect(within(janela).getByText('Trocar resistência')).toBeInTheDocument()
+            expect(within(janela).getByRole('checkbox', { name: 'Concluir as tarefas abertas junto' })).toBeChecked()
+            await usuario.type(within(janela).getByLabelText('Solução'), 'Feito.')
+            await usuario.click(within(janela).getByRole('button', { name: 'Resolver' }))
+            await vi.waitFor(() =>
+                expect(chamadas.find((c) => c.caminho.endsWith('/resolucao'))?.corpo).toMatchObject({
+                    tarefas: { acao: 'CONCLUIR', ids: ['t1'] },
+                }),
+            )
+        })
+
+        it('desmarcado, mantém as tarefas (F11-13)', async () => {
+            const chamadas = comResolucao([...EDITAR, 'tarefa.editar'])
+            await abrir(`/solicitacoes/${ID}`)
+            const usuario = userEvent.setup()
+            await usuario.click(within(await painel()).getByRole('button', { name: 'Resolver' }))
+            const janela = await screen.findByRole('dialog', { name: 'Resolver solicitação' })
+            await usuario.click(within(janela).getByRole('checkbox', { name: 'Concluir as tarefas abertas junto' }))
+            await usuario.type(within(janela).getByLabelText('Solução'), 'Feito.')
+            await usuario.click(within(janela).getByRole('button', { name: 'Resolver' }))
+            await vi.waitFor(() =>
+                expect(chamadas.find((c) => c.caminho.endsWith('/resolucao'))?.corpo).toMatchObject({
+                    tarefas: { acao: 'MANTER', ids: ['t1'] },
+                }),
+            )
+        })
+
+        it('sem tarefa.editar, só avisa e resolve sem mexer nas tarefas (F11-14)', async () => {
+            const chamadas = comResolucao(EDITAR)
+            await abrir(`/solicitacoes/${ID}`)
+            const usuario = userEvent.setup()
+            await usuario.click(within(await painel()).getByRole('button', { name: 'Resolver' }))
+            const janela = await screen.findByRole('dialog', { name: 'Resolver solicitação' })
+            expect(within(janela).getByText(/mudar tarefas pede outra permissão/)).toBeInTheDocument()
+            expect(within(janela).queryByRole('checkbox')).not.toBeInTheDocument()
+            await usuario.type(within(janela).getByLabelText('Solução'), 'Feito.')
+            await usuario.click(within(janela).getByRole('button', { name: 'Resolver' }))
+            await vi.waitFor(() =>
+                expect(chamadas.find((c) => c.caminho.endsWith('/resolucao'))?.corpo).toMatchObject({ tarefas: null }),
+            )
+        })
+
+        it('cancelar oferece cancelar as tarefas junto (F11-20)', async () => {
+            const chamadas = comResolucao([...EDITAR, 'tarefa.editar'])
+            await abrir(`/solicitacoes/${ID}`)
+            const usuario = userEvent.setup()
+            await usuario.click(within(await painel()).getByRole('button', { name: 'Cancelar solicitação' }))
+            const janela = await screen.findByRole('dialog', { name: 'Cancelar a solicitação #1042?' })
+            expect(within(janela).getByRole('checkbox', { name: 'Cancelar as tarefas abertas junto' })).toBeChecked()
+            await usuario.type(within(janela).getByLabelText('Motivo'), 'Duplicada')
+            await usuario.click(within(janela).getByRole('button', { name: 'Cancelar solicitação' }))
+            await vi.waitFor(() =>
+                expect(chamadas.find((c) => c.caminho.endsWith('/cancelamento'))?.corpo).toEqual({
+                    motivo: 'Duplicada',
+                    tarefas: { acao: 'CANCELAR', ids: ['t1'] },
+                }),
+            )
+        })
+
+        it('com ?resolver=true, abre direto a janela de resolução (F11-15)', async () => {
+            comResolucao(EDITAR)
+            await abrir(`/solicitacoes/${ID}?resolver=true`)
+            expect(await screen.findByRole('dialog', { name: 'Resolver solicitação' })).toBeInTheDocument()
+        })
     })
 })

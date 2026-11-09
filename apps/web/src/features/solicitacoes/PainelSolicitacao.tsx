@@ -58,7 +58,15 @@ const ID_TITULO = 'titulo-solicitacao'
  * Detalhe da solicitação em painel sobre a fila (F2, plano de 16/10): endereço próprio (`/solicitacoes/{id}`), a fila
  * continua clicável embaixo e Esc fecha. Não é modal de propósito: trocar de solicitação é clicar na próxima linha.
  */
-export function PainelSolicitacao({ perfil, id }: { perfil: Perfil; id: string }) {
+export function PainelSolicitacao({
+    perfil,
+    id,
+    abrirResolucao = false,
+}: {
+    perfil: Perfil
+    id: string
+    abrirResolucao?: boolean
+}) {
     const navegar = useNavigate()
     const titulo = useRef<HTMLHeadingElement>(null)
     const consulta = useQuery(consultaSolicitacao(id))
@@ -101,7 +109,12 @@ export function PainelSolicitacao({ perfil, id }: { perfil: Perfil; id: string }
                         : mensagemDeErro(consulta.error)}
                 </Alerta>
             ) : (
-                <Detalhe solicitacao={consulta.data} perfil={perfil} refTitulo={titulo} />
+                <Detalhe
+                    solicitacao={consulta.data}
+                    perfil={perfil}
+                    refTitulo={titulo}
+                    abrirResolucao={abrirResolucao}
+                />
             )}
         </PainelLateral>
     )
@@ -110,10 +123,12 @@ export function PainelSolicitacao({ perfil, id }: { perfil: Perfil; id: string }
 function Detalhe({
     solicitacao: s,
     perfil,
+    abrirResolucao,
     refTitulo,
 }: {
     solicitacao: Solicitacao
     perfil: Perfil
+    abrirResolucao: boolean
     refTitulo: React.RefObject<HTMLHeadingElement | null>
 }) {
     const consultas = useQueryClient()
@@ -212,7 +227,15 @@ function Detalhe({
                 </p>
             </header>
 
-            {podeEditar && <AcoesStatus solicitacao={s} aoMudar={guardar} aoFalhar={falhou} />}
+            {podeEditar && (
+                <AcoesStatus
+                    solicitacao={s}
+                    aoMudar={guardar}
+                    aoFalhar={falhou}
+                    abrirResolucao={abrirResolucao}
+                    podeMexerTarefas={pode(perfil, 'tarefa.editar')}
+                />
+            )}
 
             {s.status === 'CANCELADA' && (
                 <Alerta tom="aviso">
@@ -502,12 +525,20 @@ function AcoesStatus({
     solicitacao: s,
     aoMudar,
     aoFalhar,
+    abrirResolucao,
+    podeMexerTarefas,
 }: {
     solicitacao: Solicitacao
     aoMudar: (nova: Solicitacao) => void
     aoFalhar: (erro: unknown) => void
+    abrirResolucao: boolean
+    /** `tarefa.editar`: oferece concluir ou cancelar as tarefas abertas junto (F11-11, F11-14, F11-20). */
+    podeMexerTarefas: boolean
 }) {
-    const [janela, setJanela] = useState<'resolucao' | 'reabertura' | 'cancelamento' | null>(null)
+    const [janela, setJanela] = useState<'resolucao' | 'reabertura' | 'cancelamento' | null>(() =>
+        abrirResolucao && TRANSICOES[s.status].includes('resolucao') ? 'resolucao' : null,
+    )
+    const tarefasAbertas = s.tarefas.filter((t) => t.status === 'A_FAZER' || t.status === 'FAZENDO')
     const transicao = useMutation({
         mutationFn: (t: Transicao) => transicionar(s, t),
         onSuccess: (nova) => {
@@ -562,7 +593,9 @@ function AcoesStatus({
                 aoMudar={(a) => !a && setJanela(null)}
                 ocupada={transicao.isPending}
                 erro={transicao.error}
-                aoResolver={(solucao) => transicao.mutate({ acao: 'resolucao', solucao })}
+                tarefasAbertas={tarefasAbertas}
+                podeMexerTarefas={podeMexerTarefas}
+                aoResolver={(solucao, tarefas) => transicao.mutate({ acao: 'resolucao', solucao, tarefas })}
             />
             <JanelaMotivo
                 titulo="Reabrir solicitação"
@@ -575,6 +608,9 @@ function AcoesStatus({
                 aoConfirmar={(motivo) => transicao.mutate({ acao: 'reabertura', motivo })}
             />
             <JanelaMotivo
+                tarefasAbertas={tarefasAbertas}
+                podeMexerTarefas={podeMexerTarefas}
+                acaoTarefas="CANCELAR"
                 titulo={`Cancelar a solicitação #${s.numero}?`}
                 acao="Cancelar solicitação"
                 explicacao="Cancelar é definitivo: a solicitação sai da fila e não pode ser reaberta. O cliente vê como cancelada no portal."
@@ -583,7 +619,7 @@ function AcoesStatus({
                 aoMudar={(a) => !a && setJanela(null)}
                 ocupada={transicao.isPending}
                 erro={transicao.error}
-                aoConfirmar={(motivo) => transicao.mutate({ acao: 'cancelamento', motivo })}
+                aoConfirmar={(motivo, tarefas) => transicao.mutate({ acao: 'cancelamento', motivo, tarefas })}
             />
         </div>
     )

@@ -251,6 +251,7 @@ export const SECOES_AJUDA: SecaoAjuda[] = [
             'Abra uma solicitação pelo botão "Nova solicitação" ou pelo Ctrl+K. Escolha o cliente; o contrato ativo dele define o prazo de SLA.',
             'No painel da solicitação, assuma (ou passe para alguém), mude o status e a prioridade.',
             'Converse: "Resposta ao cliente" já vem marcada, vai por e-mail e aparece no portal; "Nota interna" fica só na equipe (dá para mencionar alguém com @) e tem fundo diferente. "Enviar e aguardar o cliente" responde e já põe a solicitação esperando o retorno. A primeira resposta tira a solicitação de "Aberta". Fechada ou cancelada, só aceita nota interna, sem anexo.',
+            'Ao resolver ou cancelar, as tarefas que ainda estão abertas aparecem na janela, e dá para concluí-las ou cancelá-las junto. Criar uma tarefa tira a solicitação de "Aberta".',
             'Quando terminar, resolva. O cliente aprova a entrega pelo portal, ou a solicitação fecha sozinha depois dos dias configurados.',
             'Crie tarefas a partir da solicitação quando o trabalho tiver etapas.',
         ],
@@ -275,7 +276,8 @@ export const SECOES_AJUDA: SecaoAjuda[] = [
             'Crie uma tarefa solta, de uma solicitação ou de um projeto, com responsável, prazo, dia planejado e estimativa.',
             'No quadro, arraste o cartão entre as colunas; o aviso tem "Desfazer".',
             'No painel da tarefa: checklist, comentários com @menções, anexos e quem segue a tarefa.',
-            'Use o cronômetro da tarefa: ele fica visível na barra lateral e, ao parar, abre o apontamento já preenchido.',
+            'Use o cronômetro da tarefa: ele fica visível na barra lateral e, ao parar, abre o apontamento já preenchido. Iniciar o cronômetro põe a tarefa em "Fazendo".',
+            'Ao concluir a última tarefa de uma solicitação, o aviso oferece "Resolver" para fechar a solicitação logo em seguida.',
         ],
         dicas: [
             'Marque "O cliente vê esta tarefa" para ela aparecer como etapa no portal.',

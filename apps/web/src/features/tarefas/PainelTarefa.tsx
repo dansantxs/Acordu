@@ -9,6 +9,7 @@ import { ErroApi } from '@/shared/api/problema'
 import { avisar, avisarErro } from '@/shared/avisos/avisos'
 import { consultaEquipe } from '@/shared/equipe/consultaEquipe'
 import { formatarDuracao, lerDuracao } from '@/shared/format/duracao'
+import { useSugestaoResolucao } from '@/features/solicitacoes/sugestaoResolucao'
 import type { Perfil } from '@/shared/sessao/perfil'
 import { Alerta } from '@/shared/ui/Alerta'
 import { Botao } from '@/shared/ui/Botao'
@@ -194,7 +195,14 @@ function Detalhe({
                 </p>
             </header>
 
-            {podeEditar && <AcoesStatus tarefa={t} aoMudar={guardar} aoFalhar={falhou} />}
+            {podeEditar && (
+                <AcoesStatus
+                    tarefa={t}
+                    aoMudar={guardar}
+                    aoFalhar={falhou}
+                    podeEditarSolicitacao={pode(perfil, 'solicitacao.editar')}
+                />
+            )}
             {pode(perfil, 'apontamento.criar') && (t.status === 'A_FAZER' || t.status === 'FAZENDO') && (
                 <div>
                     <BotaoCronometro tarefaId={t.id} />
@@ -513,18 +521,23 @@ function AcoesStatus({
     tarefa: t,
     aoMudar,
     aoFalhar,
+    podeEditarSolicitacao,
 }: {
     tarefa: Tarefa
     aoMudar: (nova: Tarefa) => void
     aoFalhar: (erro: unknown) => void
+    podeEditarSolicitacao: boolean
 }) {
     const [cancelando, setCancelando] = useState(false)
+    const sugerirResolucao = useSugestaoResolucao(podeEditarSolicitacao)
     const transicao = useMutation({
         mutationFn: (acao: AcaoTarefa) => transicionarTarefa(t, acao),
         onSuccess: (nova) => {
             aoMudar(nova)
             setCancelando(false)
             avisar(`Tarefa ${STATUS_TAREFA[nova.status].toLowerCase()}.`)
+            // Era a última da solicitação? Sugere resolver (F11-15).
+            if (nova.status === 'CONCLUIDA') void sugerirResolucao(nova)
         },
     })
     const acoes = TRANSICOES_TAREFA[t.status]

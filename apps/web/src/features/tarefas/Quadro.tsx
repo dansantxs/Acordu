@@ -1,3 +1,4 @@
+import { useSugestaoResolucao } from '@/features/solicitacoes/sugestaoResolucao'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import {
     Button,
@@ -36,8 +37,19 @@ type Pagina = { itens: TarefaResumo[]; total: number | string }
  * oferece desfazer (decidido em 20/10). Cancelar fica fora do quadro. O menu "Mover para" de cada cartão faz o mesmo pelo
  * teclado e no toque.
  */
-export function Quadro({ filtros, hoje, podeEditar }: { filtros: FiltrosTarefas; hoje: string; podeEditar: boolean }) {
+export function Quadro({
+    filtros,
+    hoje,
+    podeEditar,
+    podeEditarSolicitacao = false,
+}: {
+    filtros: FiltrosTarefas
+    hoje: string
+    podeEditar: boolean
+    podeEditarSolicitacao?: boolean
+}) {
     const consultas = useQueryClient()
+    const sugerirResolucao = useSugestaoResolucao(podeEditarSolicitacao)
     const consulta = consultaQuadro(filtros)
     const quadro = useQuery({ ...consulta, refetchInterval: intervaloDePolling() })
 
@@ -58,6 +70,8 @@ export function Quadro({ filtros, hoje, podeEditar }: { filtros: FiltrosTarefas;
         onSuccess: (_, { tarefa, para, desfazendo }) => {
             void consultas.invalidateQueries({ queryKey: ['tarefas'] })
             if (desfazendo) return
+            // Concluída no quadro e era a última da solicitação: sugere resolver depois do aviso (F11-15).
+            if (para === 'CONCLUIDA') void sugerirResolucao(tarefa)
             avisar(`"${tarefa.titulo}" em ${STATUS_TAREFA[para].toLowerCase()}.`, {
                 desfazer: () =>
                     movimento.mutate({
