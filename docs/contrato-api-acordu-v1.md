@@ -334,7 +334,7 @@ Contrato de outro cliente ou não vigente → `422`. Sem `contratoId`, a API usa
     "situacao": "NO_PRAZO", "percentualConsumido": 22
   },
   "tempoApontadoMinutos": 90,
-  "tarefas": [ { "id": "t1...", "titulo": "Refazer arte", "status": "FAZENDO" } ],
+  "tarefas": [ { "id": "t1...", "titulo": "Refazer arte", "status": "FAZENDO", "projetoId": null } ],
   "solucao": null
 }
 ```
