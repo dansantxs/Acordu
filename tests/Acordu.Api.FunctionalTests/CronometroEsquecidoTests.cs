@@ -19,13 +19,17 @@ public sealed class CronometroEsquecidoTests(ApiFixture api)
         var (_, emailDono) = await PessoaAsync(equipe, equipe.Dono);
         var tarefa = await Cenarios.TarefaAsync(equipe, titulo: "Relatório mensal");
         // 10 h e meia atrás: passa do limite de 10 h, qualquer que seja o expediente.
-        await equipe.EsperarAsync(HttpStatusCode.Created, HttpMethod.Post, "/api/v1/cronometro/inicio", new
+        var criado = await equipe.EsperarAsync(HttpStatusCode.Created, HttpMethod.Post, "/api/v1/cronometro/inicio", new
         {
             tarefaId = tarefa, iniciadoEm = api.Relogio.Agora.AddMinutes(-630),
         }, membro);
+        criado.GetProperty("esquecido").GetBoolean().Should().BeTrue("o 201 traz a mesma leitura do GET");
 
         var ativo = await equipe.EsperarAsync(HttpStatusCode.OK, HttpMethod.Get, "/api/v1/cronometro", token: membro);
         ativo.GetProperty("esquecido").GetBoolean().Should().BeTrue();
+        // A sugestão só vem quando o fim do expediente já passou; aqui, pode vir nula ou um número que nunca passa do decorrido.
+        if (ativo.GetProperty("sugestaoMinutos").ValueKind == JsonValueKind.Number)
+            ativo.GetProperty("sugestaoMinutos").GetInt32().Should().BeLessThanOrEqualTo(ativo.GetProperty("decorridoMinutos").GetInt32());
 
         // Outra empresa com cronômetro esquecido: o aviso de cada uma vai só ao dono do cronômetro, no tenant dele.
         var outra = await Equipe.CriarAsync(api);
@@ -43,9 +47,14 @@ public sealed class CronometroEsquecidoTests(ApiFixture api)
         api.Emails.Para(emailDono).Should().NotContain(m => m.Categoria == "aviso-cronometro-esquecido");
         api.Emails.Para(emailOutra).Should().ContainSingle(m => m.Categoria == "aviso-cronometro-esquecido");
 
-        var sino = await equipe.EsperarAsync(HttpStatusCode.OK, HttpMethod.Get, "/api/v1/notificacoes", token: membro);
-        sino.GetProperty("itens").EnumerateArray().Should().ContainSingle(n => n.GetProperty("categoria").GetString() == "CRONOMETRO");
+        (await AvisosDeCronometroAsync(equipe, membro)).Should().Be(1);
+        (await AvisosDeCronometroAsync(equipe, equipe.Dono)).Should().Be(0);
+        (await AvisosDeCronometroAsync(outra, outra.Dono)).Should().Be(1);
     }
+
+    private static async Task<int> AvisosDeCronometroAsync(Equipe equipe, string token) =>
+        (await equipe.EsperarAsync(HttpStatusCode.OK, HttpMethod.Get, "/api/v1/notificacoes", token: token))
+            .GetProperty("itens").EnumerateArray().Count(n => n.GetProperty("categoria").GetString() == "CRONOMETRO");
 
     [Fact]
     public async Task RecemIniciado_NaoEstaEsquecido_ETickNaoAvisa()
