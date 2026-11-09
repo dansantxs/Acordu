@@ -63,12 +63,12 @@ Hoje: `POST /cronometro/inicio` começa no instante da chamada, `POST /cronometr
 
 | Id | Dado | Quando | Então | Teste |
 |---|---|---|---|---|
-| F12-20 | pessoa da equipe em Configurações > Conta | liga "Notificações neste navegador" | o navegador pede a permissão; aceita, o switch fica ligado | `conta.test › ligar pede a permissão e fica ligado…`; `navegador.test › ligar pede a permissão…` |
-| F12-21 | permissão negada no navegador | abre a configuração | o switch fica desligado, com o texto de como liberar nas configurações do navegador | `conta.test › bloqueada no navegador…`; `navegador.test › negada no navegador fica negada` |
-| F12-22 | notificações ligadas, aba aberta (mesmo minimizada) | chega um aviso novo no sino | o sistema mostra a notificação com o título do aviso, uma vez por aviso [D6] | `casca.test › com a notificação do navegador ligada, aviso novo do sino vira notificação…`; `navegador.test › mostra o aviso novo uma vez…` |
+| F12-20 | pessoa da equipe em Minha conta > Neste navegador | liga "Notificações neste navegador" | o navegador pede a permissão; aceita, o switch fica ligado | `conta.test › ligar pede a permissão e fica ligado…`; `navegador.test › ligar pede a permissão…` |
+| F12-21 | permissão negada no navegador | abre a configuração | o switch fica desligado, com o texto de como liberar nas configurações do navegador | `conta.test › bloqueada no navegador…`; `conta.test › negar na hora deixa desligada…`; `navegador.test › negada no navegador fica negada` |
+| F12-22 | notificações ligadas, aba aberta (mesmo minimizada) | chega um aviso novo no sino | o sistema mostra a notificação com o título do aviso, uma vez por aviso [D6] | `casca.test › com a notificação do navegador ligada, aviso novo do sino vira notificação…`; `casca.test › com a aba escondida, o sino continua consultando…`; `navegador.test › mostra o aviso novo uma vez…` |
 | F12-23 | idem | a pessoa clica na notificação | a aba vem para a frente e abre o item do aviso | `casca.test › … e o clique abre o item`; `navegador.test › clique foca a janela…` |
-| F12-24 | duas abas do Acordu abertas | chega um aviso | só uma notificação aparece | `navegador.test › mostra o aviso novo uma vez…` (a marca no `localStorage` é a mesma para as abas; o `tag` cobre a corrida) |
-| F12-25 | navegador sem suporte (ou contato no portal) | — | a opção não aparece; o portal não pede permissão | `conta.test › navegador sem suporte…`; o portal não tem sino nem a seção (só a casca da equipe chama `notificar`) |
+| F12-24 | duas abas do Acordu abertas | chega um aviso | só uma notificação aparece | `navegador.test › mostra o aviso novo uma vez…` (duas chamadas com o mesmo armazenamento simulam as abas; a corrida real, no mesmo instante, fica com o `tag` e não tem teste) |
+| F12-25 | navegador sem suporte (ou contato no portal) | — | a opção não aparece; o portal não pede permissão | `conta.test › navegador sem suporte…`; `portal.test › o portal não pede permissão nem mostra notificação…` |
 
 ### App instalável
 
@@ -119,7 +119,7 @@ Hoje: `POST /cronometro/inicio` começa no instante da chamada, `POST /cronometr
      - o lembrete (D4);
      - o cronômetro esquecido (D5).
 
-     Uma aba só notifica (`BroadcastChannel` mais uma trava curta), e o clique abre o item. Não precisa de servidor nem de chave. O Web Push fica para depois, com ADR.
+     Uma aba só notifica (`BroadcastChannel` mais uma trava curta; na implementação, marca no `localStorage` mais o `tag` da notificação, registro de 09/11), e o clique abre o item. Não precisa de servidor nem de chave. O Web Push fica para depois, com ADR.
    - (b) Web Push já neste marco: alcança a aba fechada, mas pede ADR, chaves, tabela e envio, e dobra o marco.
 7. **D7 — Instalação.**
    - (a) **Recomendado:** só a equipe. O conjunto tem quatro peças:
@@ -174,5 +174,5 @@ O F12a, o F12b e o F12f são independentes. O F12d e o F12e usam a notificação
 - 09/11 — o Daniel aprovou todas as recomendações (D1 a D8) e pediu o PR da spec.
 - 09/11 — F12a: o domínio não mudou (`Cronometro.Iniciar` já recebia o instante; a Application valida o limite com o relógio). "Começou às" é hora no fuso da empresa (convenções: instantes no fuso do tenant), hoje, ou ontem se ainda não chegou. A Duração vem congelada ao abrir a janela e só vai à API se a pessoa mudou o texto.
 - 09/11 — F12b: só front. "Iniciar o cronômetro" vem desmarcado (opção da pessoa), cria a tarefa e depois chama `POST /cronometro/inicio`; a falha do segundo passo não desfaz o primeiro e vira aviso.
-- 09/11 — F12c: o "switch" é o marcador "Notificações neste navegador" em Minha conta > Neste navegador. Uma aba só: em vez de `BroadcastChannel`, a marca de "já mostrada" no `localStorage` (que as abas compartilham) mais o `tag` da notificação, que faz o sistema trocar em vez de empilhar. Só avisos nascidos depois de ligar e há menos de 10 min, para reabrir o app não despejar avisos antigos. No Android, o Chrome só mostra notificação pelo service worker: lá, até o F12f, fica o sino.
+- 09/11 — F12c: o "switch" é o marcador "Notificações neste navegador" em Minha conta > Neste navegador. Uma aba só: em vez de `BroadcastChannel`, a marca de "já mostrada" no `localStorage` (que as abas compartilham) mais o `tag` da notificação, que faz o sistema trocar em vez de empilhar. Só avisos nascidos depois de ligar e há menos de 10 min, para reabrir o app não despejar avisos antigos. No Android, o Chrome só mostra notificação pelo service worker: lá, até o F12f, fica o sino. A escolha vale por pessoa e por empresa no navegador (chave com tenant e usuário), para quem entra depois no mesmo computador não herdar. Com ela ligada, o sino consulta também com a aba escondida (sem isso, o TanStack Query para e o pop-up só sairia com o app à vista). O pop-up sai também com o app visível: é o mesmo aviso do sino, e quem não quer desliga. 2 min de folga para o relógio da máquina diferente do do servidor.
 - A spec é viva: mudou o comportamento, a spec muda no mesmo PR.
