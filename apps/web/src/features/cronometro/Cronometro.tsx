@@ -39,7 +39,8 @@ async function atualizar(consultas: ReturnType<typeof useQueryClient>) {
  * e o botão de parar. Some quando não há cronômetro.
  */
 export function IndicadorCronometro() {
-    const cronometro = useQuery(consultaCronometro)
+    // Relido a cada 5 min para o "ficou ligado" (F12-17) aparecer sem recarregar a página.
+    const cronometro = useQuery({ ...consultaCronometro, refetchInterval: 5 * 60_000 })
     const agora = useAgora()
     const [parando, setParando] = useState(false)
     const c = cronometro.data
@@ -48,7 +49,9 @@ export function IndicadorCronometro() {
         <div
             role="status"
             aria-label="Cronômetro ativo"
-            className="flex items-center gap-2 rounded-couro bg-lateral-cartao px-3 py-2 text-sm text-lateral-tinta"
+            className={`flex flex-wrap items-center gap-2 rounded-couro px-3 py-2 text-sm text-lateral-tinta ${
+                c.esquecido ? 'bg-lateral-cartao ring-2 ring-ambar' : 'bg-lateral-cartao'
+            }`}
         >
             <span aria-hidden="true" className="size-2 shrink-0 animate-pulse rounded-full bg-vermelho" />
             <span className="min-w-0 flex-1">
@@ -65,8 +68,9 @@ export function IndicadorCronometro() {
                 onPress={() => setParando(true)}
                 className="rounded-couro border border-lateral-linha px-2 py-1 text-xs font-semibold hover:bg-lateral-ativo"
             >
-                Parar
+                {c.esquecido ? 'Parar e ajustar' : 'Parar'}
             </Button>
+            {c.esquecido && <span className="w-full text-xs font-semibold">Ficou ligado?</span>}
             <JanelaParada cronometro={c} aberta={parando} aoMudar={setParando} />
         </div>
     )
@@ -243,6 +247,9 @@ function FormularioParada({ cronometro: c, aoFechar }: { cronometro: Cronometro;
     const [descartando, setDescartando] = useState(false)
     // Congelado ao abrir: o campo começa com ele, e só uma mudança da pessoa manda outra duração (F12-05).
     const [minutos] = useState(() => Math.max(decorridoMinutos(c), 1))
+    // Esquecido (F12-17): o campo já vem com a duração até o fim do expediente, quando houver.
+    const sugerida = c.esquecido && c.sugestaoMinutos != null ? Math.max(Number(c.sugestaoMinutos), 1) : null
+    const inicial = formatarDuracao(sugerida ?? minutos)
     const [duracaoInvalida, setDuracaoInvalida] = useState(false)
 
     const parada = useMutation({
@@ -281,6 +288,7 @@ function FormularioParada({ cronometro: c, aoFechar }: { cronometro: Cronometro;
                     descricaoExterna: texto('descricaoExterna'),
                     faturavel,
                     visivelCliente: temCliente && visivelEfetivo,
+                    // Vai à API quando difere do decorrido: mudada pela pessoa ou a sugerida e mantida.
                     ...(escrita !== formatarDuracao(minutos) ? { duracaoMinutos: duracao } : {}),
                 })
             }}
@@ -289,6 +297,11 @@ function FormularioParada({ cronometro: c, aoFechar }: { cronometro: Cronometro;
                 Em "{c.tarefa.nome}", com a data do dia em que começou. Contou{' '}
                 <span className="font-semibold text-tinta tabular-nums">{formatarDuracao(minutos)}</span>.
             </p>
+            {sugerida && (
+                <Alerta tom="aviso">
+                    Parece que ficou ligado: a duração sugerida vai até o fim do expediente do dia em que começou.
+                </Alerta>
+            )}
             {parada.isError && <Alerta>{mensagemDeErro(parada.error)}</Alerta>}
             <div className="flex flex-col gap-1">
                 <label htmlFor="parada-duracao" className="text-sm font-semibold">
@@ -297,7 +310,7 @@ function FormularioParada({ cronometro: c, aoFechar }: { cronometro: Cronometro;
                 <input
                     id="parada-duracao"
                     name="duracao"
-                    defaultValue={formatarDuracao(minutos)}
+                    defaultValue={inicial}
                     aria-invalid={duracaoInvalida || undefined}
                     aria-describedby="parada-duracao-d"
                     className="w-32 rounded-couro border border-linha bg-superficie px-3 py-2 text-sm text-tinta tabular-nums aria-[invalid]:border-vermelho"

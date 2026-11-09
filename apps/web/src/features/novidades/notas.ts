@@ -15,6 +15,15 @@ export const NOTAS: NotaVersao[] = [
     {
         data: '2026-11-09',
         publico: 'equipe',
+        titulo: 'Cronômetro esquecido',
+        itens: [
+            'O cronômetro que ficou ligado depois do expediente (ou por mais de 10 horas) aparece em destaque com "Ficou ligado?", e parar já sugere a duração até o fim do expediente.',
+            'Você também recebe um aviso no sino e por e-mail, uma vez. O e-mail pode ser desligado em Minha conta.',
+        ],
+    },
+    {
+        data: '2026-11-09',
+        publico: 'equipe',
         titulo: 'Lembrete do cronômetro',
         itens: [
             'Em Minha conta > Neste navegador, ligue o "Lembrete do cronômetro": no expediente da empresa, o Acordu avisa quando nenhum cronômetro está rodando há 15, 30 ou 60 minutos.',
