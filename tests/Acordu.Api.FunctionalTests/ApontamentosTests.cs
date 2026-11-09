@@ -158,4 +158,102 @@ public sealed class ApontamentosTests(ApiFixture api)
         apontamento.GetProperty("descricao").GetString().Should().Be("Manutenção do servidor");
         apontamento.GetProperty("faturavel").GetBoolean().Should().BeTrue();
     }
+
+    [Fact]
+    public async Task Cronometro_ComecouAntes_DecorridoContaDesdeOInicio() // F12-01
+    {
+        var equipe = await Equipe.CriarAsync(api);
+        var tarefa = await TarefaAsync(equipe, titulo: "Revisão");
+        var inicio = api.Relogio.Agora.AddMinutes(-50);
+
+        await equipe.EsperarAsync(HttpStatusCode.Created, HttpMethod.Post, "/api/v1/cronometro/inicio", new
+        {
+            tarefaId = tarefa, iniciadoEm = inicio,
+        });
+        var ativo = await equipe.EsperarAsync(HttpStatusCode.OK, HttpMethod.Get, "/api/v1/cronometro");
+        await equipe.EsperarAsync(HttpStatusCode.NoContent, HttpMethod.Delete, "/api/v1/cronometro");
+
+        ativo.GetProperty("decorridoMinutos").GetInt32().Should().Be(50);
+        ativo.GetProperty("iniciadoEm").GetDateTimeOffset().Should().Be(inicio);
+    }
+
+    [Theory]
+    [InlineData(10, "no futuro")] // F12-02
+    [InlineData(-12 * 60 - 1, "12 horas")] // F12-03
+    public async Task Cronometro_InicioForaDoLimite_400ENadaComeca(int minutosDeAgora, string trecho)
+    {
+        var equipe = await Equipe.CriarAsync(api);
+        var tarefa = await TarefaAsync(equipe);
+
+        var problema = await equipe.EsperarAsync(HttpStatusCode.BadRequest, HttpMethod.Post, "/api/v1/cronometro/inicio", new
+        {
+            tarefaId = tarefa, iniciadoEm = api.Relogio.Agora.AddMinutes(minutosDeAgora),
+        });
+
+        problema.GetProperty("errors").GetProperty("iniciadoEm")[0].GetString().Should().Contain(trecho);
+        await equipe.EsperarAsync(HttpStatusCode.NoContent, HttpMethod.Get, "/api/v1/cronometro");
+    }
+
+    [Fact]
+    public async Task Cronometro_PararComOutraDuracao_ApontaAEscolhida() // F12-05
+    {
+        var equipe = await Equipe.CriarAsync(api);
+        var tarefa = await TarefaAsync(equipe);
+        await equipe.EsperarAsync(HttpStatusCode.Created, HttpMethod.Post, "/api/v1/cronometro/inicio", new { tarefaId = tarefa });
+        api.Relogio.Agora = api.Relogio.Agora.AddMinutes(200);
+
+        var apontamento = await equipe.EsperarAsync(HttpStatusCode.Created, HttpMethod.Post, "/api/v1/cronometro/parada", new
+        {
+            duracaoMinutos = 45,
+        });
+
+        apontamento.GetProperty("duracaoMinutos").GetInt32().Should().Be(45);
+    }
+
+    [Theory]
+    [InlineData(0)]
+    [InlineData(24 * 60 + 1)]
+    public async Task Cronometro_PararComDuracaoInvalida_400EContinuaRodando(int minutos) // F12-06
+    {
+        var equipe = await Equipe.CriarAsync(api);
+        var tarefa = await TarefaAsync(equipe);
+        await equipe.EsperarAsync(HttpStatusCode.Created, HttpMethod.Post, "/api/v1/cronometro/inicio", new { tarefaId = tarefa });
+
+        var problema = await equipe.EsperarAsync(HttpStatusCode.BadRequest, HttpMethod.Post, "/api/v1/cronometro/parada", new
+        {
+            duracaoMinutos = minutos,
+        });
+
+        problema.GetProperty("errors").TryGetProperty("duracaoMinutos", out _).Should().BeTrue();
+        await equipe.EsperarAsync(HttpStatusCode.OK, HttpMethod.Get, "/api/v1/cronometro");
+        await equipe.EsperarAsync(HttpStatusCode.NoContent, HttpMethod.Delete, "/api/v1/cronometro");
+    }
+
+    [Fact]
+    public async Task Cronometro_PararNoDiaSeguinte_ApontaNoDiaDoInicio() // F12-07
+    {
+        var equipe = await Equipe.CriarAsync(api);
+        var tarefa = await TarefaAsync(equipe);
+        // Leva o relógio às 23:30 do dia seguinte no fuso da empresa e devolve no fim (os testes da coleção são em série).
+        var antes = api.Relogio.Agora;
+        var fuso = TimeZoneInfo.FindSystemTimeZoneById("America/Sao_Paulo");
+        var local = TimeZoneInfo.ConvertTime(antes, fuso);
+        var noite = new DateTimeOffset(local.Date.AddDays(1).AddHours(23).AddMinutes(30), local.Offset);
+        JsonElement apontamento;
+        try
+        {
+            api.Relogio.Agora = noite;
+            await equipe.EsperarAsync(HttpStatusCode.Created, HttpMethod.Post, "/api/v1/cronometro/inicio", new { tarefaId = tarefa });
+            api.Relogio.Agora = noite.AddHours(2);
+            apontamento = await equipe.EsperarAsync(HttpStatusCode.Created, HttpMethod.Post, "/api/v1/cronometro/parada");
+        }
+        finally
+        {
+            api.Relogio.Agora = antes;
+        }
+
+        apontamento.GetProperty("data").GetString().Should().Be(
+            DateOnly.FromDateTime(noite.DateTime).ToString("yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture));
+        apontamento.GetProperty("duracaoMinutos").GetInt32().Should().Be(120);
+    }
 }
