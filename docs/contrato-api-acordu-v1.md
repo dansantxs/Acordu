@@ -382,11 +382,14 @@ Decidido na implementação (6d3):
 | POST | `/tarefas` | Cria (avulsa, de solicitação e/ou projeto). | `tarefa.criar` |
 | GET | `/tarefas/{id}` | Detalha, com checklist e total apontado. | `tarefa.ver` |
 | PATCH | `/tarefas/{id}` | Título, descrição, responsável, prazo, estimativa, `visivelCliente`, `planejadaPara`. | `tarefa.editar` |
+| PUT | `/tarefas/{id}/projeto` | Vincula, troca ou tira o projeto (F11d). | `tarefa.editar` |
 | POST | `/tarefas/{id}/inicio` · `/retorno` · `/conclusao` · `/reabertura` · `/cancelamento` | Transições (`/retorno`: FAZENDO → A_FAZER, 21/10). | `tarefa.editar` |
 | POST | `/tarefas/{id}/itens` | Adiciona item de checklist. | `tarefa.editar` |
 | PATCH/DELETE | `/tarefas/{id}/itens/{itemId}` | Marca/edita/remove item. | `tarefa.editar` |
 
 O quadro (kanban) é o mesmo `GET /tarefas` agrupado no front por `status`.
+
+- `PUT /tarefas/{id}/projeto` `{ "projetoId": "p1..." | null }` (`If-Match` opcional, F11-23 a F11-26) → `200` com a tarefa. O projeto precisa ser do mesmo cliente da tarefa (`422 projeto-de-outro-cliente`; tarefa sem cliente não entra em projeto) e estar EM_ANDAMENTO (`422 projeto-encerrado`); sair de um projeto encerrado pode. Projeto que não existe no tenant → `404`; tarefa CANCELADA → `422 transicao-invalida`. A tarefa continua ligada à solicitação. Apontamentos já feitos mantêm o contrato que consumiram; o progresso dos projetos (§8.2) conta as horas pela tarefa, então elas passam para o projeto novo. Fora do `PATCH` de propósito, como o contrato da solicitação. A mudança entra no feed como `TAREFA_PROJETO` (§11f).
 
 `planejadaPara` (opcional, decidido em 14/10, marco 13) é o dia em que a tarefa está planejada para ser feita: o plano da semana e a linha do tempo arrastam este dia, nunca o `prazo` combinado. Como o `PATCH` é o formulário inteiro, omitir o campo limpa o dia planejado. Volta em `GET /tarefas` e no detalhe.
 
@@ -715,7 +718,7 @@ Decidido no marco 15 (14/10):
 ```
 
 Decidido no marco 16 (14/10):
-- **Tipos:** `SOLICITACAO_ABERTA`, `SOLICITACAO_ATRIBUIDA`, `SOLICITACAO_STATUS`, `RESPOSTA_DO_CLIENTE`, `RESPOSTA_AO_CLIENTE`, `NOTA_INTERNA`, `TAREFA_CRIADA`, `TAREFA_ATRIBUIDA`, `TAREFA_STATUS` e `COMENTARIO_TAREFA`. O front monta a frase; o `alvo` traz o título **atual**. Apontamentos não entram.
+- **Tipos:** `SOLICITACAO_ABERTA`, `SOLICITACAO_ATRIBUIDA`, `SOLICITACAO_STATUS`, `RESPOSTA_DO_CLIENTE`, `RESPOSTA_AO_CLIENTE`, `NOTA_INTERNA`, `TAREFA_CRIADA`, `TAREFA_ATRIBUIDA`, `TAREFA_STATUS`, `COMENTARIO_TAREFA` e `TAREFA_PROJETO` (F11d: `detalhe.projetoDe` e `detalhe.projetoPara`, `{ id, nome }` com o nome atual, nulo = sem projeto). O front monta a frase; o `alvo` traz o título **atual**. Apontamentos não entram.
 - **Autor:** `autor` nulo = sistema (job, recorrência); `autorEhCliente` marca o contato.
 - **Filtros:** `pessoaId` filtra pelo autor da equipe; `clienteId` alimenta "Últimos movimentos" na ficha do cliente. `solicitacaoId` (19/10, F2e) traz o histórico de uma solicitação para o painel de detalhe (só a solicitação, sem as tarefas dela).
 - **Visibilidade:** cada linha só aparece para quem pode ver o alvo (solicitação ou tarefa). Alvo que não aparece mais pelos filtros some do feed. O portal não acessa.
@@ -828,7 +831,7 @@ O `tick` responde também `alertasSla` (solicitações alertadas), `tarefasRecor
 }
 ```
 
-Tipos (`type`) do v1: `validacao` (com `errors` por campo), `transicao-invalida`, `periodo-fechado`, `contrato-incoerente`, `anexo-invalido` (422: tipo não permitido, vazio, mais de 5), `anexo-grande-demais` (413), `conflito-versao`, `cronometro-ativo`, `solicitacao-encerrada` (409), `nao-encontrado`, `sem-permissao`, `email-nao-confirmado` (422: a empresa ainda não envia a terceiros, §2), `nao-autenticado` (401), `limite-requisicoes` (429), `erro-interno` (500).
+Tipos (`type`) do v1: `validacao` (com `errors` por campo), `transicao-invalida`, `periodo-fechado`, `contrato-incoerente`, `projeto-de-outro-cliente`, `projeto-encerrado` (422, F11d), `anexo-invalido` (422: tipo não permitido, vazio, mais de 5), `anexo-grande-demais` (413), `conflito-versao`, `cronometro-ativo`, `solicitacao-encerrada` (409), `nao-encontrado`, `sem-permissao`, `email-nao-confirmado` (422: a empresa ainda não envia a terceiros, §2), `nao-autenticado` (401), `limite-requisicoes` (429), `erro-interno` (500).
 
 ---
 

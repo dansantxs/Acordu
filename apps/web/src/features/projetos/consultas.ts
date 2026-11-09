@@ -60,6 +60,19 @@ export function consultaProjetos({ novo, ...filtros }: FiltrosProjetos) {
     })
 }
 
+/** Projetos em andamento do cliente (para onde a tarefa pode ir, F11-23); 200 bastam para escolher. */
+export function consultaProjetosDoCliente(clienteId: string) {
+    return queryOptions({
+        queryKey: ['projetos', 'do-cliente', clienteId],
+        queryFn: async () =>
+            (
+                await api.GET('/api/v1/projetos', {
+                    params: { query: { clienteId, status: 'EM_ANDAMENTO', pagina: 1, tamanhoPagina: 200 } },
+                })
+            ).data!.itens,
+    })
+}
+
 export function consultaProjeto(id: string) {
     return queryOptions({
         queryKey: ['projetos', 'detalhe', id],

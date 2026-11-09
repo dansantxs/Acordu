@@ -164,7 +164,7 @@ Convenções: **RF** = requisito funcional, **RNF** = não funcional. Verificaç
 **Tarefas e projetos**
 | ID | Requisito | Verif. |
 |---|---|---|
-| RF-TAR-01 | Criar tarefa (título, descrição, responsável, prazo, estimativa em horas) avulsa, vinculada a uma solicitação e/ou a um projeto. | T |
+| RF-TAR-01 | Criar tarefa (título, descrição, responsável, prazo, estimativa em horas) avulsa, vinculada a uma solicitação e/ou a um projeto. Depois de criada, a tarefa pode entrar, trocar ou sair de projeto, desde que seja um projeto em andamento do mesmo cliente (F11d). | T |
 | RF-TAR-02 | Status de tarefa: A_FAZER → FAZENDO → CONCLUIDA; CANCELADA. Visualização em lista e **quadro (kanban)**. | T |
 | RF-TAR-03 | Checklist de subitens dentro da tarefa. | D |
 | RF-TAR-04 | Marcar tarefa como **visível ao cliente** (aparece no portal quando vinculada a uma solicitação dele). | T |

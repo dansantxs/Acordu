@@ -1,6 +1,7 @@
 using System.Net;
 using System.Text.Json;
 using Acordu.Api.FunctionalTests.Apoio;
+using Acordu.Domain.Acesso;
 using static Acordu.Api.FunctionalTests.Apoio.Cenarios;
 
 namespace Acordu.Api.FunctionalTests;
@@ -108,7 +109,7 @@ public sealed class MoverTarefaProjetoTests(ApiFixture api)
         var site = await ProjetoAsync(equipe, cliente, "Site novo");
         await equipe.EsperarAsync(HttpStatusCode.Created, HttpMethod.Post, "/api/v1/papeis", new
         {
-            nome = "Só vê", permissoes = new[] { "tarefa.ver", "projeto.ver" },
+            nome = "Só vê", permissoes = new[] { Permissoes.TarefaVer, Permissoes.ProjetoVer },
         });
         var token = await equipe.ComPapelAsync("Só vê");
 
