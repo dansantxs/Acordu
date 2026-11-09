@@ -122,7 +122,7 @@ function acao(a: Atividade): string {
         case 'COMENTARIO_TAREFA':
             return 'comentou'
         case 'TAREFA_PROJETO': {
-            const nome = (r?: { nome: string } | null) => r?.nome || 'projeto removido'
+            const nome = (r?: { nome: string } | null) => r?.nome || 'sem nome'
             const de = a.detalhe?.projetoDe
             const destino = a.detalhe?.projetoPara
             if (!destino) return de ? `tirou a tarefa do projeto ${nome(de)}` : 'mudou o projeto'

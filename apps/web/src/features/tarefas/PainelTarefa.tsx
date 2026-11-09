@@ -541,9 +541,13 @@ function CampoProjeto({
     const projetos = useQuery(consultaProjetosDoCliente(clienteId))
     const emAndamento = projetos.data ?? []
     const opcoes = emAndamento.map((p) => ({ id: p.id, rotulo: p.nome }))
-    // O projeto atual pode já estar encerrado: continua na lista para o campo mostrar onde a tarefa está.
+    // O projeto atual pode já estar encerrado: continua na lista para o campo mostrar onde a tarefa está. Só se sabe
+    // que está encerrado depois que a lista chega; antes, aparece só o nome.
     if (t.projetoId && !opcoes.some((o) => o.id === t.projetoId))
-        opcoes.unshift({ id: t.projetoId, rotulo: `${t.projetoNome ?? 'Projeto'} (encerrado)` })
+        opcoes.unshift({
+            id: t.projetoId,
+            rotulo: projetos.isSuccess ? `${t.projetoNome ?? 'Projeto'} (encerrado)` : (t.projetoNome ?? 'Projeto'),
+        })
     const mudanca = useMutation({
         mutationFn: ({ base, projetoId }: { base: Tarefa; projetoId: string | null; desfazendo?: boolean }) =>
             moverTarefaDeProjeto(base, projetoId),
@@ -552,7 +556,9 @@ function CampoProjeto({
             void consultas.invalidateQueries({ queryKey: ['projetos'] })
             void consultas.invalidateQueries({ queryKey: ['tarefas', 'do-projeto'] })
             if (desfazendo) return
-            const volta = base.projetoId === null || emAndamento.some((p) => p.id === base.projetoId)
+            // Sem a lista (carregando ou falhou), oferece desfazer: se o anterior encerrou, a API recusa e o aviso explica.
+            const volta =
+                base.projetoId === null || !projetos.isSuccess || emAndamento.some((p) => p.id === base.projetoId)
             avisar(
                 nova.projetoNome ? `Projeto: ${nova.projetoNome}.` : 'Sem projeto agora.',
                 volta
@@ -567,7 +573,8 @@ function CampoProjeto({
             rotulo="Projeto"
             opcoes={opcoes}
             valor={t.projetoId}
-            aoMudar={(v) => v !== t.projetoId && mudanca.mutate({ base: t, projetoId: v })}
+            // Uma mudança por vez: a segunda iria com a versão antiga e daria 409.
+            aoMudar={(v) => v !== t.projetoId && !mudanca.isPending && mudanca.mutate({ base: t, projetoId: v })}
             vazio="Sem projeto"
         />
     )

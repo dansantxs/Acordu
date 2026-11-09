@@ -319,11 +319,13 @@ describe('detalhe da tarefa', () => {
         })
 
         it('no projeto encerrado, mostra onde está e tirar não oferece desfazer', async () => {
-            comProjetos([...EDITAR, 'projeto.ver'], { projetoId: 'p9', projetoNome: 'Antigo' })
+            const chamadas = comProjetos([...EDITAR, 'projeto.ver'], { projetoId: 'p9', projetoNome: 'Antigo' })
             await abrir(`/tarefas/${ID}`)
             const usuario = userEvent.setup()
             const aside = await painel()
             const campo = within(aside).getByRole('combobox', { name: 'Projeto' })
+            // Só depois da lista dá para saber que encerrou.
+            await vi.waitFor(() => expect(chamadas.some((c) => c.caminho === '/api/v1/projetos')).toBe(true))
             await vi.waitFor(() => expect(campo).toHaveValue('Antigo (encerrado)'))
             await usuario.click(campo)
             await usuario.click(await screen.findByRole('option', { name: 'Sem projeto' }))
