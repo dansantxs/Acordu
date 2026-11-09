@@ -7,7 +7,7 @@ namespace Acordu.Application.Common;
 public sealed class ListaDesatualizadaException : Exception
 {
     public ListaDesatualizadaException()
-        : base("A lista de tarefas abertas mudou. Recarregue e confirme de novo.")
+        : base("A lista de tarefas abertas mudou. Confira e confirme de novo.")
     {
     }
 
