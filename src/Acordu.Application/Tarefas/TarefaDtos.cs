@@ -95,3 +95,17 @@ public sealed record FiltroTarefas(
     string? Busca = null,
     bool SemResponsavel = false,
     DateTimeOffset? ConcluidaDesde = null);
+
+/// <summary>
+/// O que fazer com as tarefas abertas (A_FAZER ou FAZENDO) junto com a transição da solicitação (F11-11 a F11-14,
+/// F11-20) ou do projeto (F11-27).
+/// <see cref="Ids"/> são as que a pessoa viu: se a lista mudou no meio, <c>409 conflito-versao</c> e nada muda (F11-31).
+/// </summary>
+public sealed record TarefasAbertasRequest(AcaoTarefasAbertas Acao, IReadOnlyList<Guid>? Ids);
+
+public enum AcaoTarefasAbertas
+{
+    Manter = 0,
+    Concluir = 1,
+    Cancelar = 2,
+}
