@@ -330,10 +330,18 @@ function Detalhe({
                 aoMudar={(a) => !a && setEncerrando(null)}
                 aoConfirmar={() =>
                     encerrando &&
+                    doProjeto.isSuccess &&
                     encerramento.mutate({ acao: encerrando, ...(junto.pedido ? { tarefas: junto.pedido } : {}) })
                 }
-                ocupada={encerramento.isPending}
-                erro={encerramento.isError ? mensagemDeErro(encerramento.error) : null}
+                // Sem a lista de tarefas, a pessoa confirmaria sem ver as abertas (F11-27, F11-31).
+                ocupada={encerramento.isPending || doProjeto.isPending}
+                erro={
+                    encerramento.isError
+                        ? mensagemDeErro(encerramento.error)
+                        : doProjeto.isError
+                          ? mensagemDeErro(doProjeto.error)
+                          : null
+                }
             >
                 <p>
                     {encerrando === 'conclusao'

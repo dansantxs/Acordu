@@ -145,8 +145,6 @@ export type Transicao =
     | { acao: 'reabertura'; motivo: string }
     | { acao: 'cancelamento'; motivo: string; tarefas?: TarefasAbertas }
 
-/** O que fazer com as tarefas abertas junto com a transição (F11c); `ids`: as que a pessoa viu. */
-
 export async function transicionar(s: Solicitacao, t: Transicao): Promise<Solicitacao> {
     const opcoes = { params: { path: { id: s.id } }, ...seVersao(s.versao) }
     switch (t.acao) {

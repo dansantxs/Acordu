@@ -356,7 +356,25 @@ describe('detalhe da tarefa', () => {
                     atual = { ...atual, status: 'CONCLUIDA', versao: '5' }
                     return json(atual)
                 },
-                'GET /api/v1/projetos/p1': () => json({ id: 'p1', nome: 'Site', status: statusProjeto, versao: '2' }),
+                'GET /api/v1/projetos/p1': () =>
+                    json({
+                        id: 'p1',
+                        nome: 'Site',
+                        status: statusProjeto,
+                        versao: '2',
+                        cliente: { id: 'c1', nome: 'Padaria Bom Grão' },
+                        contratoId: null,
+                        inicio: null,
+                        prazo: null,
+                        estimativaMinutos: null,
+                        progresso: {
+                            tarefasConcluidas: 1,
+                            tarefasTotal: 1,
+                            apontadoMinutos: 0,
+                            estimativaMinutos: null,
+                        },
+                    }),
+                'GET /api/v1/projetos': () => json({ itens: [], pagina: 1, tamanhoPagina: 50, total: 0 }),
                 'GET /api/v1/tarefas': () =>
                     json({
                         itens: [
@@ -380,6 +398,7 @@ describe('detalhe da tarefa', () => {
             ).toBeInTheDocument()
             await usuario.click(screen.getByRole('button', { name: 'Concluir projeto' }))
             await vi.waitFor(() => expect(roteador.state.location.pathname).toBe('/projetos/p1'))
+            expect(await screen.findByRole('dialog', { name: 'Concluir o projeto?' })).toBeInTheDocument()
         })
 
         it.each([

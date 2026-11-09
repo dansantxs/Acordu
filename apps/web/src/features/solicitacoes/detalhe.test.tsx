@@ -391,7 +391,7 @@ describe('detalhe da solicitação', () => {
     })
 
     describe('criar projeto a partir da solicitação (F11-21, F11-22)', () => {
-        const comProjeto = (permissoes: string[]) =>
+        const comProjeto = (permissoes: string[], contratoAtivo = true) =>
             app(permissoes, {
                 [`GET /api/v1/solicitacoes/${ID}`]: () =>
                     json(
@@ -406,7 +406,9 @@ describe('detalhe da solicitação', () => {
                     ),
                 'GET /api/v1/contratos': () =>
                     json({
-                        itens: [{ id: 'k9', tipo: 'BANCO_HORAS', inicio: '2026-01-01', status: 'ATIVO' }],
+                        itens: contratoAtivo
+                            ? [{ id: 'k9', tipo: 'BANCO_HORAS', inicio: '2026-01-01', status: 'ATIVO' }]
+                            : [],
                         pagina: 1,
                         tamanhoPagina: 50,
                         total: 1,
@@ -460,13 +462,30 @@ describe('detalhe da solicitação', () => {
             expect(await screen.findByText('Projeto "Forno não liga" criado.')).toBeInTheDocument()
         })
 
-        it('sem tarefa.editar, cria sem levar tarefas', async () => {
+        it('contrato da solicitação que já não está ativo não vem sugerido', async () => {
+            // A lista de contratos ativos não traz mais o k9 da solicitação.
+            const chamadas = comProjeto([...EDITAR, 'projeto.gerenciar'], false)
+            await abrir(`/solicitacoes/${ID}`)
+            const usuario = userEvent.setup()
+            await usuario.click(within(await painel()).getByRole('button', { name: 'Criar projeto' }))
+            const janela = await screen.findByRole('dialog', { name: 'Novo projeto' })
+            await usuario.click(within(janela).getByRole('button', { name: 'Criar projeto' }))
+            await vi.waitFor(() =>
+                expect(
+                    chamadas.find((c) => c.metodo === 'POST' && c.caminho === '/api/v1/projetos')?.corpo,
+                ).toMatchObject({ contratoId: null }),
+            )
+        })
+
+        it('sem tarefa.editar, mostra as tarefas só como aviso e cria sem levá-las', async () => {
             const chamadas = comProjeto([...EDITAR, 'projeto.gerenciar'])
             await abrir(`/solicitacoes/${ID}`)
             const usuario = userEvent.setup()
             await usuario.click(within(await painel()).getByRole('button', { name: 'Criar projeto' }))
             const janela = await screen.findByRole('dialog', { name: 'Novo projeto' })
             expect(within(janela).queryByRole('checkbox', { name: 'Levar para o projeto' })).not.toBeInTheDocument()
+            expect(within(janela).getByText('Trocar resistência')).toBeInTheDocument()
+            expect(within(janela).getByText(/mudar tarefas pede outra permissão/)).toBeInTheDocument()
             await usuario.click(within(janela).getByRole('button', { name: 'Criar projeto' }))
             await vi.waitFor(() =>
                 expect(

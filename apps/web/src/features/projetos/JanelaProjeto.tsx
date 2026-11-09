@@ -25,7 +25,7 @@ export interface ProjetoDaSolicitacao {
     nome: string
     /** Abertas e sem projeto: vão marcadas com "Levar para o projeto". */
     tarefas: { id: string; titulo: string }[]
-    /** Levar tarefas pede `tarefa.editar`; sem, a lista não aparece. */
+    /** Levar tarefas pede `tarefa.editar`; sem, a lista aparece só como aviso (convenções §4). */
     podeLevarTarefas: boolean
 }
 
@@ -192,7 +192,7 @@ function Formulario({
                     </p>
                 </div>
             </div>
-            {origem?.podeLevarTarefas && origem.tarefas.length > 0 && (
+            {origem && origem.tarefas.length > 0 && (
                 <section
                     aria-label="Tarefas da solicitação"
                     className="flex flex-col gap-2 rounded-couro border border-linha p-3"
@@ -207,10 +207,18 @@ function Formulario({
                             <li key={t.id}>{t.titulo}</li>
                         ))}
                     </ul>
-                    <Marcador valor={levar} aoMudar={setLevar}>
-                        Levar para o projeto
-                    </Marcador>
-                    <p className="text-xs text-suave">Elas continuam ligadas à solicitação.</p>
+                    {origem.podeLevarTarefas ? (
+                        <>
+                            <Marcador valor={levar} aoMudar={setLevar}>
+                                Levar para o projeto
+                            </Marcador>
+                            <p className="text-xs text-suave">Elas continuam ligadas à solicitação.</p>
+                        </>
+                    ) : (
+                        <p className="text-xs text-suave">
+                            Elas ficam fora do projeto: mudar tarefas pede outra permissão.
+                        </p>
+                    )}
                 </section>
             )}
             <div className="flex justify-end gap-3">
