@@ -57,8 +57,8 @@ internal static class ApontamentosEndpoints
 
         var cronometro = interno.MapGroup("/cronometro").WithTags("Apontamentos");
 
-        cronometro.MapGet(string.Empty, async (ITenantContext contexto, IConsultasApontamento consultas, CancellationToken cancellationToken) =>
-            await consultas.CronometroAsync(contexto.Usuario(), cancellationToken) is { } ativo ? Results.Ok(ativo) : Results.NoContent())
+        cronometro.MapGet(string.Empty, async (ITenantContext contexto, LeituraCronometro leitura, CancellationToken cancellationToken) =>
+            await leitura.ObterAsync(contexto.Usuario(), cancellationToken) is { } ativo ? Results.Ok(ativo) : Results.NoContent())
             .RequirePermissao(Permissoes.ApontamentoCriar)
             .Produces<CronometroDto>();
 

@@ -125,6 +125,8 @@ internal static class CasosDeUso
         services.AddScoped<IManipuladorPosCommit<TarefaProjetoAlterado>>(sp => sp.GetRequiredService<RegistroDeAtividades>());
         services.AddScoped<IManipuladorPosCommit<ComentarioTarefaRegistrado>>(sp => sp.GetRequiredService<RegistroDeAtividades>());
         services.AddScoped<AlertasSla>();
+        services.AddScoped<AvisosCronometroEsquecido>();
+        services.AddScoped<LeituraCronometro>();
 
         // Alertas de consumo de contrato (RF-CTR-07).
         services.AddScoped<AlertasConsumo>();
