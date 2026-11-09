@@ -192,7 +192,7 @@ Convenções: **RF** = requisito funcional, **RNF** = não funcional. Verificaç
 | ID | Requisito | Verif. |
 |---|---|---|
 | RF-APT-01 | Registrar apontamento numa tarefa: data, **duração em minutos** (ou início/fim), descrição, faturável (sim/não). | T |
-| RF-APT-02 | Cronômetro na tarefa (iniciar/parar) que gera o apontamento ao parar; no máximo **um cronômetro ativo por usuário**. | T |
+| RF-APT-02 | Cronômetro na tarefa (iniciar/parar) que gera o apontamento ao parar; no máximo **um cronômetro ativo por usuário**. Pode começar num horário de até 12 h atrás e ter a duração ajustada ao parar; pode ser iniciado ao criar a tarefa; lembrete opcional no expediente e aviso de cronômetro esquecido (F12). | T |
 | RF-APT-03 | Apontamento faturável consome o **contrato da solicitação/projeto** da tarefa; sem contrato, é registrado como avulso. | T |
 | RF-APT-04 | Apontamento tem visibilidade ao cliente (padrão: visível se faturável); a descrição externa pode diferir da interna. | T |
 | RF-APT-05 | Editar/excluir apontamento apenas pelo autor ou por quem tem permissão; **período fechado** (mês já apurado e marcado como fechado pelo gestor) bloqueia edição. | T |
@@ -234,6 +234,7 @@ Convenções: **RF** = requisito funcional, **RNF** = não funcional. Verificaç
 | RF-NOT-02 | E-mail interno: nova solicitação, atribuição, SLA em risco/violado, consumo de contrato ≥ limiar. | T |
 | RF-NOT-03 | Notificações dentro do app (sino) para usuários internos. | D |
 | RF-NOT-04 | Usuário configura quais notificações por e-mail recebe (exceto as obrigatórias de conta). | D |
+| RF-NOT-05 | Notificação do sistema operacional pelo navegador, opcional por pessoa, com o app aberto (inclusive minimizado): avisos do sino, lembrete e cronômetro esquecido (F12). | D |
 
 **Dashboard interno**
 | ID | Requisito | Verif. |
@@ -285,6 +286,7 @@ Convenções: **RF** = requisito funcional, **RNF** = não funcional. Verificaç
 | RNF-POR-01 | Stack vendor-neutra (API em container OCI padrão + PostgreSQL 17 + armazenamento S3-compatível); nenhum SDK de provedor no código, configuração só por variável de ambiente; migrations aditivas. | I |
 | RNF-DIS-01 | Backup diário do banco para armazenamento de objetos fora do provedor do banco; restore testado. Anexos com cópia fora do provedor de arquivos a partir do primeiro cliente pagante (ADR 0010 §8; decidido em 03/11/2026). | D |
 | RNF-LOC-01 | Datas persistidas em UTC; exibição e cálculo de SLA no fuso do tenant. | T |
+| RNF-UX-01 | App instalável (PWA) para a equipe, com ícone próprio; o service worker não guarda respostas da API (F12). | D |
 
 ### 3.4 Requisitos de banco de dados (modelo lógico)
 

@@ -2,9 +2,9 @@
 
 | | |
 |---|---|
-| **Status** | Rascunho |
+| **Status** | Aprovada |
 | **Data** | 09/11/2026 |
-| **Requisitos** | RF-APT-01, RF-APT-02, RF-NOT-03 (ERS); mudanças propostas na §5 |
+| **Requisitos** | RF-APT-01, RF-APT-02, RF-NOT-03, RF-NOT-05, RNF-UX-01 (ERS) |
 | **ADRs** | 0003 (horas úteis e expediente), 0004 (tempo em minutos), 0009 (tempo real, emenda do polling), 0010 (hospedagem) |
 
 ## 1. Objetivo
@@ -140,7 +140,7 @@ Hoje: `POST /cronometro/inicio` começa no instante da chamada, `POST /cronometr
   - RF-APT-02 ganha "iniciar com horário anterior (até 12 h) e ajustar a duração ao parar; iniciar ao criar a tarefa; lembrete opcional no expediente; aviso de cronômetro esquecido".
   - **RF-NOT-05 (novo):** "Notificação do sistema operacional pelo navegador, opcional por pessoa, com o app aberto".
   - **RNF-UX-01 (novo):** "App instalável (PWA) para a equipe, sem dados em cache".
-  - São mudanças propostas, que entram no PR da spec.
+  - Já atualizados no PR da spec.
 - **Contrato da API:**
   - `POST /cronometro/inicio` com `iniciadoEm` opcional;
   - `POST /cronometro/parada` com `duracaoMinutos` opcional e a data do apontamento pelo início;
@@ -171,4 +171,5 @@ O F12a, o F12b e o F12f são independentes. O F12d e o F12e usam a notificação
 ## 7. Registro
 
 - 09/11 — rascunho a partir do pedido do Daniel de 06/11 (cronômetro, pop-up do Windows com a aba minimizada, "baixar o sistema como o YouTube permite"; "pode incluir").
+- 09/11 — o Daniel aprovou todas as recomendações (D1 a D8) e pediu o PR da spec.
 - A spec é viva: mudou o comportamento, a spec muda no mesmo PR.
