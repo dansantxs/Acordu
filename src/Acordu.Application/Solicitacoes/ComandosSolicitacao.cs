@@ -3,6 +3,7 @@ using Acordu.Application.Anexos;
 using Acordu.Application.Colaboracao;
 using Acordu.Application.Common;
 using Acordu.Application.Contratos;
+using Acordu.Application.Tarefas;
 using Acordu.Domain.Acesso;
 using Acordu.Domain.Entities;
 using Acordu.Domain.Enums;
@@ -35,6 +36,7 @@ public sealed class ComandosSolicitacao
     private readonly IControleVersao _versoes;
     private readonly RecebimentoAnexos _anexos;
     private readonly ValidacaoMencoes _mencoes;
+    private readonly TarefasAbertas _tarefasAbertas;
 
     public ComandosSolicitacao(
         ITenantContext contexto,
@@ -51,12 +53,15 @@ public sealed class ComandosSolicitacao
         IUnitOfWork unidade,
         IControleVersao versoes,
         RecebimentoAnexos anexos,
-        ValidacaoMencoes mencoes)
+        ValidacaoMencoes mencoes,
+        TarefasAbertas tarefasAbertas)
     {
         ArgumentNullException.ThrowIfNull(anexos);
         ArgumentNullException.ThrowIfNull(mencoes);
         _anexos = anexos;
         _mencoes = mencoes;
+        ArgumentNullException.ThrowIfNull(tarefasAbertas);
+        _tarefasAbertas = tarefasAbertas;
         ArgumentNullException.ThrowIfNull(contexto);
         ArgumentNullException.ThrowIfNull(solicitacoes);
         ArgumentNullException.ThrowIfNull(clientes);
@@ -183,19 +188,34 @@ public sealed class ComandosSolicitacao
     public Task RetomarAsync(Guid id, string? versao, CancellationToken cancellationToken = default) =>
         TransicaoAsync(id, versao, (s, agora, calendario) => s.Retomar(agora, calendario), cancellationToken);
 
-    public Task ResolverAsync(Guid id, SolucaoDto? solucao, string? versao, CancellationToken cancellationToken = default)
+    public async Task ResolverAsync(
+        Guid id, SolucaoDto? solucao, string? versao, TarefasAbertasRequest? tarefas = null,
+        CancellationToken cancellationToken = default)
     {
         if (solucao is null)
             throw ErroDeCampo.Criar("solucao", "A solução é obrigatória para resolver.");
         var valor = new Solucao(solucao.Texto, solucao.Problema, solucao.Causa);
-        return TransicaoAsync(id, versao, (s, agora, calendario) => s.Resolver(valor, agora, calendario), cancellationToken);
+        var solicitacao = await CarregarAsync(id, Permissoes.SolicitacaoEditar, versao, cancellationToken);
+        var agora = _relogio.Agora;
+        // Tudo numa transação (F11-12): se uma tarefa não pode concluir, a solicitação também não resolve.
+        await _tarefasAbertas.AplicarAsync(id, tarefas, AcaoTarefasAbertas.Concluir, agora, cancellationToken);
+        solicitacao.Resolver(valor, agora, await _calendarios.DoTenantAsync(cancellationToken));
+        await _unidade.SalvarAsync(cancellationToken);
     }
 
     public Task ReabrirAsync(Guid id, string motivo, string? versao, CancellationToken cancellationToken = default) =>
         TransicaoAsync(id, versao, (s, agora, calendario) => s.Reabrir(motivo, agora, calendario), cancellationToken);
 
-    public Task CancelarAsync(Guid id, string motivo, string? versao, CancellationToken cancellationToken = default) =>
-        TransicaoAsync(id, versao, (s, agora, _) => s.Cancelar(motivo, agora), cancellationToken);
+    public async Task CancelarAsync(
+        Guid id, string motivo, string? versao, TarefasAbertasRequest? tarefas = null,
+        CancellationToken cancellationToken = default)
+    {
+        var solicitacao = await CarregarAsync(id, Permissoes.SolicitacaoEditar, versao, cancellationToken);
+        var agora = _relogio.Agora;
+        await _tarefasAbertas.AplicarAsync(id, tarefas, AcaoTarefasAbertas.Cancelar, agora, cancellationToken);
+        solicitacao.Cancelar(motivo, agora);
+        await _unidade.SalvarAsync(cancellationToken);
+    }
 
     /// <summary>
     /// Comentário da equipe, com anexos opcionais (enviados ao storage antes; descartados se a gravação falhar).

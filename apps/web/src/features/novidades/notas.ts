@@ -15,6 +15,16 @@ export const NOTAS: NotaVersao[] = [
     {
         data: '2026-11-09',
         publico: 'equipe',
+        titulo: 'Solicitação e tarefas andam juntas',
+        itens: [
+            'Ao resolver uma solicitação, as tarefas que ainda estão abertas aparecem na janela e podem ser concluídas junto. Ao cancelar, podem ser canceladas junto.',
+            'Concluiu a última tarefa de uma solicitação? O aviso oferece "Resolver" na hora.',
+            'Criar uma tarefa numa solicitação ou iniciar o cronômetro já mostra que o trabalho começou: a solicitação sai de "Aberta" e a tarefa vai para "Fazendo".',
+        ],
+    },
+    {
+        data: '2026-11-09',
+        publico: 'equipe',
         titulo: 'Solicitação encerrada é encerrada',
         itens: [
             'Solicitação fechada ou cancelada não recebe mais resposta ao cliente nem anexo. A nota interna continua, para registros como "o cliente ligou agradecendo".',

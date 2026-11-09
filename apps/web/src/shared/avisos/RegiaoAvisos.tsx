@@ -36,6 +36,17 @@ export function RegiaoAvisos() {
                             Desfazer
                         </Button>
                     )}
+                    {toast.content.acao && (
+                        <Button
+                            onPress={() => {
+                                filaDeAvisos.close(toast.key)
+                                void toast.content.acao?.executar()
+                            }}
+                            className="font-semibold text-acento-texto underline underline-offset-4"
+                        >
+                            {toast.content.acao.rotulo}
+                        </Button>
+                    )}
                     <Button
                         slot="close"
                         aria-label="Fechar"

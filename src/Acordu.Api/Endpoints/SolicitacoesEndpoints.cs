@@ -88,7 +88,7 @@ internal static class SolicitacoesEndpoints
             Guid id, ResolucaoRequest corpo, HttpRequest requisicao, ComandosSolicitacao comandos, IConsultasSolicitacao consultas,
             CancellationToken cancellationToken) =>
         {
-            await comandos.ResolverAsync(id, corpo.Solucao, Versoes.IfMatch(requisicao), cancellationToken);
+            await comandos.ResolverAsync(id, corpo.Solucao, Versoes.IfMatch(requisicao), corpo.Tarefas, cancellationToken);
             return Results.Ok(await DetalheAsync(consultas, id, cancellationToken));
         })
             .RequirePermissao(Permissoes.SolicitacaoEditar)
@@ -105,10 +105,10 @@ internal static class SolicitacoesEndpoints
             .Produces<SolicitacaoDto>();
 
         solicitacoes.MapPost("/{id:guid}/cancelamento", async (
-            Guid id, MotivoRequest corpo, HttpRequest requisicao, ComandosSolicitacao comandos, IConsultasSolicitacao consultas,
+            Guid id, CancelamentoRequest corpo, HttpRequest requisicao, ComandosSolicitacao comandos, IConsultasSolicitacao consultas,
             CancellationToken cancellationToken) =>
         {
-            await comandos.CancelarAsync(id, corpo.Motivo, Versoes.IfMatch(requisicao), cancellationToken);
+            await comandos.CancelarAsync(id, corpo.Motivo, Versoes.IfMatch(requisicao), corpo.Tarefas, cancellationToken);
             return Results.Ok(await DetalheAsync(consultas, id, cancellationToken));
         })
             .RequirePermissao(Permissoes.SolicitacaoEditar)

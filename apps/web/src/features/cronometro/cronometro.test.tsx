@@ -36,8 +36,8 @@ const tarefa = {
     projetoNome: null,
 }
 
-const app = (rotas: Rotas) =>
-    comPerfil(['tarefa.ver', 'apontamento.criar'], {
+const app = (rotas: Rotas, extras: string[] = []) =>
+    comPerfil(['tarefa.ver', 'apontamento.criar', ...extras], {
         'GET /api/v1/tarefas': () => json({ itens: [], pagina: 1, tamanhoPagina: 50, total: 0 }),
         [`GET /api/v1/tarefas/${ID}`]: () => json(tarefa),
         [`GET /api/v1/tarefas/${ID}/comentarios`]: () => json([]),
@@ -70,6 +70,31 @@ describe('cronômetro', () => {
         expect(chamadas.find((c) => c.caminho === '/api/v1/cronometro/inicio')?.corpo).toEqual({ tarefaId: ID })
         expect(within(await indicador()).getByRole('link', { name: 'Trocar resistência' })).toBeInTheDocument()
         expect(await within(aside).findByRole('button', { name: /Parar cronômetro · 0min/ })).toBeInTheDocument()
+    })
+
+    it('iniciar numa tarefa a fazer recarrega a tarefa, que passou a fazendo (F11-19)', async () => {
+        let ativo: ReturnType<typeof cronometro> | null = null
+        let atual = { ...tarefa, status: 'A_FAZER' }
+        app(
+            {
+                [`GET /api/v1/tarefas/${ID}`]: () => json(atual),
+                'GET /api/v1/cronometro': () => (ativo ? json(ativo) : semCronometro()),
+                'POST /api/v1/cronometro/inicio': () => {
+                    ativo = cronometro(undefined, 0)
+                    atual = { ...tarefa, status: 'FAZENDO', versao: '4' }
+                    return json(ativo, 201)
+                },
+            },
+            ['tarefa.editar'],
+        )
+        await abrir(`/tarefas/${ID}`)
+        const usuario = userEvent.setup()
+        const aside = await screen.findByRole('complementary', { name: 'Trocar resistência' })
+        expect(await within(aside).findByRole('button', { name: 'Iniciar' })).toBeInTheDocument()
+
+        await usuario.click(await within(aside).findByRole('button', { name: 'Iniciar cronômetro' }))
+        expect(await within(aside).findByRole('button', { name: 'Concluir' })).toBeInTheDocument()
+        expect(within(aside).queryByRole('button', { name: 'Iniciar' })).not.toBeInTheDocument()
     })
 
     it('parar abre o formulário preenchido; sem faturável, desmarca o visível', async () => {

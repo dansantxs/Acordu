@@ -4,6 +4,7 @@ import { useCallback, useEffect, useId, useRef, useState, type FormEvent } from 
 import { Button, Checkbox, Form, Switch } from 'react-aria-components'
 import { pode } from '@/features/casca/navegacao'
 import { opcional } from '@/features/clientes/consultas'
+import { useSugestaoResolucao } from '@/features/solicitacoes/sugestaoResolucao'
 import { errosDeCampo, mensagemDeErro } from '@/shared/api/mensagens'
 import { ErroApi } from '@/shared/api/problema'
 import { avisar, avisarErro } from '@/shared/avisos/avisos'
@@ -194,7 +195,14 @@ function Detalhe({
                 </p>
             </header>
 
-            {podeEditar && <AcoesStatus tarefa={t} aoMudar={guardar} aoFalhar={falhou} />}
+            {podeEditar && (
+                <AcoesStatus
+                    tarefa={t}
+                    aoMudar={guardar}
+                    aoFalhar={falhou}
+                    podeEditarSolicitacao={pode(perfil, 'solicitacao.editar')}
+                />
+            )}
             {pode(perfil, 'apontamento.criar') && (t.status === 'A_FAZER' || t.status === 'FAZENDO') && (
                 <div>
                     <BotaoCronometro tarefaId={t.id} />
@@ -513,18 +521,23 @@ function AcoesStatus({
     tarefa: t,
     aoMudar,
     aoFalhar,
+    podeEditarSolicitacao,
 }: {
     tarefa: Tarefa
     aoMudar: (nova: Tarefa) => void
     aoFalhar: (erro: unknown) => void
+    podeEditarSolicitacao: boolean
 }) {
     const [cancelando, setCancelando] = useState(false)
+    const sugerirResolucao = useSugestaoResolucao(podeEditarSolicitacao)
     const transicao = useMutation({
         mutationFn: (acao: AcaoTarefa) => transicionarTarefa(t, acao),
         onSuccess: (nova) => {
             aoMudar(nova)
             setCancelando(false)
             avisar(`Tarefa ${STATUS_TAREFA[nova.status].toLowerCase()}.`)
+            // Era a última da solicitação? Sugere resolver (F11-15).
+            if (nova.status === 'CONCLUIDA') void sugerirResolucao(nova)
         },
     })
     const acoes = TRANSICOES_TAREFA[t.status]

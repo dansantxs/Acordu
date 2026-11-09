@@ -9,7 +9,8 @@ public sealed record TarefaConcluida(
     Guid TarefaId, Guid TenantId, Guid? ClienteId, Guid? SolicitacaoId, Guid? ProjetoId) : IEventoDominio;
 
 /// <summary>Tarefa criada (pela equipe ou por recorrência). Reação: seguimento automático do responsável (RF-COL-03).</summary>
-public sealed record TarefaCriada(Guid TarefaId, Guid TenantId, Guid? ResponsavelId) : IEventoDominio;
+// SolicitacaoId (F11-18, F11-19): a tarefa da solicitação a põe EM_ANDAMENTO; opcional para a outbox antiga.
+public sealed record TarefaCriada(Guid TarefaId, Guid TenantId, Guid? ResponsavelId, Guid? SolicitacaoId = null) : IEventoDominio;
 
 /// <summary>Responsável trocado. Reação: o novo responsável passa a seguir a tarefa (RF-COL-03).</summary>
 public sealed record TarefaAtribuida(Guid TarefaId, Guid TenantId, Guid? ResponsavelId, Guid? Anterior) : IEventoDominio;
@@ -18,7 +19,8 @@ public sealed record TarefaAtribuida(Guid TarefaId, Guid TenantId, Guid? Respons
 /// Toda transição de status. <see cref="Ocorrencia"/> distingue transições repetidas (concluir, reabrir, concluir) na
 /// idempotência do aviso aos seguidores (RF-COL-03).
 /// </summary>
-public sealed record TarefaStatusAlterada(Guid TarefaId, Guid TenantId, StatusTarefa De, StatusTarefa Para, Guid Ocorrencia)
+public sealed record TarefaStatusAlterada(
+    Guid TarefaId, Guid TenantId, StatusTarefa De, StatusTarefa Para, Guid Ocorrencia, Guid? SolicitacaoId = null)
     : IEventoDominio;
 
 /// <summary>Comentário registrado numa tarefa. Reação: seguir (o autor) e avisar quem segue (RF-COL-03).</summary>

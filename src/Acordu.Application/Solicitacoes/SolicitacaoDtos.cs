@@ -87,7 +87,24 @@ public sealed record NovaSolicitacaoRequest(
 public sealed record EdicaoSolicitacaoRequest(
     string Titulo, string? Descricao, Prioridade Prioridade, Guid? CategoriaId, Guid? ResponsavelId);
 
-public sealed record ResolucaoRequest(SolucaoDto? Solucao);
+/// <summary>
+/// O que fazer com as tarefas abertas (A_FAZER ou FAZENDO) junto com a transição (F11-11 a F11-14, F11-20).
+/// <see cref="Ids"/> são as que a pessoa viu: se a lista mudou no meio, <c>409 conflito-versao</c> e nada muda (F11-31).
+/// </summary>
+public sealed record TarefasAbertasRequest(AcaoTarefasAbertas Acao, IReadOnlyList<Guid>? Ids);
+
+public enum AcaoTarefasAbertas
+{
+    Manter = 0,
+    Concluir = 1,
+    Cancelar = 2,
+}
+
+/// <summary>Resolver; <see cref="Tarefas"/>: só <c>MANTER</c> (padrão) ou <c>CONCLUIR</c>.</summary>
+public sealed record ResolucaoRequest(SolucaoDto? Solucao, TarefasAbertasRequest? Tarefas = null);
+
+/// <summary>Cancelar; <see cref="Tarefas"/>: só <c>MANTER</c> (padrão) ou <c>CANCELAR</c>.</summary>
+public sealed record CancelamentoRequest(string Motivo, TarefasAbertasRequest? Tarefas = null);
 
 public sealed record MotivoRequest(string Motivo);
 

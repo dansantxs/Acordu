@@ -65,10 +65,14 @@ internal static class CasosDeUso
         services.AddScoped<ComandosPapel>();
         services.AddScoped<FechamentoAutomatico>();
         services.AddScoped<ComandosPortal>();
+        services.AddScoped<TarefasAbertas>();
         services.AddScoped<LeituraPortal>();
 
         // Reações de estado na mesma transação (modelo §7).
         services.AddScoped<IManipuladorEvento<InteracaoRegistrada>, PrimeiraRespostaERetomada>();
+        services.AddScoped<AndamentoPelaTarefa>();
+        services.AddScoped<IManipuladorEvento<TarefaCriada>>(sp => sp.GetRequiredService<AndamentoPelaTarefa>());
+        services.AddScoped<IManipuladorEvento<TarefaStatusAlterada>>(sp => sp.GetRequiredService<AndamentoPelaTarefa>());
         // Auditoria de status e responsável da solicitação, por qualquer caminho (ADR 0008).
         services.AddScoped<AuditoriaDeSolicitacoes>();
         services.AddScoped<IManipuladorEvento<SolicitacaoStatusAlterado>>(sp => sp.GetRequiredService<AuditoriaDeSolicitacoes>());

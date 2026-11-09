@@ -34,11 +34,19 @@ public sealed class AtividadesTests(ApiFixture api)
         var daSolicitacao = await equipe.EsperarAsync(
             HttpStatusCode.OK, HttpMethod.Get, $"/api/v1/atividades?solicitacaoId={solicitacao}");
 
-        Tipos(feed).Should().Equal(
-            "TAREFA_CRIADA", "COMENTARIO_TAREFA", "TAREFA_STATUS", "TAREFA_CRIADA", "NOTA_INTERNA", "SOLICITACAO_ABERTA");
-        Tipos(doCliente).Should().Equal("COMENTARIO_TAREFA", "TAREFA_STATUS", "TAREFA_CRIADA", "NOTA_INTERNA", "SOLICITACAO_ABERTA");
-        Tipos(minhas).Should().HaveCount(6);
-        Tipos(daSolicitacao).Should().Equal("NOTA_INTERNA", "SOLICITACAO_ABERTA");
+        // A tarefa criada na solicitação ABERTA a põe EM_ANDAMENTO (F11-18): o feed ganha o SOLICITACAO_STATUS, gravado
+        // na mesma transação e no mesmo instante da TAREFA_CRIADA; entre os dois, a ordem não é garantida.
+        string[] MesmoInstante(IEnumerable<string> tipos) => tipos.Skip(3).Take(2).Order(StringComparer.Ordinal).ToArray();
+        Tipos(feed).Should().HaveCount(7);
+        Tipos(feed).Take(3).Should().Equal("TAREFA_CRIADA", "COMENTARIO_TAREFA", "TAREFA_STATUS");
+        MesmoInstante(Tipos(feed)).Should().Equal("SOLICITACAO_STATUS", "TAREFA_CRIADA");
+        Tipos(feed).Skip(5).Should().Equal("NOTA_INTERNA", "SOLICITACAO_ABERTA");
+        Tipos(doCliente).Should().HaveCount(6);
+        Tipos(doCliente).Take(2).Should().Equal("COMENTARIO_TAREFA", "TAREFA_STATUS");
+        Tipos(doCliente).Skip(2).Take(2).Should().BeEquivalentTo("SOLICITACAO_STATUS", "TAREFA_CRIADA");
+        Tipos(doCliente).Skip(4).Should().Equal("NOTA_INTERNA", "SOLICITACAO_ABERTA");
+        Tipos(minhas).Should().HaveCount(7);
+        Tipos(daSolicitacao).Should().Equal("SOLICITACAO_STATUS", "NOTA_INTERNA", "SOLICITACAO_ABERTA");
         feed.GetProperty("proximo").ValueKind.Should().Be(JsonValueKind.Null);
         var status = feed.GetProperty("itens")[2];
         status.GetProperty("autor").GetProperty("id").GetGuid().Should().Be(eu);

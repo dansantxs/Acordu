@@ -53,16 +53,16 @@ As letras entre colchetes ligam o cenário à decisão da §5 de que ele depende
 
 | Id | Dado | Quando | Então | Teste |
 |---|---|---|---|---|
-| F11-11 | solicitação com tarefas A_FAZER ou FAZENDO | a pessoa abre "Resolver" | a janela lista as tarefas abertas e oferece "Concluir as tarefas abertas junto" (marcado) e "Deixar abertas" [D2] | — |
-| F11-12 | F11-11 com "Concluir junto" | confirma | numa só transação, as tarefas abertas vão para CONCLUIDA (as A_FAZER passam por FAZENDO, como no quadro) e a solicitação para RESOLVIDA; se uma falhar, nada muda [D2] | — |
-| F11-13 | F11-11 com "Deixar abertas" | confirma | a solicitação resolve e as tarefas ficam como estão, como hoje [D2] | — |
-| F11-14 | quem resolve não tem `tarefa.editar` | abre "Resolver" | vê a lista como aviso, sem a opção de concluir junto, e pode resolver [D2] | — |
-| F11-15 | solicitação ABERTA, EM_ANDAMENTO ou AGUARDANDO_* com mais de uma tarefa, só uma aberta | a pessoa conclui essa última tarefa (painel ou quadro) | aparece "Era a última tarefa da solicitação #N. Resolver a solicitação agora?" com o botão "Resolver", que abre a janela de resolução já com a solução para preencher [D3] | — |
-| F11-16 | F11-15 | a pessoa ignora o aviso | nada muda na solicitação [D3] | — |
-| F11-17 | F11-15 e quem conclui não tem `solicitacao.editar` | conclui | o aviso não aparece [D3] | — |
-| F11-18 | solicitação ABERTA | uma tarefa é criada nela | a solicitação passa a EM_ANDAMENTO [D7-a] | — |
-| F11-19 | tarefa A_FAZER | o cronômetro é iniciado nela | a tarefa passa a FAZENDO e, se for de solicitação ABERTA, a solicitação passa a EM_ANDAMENTO [D7-b] | — |
-| F11-20 | solicitação com tarefas abertas | a pessoa cancela a solicitação | a janela lista as tarefas abertas e oferece "Cancelar as tarefas junto" (marcado), na mesma transação; sem `tarefa.editar`, só o aviso [D7-d] | — |
+| F11-11 | solicitação com tarefas A_FAZER ou FAZENDO | a pessoa abre "Resolver" | a janela lista as tarefas abertas e oferece "Concluir as tarefas abertas junto" (marcado) e "Deixar abertas" [D2] | `detalhe.test › lista as abertas e conclui junto, marcado por padrão` |
+| F11-12 | F11-11 com "Concluir junto" | confirma | numa só transação, as tarefas abertas vão para CONCLUIDA (as A_FAZER passam por FAZENDO, como no quadro) e a solicitação para RESOLVIDA; se uma falhar, nada muda [D2] | `SolicitacaoETarefasTests › Resolver_ConcluirTarefasJunto_TudoMuda`; `Cancelar_SolicitacaoRecusaDepoisDasTarefas_NadaMuda` (atomicidade) |
+| F11-13 | F11-11 com "Deixar abertas" | confirma | a solicitação resolve e as tarefas ficam como estão, como hoje [D2] | `SolicitacaoETarefasTests › Resolver_ManterTarefas_ComoHoje`; `detalhe.test › desmarcado, mantém as tarefas` |
+| F11-14 | quem resolve não tem `tarefa.editar` | abre "Resolver" | vê a lista como aviso, sem a opção de concluir junto, e pode resolver [D2] | `SolicitacaoETarefasTests › Resolver_ConcluirSemTarefaEditar_403ENadaMuda`; `detalhe.test › sem tarefa.editar, só avisa` |
+| F11-15 | solicitação ABERTA, EM_ANDAMENTO ou AGUARDANDO_* com mais de uma tarefa, só uma aberta | a pessoa conclui essa última tarefa (painel ou quadro) | aparece "Era a última tarefa da solicitação #N. Resolver a solicitação agora?" com o botão "Resolver", que abre a janela de resolução já com a solução para preencher [D3] | `painel.test › sugere resolver, e o botão leva à janela de resolução`; `painel.test › com outra tarefa ainda aberta…`; `tarefas.test › concluir no quadro a última tarefa…`; `detalhe.test › com ?resolver=true…` |
+| F11-16 | F11-15 | a pessoa ignora o aviso | nada muda na solicitação [D3] | `painel.test › sugere resolver…` (nenhum POST /resolucao; o aviso só navega se clicado) |
+| F11-17 | F11-15 e quem conclui não tem `solicitacao.editar` | conclui | o aviso não aparece [D3] | `painel.test › sem editar a solicitação (F11-17), não sugere`; `… com ela já resolvida, não sugere` |
+| F11-18 | solicitação ABERTA | uma tarefa é criada nela | a solicitação passa a EM_ANDAMENTO [D7-a] | `SolicitacaoETarefasTests › CriarTarefa_SolicitacaoAberta_PassaAEmAndamento` |
+| F11-19 | tarefa A_FAZER | o cronômetro é iniciado nela | a tarefa passa a FAZENDO e, se for de solicitação ABERTA, a solicitação passa a EM_ANDAMENTO [D7-b] | `SolicitacaoETarefasTests › IniciarCronometro_TarefaAFazer_PassaAFazendo`; `AndamentoPelaTarefaTests › TarefaAFazendoNaAberta_PassaAEmAndamento`; `cronometro.test › iniciar numa tarefa a fazer recarrega a tarefa…` |
+| F11-20 | solicitação com tarefas abertas | a pessoa cancela a solicitação | a janela lista as tarefas abertas e oferece "Cancelar as tarefas junto" (marcado), na mesma transação; sem `tarefa.editar`, só o aviso [D7-d] | `SolicitacaoETarefasTests › Cancelar_CancelarTarefasJunto`; `detalhe.test › cancelar oferece cancelar as tarefas junto` |
 
 ### Projeto
 
@@ -81,9 +81,9 @@ As letras entre colchetes ligam o cenário à decisão da §5 de que ele depende
 
 | Id | Dado | Quando | Então | Teste |
 |---|---|---|---|---|
-| F11-29 | tarefa ou projeto de outro tenant | qualquer ação deste marco cita o Id | 404, como em todo o resto (ADR 0002) | — |
+| F11-29 | tarefa ou projeto de outro tenant | qualquer ação deste marco cita o Id | solicitação ou projeto de outro tenant: 404, como em todo o resto (ADR 0002); tarefa de outro tenant na lista da ação conjunta: a lista não confere e dá 409 (F11-31), sem revelar nada | `SolicitacaoETarefasTests › Resolver_TarefaDeOutroTenantNaLista_409SemRevelar` |
 | F11-30 | contato do portal | tenta qualquer rota de equipe deste marco | 403/404 como hoje; no portal, só o F11-08 se aplica | `AutenticacaoTests › Cliente_403NaRotaInterna_200NoPortal_ETrocaDeTenant` (sem mudança neste marco) |
-| F11-31 | ação conjunta (F11-12, F11-20, F11-27) com uma tarefa alterada por outra pessoa no meio | confirma | 412 pela versão da tarefa, nada muda, e a janela recarrega a lista | — |
+| F11-31 | ação conjunta (F11-12, F11-20, F11-27) com uma tarefa alterada por outra pessoa no meio | confirma | `409 conflito-versao`, nada muda, e a janela recarrega a lista | `SolicitacaoETarefasTests › Resolver_ListaDeTarefasMudou_409ENadaMuda`; `detalhe.test › lista mudou no meio…` |
 
 ## 4. Fora de escopo
 
@@ -174,3 +174,4 @@ O F11a e o F11b são independentes e podem sair primeiro. O F11e depende do F11d
 - 06/11 — o Daniel aprovou todas as recomendações (D1 a D7) e pediu o PR da spec.
 - 06/11 — F11a: na API, sem `visibilidade`, continua INTERNA (compatível); o padrão novo é da tela. "Enviar e aguardar" manda um só e-mail ao contato (o da mensagem, com assunto de espera), decidido pelo pedido da própria ação (`InteracaoRegistrada.PedeRetorno`), não pelo status lido depois. Encerrada (FECHADA/CANCELADA) já abre em nota interna; o bloqueio completo vem no F11b. A transição automática gera, como qualquer mudança de status, o aviso aos seguidores e a linha no histórico.
 - 09/11 — F11b: no portal, RESOLVIDA aparece como "Concluída" para quem não aprova, e o status externo não a separa da FECHADA; o detalhe do portal ganhou `encerrada`, e a caixa de mensagem fica aberta na RESOLVIDA (antes sumia), como pede o F11-10. "Nova solicitação" aparece para quem tem `portal.solicitacao.criar` (a sessão de link não tem); no link, a orientação é falar com a equipe. Limitação conhecida: a checagem de encerrada e a gravação da interação não travam a versão da solicitação, então um cancelamento no mesmo instante pode deixar passar uma resposta (risco baixo, sem tratamento).
+- 09/11 — F11c: a lista desatualizada (F11-31) responde `409 conflito-versao`, como a versão divergente do resto da API, e não 412 como estava escrito. No F11-29, um id de outro tenant na lista não aparece como 404, e sim como lista diferente (409), sem revelar nada; a solicitação de outro tenant continua 404. A sugestão do F11-15 vale também com uma tarefa só (é a última aberta). Os eventos `TarefaCriada` e `TarefaStatusAlterada` passaram a levar o `SolicitacaoId` (opcional, compatível com a outbox). Efeitos automáticos não pedem a permissão do alvo: `tarefa.criar` ou `apontamento.criar` bastam para tirar a solicitação de ABERTA, e `apontamento.criar` põe a tarefa em FAZENDO (segurança §3.3). Concluir junto uma tarefa A_FAZER gera duas mudanças de status (FAZENDO e CONCLUIDA), com dois avisos e duas linhas no histórico, como no quadro. Limitações conhecidas: criar tarefa e iniciar o cronômetro agora gravam também a solicitação, então duas ações ao mesmo tempo na mesma solicitação ABERTA podem dar 409 (risco baixo); numa solicitação já resolvida com lista velha, a resposta é 409 e não 422 (nada é gravado).

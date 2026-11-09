@@ -149,7 +149,7 @@ Convenções: **RF** = requisito funcional, **RNF** = não funcional. Verificaç
 |---|---|---|
 | RF-SOL-01 | Registrar solicitação (título, descrição, cliente, contato solicitante, prioridade, categoria, contrato), pela equipe ou pelo portal. | T |
 | RF-SOL-02 | Gerar **número de protocolo sequencial por tenant** (ex.: #1042), imutável. | T |
-| RF-SOL-03 | Ciclo de status interno: ABERTA → EM_ANDAMENTO ↔ AGUARDANDO_CLIENTE / AGUARDANDO_TERCEIRO → RESOLVIDA → FECHADA; CANCELADA a partir de qualquer estado não final; transições inválidas são rejeitadas. A primeira resposta ao cliente tira a solicitação de ABERTA para EM_ANDAMENTO (F11). | T |
+| RF-SOL-03 | Ciclo de status interno: ABERTA → EM_ANDAMENTO ↔ AGUARDANDO_CLIENTE / AGUARDANDO_TERCEIRO → RESOLVIDA → FECHADA; CANCELADA a partir de qualquer estado não final; transições inválidas são rejeitadas. A primeira resposta ao cliente, uma tarefa criada nela ou uma tarefa dela que passa a FAZENDO (inclusive pelo cronômetro) tiram a solicitação de ABERTA para EM_ANDAMENTO; resolver e cancelar podem concluir ou cancelar junto as tarefas abertas (F11). | T |
 | RF-SOL-04 | Atribuir responsável (usuário interno) e categorias configuráveis pelo tenant. | T |
 | RF-SOL-05 | Calcular o SLA: prazos de primeira resposta e resolução a partir da política do contrato; **pausar** o relógio em AGUARDANDO_CLIENTE; marcar em risco (≥ 75% do prazo) e violado. | T |
 | RF-SOL-06 | Linha do tempo com comentários e anexos; cada item tem visibilidade **INTERNA** ou **EXTERNA**. Na tela, a resposta ao cliente (EXTERNA) vem marcada (F11, 06/11); na API, sem visibilidade, vale INTERNA. A resposta pode já pôr a solicitação em AGUARDANDO_CLIENTE ("Enviar e aguardar"). | T |

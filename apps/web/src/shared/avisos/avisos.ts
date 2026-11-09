@@ -9,6 +9,8 @@ export interface Aviso {
     texto: string
     tom: 'neutro' | 'erro'
     desfazer?: () => unknown
+    /** Próximo passo sugerido (ex.: "Resolver" depois da última tarefa, F11-15). */
+    acao?: { rotulo: string; executar: () => unknown }
 }
 
 export const filaDeAvisos = new FilaDeAvisos<Aviso>({ maxVisibleToasts: 3 })
@@ -17,10 +19,13 @@ const DURACAO = 5_000
 /** Com desfazer, mais tempo para a pessoa reagir. */
 const DURACAO_DESFAZER = 8_000
 
-export function avisar(texto: string, opcoes: { desfazer?: () => unknown } = {}): string {
+export function avisar(
+    texto: string,
+    opcoes: { desfazer?: () => unknown; acao?: { rotulo: string; executar: () => unknown } } = {},
+): string {
     return filaDeAvisos.add(
-        { texto, tom: 'neutro', desfazer: opcoes.desfazer },
-        { timeout: opcoes.desfazer ? DURACAO_DESFAZER : DURACAO },
+        { texto, tom: 'neutro', desfazer: opcoes.desfazer, acao: opcoes.acao },
+        { timeout: opcoes.desfazer || opcoes.acao ? DURACAO_DESFAZER : DURACAO },
     )
 }
 

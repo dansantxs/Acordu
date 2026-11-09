@@ -1871,7 +1871,7 @@ export interface paths {
             }
             requestBody: {
                 content: {
-                    'application/json': components['schemas']['MotivoRequest']
+                    'application/json': components['schemas']['CancelamentoRequest']
                 }
             }
             responses: {
@@ -4903,6 +4903,8 @@ export interface paths {
 export type webhooks = Record<string, never>
 export interface components {
     schemas: {
+        /** @enum {unknown} */
+        AcaoTarefasAbertas: 'MANTER' | 'CONCLUIR' | 'CANCELAR'
         AceiteConviteRequest: {
             token: string
             nome: null | string
@@ -5029,6 +5031,10 @@ export interface components {
             fusoHorario: string
             expediente: null | components['schemas']['JanelaDto'][]
             feriados: null | string[]
+        }
+        CancelamentoRequest: {
+            motivo: string
+            tarefas?: null | components['schemas']['TarefasAbertasRequest']
         }
         CapacidadePessoaDto: {
             pessoa: components['schemas']['Referencia']
@@ -5817,6 +5823,7 @@ export interface components {
         }
         ResolucaoRequest: {
             solucao: null | components['schemas']['SolucaoDto']
+            tarefas?: null | components['schemas']['TarefasAbertasRequest']
         }
         ResultadoPaginadoOfApontamentoDto: {
             itens: components['schemas']['ApontamentoDto'][]
@@ -6077,6 +6084,10 @@ export interface components {
             projetoNome?: null | string
             /** Format: date-time */
             concluidaEm?: null | string
+        }
+        TarefasAbertasRequest: {
+            acao: components['schemas']['AcaoTarefasAbertas']
+            ids: null | string[]
         }
         TarefasDashboardDto: {
             /** Format: int32 */

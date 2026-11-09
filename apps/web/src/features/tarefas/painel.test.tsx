@@ -266,4 +266,57 @@ describe('detalhe da tarefa', () => {
         await usuario.click(within(aside).getByRole('button', { name: 'Seguir' }))
         expect(await within(aside).findByText('você')).toBeInTheDocument()
     })
+
+    describe('última tarefa da solicitação (F11-15 a F11-17)', () => {
+        const OUTRA_ABERTA = { id: 't0', titulo: 'Diagnóstico', status: 'A_FAZER' }
+        const solicitacaoComTarefas = (status: string, outra = { ...OUTRA_ABERTA, status: 'CONCLUIDA' }) => ({
+            id: 's1',
+            numero: 1042,
+            status,
+            tarefas: [{ id: ID, titulo: 'Trocar resistência', status: 'CONCLUIDA' }, outra],
+        })
+        const concluir = (permissoes: string[], statusSolicitacao = 'EM_ANDAMENTO', outra?: typeof OUTRA_ABERTA) => {
+            let atual = tarefa({ status: 'FAZENDO', versao: '4' })
+            return app(permissoes, {
+                [`GET /api/v1/tarefas/${ID}`]: () => json(atual),
+                [`POST /api/v1/tarefas/${ID}/conclusao`]: () => {
+                    atual = tarefa({ status: 'CONCLUIDA', versao: '5' })
+                    return json(atual)
+                },
+                'GET /api/v1/solicitacoes/s1': () => json(solicitacaoComTarefas(statusSolicitacao, outra)),
+            })
+        }
+
+        it('sugere resolver, e o botão leva à janela de resolução', async () => {
+            const chamadas = concluir([...EDITAR, 'solicitacao.editar'])
+            const roteador = await abrir(`/tarefas/${ID}`)
+            const usuario = userEvent.setup()
+            await usuario.click(within(await painel()).getByRole('button', { name: 'Concluir' }))
+
+            expect(
+                await screen.findByText('Era a última tarefa da solicitação #1042. Resolver a solicitação agora?'),
+            ).toBeInTheDocument()
+            // F11-16: o aviso sozinho não resolve nada.
+            expect(chamadas.some((c) => c.metodo === 'POST' && c.caminho.endsWith('/resolucao'))).toBe(false)
+            await usuario.click(screen.getByRole('button', { name: 'Resolver' }))
+            await vi.waitFor(() => expect(roteador.state.location.pathname).toBe('/solicitacoes/s1'))
+            expect(roteador.state.location.search).toMatchObject({ resolver: true })
+        })
+
+        it.each([
+            ['sem editar a solicitação (F11-17)', EDITAR, 'EM_ANDAMENTO', undefined],
+            ['com ela já resolvida', [...EDITAR, 'solicitacao.editar'], 'RESOLVIDA', undefined],
+            ['com outra tarefa ainda aberta (F11-15)', [...EDITAR, 'solicitacao.editar'], 'EM_ANDAMENTO', OUTRA_ABERTA],
+        ])('%s, não sugere', async (_, permissoes, status, outra) => {
+            const chamadas = concluir(permissoes, status, outra)
+            await abrir(`/tarefas/${ID}`)
+            const usuario = userEvent.setup()
+            await usuario.click(within(await painel()).getByRole('button', { name: 'Concluir' }))
+            expect(await screen.findByText('Tarefa concluída.')).toBeInTheDocument()
+            if (permissoes.includes('solicitacao.editar'))
+                await vi.waitFor(() => expect(chamadas.some((c) => c.caminho === '/api/v1/solicitacoes/s1')).toBe(true))
+            // Depois da consulta, o aviso teria vindo em seguida; espera um pouco e confere que não veio.
+            await expect(screen.findByText(/Era a última tarefa/, {}, { timeout: 300 })).rejects.toThrow()
+        })
+    })
 })

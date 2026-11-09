@@ -126,8 +126,11 @@ public sealed class ComandosApontamento
         var usuario = _contexto.Usuario();
         if (await _consultas.CronometroDoUsuarioAsync(usuario, cancellationToken) is not null)
             throw new CronometroAtivoException();
-        if (await _tarefas.ObterPorIdAsync(dados.TarefaId, cancellationToken) is null)
-            throw ErroDeCampo.Criar("tarefaId", "Tarefa não encontrada.");
+        var tarefa = await _tarefas.ObterPorIdAsync(dados.TarefaId, cancellationToken)
+            ?? throw ErroDeCampo.Criar("tarefaId", "Tarefa não encontrada.");
+        // Começou a trabalhar (F11-19): a tarefa sai de A_FAZER; a solicitação dela sai de ABERTA (AndamentoPelaTarefa).
+        if (tarefa.Status == StatusTarefa.AFazer)
+            tarefa.Iniciar();
 
         var cronometro = Cronometro.Iniciar(Guid.CreateVersion7(), _contexto.TenantId!.Value, usuario, dados.TarefaId, _relogio.Agora);
         _cronometros.Adicionar(cronometro);

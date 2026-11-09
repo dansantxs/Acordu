@@ -81,7 +81,13 @@ export function BotaoCronometro({ tarefaId }: { tarefaId: string }) {
     const [parando, setParando] = useState(false)
     const inicio = useMutation({
         mutationFn: () => iniciarCronometro(tarefaId),
-        onSuccess: () => consultas.invalidateQueries({ queryKey: ['cronometro'] }),
+        // Iniciar põe a tarefa A_FAZER em FAZENDO e pode tirar a solicitação de ABERTA (F11-19): status e versão mudam.
+        onSuccess: () =>
+            Promise.all(
+                ['cronometro', 'tarefas', 'solicitacoes'].map((chave) =>
+                    consultas.invalidateQueries({ queryKey: [chave] }),
+                ),
+            ),
         onError: avisarErro,
     })
     if (cronometro.isPending) return null

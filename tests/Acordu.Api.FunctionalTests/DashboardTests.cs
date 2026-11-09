@@ -50,7 +50,7 @@ public sealed class DashboardTests(ApiFixture api)
 
         painel.GetProperty("de").GetString().Should().Be(Data(new DateOnly(Hoje().Year, Hoje().Month, 1)));
         var fila = painel.GetProperty("fila");
-        fila.GetProperty("abertas").GetInt32().Should().Be(2);
+        fila.GetProperty("abertas").GetInt32().Should().Be(1, "a solicitação com tarefa passou a EM_ANDAMENTO (F11-18)");
         fila.GetProperty("semResponsavel").GetInt32().Should().Be(1);
         var sla = painel.GetProperty("sla");
         sla.GetProperty("violadas").GetInt32().Should().Be(0);

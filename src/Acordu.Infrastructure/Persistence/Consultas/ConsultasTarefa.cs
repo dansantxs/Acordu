@@ -78,6 +78,13 @@ public sealed class ConsultasTarefa : IConsultasTarefa
             total);
     }
 
+    public async Task<IReadOnlyList<Guid>> AbertasDaSolicitacaoAsync(Guid solicitacaoId, CancellationToken cancellationToken = default) =>
+        await _db.Tarefas.AsNoTracking()
+            .Where(t => t.SolicitacaoId == solicitacaoId && (t.Status == StatusTarefa.AFazer || t.Status == StatusTarefa.Fazendo))
+            .OrderBy(t => t.Id)
+            .Select(t => t.Id)
+            .ToListAsync(cancellationToken);
+
     public async Task<TarefaDto?> DetalharAsync(Guid id, CancellationToken cancellationToken = default)
     {
         var linha = await _db.Tarefas.AsNoTracking()
