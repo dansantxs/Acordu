@@ -3097,7 +3097,11 @@ export interface paths {
                 }
                 cookie?: never
             }
-            requestBody?: never
+            requestBody?: {
+                content: {
+                    'application/json': null | components['schemas']['EncerramentoProjetoRequest']
+                }
+            }
             responses: {
                 /** @description OK */
                 200: {
@@ -3134,7 +3138,11 @@ export interface paths {
                 }
                 cookie?: never
             }
-            requestBody?: never
+            requestBody?: {
+                content: {
+                    'application/json': null | components['schemas']['EncerramentoProjetoRequest']
+                }
+            }
             responses: {
                 /** @description OK */
                 200: {
@@ -5417,6 +5425,9 @@ export interface components {
             validadeDias: null | number | string
             enviarEmail: null | boolean
         }
+        EncerramentoProjetoRequest: {
+            tarefas: null | components['schemas']['TarefasAbertasRequest']
+        }
         EnderecoDto: {
             cep: string
             logradouro: string
@@ -5676,6 +5687,7 @@ export interface components {
             estimativaMinutos: null | number | string
             /** Format: date */
             inicio?: null | string
+            tarefaIds?: null | string[]
         }
         OrigemArquivoDto: {
             tipo: components['schemas']['AlvoColaboracao']
@@ -6072,6 +6084,8 @@ export interface components {
             id: string
             titulo: string
             status: components['schemas']['StatusTarefa']
+            /** Format: uuid */
+            projetoId: null | string
         }
         TarefaDto: {
             /** Format: uuid */

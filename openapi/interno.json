@@ -3172,6 +3172,22 @@
             }
           }
         ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "oneOf": [
+                  {
+                    "type": "null"
+                  },
+                  {
+                    "$ref": "#/components/schemas/EncerramentoProjetoRequest"
+                  }
+                ]
+              }
+            }
+          }
+        },
         "responses": {
           "200": {
             "description": "OK",
@@ -3202,6 +3218,22 @@
             }
           }
         ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "oneOf": [
+                  {
+                    "type": "null"
+                  },
+                  {
+                    "$ref": "#/components/schemas/EncerramentoProjetoRequest"
+                  }
+                ]
+              }
+            }
+          }
+        },
         "responses": {
           "200": {
             "description": "OK",
@@ -6920,6 +6952,24 @@
           }
         }
       },
+      "EncerramentoProjetoRequest": {
+        "required": [
+          "tarefas"
+        ],
+        "type": "object",
+        "properties": {
+          "tarefas": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/TarefasAbertasRequest"
+              }
+            ]
+          }
+        }
+      },
       "EnderecoDto": {
         "required": [
           "cep",
@@ -7943,6 +7993,16 @@
               "string"
             ],
             "format": "date"
+          },
+          "tarefaIds": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            }
           }
         }
       },
@@ -9586,7 +9646,8 @@
         "required": [
           "id",
           "titulo",
-          "status"
+          "status",
+          "projetoId"
         ],
         "type": "object",
         "properties": {
@@ -9599,6 +9660,13 @@
           },
           "status": {
             "$ref": "#/components/schemas/StatusTarefa"
+          },
+          "projetoId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
           }
         }
       },
