@@ -76,7 +76,7 @@ export function IndicadorCronometro() {
  * Botão do cronômetro no detalhe da tarefa: iniciar aqui, ver o tempo e parar se já é desta tarefa, ou avisar que
  * está correndo em outra (um por pessoa; a API responderia 409).
  */
-export function BotaoCronometro({ tarefaId }: { tarefaId: string }) {
+export function BotaoCronometro({ tarefaId, fuso }: { tarefaId: string; fuso: string }) {
     const consultas = useQueryClient()
     const cronometro = useQuery(consultaCronometro)
     const agora = useAgora()
@@ -136,6 +136,7 @@ export function BotaoCronometro({ tarefaId }: { tarefaId: string }) {
             <Janela titulo="Começou antes" aberta={antes} aoMudar={setAntes} ocupada={inicio.isPending}>
                 {antes && (
                     <FormularioInicioAntes
+                        fuso={fuso}
                         erro={
                             inicio.isError
                                 ? (inicio.error instanceof ErroApi && inicio.error.doCampo('iniciadoEm')) ||
@@ -154,11 +155,13 @@ export function BotaoCronometro({ tarefaId }: { tarefaId: string }) {
 
 /** "Começou às" (F12-01): hoje ou ontem, até 12 h atrás; a API confere de novo. */
 function FormularioInicioAntes({
+    fuso,
     erro,
     ocupado,
     aoFechar,
     aoIniciar,
 }: {
+    fuso: string
     erro: string | null
     ocupado: boolean
     aoFechar: () => void
@@ -171,7 +174,7 @@ function FormularioInicioAntes({
             onSubmit={(evento) => {
                 evento.preventDefault()
                 const hora = String(new FormData(evento.currentTarget).get('hora') ?? '')
-                const inicio = inicioPelaHora(hora)
+                const inicio = inicioPelaHora(hora, fuso)
                 setInvalida(inicio === null)
                 if (inicio) aoIniciar(inicio.toISOString())
             }}
@@ -194,7 +197,7 @@ function FormularioInicioAntes({
                 <p id="cronometro-hora-d" className={`text-xs ${invalida ? 'text-vermelho' : 'text-suave'}`}>
                     {invalida
                         ? 'Use o formato 08:40.'
-                        : 'Hoje, ou ontem se o horário ainda não chegou. Até 12 horas atrás.'}
+                        : 'No horário da empresa: hoje, ou ontem se ainda não chegou. Até 12 horas atrás.'}
                 </p>
             </div>
             <div className="flex justify-end gap-3">
@@ -238,7 +241,8 @@ function FormularioParada({ cronometro: c, aoFechar }: { cronometro: Cronometro;
     const [visivel, setVisivel] = useState<boolean | null>(null)
     const visivelEfetivo = visivel ?? faturavel
     const [descartando, setDescartando] = useState(false)
-    const minutos = Math.max(decorridoMinutos(c), 1)
+    // Congelado ao abrir: o campo começa com ele, e só uma mudança da pessoa manda outra duração (F12-05).
+    const [minutos] = useState(() => Math.max(decorridoMinutos(c), 1))
     const [duracaoInvalida, setDuracaoInvalida] = useState(false)
 
     const parada = useMutation({

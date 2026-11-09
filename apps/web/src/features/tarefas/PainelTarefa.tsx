@@ -209,7 +209,7 @@ function Detalhe({
             )}
             {pode(perfil, 'apontamento.criar') && (t.status === 'A_FAZER' || t.status === 'FAZENDO') && (
                 <div>
-                    <BotaoCronometro tarefaId={t.id} />
+                    <BotaoCronometro tarefaId={t.id} fuso={perfil.tenant.fusoHorario} />
                 </div>
             )}
 
