@@ -1812,7 +1812,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/MotivoRequest"
+                "$ref": "#/components/schemas/CancelamentoRequest"
               }
             }
           },
@@ -4817,6 +4817,13 @@
   },
   "components": {
     "schemas": {
+      "AcaoTarefasAbertas": {
+        "enum": [
+          "MANTER",
+          "CONCLUIR",
+          "CANCELAR"
+        ]
+      },
       "AceiteConviteRequest": {
         "required": [
           "token",
@@ -5337,6 +5344,27 @@
               "type": "string",
               "format": "date"
             }
+          }
+        }
+      },
+      "CancelamentoRequest": {
+        "required": [
+          "motivo"
+        ],
+        "type": "object",
+        "properties": {
+          "motivo": {
+            "type": "string"
+          },
+          "tarefas": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/TarefasAbertasRequest"
+              }
+            ]
           }
         }
       },
@@ -8634,6 +8662,16 @@
                 "$ref": "#/components/schemas/SolucaoDto"
               }
             ]
+          },
+          "tarefas": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/TarefasAbertasRequest"
+              }
+            ]
           }
         }
       },
@@ -9745,6 +9783,28 @@
               "string"
             ],
             "format": "date-time"
+          }
+        }
+      },
+      "TarefasAbertasRequest": {
+        "required": [
+          "acao",
+          "ids"
+        ],
+        "type": "object",
+        "properties": {
+          "acao": {
+            "$ref": "#/components/schemas/AcaoTarefasAbertas"
+          },
+          "ids": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            }
           }
         }
       },
