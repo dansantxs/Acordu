@@ -91,11 +91,16 @@ export function comPerfil(permissoes: string[], rotas: Rotas = {}) {
 }
 
 /** Contato de cliente com sessão de portal (escopo dado), prestador "Prado Consultoria". */
-export function comContato(rotas: Rotas = {}, escopoPortal: 'PROPRIAS' | 'TODAS_DO_CLIENTE' = 'TODAS_DO_CLIENTE') {
+export function comContato(
+    rotas: Rotas = {},
+    escopoPortal: 'PROPRIAS' | 'TODAS_DO_CLIENTE' = 'TODAS_DO_CLIENTE',
+    // As do papel Cliente com conta; a sessão de link não cria solicitação.
+    permissoes: string[] = ['portal.solicitacao.ver', 'portal.solicitacao.criar', 'portal.solicitacao.comentar'],
+) {
     return servidor({
         '/api/v1/auth/refresh': comSessao,
         '/api/v1/auth/eu': () =>
-            json({ ...perfil, nome: 'Marta Souza', papel: 'Cliente', permissoes: [], clienteId: 'c1', escopoPortal }),
+            json({ ...perfil, nome: 'Marta Souza', papel: 'Cliente', permissoes, clienteId: 'c1', escopoPortal }),
         '/api/v1/portal/eu': () =>
             json({
                 contato: { id: 'k1', nome: 'Marta Souza', email: 'marta@bomgrao.com' },

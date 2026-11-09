@@ -204,7 +204,8 @@ export function CaixaMensagem({
 
     return (
         <DropZone
-            onDrop={semAnexos ? undefined : (e) => void aoSoltar(e.items)}
+            isDisabled={semAnexos}
+            onDrop={(e) => void aoSoltar(e.items)}
             aria-label="Soltar arquivos para anexar"
             className="flex flex-col gap-3 rounded-couro border border-linha bg-superficie p-3 outline-none data-[drop-target]:border-acento data-[drop-target]:bg-acento-suave"
         >

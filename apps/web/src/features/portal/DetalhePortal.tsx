@@ -38,7 +38,18 @@ const STATUS_TAREFA = {
  * tarefas que a equipe deixou visíveis) e a conversa só com as mensagens externas. Responder em "Esperando você"
  * retoma o atendimento (contrato §12).
  */
-export function DetalhePortal({ id, fuso, voltar = true }: { id: string; fuso: string; voltar?: boolean }) {
+export function DetalhePortal({
+    id,
+    fuso,
+    voltar = true,
+    podeAbrirNova = false,
+}: {
+    id: string
+    fuso: string
+    voltar?: boolean
+    /** `portal.solicitacao.criar`, e só na sessão com conta (o link vê uma solicitação só). */
+    podeAbrirNova?: boolean
+}) {
     const consulta = useQuery(consultaSolicitacaoPortal(id))
     if (consulta.isPending) return <p className="text-sm text-suave">Carregando…</p>
     if (consulta.isError)
@@ -50,9 +61,9 @@ export function DetalhePortal({ id, fuso, voltar = true }: { id: string; fuso: s
             </Alerta>
         )
     const s = consulta.data
-    // FECHADA ou CANCELADA (F11-08). RESOLVIDA aparece como CONCLUIDA para quem não aprova, mas a conversa segue
-    // aberta até fechar (F11-10): `podeAprovar` vem verdadeiro em toda RESOLVIDA.
-    const encerrada = s.statusExterno === 'CANCELADA' || (s.statusExterno === 'CONCLUIDA' && !s.podeAprovar)
+    // FECHADA ou CANCELADA (F11-08), pela API: RESOLVIDA aparece como CONCLUIDA para quem não aprova, mas a conversa
+    // segue aberta até fechar (F11-10), e só o status externo não separa os dois.
+    const encerrada = s.encerrada
     return (
         <>
             {voltar && (
@@ -79,7 +90,7 @@ export function DetalhePortal({ id, fuso, voltar = true }: { id: string; fuso: s
                     <p className="text-sm whitespace-pre-line">{s.descricao}</p>
                 </section>
             )}
-            <Conversa solicitacao={s} fuso={fuso} encerrada={encerrada} podeAbrirNova={voltar} />
+            <Conversa solicitacao={s} fuso={fuso} encerrada={encerrada} podeAbrirNova={podeAbrirNova} />
         </>
     )
 }
@@ -261,7 +272,11 @@ function Conversa({
             )}
             {encerrada ? (
                 <div className="flex flex-wrap items-center gap-3">
-                    <p className="text-sm text-suave">Esta solicitação foi encerrada. Para continuar, abra uma nova.</p>
+                    <p className="text-sm text-suave">
+                        {podeAbrirNova
+                            ? 'Esta solicitação foi encerrada. Para continuar, abra uma nova.'
+                            : 'Esta solicitação foi encerrada. Para outro assunto, fale com a equipe.'}
+                    </p>
                     {podeAbrirNova && (
                         <Link
                             to="/portal/nova"

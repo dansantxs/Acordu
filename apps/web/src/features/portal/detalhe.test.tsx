@@ -19,6 +19,7 @@ const solicitacao = (mudancas: Record<string, unknown> = {}) => ({
     ],
     tempoVisivelMinutos: 90,
     podeAprovar: false,
+    encerrada: false,
     ...mudancas,
 })
 const interacoes = [
@@ -104,7 +105,8 @@ describe('portal: detalhe', () => {
 
     it('encerrada não tem caixa de mensagem', async () => {
         comContato({
-            'GET /api/v1/portal/solicitacoes/s1': () => json(solicitacao({ statusExterno: 'CONCLUIDA', sla: null })),
+            'GET /api/v1/portal/solicitacoes/s1': () =>
+                json(solicitacao({ statusExterno: 'CONCLUIDA', sla: null, encerrada: true })),
             'GET /api/v1/portal/solicitacoes/s1/interacoes': () => json([]),
         })
         await abrir('/portal/solicitacoes/s1')
@@ -119,12 +121,30 @@ describe('portal: detalhe', () => {
 
     it('resolvida, para quem não aprova, ainda tem a caixa de mensagem (F11-10)', async () => {
         comContato({
+            // RESOLVIDA para quem não aprova, como a API devolve: CONCLUIDA, sem aprovar e não encerrada.
             'GET /api/v1/portal/solicitacoes/s1': () =>
-                json(solicitacao({ statusExterno: 'CONCLUIDA', podeAprovar: true, sla: null })),
+                json(solicitacao({ statusExterno: 'CONCLUIDA', sla: null, encerrada: false })),
             'GET /api/v1/portal/solicitacoes/s1/interacoes': () => json([]),
         })
         await abrir('/portal/solicitacoes/s1')
         expect(await screen.findByRole('textbox', { name: 'Mensagem para a equipe' })).toBeInTheDocument()
         expect(screen.queryByText(/Esta solicitação foi encerrada/)).not.toBeInTheDocument()
+    })
+
+    it('no link, encerrada orienta a falar com a equipe, sem botão de nova (F11-08)', async () => {
+        comContato(
+            {
+                'GET /api/v1/portal/solicitacoes/s1': () =>
+                    json(solicitacao({ statusExterno: 'CANCELADA', sla: null, encerrada: true })),
+                'GET /api/v1/portal/solicitacoes/s1/interacoes': () => json([]),
+            },
+            'TODAS_DO_CLIENTE',
+            ['portal.solicitacao.ver', 'portal.solicitacao.comentar'],
+        )
+        await abrir('/portal/solicitacoes/s1')
+        expect(
+            await screen.findByText('Esta solicitação foi encerrada. Para outro assunto, fale com a equipe.'),
+        ).toBeInTheDocument()
+        expect(screen.queryByRole('link', { name: 'Nova solicitação' })).not.toBeInTheDocument()
     })
 })

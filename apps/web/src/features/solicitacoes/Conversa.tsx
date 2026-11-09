@@ -61,7 +61,13 @@ export function Conversa({
                 </ol>
             )}
             {podeComentar && (
-                <Composicao solicitacao={solicitacao} equipe={equipe.data ?? []} podeAguardar={podeAguardar} />
+                <Composicao
+                    // Cancelar ou fechar com a tela aberta recomeça a caixa no padrão de encerrada (F11-09).
+                    key={['FECHADA', 'CANCELADA'].includes(solicitacao.status) ? 'encerrada' : 'aberta'}
+                    solicitacao={solicitacao}
+                    equipe={equipe.data ?? []}
+                    podeAguardar={podeAguardar}
+                />
             )}
         </section>
     )

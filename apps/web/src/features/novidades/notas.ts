@@ -24,9 +24,7 @@ export const NOTAS: NotaVersao[] = [
         data: '2026-11-09',
         publico: 'cliente',
         titulo: 'Assunto novo, solicitação nova',
-        itens: [
-            'Uma solicitação encerrada não recebe mais mensagens: para continuar, abra uma nova pelo botão que aparece nela.',
-        ],
+        itens: ['Uma solicitação encerrada não recebe mais mensagens: para continuar, abra uma nova solicitação.'],
     },
     {
         data: '2026-11-06',
