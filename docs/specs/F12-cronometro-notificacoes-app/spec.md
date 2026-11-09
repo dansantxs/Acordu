@@ -37,10 +37,10 @@ Hoje: `POST /cronometro/inicio` começa no instante da chamada, `POST /cronometr
 
 | Id | Dado | Quando | Então | Teste |
 |---|---|---|---|---|
-| F12-09 | pessoa com `tarefa.criar` e `apontamento.criar`, sem cronômetro | cria a tarefa com "Iniciar o cronômetro" marcado [D3] | a tarefa nasce e o cronômetro começa nela; a tarefa vai a FAZENDO (F11-19) | — |
-| F12-10 | idem, sem `apontamento.criar` | abre a janela de nova tarefa | "Iniciar o cronômetro" não aparece | — |
-| F12-11 | pessoa com outro cronômetro rodando | abre a janela de nova tarefa | "Iniciar o cronômetro" aparece desmarcado e desabilitado, com "Já há um cronômetro em <tarefa>" | — |
-| F12-12 | a tarefa foi criada, mas iniciar falhou (por exemplo, um cronômetro começou em outra aba) | — | a tarefa continua criada, e o aviso diz que o cronômetro não começou | — |
+| F12-09 | pessoa com `tarefa.criar` e `apontamento.criar`, sem cronômetro | cria a tarefa com "Iniciar o cronômetro" marcado [D3] | a tarefa nasce e o cronômetro começa nela; a tarefa vai a FAZENDO (F11-19) | `nova.test › marcado, cria a tarefa e inicia nela`; a tarefa vai a FAZENDO pelo F11-19 (`SolicitacaoETarefasTests › IniciarCronometro_TarefaAFazer_PassaAFazendo`) |
+| F12-10 | idem, sem `apontamento.criar` | abre a janela de nova tarefa | "Iniciar o cronômetro" não aparece | `nova.test › sem apontamento.criar, a opção não aparece` |
+| F12-11 | pessoa com outro cronômetro rodando | abre a janela de nova tarefa | "Iniciar o cronômetro" aparece desmarcado e desabilitado, com "Já há um cronômetro em <tarefa>" | `nova.test › com outro cronômetro correndo, vem desabilitada e diz onde` |
+| F12-12 | a tarefa foi criada, mas iniciar falhou (por exemplo, um cronômetro começou em outra aba) | — | a tarefa continua criada, e o aviso diz que o cronômetro não começou | `nova.test › se iniciar falhar, a tarefa fica criada…` |
 
 ### Lembrete no expediente
 
@@ -173,4 +173,5 @@ O F12a, o F12b e o F12f são independentes. O F12d e o F12e usam a notificação
 - 09/11 — rascunho a partir do pedido do Daniel de 06/11 (cronômetro, pop-up do Windows com a aba minimizada, "baixar o sistema como o YouTube permite"; "pode incluir").
 - 09/11 — o Daniel aprovou todas as recomendações (D1 a D8) e pediu o PR da spec.
 - 09/11 — F12a: o domínio não mudou (`Cronometro.Iniciar` já recebia o instante; a Application valida o limite com o relógio). "Começou às" é hora no fuso da empresa (convenções: instantes no fuso do tenant), hoje, ou ontem se ainda não chegou. A Duração vem congelada ao abrir a janela e só vai à API se a pessoa mudou o texto.
+- 09/11 — F12b: só front. "Iniciar o cronômetro" vem desmarcado (opção da pessoa), cria a tarefa e depois chama `POST /cronometro/inicio`; a falha do segundo passo não desfaz o primeiro e vira aviso.
 - A spec é viva: mudou o comportamento, a spec muda no mesmo PR.
