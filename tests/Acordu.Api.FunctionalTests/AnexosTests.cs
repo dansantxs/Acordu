@@ -64,6 +64,27 @@ public sealed class AnexosTests(ApiFixture api)
     }
 
     [Fact]
+    public async Task Comentario_SolicitacaoEncerrada_SoNotaInternaSemAnexo() // F11-06, F11-07
+    {
+        var (equipe, _, solicitacao) = await CenarioAsync();
+        var rota = $"/api/v1/solicitacoes/{solicitacao}";
+        await equipe.EsperarAsync(HttpStatusCode.OK, HttpMethod.Post, $"{rota}/cancelamento", new { motivo = "Cliente desistiu" });
+
+        var (comAnexo, problema) = await EnviarAsync(
+            $"{rota}/interacoes", equipe.Dono, [("tela.png", Png)], ("texto", "Print"), ("visibilidade", "INTERNA"));
+        comAnexo.Should().Be(HttpStatusCode.Conflict);
+        problema.GetProperty("type").GetString().Should().Be(Erros + "solicitacao-encerrada");
+        api.Arquivos.ComPrefixo($"{equipe.TenantId}/").Should().Be(0, "o arquivo nem chega ao armazenamento");
+        await equipe.EsperarAsync(HttpStatusCode.Conflict, HttpMethod.Post, $"{rota}/interacoes",
+            new { texto = "Mais alguma coisa?", visibilidade = "EXTERNA" });
+
+        await equipe.EsperarAsync(HttpStatusCode.Created, HttpMethod.Post, $"{rota}/interacoes",
+            new { texto = "O cliente ligou agradecendo." });
+        (await equipe.EsperarAsync(HttpStatusCode.OK, HttpMethod.Get, rota)).GetProperty("status").GetString().Should().Be("CANCELADA");
+        (await equipe.EsperarAsync(HttpStatusCode.OK, HttpMethod.Get, $"{rota}/interacoes")).GetArrayLength().Should().Be(1);
+    }
+
+    [Fact]
     public async Task Comentario_ComAnexos_TipoPeloConteudo_EDownloadAssinado()
     {
         var (equipe, _, solicitacao) = await CenarioAsync();

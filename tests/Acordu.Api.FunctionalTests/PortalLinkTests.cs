@@ -66,6 +66,24 @@ public sealed partial class PortalLinkTests(ApiFixture api)
     }
 
     [Fact]
+    public async Task Responder_SolicitacaoEncerrada_409() // F11-08
+    {
+        var (equipe, cliente, solicitacao) = await CenarioAsync();
+        var (contato, _) = await ContatoAsync(equipe, cliente);
+        var acesso = (await TrocarAsync(Token((await Emitir(equipe, solicitacao, contato)).GetProperty("link").GetString()!)))
+            .GetProperty("accessToken").GetString()!;
+        await equipe.EsperarAsync(HttpStatusCode.OK, HttpMethod.Post, $"/api/v1/solicitacoes/{solicitacao}/cancelamento",
+            new { motivo = "Cliente desistiu" });
+
+        var problema = await equipe.EsperarAsync(
+            HttpStatusCode.Conflict, HttpMethod.Post, $"{Portal}/solicitacoes/{solicitacao}/interacoes", new { texto = "E agora?" }, acesso);
+
+        problema.GetProperty("type").GetString().Should().EndWith("/solicitacao-encerrada");
+        (await equipe.EsperarAsync(HttpStatusCode.OK, HttpMethod.Get, $"/api/v1/solicitacoes/{solicitacao}/interacoes"))
+            .GetArrayLength().Should().Be(0);
+    }
+
+    [Fact]
     public async Task SessaoDeLink_SoAlcancaASuaSolicitacao()
     {
         var (equipe, cliente, solicitacao) = await CenarioAsync();

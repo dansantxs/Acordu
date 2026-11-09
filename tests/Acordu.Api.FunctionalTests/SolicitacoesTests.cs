@@ -201,6 +201,20 @@ public sealed class SolicitacoesTests(ApiFixture api)
     }
 
     [Fact]
+    public async Task Interacoes_Resolvida_ContinuaAbertaAConversa() // F11-10
+    {
+        var (equipe, cliente) = await ClienteAsync(api);
+        var id = Id(await AbrirAsync(equipe, cliente));
+        var rota = $"/api/v1/solicitacoes/{id}";
+        await equipe.EsperarAsync(HttpStatusCode.OK, HttpMethod.Post, $"{rota}/resolucao", new { solucao = new { texto = "Feito" } });
+
+        await equipe.EsperarAsync(HttpStatusCode.Created, HttpMethod.Post, $"{rota}/interacoes",
+            new { texto = "Qualquer coisa, é só reabrir.", visibilidade = "EXTERNA" });
+
+        (await equipe.EsperarAsync(HttpStatusCode.OK, HttpMethod.Get, rota)).GetProperty("status").GetString().Should().Be("RESOLVIDA");
+    }
+
+    [Fact]
     public async Task Interacoes_EnviarEAguardar_PoeAguardandoClienteNaMesmaAcao() // F11-04
     {
         var (equipe, cliente) = await ClienteAsync(api);
