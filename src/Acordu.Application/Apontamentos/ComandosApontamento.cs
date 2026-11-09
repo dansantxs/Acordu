@@ -165,12 +165,9 @@ public sealed class ComandosApontamento
         var tarefa = await _tarefas.ObterPorIdAsync(cronometro.TarefaId, cancellationToken)
             ?? throw new NaoEncontradoException("A tarefa do cronômetro não existe mais.");
         var duracao = cronometro.Parar(_relogio.Agora);
+        // A duração escolhida (F12-05) tem as regras do apontamento manual; o erro vem antes de remover o cronômetro.
         if (dados?.DuracaoMinutos is { } escolhida)
-        {
-            if (escolhida < 1 || escolhida > Apontamento.DuracaoMaxima.Minutos)
-                throw ErroDeCampo.Criar("duracaoMinutos", "A duração vai de 1 minuto a 24 horas.");
-            duracao = Duracao.FromMinutos(escolhida);
-        }
+            duracao = Duracao(escolhida);
 
         var apontamento = await NovoAsync(
             tarefa,
