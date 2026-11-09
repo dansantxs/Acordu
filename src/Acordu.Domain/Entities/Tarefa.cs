@@ -100,7 +100,7 @@ public sealed class Tarefa : EntidadeBase
             PlanejadaPara = planejadaPara,
         };
         tarefa.TornarVisivelAoCliente(visivelCliente);
-        tarefa.Registrar(new TarefaCriada(tarefa.Id, tenantId, tarefa.ResponsavelId));
+        tarefa.Registrar(new TarefaCriada(tarefa.Id, tenantId, tarefa.ResponsavelId, tarefa.SolicitacaoId));
         return tarefa;
     }
 
@@ -254,7 +254,7 @@ public sealed class Tarefa : EntidadeBase
     {
         var de = Status;
         Status = para;
-        Registrar(new TarefaStatusAlterada(Id, TenantId, de, para, Guid.CreateVersion7()));
+        Registrar(new TarefaStatusAlterada(Id, TenantId, de, para, Guid.CreateVersion7(), SolicitacaoId));
     }
 
     private void Exigir(string operacao, params StatusTarefa[] permitidos)
