@@ -1,6 +1,7 @@
 using Acordu.Api.Seguranca;
 using Acordu.Application.Common;
 using Acordu.Application.Projetos;
+using Acordu.Application.Tarefas;
 using Acordu.Domain.Acesso;
 using Acordu.Domain.Enums;
 
@@ -44,16 +45,20 @@ internal static class ProjetosEndpoints
             .RequirePermissao(Permissoes.ProjetoGerenciar)
             .Produces<ProjetoDto>();
 
-        MapTransicao(projetos, "/conclusao", (c, id, versao, ct) => c.ConcluirAsync(id, versao, ct));
-        MapTransicao(projetos, "/cancelamento", (c, id, versao, ct) => c.CancelarAsync(id, versao, ct));
+        MapTransicao(projetos, "/conclusao", (c, id, versao, tarefas, ct) => c.ConcluirAsync(id, versao, tarefas, ct));
+        MapTransicao(projetos, "/cancelamento", (c, id, versao, tarefas, ct) => c.CancelarAsync(id, versao, tarefas, ct));
     }
 
+    // Corpo opcional (F11-27): sem corpo, como antes, as tarefas ficam como estão.
     private static void MapTransicao(
-        RouteGroupBuilder projetos, string acao, Func<ComandosProjeto, Guid, string?, CancellationToken, Task> executar) =>
+        RouteGroupBuilder projetos,
+        string acao,
+        Func<ComandosProjeto, Guid, string?, TarefasAbertasRequest?, CancellationToken, Task> executar) =>
         projetos.MapPost("/{id:guid}" + acao, async (
-            Guid id, HttpRequest requisicao, ComandosProjeto comandos, IConsultasProjeto consultas, CancellationToken cancellationToken) =>
+            Guid id, EncerramentoProjetoRequest? corpo,
+            HttpRequest requisicao, ComandosProjeto comandos, IConsultasProjeto consultas, CancellationToken cancellationToken) =>
         {
-            await executar(comandos, id, Versoes.IfMatch(requisicao), cancellationToken);
+            await executar(comandos, id, Versoes.IfMatch(requisicao), corpo?.Tarefas, cancellationToken);
             return Results.Ok(await DetalheAsync(consultas, id, cancellationToken));
         })
             .RequirePermissao(Permissoes.ProjetoGerenciar)
