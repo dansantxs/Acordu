@@ -15,6 +15,15 @@ export const NOTAS: NotaVersao[] = [
     {
         data: '2026-11-09',
         publico: 'equipe',
+        titulo: 'Tarefa muda de projeto',
+        itens: [
+            'No painel da tarefa, o campo Projeto leva a tarefa para um projeto em andamento do mesmo cliente, troca de projeto ou tira do projeto. O aviso tem "Desfazer".',
+            'As horas já apontadas vão junto para o progresso do projeto novo e continuam no contrato em que foram lançadas.',
+        ],
+    },
+    {
+        data: '2026-11-09',
+        publico: 'equipe',
         titulo: 'Solicitação e tarefas andam juntas',
         itens: [
             'Ao resolver uma solicitação, as tarefas que ainda estão abertas aparecem na janela e podem ser concluídas junto. Ao cancelar, podem ser canceladas junto.',

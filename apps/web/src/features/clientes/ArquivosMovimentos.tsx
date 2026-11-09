@@ -121,6 +121,13 @@ function acao(a: Atividade): string {
                 : 'mudou o status'
         case 'COMENTARIO_TAREFA':
             return 'comentou'
+        case 'TAREFA_PROJETO': {
+            const nome = (r?: { nome: string } | null) => r?.nome || 'projeto removido'
+            const de = a.detalhe?.projetoDe
+            const destino = a.detalhe?.projetoPara
+            if (!destino) return de ? `tirou a tarefa do projeto ${nome(de)}` : 'mudou o projeto'
+            return de ? `passou do projeto ${nome(de)} para ${nome(destino)}` : `pôs no projeto ${nome(destino)}`
+        }
     }
 }
 
