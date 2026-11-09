@@ -181,6 +181,7 @@ Um usuário Cliente em um tenant e Membro em outro troca de tenant e recebe toke
 - **Coluna:** sem criptografia de coluna no v1 (textos precisam de busca full-text).
 - **LGPD:** o prestador é **controlador** dos dados dos seus clientes; o Acordu é **operador**. Exportação e exclusão por tenant sob solicitação; exclusão de contato anonimiza nome/e-mail nas interações, preservando o histórico do trabalho.
 - **Nada de dado de cliente em log e no Discord:** só identificadores e status.
+- **Notificação do navegador (F12c):** a escolha e as marcas de "já mostrada" ficam no `localStorage` do navegador, só com ids de aviso; o texto da notificação é o título do aviso do sino, que a pessoa já vê. Desligar no Acordu não revoga a permissão do navegador (ela é do site); a pessoa revoga nas configurações do navegador.
 
 ---
 
