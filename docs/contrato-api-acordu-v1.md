@@ -285,8 +285,8 @@ Decidido na implementação:
 | GET | `/solicitacoes/{id}` | Detalha (inclui SLA calculado). | `solicitacao.ver` |
 | PATCH | `/solicitacoes/{id}` | Título, descrição, prioridade, categoria, responsável, contrato. | `solicitacao.editar` |
 | POST | `/solicitacoes/{id}/inicio` · `/aguardando-cliente` · `/aguardando-terceiro` · `/retomada` | Transições. | `solicitacao.editar` |
-| POST | `/solicitacoes/{id}/resolucao` | Resolve com solução. | `solicitacao.editar` |
-| POST | `/solicitacoes/{id}/reabertura` · `/cancelamento` | Com motivo. | `solicitacao.editar` |
+| POST | `/solicitacoes/{id}/resolucao` | Resolve com solução; `tarefas` opcional (abaixo). | `solicitacao.editar` (+ `tarefa.editar` para concluir junto) |
+| POST | `/solicitacoes/{id}/reabertura` · `/cancelamento` | Com motivo; o cancelamento aceita `tarefas` (abaixo). | `solicitacao.editar` (+ `tarefa.editar` para cancelar junto) |
 | GET | `/solicitacoes/{id}/interacoes` | Linha do tempo (internas + externas). | `solicitacao.ver` |
 | POST | `/solicitacoes/{id}/interacoes` | Comentário, com anexos (multipart). | `solicitacao.comentar` |
 | GET | `/solicitacoes/{id}/semelhantes` | Até 5 resolvidas semelhantes (RF-CON-02). | `solicitacao.ver` |
@@ -302,6 +302,8 @@ Decidido na implementação (6c2):
 - `PATCH` recebe título, descrição, prioridade, categoria e responsável (formulário inteiro). Responsável precisa ser da equipe (`400` no campo).
 - `PUT /solicitacoes/{id}/contrato` `{ "contratoId": "k9..." | null }` (`solicitacao.editar`, `If-Match` opcional) → `200` com a solicitação. O contrato precisa ser do mesmo cliente e vigente hoje (`422 contrato-incoerente`); resolvida ou final → `422 transicao-invalida`. SLA: com prazo correndo, recalcula pelo início do ciclo com os prazos do novo contrato (mantém pausas); sem SLA antes, começa agora; `null` remove contrato e SLA. Apontamentos já feitos não mudam. Fora do `PATCH` de propósito: o formulário inteiro sem o campo removeria o contrato.
 - Transições respondem `200` com a solicitação. `POST /interacoes` aceita JSON `{ "texto": "...", "visibilidade": "EXTERNA", "aguardarCliente": false }` (sem anexos) ou multipart (abaixo). Interação EXTERNA da equipe registra a primeira resposta e, com a solicitação ABERTA, a põe EM_ANDAMENTO (F11-05).
+- Tarefas abertas junto (F11c): `tarefas: { "acao": "MANTER" | "CONCLUIR" | "CANCELAR", "ids": [...] }`. Resolver aceita MANTER ou CONCLUIR; cancelar, MANTER ou CANCELAR (outra ação → `400` no campo `tarefas.acao`). Sem `tarefas`, ou MANTER, nada muda nas tarefas. CONCLUIR e CANCELAR exigem também `tarefa.editar` (`403`); `ids` são as tarefas A_FAZER ou FAZENDO que a pessoa viu, e se a lista atual for outra (uma a mais, a menos, ou de outro tenant), `409 conflito-versao` e nada muda. Tudo na mesma transação: A_FAZER passa por FAZENDO para concluir.
+- Tarefa criada na solicitação ABERTA, ou tarefa dela que passa a FAZENDO, põe a solicitação EM_ANDAMENTO (F11-18, F11-19).
 - Solicitação FECHADA ou CANCELADA (RF-SOL-13, F11b): resposta ao cliente ou anexo → `409 solicitacao-encerrada`, antes de o arquivo chegar ao armazenamento; nota interna sem anexo → `201`. O mesmo vale para `POST /portal/solicitacoes/{id}/interacoes` (conta ou link), sempre `409`. `GET /portal/solicitacoes/{id}` traz `encerrada` (FECHADA ou CANCELADA): o status externo CONCLUIDA também cobre a RESOLVIDA, que ainda aceita mensagem.
 - `aguardarCliente: true` (F11-04): só com `visibilidade: EXTERNA` (senão `400` no campo `aguardarCliente`) e exige também `solicitacao.editar` (senão `403`). Na mesma transação da mensagem, a solicitação vai para AGUARDANDO_CLIENTE (de AGUARDANDO_TERCEIRO passa por EM_ANDAMENTO); de outro status, `422` (`transicao-invalida`) e nada é gravado. O contato recebe um só e-mail, o da mensagem, com o assunto "Precisamos de você…".
 - O detalhe traz também `descricao`, `categoriaId`, `situacaoSla` (fora do bloco `sla`, para solicitações sem contrato), `resolvidaEm`, `fechadaEm`, `canceladaEm` e `motivoCancelamento`.
@@ -469,7 +471,7 @@ Decidido na implementação (6c3):
   "descricao": "Ajuste de layout e exportação", "descricaoExterna": "Arte refeita",
   "faturavel": true, "visivelCliente": true }
 ```
-`contratoId` não é enviado: é resolvido pela tarefa e congelado (ADR 0004). Origem do contrato: solicitação, senão projeto, senão recorrência da tarefa; tarefa avulsa → sem contrato (sem período fechado). Editar/excluir de outra pessoa sem `apontamento.editar_todos` → `403`. `POST /cronometro/parada` sem corpo usa o título da tarefa como descrição, `faturavel: true`, data de hoje no fuso do tenant; responde `201` com o apontamento. `GET /cronometro` traz `decorridoMinutos`. Data em período fechado → `422` (`tipo: .../periodo-fechado`). Iniciar cronômetro com outro ativo → `409`.
+`contratoId` não é enviado: é resolvido pela tarefa e congelado (ADR 0004). Origem do contrato: solicitação, senão projeto, senão recorrência da tarefa; tarefa avulsa → sem contrato (sem período fechado). Editar/excluir de outra pessoa sem `apontamento.editar_todos` → `403`. `POST /cronometro/parada` sem corpo usa o título da tarefa como descrição, `faturavel: true`, data de hoje no fuso do tenant; responde `201` com o apontamento. `GET /cronometro` traz `decorridoMinutos`. Data em período fechado → `422` (`tipo: .../periodo-fechado`). Iniciar cronômetro com outro ativo → `409`. Iniciar numa tarefa A_FAZER a passa a FAZENDO (F11-19).
 
 ---
 
