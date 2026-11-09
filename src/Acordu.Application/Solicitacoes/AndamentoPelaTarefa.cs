@@ -1,5 +1,6 @@
 using Acordu.Application.Abstractions;
 using Acordu.Application.Abstractions.Eventos;
+using Acordu.Application.Common;
 using Acordu.Domain.Entities;
 using Acordu.Domain.Enums;
 using Acordu.Domain.Events;
