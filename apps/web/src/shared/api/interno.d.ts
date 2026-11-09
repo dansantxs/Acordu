@@ -5123,7 +5123,7 @@ export interface components {
             porDia: components['schemas']['CargaDiaDto'][]
         }
         /** @enum {unknown} */
-        CategoriaAviso: 'NOVA_SOLICITACAO' | 'ATRIBUICAO' | 'SLA' | 'CONSUMO' | 'MENCAO' | 'SEGUIDAS'
+        CategoriaAviso: 'NOVA_SOLICITACAO' | 'ATRIBUICAO' | 'SLA' | 'CONSUMO' | 'MENCAO' | 'SEGUIDAS' | 'CRONOMETRO'
         CategoriaDto: {
             /** Format: uuid */
             id: string
@@ -5335,6 +5335,10 @@ export interface components {
             iniciadoEm: string
             /** Format: int32 */
             decorridoMinutos: number | string
+            /** @default false */
+            esquecido: boolean
+            /** Format: int32 */
+            sugestaoMinutos?: null | number | string
         }
         DashboardDto: {
             /** Format: date */

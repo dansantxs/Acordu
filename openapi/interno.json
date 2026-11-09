@@ -5597,7 +5597,8 @@
           "SLA",
           "CONSUMO",
           "MENCAO",
-          "SEGUIDAS"
+          "SEGUIDAS",
+          "CRONOMETRO"
         ]
       },
       "CategoriaDto": {
@@ -6525,6 +6526,19 @@
           "decorridoMinutos": {
             "pattern": "^-?(?:0|[1-9]\\d*)$",
             "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "esquecido": {
+            "type": "boolean",
+            "default": false
+          },
+          "sugestaoMinutos": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "null",
               "integer",
               "string"
             ],
