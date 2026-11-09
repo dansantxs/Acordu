@@ -207,7 +207,10 @@ describe('casca do app', () => {
                 }
             },
         )
-        localStorage.setItem('acordu:notificacoes-navegador', String(Date.now() - 60_000))
+        localStorage.setItem(
+            `acordu:notificacoes-navegador:${perfil.tenant.id}:${perfil.usuarioId}`,
+            String(Date.now() - 60_000),
+        )
         const aviso = {
             id: 'n7',
             categoria: 'ATRIBUICAO',
@@ -224,8 +227,10 @@ describe('casca do app', () => {
             const roteador = await abrir('/')
             await vi.waitFor(() => expect(criadas).toHaveLength(1))
             expect(criadas[0]!.titulo).toBe('Rafael passou a tarefa "Arte" para você')
-            vi.spyOn(window, 'focus').mockImplementation(() => undefined)
+            const foco = vi.spyOn(window, 'focus').mockImplementation(() => undefined)
             criadas[0]!.onclick!()
+            expect(foco).toHaveBeenCalled()
+            foco.mockRestore()
             await vi.waitFor(() => expect(roteador.state.location.pathname).toBe('/tarefas/t1'))
             await vi.waitFor(() =>
                 expect(chamadas.some((c) => c.caminho === '/api/v1/notificacoes/n7/leitura')).toBe(true),
@@ -234,6 +239,54 @@ describe('casca do app', () => {
             localStorage.clear()
         }
     })
+    it('com a aba escondida, o sino continua consultando e o aviso novo vira notificação (F12-22)', async () => {
+        const criadas: string[] = []
+        vi.stubGlobal(
+            'Notification',
+            class {
+                static permission = 'granted'
+                onclick = null
+                close = vi.fn()
+                constructor(titulo: string) {
+                    criadas.push(titulo)
+                }
+            },
+        )
+        const chave = `acordu:notificacoes-navegador:${perfil.tenant.id}:${perfil.usuarioId}`
+        localStorage.setItem(chave, String(Date.now() - 60_000))
+        let itens: unknown[] = []
+        app([], {
+            '/api/v1/notificacoes': () =>
+                json({ itens, pagina: 1, tamanhoPagina: 10, total: itens.length, naoLidas: itens.length }),
+        })
+        vi.useFakeTimers({ shouldAdvanceTime: true, toFake: ['setInterval', 'setTimeout'] })
+        const visibilidade = Object.getOwnPropertyDescriptor(Document.prototype, 'visibilityState')
+        try {
+            await abrir('/')
+            await screen.findByRole('button', { name: 'Avisos' })
+            // Minimiza: a aba fica escondida e o aviso chega depois.
+            Object.defineProperty(document, 'visibilityState', { configurable: true, get: () => 'hidden' })
+            document.dispatchEvent(new Event('visibilitychange'))
+            itens = [
+                {
+                    id: 'n9',
+                    categoria: 'SLA',
+                    titulo: 'A solicitação #42 está em risco de SLA',
+                    link: 'http://localhost:5173/solicitacoes/s1',
+                    criadaEm: new Date().toISOString(),
+                    lidaEm: null,
+                },
+            ]
+            await vi.advanceTimersByTimeAsync(61_000)
+            await vi.waitFor(() => expect(criadas).toEqual(['A solicitação #42 está em risco de SLA']))
+        } finally {
+            vi.useRealTimers()
+            delete (document as { visibilityState?: unknown }).visibilityState
+            if (visibilidade) Object.defineProperty(Document.prototype, 'visibilityState', visibilidade)
+            localStorage.clear()
+        }
+    })
+
     it('endereço inexistente mostra a página não encontrada dentro da casca', async () => {
         app([])
         await abrir('/nao-existe')

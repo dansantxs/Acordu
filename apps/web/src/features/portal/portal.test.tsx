@@ -18,6 +18,28 @@ describe('portal: base', () => {
     beforeEach(() => reiniciarParaTestes())
     afterEach(() => vi.unstubAllGlobals())
 
+    it('o portal não pede permissão nem mostra notificação do navegador (F12-25)', async () => {
+        const pedir = vi.fn(async () => 'granted' as NotificationPermission)
+        const criar = vi.fn()
+        vi.stubGlobal(
+            'Notification',
+            class {
+                static permission = 'granted'
+                static requestPermission = pedir
+                constructor() {
+                    criar()
+                }
+            },
+        )
+        comContato({
+            'GET /api/v1/portal/solicitacoes': () => pagina([resumo('s1', 12, 'Site fora do ar', 'EM_ANDAMENTO')]),
+        })
+        await abrir('/portal')
+        expect(await screen.findByRole('link', { name: /Site fora do ar/ })).toBeInTheDocument()
+        expect(pedir).not.toHaveBeenCalled()
+        expect(criar).not.toHaveBeenCalled()
+    })
+
     it('lista em andamento, conta o que espera o contato e troca de grupo pelo endereço', async () => {
         const chamadas = comContato({
             'GET /api/v1/portal/solicitacoes': (_, url) =>

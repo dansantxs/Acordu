@@ -6,7 +6,7 @@ import { api } from '@/shared/api/cliente'
 import { avisarErro } from '@/shared/avisos/avisos'
 import type { components } from '@/shared/api/interno'
 import { quando } from '@/shared/format/quando'
-import { notificar } from '@/shared/notificacoes/navegador'
+import { estadoNotificacoes, notificar } from '@/shared/notificacoes/navegador'
 import { Icone } from '@/shared/ui/Icone'
 
 type Notificacao = components['schemas']['NotificacaoDto']
@@ -28,11 +28,14 @@ export function caminhoDoLink(link: string | null): string | null {
 }
 
 /** Sino da capa: os 10 avisos mais recentes. Abrir um marca como lido e vai para o item. */
-export function Sino({ fuso }: { fuso: string }) {
+export function Sino({ fuso, escopo }: { fuso: string; escopo: string }) {
     const consultas = useQueryClient()
     const roteador = useRouter()
-    // Sem sinal de tempo real para avisos (ADR 0009 só cobre itens): consulta a cada minuto e ao focar a janela.
-    const sino = useQuery({ ...consultaSino, refetchInterval: 60_000 })
+    // Sem sinal de tempo real para avisos (ADR 0009 só cobre itens): consulta a cada minuto e ao focar a janela. Com a
+    // notificação do navegador ligada, consulta também com a aba escondida, senão o pop-up só sairia com o app à vista
+    // (F12-22).
+    const emSegundoPlano = estadoNotificacoes(escopo) === 'ligada'
+    const sino = useQuery({ ...consultaSino, refetchInterval: 60_000, refetchIntervalInBackground: emSegundoPlano })
     const atualizar = () => consultas.invalidateQueries({ queryKey: ['notificacoes'] })
     const lerUm = useMutation({
         mutationFn: (id: string) => api.POST('/api/v1/notificacoes/{id}/leitura', { params: { path: { id } } }),
@@ -50,6 +53,7 @@ export function Sino({ fuso }: { fuso: string }) {
         for (const aviso of itens ?? []) {
             if (aviso.lidaEm) continue
             notificar(
+                escopo,
                 { id: aviso.id, titulo: aviso.titulo, caminho: caminhoDoLink(aviso.link), criadoEm: aviso.criadaEm },
                 (caminho) => {
                     lerUm.mutate(aviso.id)
@@ -59,7 +63,7 @@ export function Sino({ fuso }: { fuso: string }) {
         }
         // `lerUm` muda a cada render; o efeito é sobre a lista de avisos.
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [itens, roteador])
+    }, [itens, roteador, escopo])
 
     const naoLidas = Number(sino.data?.naoLidas ?? 0)
     const rotulo = naoLidas > 0 ? `Avisos, ${naoLidas} não lidos` : 'Avisos'

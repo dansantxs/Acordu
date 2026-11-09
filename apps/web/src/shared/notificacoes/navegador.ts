@@ -1,13 +1,16 @@
 /**
  * Notificação do sistema operacional pelo navegador (F12c, decisão D6): o pop-up do Windows, do macOS ou do Android,
- * com o Acordu aberto, mesmo minimizado. Sem servidor: a permissão e a escolha ficam neste navegador. Quem usa outro
- * aparelho liga de novo lá. Web Push (com a aba fechada) fica para um marco próprio.
+ * com o Acordu aberto, mesmo minimizado. Sem servidor: a permissão é do navegador, e a escolha fica nele por pessoa e por
+ * empresa (`escopo`), para quem entra depois no mesmo computador não herdar. Quem usa outro aparelho liga de novo lá. Web
+ * Push (com a aba fechada) fica para um marco próprio.
  */
 
-const CHAVE_LIGADO = 'acordu:notificacoes-navegador'
+const PREFIXO_LIGADO = 'acordu:notificacoes-navegador:'
 const PREFIXO_MOSTRADA = 'acordu:notificada:'
 /** Aviso mais velho que isso não vira notificação: reabrir o app no dia seguinte não despeja os avisos de ontem. */
 const IDADE_MAXIMA_MS = 10 * 60_000
+/** Folga para o relógio da máquina diferente do do servidor (o `criadaEm` vem do servidor). */
+const FOLGA_RELOGIO_MS = 2 * 60_000
 /** Quanto tempo a marca de "já mostrada" dura (as abas consultam o sino a cada 60 s). */
 const VALIDADE_MARCA_MS = 24 * 60 * 60_000
 
@@ -21,34 +24,39 @@ function armazenamento(): Storage | null {
     }
 }
 
+/** Escopo da escolha: a pessoa na empresa ativa. */
+export function escopoNotificacoes(perfil: { usuarioId: string; tenant: { id: string } }): string {
+    return `${perfil.tenant.id}:${perfil.usuarioId}`
+}
+
 export function suportaNotificacoes(): boolean {
     return typeof window !== 'undefined' && 'Notification' in window
 }
 
 /** Ligada quando a pessoa ligou aqui e o navegador ainda permite. */
-export function estadoNotificacoes(): EstadoNotificacoes {
+export function estadoNotificacoes(escopo: string): EstadoNotificacoes {
     if (!suportaNotificacoes()) return 'sem-suporte'
     if (Notification.permission === 'denied') return 'negada'
-    const ligadoEm = armazenamento()?.getItem(CHAVE_LIGADO)
+    const ligadoEm = armazenamento()?.getItem(PREFIXO_LIGADO + escopo)
     return ligadoEm && Notification.permission === 'granted' ? 'ligada' : 'desligada'
 }
 
 /** Pede a permissão (precisa vir de um clique) e guarda a escolha. */
-export async function ligarNotificacoes(agora = Date.now()): Promise<EstadoNotificacoes> {
+export async function ligarNotificacoes(escopo: string, agora = Date.now()): Promise<EstadoNotificacoes> {
     if (!suportaNotificacoes()) return 'sem-suporte'
     const permissao = Notification.permission === 'granted' ? 'granted' : await Notification.requestPermission()
     if (permissao !== 'granted') return permissao === 'denied' ? 'negada' : 'desligada'
-    armazenamento()?.setItem(CHAVE_LIGADO, String(agora))
+    armazenamento()?.setItem(PREFIXO_LIGADO + escopo, String(agora))
     return 'ligada'
 }
 
-export function desligarNotificacoes(): void {
-    armazenamento()?.removeItem(CHAVE_LIGADO)
+export function desligarNotificacoes(escopo: string): void {
+    armazenamento()?.removeItem(PREFIXO_LIGADO + escopo)
 }
 
 /** Desde quando está ligada (avisos anteriores não viram notificação). */
-function ligadaDesde(): number | null {
-    const valor = Number(armazenamento()?.getItem(CHAVE_LIGADO))
+function ligadaDesde(escopo: string): number | null {
+    const valor = Number(armazenamento()?.getItem(PREFIXO_LIGADO + escopo))
     return Number.isFinite(valor) && valor > 0 ? valor : null
 }
 
@@ -84,14 +92,21 @@ export interface Notificavel {
 }
 
 /**
- * Mostra a notificação se a pessoa ligou, o navegador permite, o aviso é novo (depois de ligar e há menos de 10 min) e
- * nenhuma outra aba já mostrou. `abrir` recebe o caminho no clique.
+ * Mostra a notificação se a pessoa ligou, o navegador permite, o aviso é novo (depois de ligar e há menos de 10 min,
+ * com 2 min de folga de relógio) e nenhuma outra aba já mostrou. Sai também com o Acordu visível: o pop-up é o mesmo
+ * aviso do sino, e quem não quer desliga. `abrir` recebe o caminho no clique.
  */
-export function notificar(aviso: Notificavel, abrir: (caminho: string) => void, agora = Date.now()): boolean {
-    if (estadoNotificacoes() !== 'ligada') return false
+export function notificar(
+    escopo: string,
+    aviso: Notificavel,
+    abrir: (caminho: string) => void,
+    agora = Date.now(),
+): boolean {
+    if (estadoNotificacoes(escopo) !== 'ligada') return false
     const nascido = aviso.criadoEm ? new Date(aviso.criadoEm).getTime() : agora
-    const desde = ligadaDesde()
-    if (desde === null || nascido < desde || agora - nascido > IDADE_MAXIMA_MS) return false
+    const desde = ligadaDesde(escopo)
+    if (desde === null || nascido < desde - FOLGA_RELOGIO_MS || agora - nascido > IDADE_MAXIMA_MS + FOLGA_RELOGIO_MS)
+        return false
     if (!reservar(aviso.id, agora)) return false
     try {
         const notificacao = new Notification(aviso.titulo, {

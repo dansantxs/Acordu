@@ -3,6 +3,7 @@ import { useId } from 'react'
 import { Button } from 'react-aria-components'
 import type { Perfil } from '@/shared/sessao/perfil'
 import { Icone } from '@/shared/ui/Icone'
+import { escopoNotificacoes } from '@/shared/notificacoes/navegador'
 import { MenuUsuario } from './MenuUsuario'
 import { IndicadorCronometro } from '@/features/cronometro/Cronometro'
 import { PontoNovidade } from '@/features/novidades/ListaNotas'
@@ -41,7 +42,7 @@ export function CapaLateral({
                     </span>
                     <span className="truncate text-xs text-lateral-suave">{perfil.tenant.nome}</span>
                 </div>
-                <Sino fuso={perfil.tenant.fusoHorario} />
+                <Sino fuso={perfil.tenant.fusoHorario} escopo={escopoNotificacoes(perfil)} />
             </div>
 
             {/* Rola sozinha em tela baixa, para o cronômetro, a busca e o menu do usuário continuarem ao alcance. */}

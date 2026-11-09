@@ -115,7 +115,20 @@ describe('minha conta', () => {
             await abrir('/conta')
             const marcador = await screen.findByRole('checkbox', { name: 'Notificações neste navegador' })
             expect(marcador).toBeDisabled()
+            expect(marcador).not.toBeChecked()
             expect(marcador).toHaveAccessibleDescription(/O navegador bloqueou as notificações do Acordu/)
+        })
+
+        it('negar na hora deixa desligada, avisa e mostra como liberar', async () => {
+            comNotificacao('default', 'denied')
+            app(['tarefa.ver'])
+            await abrir('/conta')
+            const usuario = userEvent.setup()
+            const marcador = await screen.findByRole('checkbox', { name: 'Notificações neste navegador' })
+            await usuario.click(marcador)
+            expect(await screen.findByText(/O navegador bloqueou as notificações. Veja abaixo/)).toBeInTheDocument()
+            expect(marcador).not.toBeChecked()
+            expect(screen.getByText(/clique no cadeado ao lado do endereço/)).toBeInTheDocument()
         })
 
         it('navegador sem suporte: a opção não aparece', async () => {
