@@ -163,6 +163,7 @@ public sealed class ComandosPortal
     {
         ArgumentNullException.ThrowIfNull(dados);
         var solicitacao = await CarregarAsync(solicitacaoId, Permissoes.PortalSolicitacaoComentar, cancellationToken);
+        solicitacao.GarantirConversaAberta(doCliente: true, Visibilidade.Externa, comAnexos: arquivos is { Count: > 0 });
         var contato = await _portal.ContatoAsync(cancellationToken);
         var anexos = await _anexos.EnviarAsync(solicitacao.TenantId, solicitacao.Id, arquivos, cancellationToken);
         try
