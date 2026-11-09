@@ -466,8 +466,8 @@ Decidido na implementação (6c3):
 | PATCH | `/apontamentos/{id}` | Edita (autor ou `apontamento.editar_todos`). | `apontamento.criar` |
 | DELETE | `/apontamentos/{id}` | Exclui (idem). | `apontamento.criar` |
 | GET | `/cronometro` | Cronômetro ativo do usuário (ou `204`). | `apontamento.criar` |
-| POST | `/cronometro/inicio` | Inicia numa tarefa (`{ "tarefaId": "..." }`). | `apontamento.criar` |
-| POST | `/cronometro/parada` | Para e cria o apontamento (corpo opcional: descrição, faturável). | `apontamento.criar` |
+| POST | `/cronometro/inicio` | Inicia numa tarefa (`{ "tarefaId": "...", "iniciadoEm": null }`). | `apontamento.criar` |
+| POST | `/cronometro/parada` | Para e cria o apontamento (corpo opcional: descrição, descrição externa, faturável, visível, `duracaoMinutos`). | `apontamento.criar` |
 | DELETE | `/cronometro` | Descarta sem apontar. | `apontamento.criar` |
 
 > **Contrato do apontamento (marco 12):** o da origem da tarefa (solicitação, projeto ou recorrência), só se a data cai na vigência dele e ele não está SUSPENSO; senão `contratoId: null` (avulso). Fica congelado no registro.
@@ -478,7 +478,7 @@ Decidido na implementação (6c3):
   "descricao": "Ajuste de layout e exportação", "descricaoExterna": "Arte refeita",
   "faturavel": true, "visivelCliente": true }
 ```
-`contratoId` não é enviado: é resolvido pela tarefa e congelado (ADR 0004). Origem do contrato: solicitação, senão projeto, senão recorrência da tarefa; tarefa avulsa → sem contrato (sem período fechado). Editar/excluir de outra pessoa sem `apontamento.editar_todos` → `403`. `POST /cronometro/parada` sem corpo usa o título da tarefa como descrição, `faturavel: true`, data de hoje no fuso do tenant; responde `201` com o apontamento. `GET /cronometro` traz `decorridoMinutos`. Data em período fechado → `422` (`tipo: .../periodo-fechado`). Iniciar cronômetro com outro ativo → `409`. Iniciar numa tarefa A_FAZER a passa a FAZENDO (F11-19).
+`contratoId` não é enviado: é resolvido pela tarefa e congelado (ADR 0004). Origem do contrato: solicitação, senão projeto, senão recorrência da tarefa; tarefa avulsa → sem contrato (sem período fechado). Editar/excluir de outra pessoa sem `apontamento.editar_todos` → `403`. `POST /cronometro/parada` sem corpo usa o título da tarefa como descrição, `faturavel: true`, data do início no fuso do tenant; responde `201` com o apontamento. `GET /cronometro` traz `decorridoMinutos`. Data em período fechado → `422` (`tipo: .../periodo-fechado`). Iniciar cronômetro com outro ativo → `409`. Iniciar numa tarefa A_FAZER a passa a FAZENDO (F11-19). F12a: `iniciadoEm` opcional começa antes, até 12 h atrás e nunca no futuro (1 min de folga), senão `400` em `errors.iniciadoEm`; a parada aceita `duracaoMinutos` (1 a 1440, senão `400` em `errors.duracaoMinutos`, e o cronômetro continua), e o apontamento sai na data do início no fuso do tenant, não na de hoje.
 
 ---
 

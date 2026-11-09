@@ -5473,6 +5473,8 @@ export interface components {
         InicioCronometroRequest: {
             /** Format: uuid */
             tarefaId: string
+            /** Format: date-time */
+            iniciadoEm?: null | string
         }
         InteracaoDto: {
             /** Format: uuid */

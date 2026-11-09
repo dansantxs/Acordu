@@ -126,28 +126,53 @@ public sealed class ComandosApontamento
         var usuario = _contexto.Usuario();
         if (await _consultas.CronometroDoUsuarioAsync(usuario, cancellationToken) is not null)
             throw new CronometroAtivoException();
+        var inicio = Inicio(dados.IniciadoEm);
         var tarefa = await _tarefas.ObterPorIdAsync(dados.TarefaId, cancellationToken)
             ?? throw ErroDeCampo.Criar("tarefaId", "Tarefa não encontrada.");
         // Começou a trabalhar (F11-19): a tarefa sai de A_FAZER; a solicitação dela sai de ABERTA (AndamentoPelaTarefa).
         if (tarefa.Status == StatusTarefa.AFazer)
             tarefa.Iniciar();
 
-        var cronometro = Cronometro.Iniciar(Guid.CreateVersion7(), _contexto.TenantId!.Value, usuario, dados.TarefaId, _relogio.Agora);
+        var cronometro = Cronometro.Iniciar(
+            Guid.CreateVersion7(), _contexto.TenantId!.Value, usuario, dados.TarefaId, inicio);
         _cronometros.Adicionar(cronometro);
         await _unidade.SalvarAsync(cancellationToken);
         return cronometro.Id;
     }
 
-    /// <summary>Para o cronômetro e cria o apontamento de hoje (fuso do tenant) com o tempo arredondado (modelo §3.4).</summary>
+    /// <summary>Até quanto antes de agora o cronômetro pode começar (F12, D1).</summary>
+    public static readonly TimeSpan InicioMaximoAtras = TimeSpan.FromHours(12);
+
+    // Um minuto de folga para o relógio do aparelho um pouco adiantado.
+    private DateTimeOffset Inicio(DateTimeOffset? informado)
+    {
+        var agora = _relogio.Agora;
+        if (informado is not { } inicio)
+            return agora;
+        if (inicio > agora.AddMinutes(1))
+            throw ErroDeCampo.Criar("iniciadoEm", "O início não pode ser no futuro.");
+        if (inicio < agora - InicioMaximoAtras)
+            throw ErroDeCampo.Criar("iniciadoEm", "O início pode ser de até 12 horas atrás.");
+        return inicio > agora ? agora : inicio;
+    }
+
+    /// <summary>
+    /// Para o cronômetro e cria o apontamento no dia do início (fuso do tenant, F12-07), com o tempo arredondado (modelo
+    /// §3.4) ou a duração escolhida na janela (F12-05).
+    /// </summary>
     public async Task<Guid> PararCronometroAsync(ParadaCronometroRequest? dados, CancellationToken cancellationToken = default)
     {
         var cronometro = await CronometroAtivoAsync(cancellationToken);
         var tarefa = await _tarefas.ObterPorIdAsync(cronometro.TarefaId, cancellationToken)
             ?? throw new NaoEncontradoException("A tarefa do cronômetro não existe mais.");
         var duracao = cronometro.Parar(_relogio.Agora);
+        // A duração escolhida (F12-05) tem as regras do apontamento manual; o erro vem antes de remover o cronômetro.
+        if (dados?.DuracaoMinutos is { } escolhida)
+            duracao = Duracao(escolhida);
+
         var apontamento = await NovoAsync(
             tarefa,
-            await _relogio.HojeAsync(cancellationToken),
+            await _relogio.DiaAsync(cronometro.IniciadoEm, cancellationToken),
             duracao,
             string.IsNullOrWhiteSpace(dados?.Descricao) ? tarefa.Titulo : dados.Descricao,
             dados?.DescricaoExterna,

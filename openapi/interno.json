@@ -7154,6 +7154,13 @@
           "tarefaId": {
             "type": "string",
             "format": "uuid"
+          },
+          "iniciadoEm": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
           }
         }
       },

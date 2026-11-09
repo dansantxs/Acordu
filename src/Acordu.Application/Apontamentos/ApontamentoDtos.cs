@@ -38,10 +38,12 @@ public sealed record FiltroApontamentos(
 /// <summary>Cronômetro ativo do usuário.</summary>
 public sealed record CronometroDto(Guid Id, Referencia Tarefa, DateTimeOffset IniciadoEm, int DecorridoMinutos);
 
-public sealed record InicioCronometroRequest(Guid TarefaId);
+/// <summary><see cref="IniciadoEm"/>: começou antes (F12-01), até 12 h atrás e nunca no futuro; nulo é agora.</summary>
+public sealed record InicioCronometroRequest(Guid TarefaId, DateTimeOffset? IniciadoEm = null);
 
 /// <summary>
 /// Corpo opcional do <c>POST /cronometro/parada</c>: sem descrição, usa o título da tarefa; sem <see cref="Faturavel"/>,
 /// faturável.
 /// </summary>
-public sealed record ParadaCronometroRequest(string? Descricao, string? DescricaoExterna, bool? Faturavel, bool? VisivelCliente);
+public sealed record ParadaCronometroRequest(
+    string? Descricao, string? DescricaoExterna, bool? Faturavel, bool? VisivelCliente, int? DuracaoMinutos = null);

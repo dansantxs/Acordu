@@ -4,16 +4,18 @@ import { useState } from 'react'
 import { Button, Form } from 'react-aria-components'
 import { consultaTarefa } from '@/features/tarefas/consultas'
 import { mensagemDeErro } from '@/shared/api/mensagens'
+import { ErroApi } from '@/shared/api/problema'
 import { avisar, avisarErro } from '@/shared/avisos/avisos'
 import {
     consultaCronometro,
     decorridoMinutos,
     descartarCronometro,
     iniciarCronometro,
+    inicioPelaHora,
     pararCronometro,
     type Cronometro,
 } from '@/shared/cronometro/cronometro'
-import { formatarDuracao } from '@/shared/format/duracao'
+import { formatarDuracao, lerDuracao } from '@/shared/format/duracao'
 import { useAgora } from '@/shared/hooks/useAgora'
 import { Alerta } from '@/shared/ui/Alerta'
 import { Botao } from '@/shared/ui/Botao'
@@ -74,13 +76,14 @@ export function IndicadorCronometro() {
  * Botão do cronômetro no detalhe da tarefa: iniciar aqui, ver o tempo e parar se já é desta tarefa, ou avisar que
  * está correndo em outra (um por pessoa; a API responderia 409).
  */
-export function BotaoCronometro({ tarefaId }: { tarefaId: string }) {
+export function BotaoCronometro({ tarefaId, fuso }: { tarefaId: string; fuso: string }) {
     const consultas = useQueryClient()
     const cronometro = useQuery(consultaCronometro)
     const agora = useAgora()
     const [parando, setParando] = useState(false)
+    const [antes, setAntes] = useState(false)
     const inicio = useMutation({
-        mutationFn: () => iniciarCronometro(tarefaId),
+        mutationFn: (iniciadoEm?: string) => iniciarCronometro(tarefaId, iniciadoEm),
         // Iniciar põe a tarefa A_FAZER em FAZENDO e pode tirar a solicitação de ABERTA (F11-19): status e versão mudam.
         onSuccess: () =>
             Promise.all(
@@ -88,7 +91,10 @@ export function BotaoCronometro({ tarefaId }: { tarefaId: string }) {
                     consultas.invalidateQueries({ queryKey: [chave] }),
                 ),
             ),
-        onError: avisarErro,
+        onError: (erro) => {
+            // O erro do horário fica na janela de "Começou antes"; o resto vira aviso.
+            if (!antes) avisarErro(erro)
+        },
     })
     if (cronometro.isPending) return null
     const c = cronometro.data
@@ -109,9 +115,100 @@ export function BotaoCronometro({ tarefaId }: { tarefaId: string }) {
             </p>
         )
     return (
-        <Botao variante="secundario" onPress={() => inicio.mutate()} isPending={inicio.isPending}>
-            Iniciar cronômetro
-        </Botao>
+        <div className="flex flex-wrap items-center gap-3">
+            <Botao
+                variante="secundario"
+                onPress={() => inicio.mutate(undefined)}
+                isPending={inicio.isPending && !antes}
+            >
+                Iniciar cronômetro
+            </Botao>
+            <Botao
+                variante="discreto"
+                onPress={() => {
+                    inicio.reset()
+                    setAntes(true)
+                }}
+                className="!px-0 text-sm"
+            >
+                Começou antes?
+            </Botao>
+            <Janela titulo="Começou antes" aberta={antes} aoMudar={setAntes} ocupada={inicio.isPending}>
+                {antes && (
+                    <FormularioInicioAntes
+                        fuso={fuso}
+                        erro={
+                            inicio.isError
+                                ? (inicio.error instanceof ErroApi && inicio.error.doCampo('iniciadoEm')) ||
+                                  mensagemDeErro(inicio.error)
+                                : null
+                        }
+                        ocupado={inicio.isPending}
+                        aoFechar={() => setAntes(false)}
+                        aoIniciar={(iniciadoEm) => inicio.mutate(iniciadoEm, { onSuccess: () => setAntes(false) })}
+                    />
+                )}
+            </Janela>
+        </div>
+    )
+}
+
+/** "Começou às" (F12-01): hoje ou ontem, até 12 h atrás; a API confere de novo. */
+function FormularioInicioAntes({
+    fuso,
+    erro,
+    ocupado,
+    aoFechar,
+    aoIniciar,
+}: {
+    fuso: string
+    erro: string | null
+    ocupado: boolean
+    aoFechar: () => void
+    aoIniciar: (iniciadoEm: string) => void
+}) {
+    const [invalida, setInvalida] = useState(false)
+    return (
+        <Form
+            className="flex flex-col gap-4"
+            onSubmit={(evento) => {
+                evento.preventDefault()
+                const hora = String(new FormData(evento.currentTarget).get('hora') ?? '')
+                const inicio = inicioPelaHora(hora, fuso)
+                setInvalida(inicio === null)
+                if (inicio) aoIniciar(inicio.toISOString())
+            }}
+        >
+            {erro && <Alerta>{erro}</Alerta>}
+            <div className="flex flex-col gap-1">
+                <label htmlFor="cronometro-hora" className="text-sm font-semibold">
+                    Começou às
+                </label>
+                <input
+                    id="cronometro-hora"
+                    name="hora"
+                    type="time"
+                    required
+                    autoFocus
+                    aria-invalid={invalida || undefined}
+                    aria-describedby="cronometro-hora-d"
+                    className="w-32 rounded-couro border border-linha bg-superficie px-3 py-2 text-sm text-tinta aria-[invalid]:border-vermelho"
+                />
+                <p id="cronometro-hora-d" className={`text-xs ${invalida ? 'text-vermelho' : 'text-suave'}`}>
+                    {invalida
+                        ? 'Use o formato 08:40.'
+                        : 'No horário da empresa: hoje, ou ontem se ainda não chegou. Até 12 horas atrás.'}
+                </p>
+            </div>
+            <div className="flex justify-end gap-3">
+                <Botao variante="secundario" onPress={aoFechar} isDisabled={ocupado}>
+                    Cancelar
+                </Botao>
+                <Botao type="submit" isPending={ocupado}>
+                    Iniciar cronômetro
+                </Botao>
+            </div>
+        </Form>
     )
 }
 
@@ -144,7 +241,9 @@ function FormularioParada({ cronometro: c, aoFechar }: { cronometro: Cronometro;
     const [visivel, setVisivel] = useState<boolean | null>(null)
     const visivelEfetivo = visivel ?? faturavel
     const [descartando, setDescartando] = useState(false)
-    const minutos = Math.max(decorridoMinutos(c), 1)
+    // Congelado ao abrir: o campo começa com ele, e só uma mudança da pessoa manda outra duração (F12-05).
+    const [minutos] = useState(() => Math.max(decorridoMinutos(c), 1))
+    const [duracaoInvalida, setDuracaoInvalida] = useState(false)
 
     const parada = useMutation({
         mutationFn: pararCronometro,
@@ -171,19 +270,44 @@ function FormularioParada({ cronometro: c, aoFechar }: { cronometro: Cronometro;
                 evento.preventDefault()
                 const dados = new FormData(evento.currentTarget)
                 const texto = (nome: string) => String(dados.get(nome) ?? '').trim() || null
+                // Duração (F12-04, F12-05): vem com o decorrido; só vai à API se a pessoa mudou.
+                const escrita = String(dados.get('duracao') ?? '').trim()
+                const duracao = escrita ? lerDuracao(escrita) : null
+                const invalida = duracao === null || duracao < 1 || duracao > 24 * 60
+                setDuracaoInvalida(invalida)
+                if (invalida) return
                 parada.mutate({
                     descricao: texto('descricao'),
                     descricaoExterna: texto('descricaoExterna'),
                     faturavel,
                     visivelCliente: temCliente && visivelEfetivo,
+                    ...(escrita !== formatarDuracao(minutos) ? { duracaoMinutos: duracao } : {}),
                 })
             }}
         >
-            <p className="text-sm">
-                <span className="font-semibold tabular-nums">{formatarDuracao(minutos)}</span>{' '}
-                <span className="text-suave">em "{c.tarefa.nome}", com a data de hoje.</span>
+            <p className="text-sm text-suave">
+                Em "{c.tarefa.nome}", com a data do dia em que começou. Contou{' '}
+                <span className="font-semibold text-tinta tabular-nums">{formatarDuracao(minutos)}</span>.
             </p>
             {parada.isError && <Alerta>{mensagemDeErro(parada.error)}</Alerta>}
+            <div className="flex flex-col gap-1">
+                <label htmlFor="parada-duracao" className="text-sm font-semibold">
+                    Duração
+                </label>
+                <input
+                    id="parada-duracao"
+                    name="duracao"
+                    defaultValue={formatarDuracao(minutos)}
+                    aria-invalid={duracaoInvalida || undefined}
+                    aria-describedby="parada-duracao-d"
+                    className="w-32 rounded-couro border border-linha bg-superficie px-3 py-2 text-sm text-tinta tabular-nums aria-[invalid]:border-vermelho"
+                />
+                <p id="parada-duracao-d" className={`text-xs ${duracaoInvalida ? 'text-vermelho' : 'text-suave'}`}>
+                    {duracaoInvalida
+                        ? 'De 1 minuto a 24 horas: 1h30, 45min ou 90.'
+                        : 'Ajuste se esqueceu de iniciar ou de parar.'}
+                </p>
+            </div>
             <CampoTexto
                 name="descricao"
                 rotulo="O que foi feito"

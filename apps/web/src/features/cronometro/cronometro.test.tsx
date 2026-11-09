@@ -67,7 +67,10 @@ describe('cronômetro', () => {
         expect(screen.queryByRole('status', { name: 'Cronômetro ativo' })).not.toBeInTheDocument()
 
         await usuario.click(await within(aside).findByRole('button', { name: 'Iniciar cronômetro' }))
-        expect(chamadas.find((c) => c.caminho === '/api/v1/cronometro/inicio')?.corpo).toEqual({ tarefaId: ID })
+        expect(chamadas.find((c) => c.caminho === '/api/v1/cronometro/inicio')?.corpo).toEqual({
+            tarefaId: ID,
+            iniciadoEm: null,
+        })
         expect(within(await indicador()).getByRole('link', { name: 'Trocar resistência' })).toBeInTheDocument()
         expect(await within(aside).findByRole('button', { name: /Parar cronômetro · 0min/ })).toBeInTheDocument()
     })
@@ -156,5 +159,65 @@ describe('cronômetro', () => {
         expect(await screen.findByText('Cronômetro descartado, sem apontar.')).toBeInTheDocument()
         expect(chamadas.some((c) => c.metodo === 'DELETE' && c.caminho === '/api/v1/cronometro')).toBe(true)
         expect(await within(aside).findByRole('button', { name: 'Iniciar cronômetro' })).toBeInTheDocument()
+    })
+    it('começou antes: manda o horário informado (F12-01) e mostra o erro da API na janela (F12-03)', async () => {
+        let tentativas = 0
+        const chamadas = app({
+            'GET /api/v1/cronometro': () => semCronometro(),
+            'POST /api/v1/cronometro/inicio': () => {
+                tentativas++
+                return tentativas === 1
+                    ? json({ status: 400, errors: { iniciadoEm: ['O início pode ser de até 12 horas atrás.'] } }, 400)
+                    : json(cronometro(undefined, 20), 201)
+            },
+        })
+        await abrir(`/tarefas/${ID}`)
+        const usuario = userEvent.setup()
+        const aside = await screen.findByRole('complementary', { name: 'Trocar resistência' })
+        await usuario.click(await within(aside).findByRole('button', { name: 'Começou antes?' }))
+        const janela = await screen.findByRole('dialog', { name: 'Começou antes' })
+        await usuario.type(within(janela).getByLabelText('Começou às'), '08:40')
+        await usuario.click(within(janela).getByRole('button', { name: 'Iniciar cronômetro' }))
+
+        expect(await within(janela).findByText('O início pode ser de até 12 horas atrás.')).toBeInTheDocument()
+        const enviado = chamadas.find((c) => c.caminho === '/api/v1/cronometro/inicio')?.corpo as { iniciadoEm: string }
+        // 08:40 no fuso da empresa, qualquer que seja o fuso da máquina que roda o teste.
+        const noFuso = new Intl.DateTimeFormat('pt-BR', {
+            timeZone: 'America/Sao_Paulo',
+            hour: '2-digit',
+            minute: '2-digit',
+        }).format(new Date(enviado.iniciadoEm))
+        expect(noFuso).toBe('08:40')
+        await usuario.click(within(janela).getByRole('button', { name: 'Iniciar cronômetro' }))
+        await vi.waitFor(() => expect(screen.queryByRole('dialog', { name: 'Começou antes' })).not.toBeInTheDocument())
+    })
+
+    it('parar com outra duração manda a escolhida; inválida não manda (F12-04 a F12-06)', async () => {
+        const chamadas = app({
+            'GET /api/v1/cronometro': () => json(cronometro()),
+            'POST /api/v1/cronometro/parada': () =>
+                json({ id: 'a1', duracaoMinutos: 45, tarefa: { id: ID, nome: 'Trocar resistência' } }, 201),
+        })
+        await abrir('/tarefas')
+        const usuario = userEvent.setup()
+        await usuario.click(within(await indicador()).getByRole('button', { name: 'Parar' }))
+        const janela = await screen.findByRole('dialog', { name: 'Parar cronômetro' })
+        const duracao = within(janela).getByLabelText('Duração')
+        expect(duracao).toHaveValue('1h05')
+
+        await usuario.clear(duracao)
+        await usuario.type(duracao, '25h')
+        await usuario.click(within(janela).getByRole('button', { name: 'Parar e apontar' }))
+        expect(await within(janela).findByText(/De 1 minuto a 24 horas/)).toBeInTheDocument()
+        expect(chamadas.some((c) => c.caminho === '/api/v1/cronometro/parada')).toBe(false)
+
+        await usuario.clear(duracao)
+        await usuario.type(duracao, '45min')
+        await usuario.click(within(janela).getByRole('button', { name: 'Parar e apontar' }))
+        await vi.waitFor(() =>
+            expect(chamadas.find((c) => c.caminho === '/api/v1/cronometro/parada')?.corpo).toMatchObject({
+                duracaoMinutos: 45,
+            }),
+        )
     })
 })
