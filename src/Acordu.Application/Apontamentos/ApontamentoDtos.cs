@@ -36,7 +36,15 @@ public sealed record FiltroApontamentos(
     bool? Faturavel = null);
 
 /// <summary>Cronômetro ativo do usuário.</summary>
-public sealed record CronometroDto(Guid Id, Referencia Tarefa, DateTimeOffset IniciadoEm, int DecorridoMinutos);
+/// <summary>
+/// <see cref="Esquecido"/>: passou do limite do F12-17 (<see cref="CronometroEsquecido"/>); <see cref="SugestaoMinutos"/>:
+/// duração até o fim do expediente do dia do início, para a janela de parar sugerir; nula sem expediente depois do início.
+/// </summary>
+public sealed record CronometroDto(
+    Guid Id, Referencia Tarefa, DateTimeOffset IniciadoEm, int DecorridoMinutos, bool Esquecido = false, int? SugestaoMinutos = null);
+
+/// <summary>Cronômetro ativo de alguém do tenant, para o aviso de esquecido (F12-18).</summary>
+public sealed record CronometroAtivo(Guid Id, Guid UsuarioId, Guid TarefaId, string TituloTarefa, DateTimeOffset IniciadoEm);
 
 /// <summary><see cref="IniciadoEm"/>: começou antes (F12-01), até 12 h atrás e nunca no futuro; nulo é agora.</summary>
 public sealed record InicioCronometroRequest(Guid TarefaId, DateTimeOffset? IniciadoEm = null);
