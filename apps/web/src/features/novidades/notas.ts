@@ -15,6 +15,15 @@ export const NOTAS: NotaVersao[] = [
     {
         data: '2026-11-09',
         publico: 'equipe',
+        titulo: 'Avisos como notificação do sistema',
+        itens: [
+            'Em Minha conta > Neste navegador, ligue as notificações: os avisos do sino aparecem como pop-up do Windows (ou do sistema que você usa) enquanto o Acordu estiver aberto, mesmo minimizado.',
+            'Clicar na notificação traz o Acordu para a frente e abre o item.',
+        ],
+    },
+    {
+        data: '2026-11-09',
+        publico: 'equipe',
         titulo: 'Cronômetro ajustável',
         itens: [
             'Esqueceu de iniciar o cronômetro? "Começou antes?", no painel da tarefa, começa a contar a partir do horário informado, de até 12 horas atrás.',

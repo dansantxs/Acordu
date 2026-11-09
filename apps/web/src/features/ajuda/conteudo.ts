@@ -386,10 +386,11 @@ export const SECOES_AJUDA: SecaoAjuda[] = [
         grupo: 'telas',
         permissoes: [],
         tela: '/conta',
-        resumo: 'O que é só seu: quais avisos chegam por e-mail e a sua agenda no calendário.',
+        resumo: 'O que é só seu: quais avisos chegam por e-mail, as notificações deste navegador e a sua agenda no calendário.',
         passos: [
             'Abra pelo menu com o seu nome, no pé da barra lateral.',
             'Marque quais avisos também chegam por e-mail; o sino continua mostrando tudo.',
+            'Em "Neste navegador", ligue as notificações para ver os avisos como pop-up do sistema (Windows, macOS, Android) enquanto o Acordu estiver aberto, mesmo minimizado. Vale só para o navegador em que você ligou.',
             'Gere o link da agenda e cole no Google Agenda, Outlook ou Apple Calendário. O modo discreto esconde títulos e clientes.',
         ],
     },

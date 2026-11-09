@@ -81,4 +81,63 @@ describe('minha conta', () => {
         expect(await screen.findByRole('heading', { name: 'E-mails' })).toBeInTheDocument()
         expect(screen.queryByRole('heading', { name: 'Agenda no seu calendário' })).not.toBeInTheDocument()
     })
+    describe('notificações neste navegador (F12-20, F12-21, F12-25)', () => {
+        const comNotificacao = (permissao: NotificationPermission, resposta: NotificationPermission = permissao) => {
+            const pedir = vi.fn(async () => resposta)
+            vi.stubGlobal(
+                'Notification',
+                class {
+                    static permission = permissao
+                    static requestPermission = pedir
+                },
+            )
+            return pedir
+        }
+        afterEach(() => localStorage.clear())
+
+        it('ligar pede a permissão e fica ligado; desligar desliga', async () => {
+            const pedir = comNotificacao('default', 'granted')
+            app(['tarefa.ver'])
+            await abrir('/conta')
+            const usuario = userEvent.setup()
+            const marcador = await screen.findByRole('checkbox', { name: 'Notificações neste navegador' })
+            expect(marcador).not.toBeChecked()
+            await usuario.click(marcador)
+            expect(pedir).toHaveBeenCalled()
+            await vi.waitFor(() => expect(marcador).toBeChecked())
+            await usuario.click(marcador)
+            await vi.waitFor(() => expect(marcador).not.toBeChecked())
+        })
+
+        it('bloqueada no navegador, fica desligada e explica como liberar', async () => {
+            comNotificacao('denied')
+            app(['tarefa.ver'])
+            await abrir('/conta')
+            const marcador = await screen.findByRole('checkbox', { name: 'Notificações neste navegador' })
+            expect(marcador).toBeDisabled()
+            expect(marcador).not.toBeChecked()
+            expect(marcador).toHaveAccessibleDescription(/O navegador bloqueou as notificações do Acordu/)
+        })
+
+        it('negar na hora deixa desligada, avisa e mostra como liberar', async () => {
+            comNotificacao('default', 'denied')
+            app(['tarefa.ver'])
+            await abrir('/conta')
+            const usuario = userEvent.setup()
+            const marcador = await screen.findByRole('checkbox', { name: 'Notificações neste navegador' })
+            await usuario.click(marcador)
+            expect(await screen.findByText(/O navegador bloqueou as notificações. Veja abaixo/)).toBeInTheDocument()
+            expect(marcador).not.toBeChecked()
+            expect(screen.getByText(/clique no cadeado ao lado do endereço/)).toBeInTheDocument()
+        })
+
+        it('navegador sem suporte: a opção não aparece', async () => {
+            vi.stubGlobal('Notification', undefined)
+            delete (window as { Notification?: unknown }).Notification
+            app(['tarefa.ver'])
+            await abrir('/conta')
+            await screen.findByRole('heading', { name: 'E-mails' })
+            expect(screen.queryByRole('checkbox', { name: 'Notificações neste navegador' })).not.toBeInTheDocument()
+        })
+    })
 })

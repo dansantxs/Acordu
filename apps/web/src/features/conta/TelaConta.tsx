@@ -1,9 +1,16 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { pode } from '@/features/casca/navegacao'
 import { mensagemDeErro } from '@/shared/api/mensagens'
 import { avisar, avisarErro } from '@/shared/avisos/avisos'
 import { dataHora } from '@/shared/format/prazo'
+import {
+    desligarNotificacoes,
+    escopoNotificacoes,
+    estadoNotificacoes,
+    ligarNotificacoes,
+    type EstadoNotificacoes,
+} from '@/shared/notificacoes/navegador'
 import type { Perfil } from '@/shared/sessao/perfil'
 import { Alerta } from '@/shared/ui/Alerta'
 import { Botao } from '@/shared/ui/Botao'
@@ -42,9 +49,78 @@ export function TelaConta({ perfil }: { perfil: Perfil }) {
         <Pagina ajuda="conta" titulo="Minha conta" contexto={`${perfil.nome} · ${perfil.email}`}>
             <div className="flex max-w-2xl flex-col gap-10">
                 <Emails />
+                <NotificacoesNavegador escopo={escopoNotificacoes(perfil)} />
                 {pode(perfil, ...LEITURA_AGENDA) && <Agenda fuso={perfil.tenant.fusoHorario} />}
             </div>
         </Pagina>
+    )
+}
+
+/**
+ * Notificação do sistema pelo navegador (F12-20, F12-21, F12-25): por navegador, com o Acordu aberto. Sem suporte, a
+ * seção não aparece.
+ */
+function NotificacoesNavegador({ escopo }: { escopo: string }) {
+    const [estado, setEstado] = useState<EstadoNotificacoes>(() => estadoNotificacoes(escopo))
+    const pedindo = useRef(false)
+    // Liberou no cadeado e voltou (F12-21): relê ao voltar o foco ou a aba ficar visível.
+    useEffect(() => {
+        const reler = () => setEstado(estadoNotificacoes(escopo))
+        window.addEventListener('focus', reler)
+        document.addEventListener('visibilitychange', reler)
+        return () => {
+            window.removeEventListener('focus', reler)
+            document.removeEventListener('visibilitychange', reler)
+        }
+    }, [escopo])
+    if (estado === 'sem-suporte') return null
+    return (
+        <section aria-labelledby="conta-navegador" className="flex flex-col gap-3">
+            <h2 id="conta-navegador" className="font-titulo text-2xl font-semibold tracking-tight">
+                Neste navegador
+            </h2>
+            <p className="text-sm text-suave">
+                Os avisos do sino aparecem também como notificação do sistema, enquanto o Acordu estiver aberto, mesmo
+                minimizado. Vale só para este navegador.
+            </p>
+            <Marcador
+                valor={estado === 'ligada'}
+                isDisabled={estado === 'negada'}
+                aoMudar={async (ligar) => {
+                    if (!ligar) {
+                        desligarNotificacoes(escopo)
+                        setEstado('desligada')
+                        avisar('Notificações deste navegador desligadas.')
+                        return
+                    }
+                    // Sem desabilitar durante o pedido: o foco fica no marcador; um segundo clique só é ignorado.
+                    if (pedindo.current) return
+                    pedindo.current = true
+                    try {
+                        const novo = await ligarNotificacoes(escopo)
+                        setEstado(novo)
+                        avisar(
+                            novo === 'ligada'
+                                ? 'Notificações deste navegador ligadas.'
+                                : novo === 'negada'
+                                  ? 'O navegador bloqueou as notificações. Veja abaixo como liberar.'
+                                  : 'As notificações continuam desligadas: o navegador não deu a permissão.',
+                        )
+                    } finally {
+                        pedindo.current = false
+                    }
+                }}
+                {...(estado === 'negada' ? { descritoPor: 'conta-navegador-negada' } : {})}
+            >
+                Notificações neste navegador
+            </Marcador>
+            {estado === 'negada' && (
+                <p id="conta-navegador-negada" className="text-xs text-suave">
+                    O navegador bloqueou as notificações do Acordu. Para liberar, clique no cadeado ao lado do endereço,
+                    em Notificações escolha Permitir, e volte aqui.
+                </p>
+            )}
+        </section>
     )
 }
 
