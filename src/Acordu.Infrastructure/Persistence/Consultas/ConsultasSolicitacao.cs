@@ -89,7 +89,7 @@ public sealed class ConsultasSolicitacao : IConsultasSolicitacao
         var tarefas = await _db.Tarefas.AsNoTracking()
             .Where(t => t.SolicitacaoId == id)
             .OrderBy(t => t.Id)
-            .Select(t => new TarefaDaSolicitacaoDto(t.Id, t.Titulo, t.Status))
+            .Select(t => new TarefaDaSolicitacaoDto(t.Id, t.Titulo, t.Status, t.ProjetoId))
             .ToListAsync(cancellationToken);
         var apontado = (await _sql.ListarAsync<Soma>(e => $"""
             SELECT coalesce(sum(a.duracao_minutos), 0)::int AS total
