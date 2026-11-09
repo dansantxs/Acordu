@@ -433,10 +433,18 @@ public sealed class TarefaTests
             tarefa.LimparEventos();
 
             tarefa.MoverParaProjeto(projeto);
-            tarefa.MoverParaProjeto(null);
+
+            tarefa.Eventos.Should().BeEmpty();
+        }
+
+        [Fact]
+        public void SemProjeto_TirarDeNovo_NaoEmite()
+        {
+            var tarefa = Em(StatusTarefa.AFazer);
+
             tarefa.MoverParaProjeto(null);
 
-            tarefa.Eventos.Should().HaveCount(1);
+            tarefa.Eventos.Should().BeEmpty();
         }
 
         [Fact]

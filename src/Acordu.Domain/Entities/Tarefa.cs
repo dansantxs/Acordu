@@ -177,6 +177,8 @@ public sealed class Tarefa : EntidadeBase
             return;
         if (projeto is not null)
         {
+            if (ClienteId is null)
+                throw new ProjetoDeOutroClienteException("Tarefa sem cliente não entra em projeto.");
             if (projeto.TenantId != TenantId || projeto.ClienteId != ClienteId)
                 throw new ProjetoDeOutroClienteException();
             if (projeto.Status != StatusProjeto.EmAndamento)

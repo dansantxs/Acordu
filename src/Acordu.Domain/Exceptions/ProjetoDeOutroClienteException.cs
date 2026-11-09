@@ -1,6 +1,9 @@
 namespace Acordu.Domain.Exceptions;
 
-/// <summary>Projeto de outro cliente que a tarefa (F11-24): a tarefa só muda para um projeto do mesmo cliente; tarefa sem cliente não entra em projeto.</summary>
+/// <summary>
+/// O projeto não é do cliente da tarefa (F11-24): a tarefa só muda para um projeto do mesmo cliente; tarefa sem cliente
+/// não entra em projeto.
+/// </summary>
 public sealed class ProjetoDeOutroClienteException : DominioException
 {
     public ProjetoDeOutroClienteException()
