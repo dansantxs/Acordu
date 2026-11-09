@@ -35,10 +35,10 @@ public sealed record FiltroApontamentos(
     DateOnly? Ate = null,
     bool? Faturavel = null);
 
-/// <summary>Cronômetro ativo do usuário.</summary>
 /// <summary>
-/// <see cref="Esquecido"/>: passou do limite do F12-17 (<see cref="CronometroEsquecido"/>); <see cref="SugestaoMinutos"/>:
-/// duração até o fim do expediente do dia do início, para a janela de parar sugerir; nula sem expediente depois do início.
+/// Cronômetro ativo do usuário. <see cref="Esquecido"/>: passou do limite do F12-17 (regra do Domain,
+/// <c>CronometroEsquecido</c>); <see cref="SugestaoMinutos"/>: do início ao fim do expediente desse dia, quando o fim já
+/// passou, para a janela de parar sugerir; nula nos outros casos.
 /// </summary>
 public sealed record CronometroDto(
     Guid Id, Referencia Tarefa, DateTimeOffset IniciadoEm, int DecorridoMinutos, bool Esquecido = false, int? SugestaoMinutos = null);

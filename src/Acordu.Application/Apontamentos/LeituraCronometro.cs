@@ -1,5 +1,6 @@
 using Acordu.Application.Abstractions;
 using Acordu.Application.Common;
+using Acordu.Domain.Services;
 
 namespace Acordu.Application.Apontamentos;
 
