@@ -6575,7 +6575,9 @@
         "required": [
           "statusDe",
           "statusPara",
-          "responsavel"
+          "responsavel",
+          "projetoDe",
+          "projetoPara"
         ],
         "type": "object",
         "properties": {

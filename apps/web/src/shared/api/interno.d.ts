@@ -5343,8 +5343,8 @@ export interface components {
             statusDe: null | string
             statusPara: null | string
             responsavel: null | components['schemas']['Referencia']
-            projetoDe?: null | components['schemas']['Referencia']
-            projetoPara?: null | components['schemas']['Referencia']
+            projetoDe: null | components['schemas']['Referencia']
+            projetoPara: null | components['schemas']['Referencia']
         }
         DiaAgendaDto: {
             /** Format: date */
