@@ -108,8 +108,23 @@ describe('portal: detalhe', () => {
             'GET /api/v1/portal/solicitacoes/s1/interacoes': () => json([]),
         })
         await abrir('/portal/solicitacoes/s1')
-        expect(await screen.findByText(/Esta solicitação foi encerrada/)).toBeInTheDocument()
+        expect(
+            await screen.findByText('Esta solicitação foi encerrada. Para continuar, abra uma nova.'),
+        ).toBeInTheDocument()
         expect(screen.queryByRole('textbox', { name: 'Mensagem para a equipe' })).not.toBeInTheDocument()
         expect(screen.getByText('Sem prazo combinado')).toBeInTheDocument()
+        // Com conta, o atalho para a nova solicitação (F11-08).
+        expect(screen.getByRole('link', { name: 'Nova solicitação' })).toHaveAttribute('href', '/portal/nova')
+    })
+
+    it('resolvida, para quem não aprova, ainda tem a caixa de mensagem (F11-10)', async () => {
+        comContato({
+            'GET /api/v1/portal/solicitacoes/s1': () =>
+                json(solicitacao({ statusExterno: 'CONCLUIDA', podeAprovar: true, sla: null })),
+            'GET /api/v1/portal/solicitacoes/s1/interacoes': () => json([]),
+        })
+        await abrir('/portal/solicitacoes/s1')
+        expect(await screen.findByRole('textbox', { name: 'Mensagem para a equipe' })).toBeInTheDocument()
+        expect(screen.queryByText(/Esta solicitação foi encerrada/)).not.toBeInTheDocument()
     })
 })

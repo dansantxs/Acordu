@@ -256,4 +256,17 @@ describe('conversa da solicitação', () => {
         expect(await c.findByText(/video\.mp4: acima de 20 MB/)).toBeInTheDocument()
         expect(c.queryByRole('list', { name: 'Arquivos para enviar' })).not.toBeInTheDocument()
     })
+
+    it('encerrada: só nota interna, sem anexo, com o aviso (F11-09)', async () => {
+        app([...COMENTAR, 'solicitacao.editar'], {
+            [`GET /api/v1/solicitacoes/${ID}`]: () => json({ ...solicitacao, status: 'CANCELADA' }),
+        })
+        await abrir(`/solicitacoes/${ID}`)
+        const c = await conversa()
+        expect(c.getByRole('combobox', { name: 'Nota interna' })).toBeInTheDocument()
+        expect(c.queryByRole('radio', { name: 'Resposta ao cliente' })).not.toBeInTheDocument()
+        expect(c.queryByRole('button', { name: 'Anexar' })).not.toBeInTheDocument()
+        expect(c.queryByRole('button', { name: 'Enviar e aguardar o cliente' })).not.toBeInTheDocument()
+        expect(c.getByText(/Solicitação encerrada: a conversa com o cliente acabou/)).toBeInTheDocument()
+    })
 })

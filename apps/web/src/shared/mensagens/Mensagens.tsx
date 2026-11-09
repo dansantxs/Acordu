@@ -83,6 +83,7 @@ export function CaixaMensagem({
     topo,
     enviar,
     outraAcao,
+    semAnexos = false,
 }: {
     /** Nome acessível do campo (o tipo da mensagem). */
     rotulo: string
@@ -98,6 +99,8 @@ export function CaixaMensagem({
     enviar: (dados: { texto: string | null; anexos: File[] }) => Promise<unknown>
     /** Segundo botão, antes do principal, com o mesmo texto e anexos (ex.: "Enviar e aguardar o cliente"). */
     outraAcao?: { rotulo: string; enviar: (dados: { texto: string | null; anexos: File[] }) => Promise<unknown> }
+    /** Sem anexos (ex.: solicitação encerrada, F11-09): some o botão, e soltar arquivo não faz nada. */
+    semAnexos?: boolean
 }) {
     const idLista = useId()
     const campo = useRef<HTMLTextAreaElement>(null)
@@ -201,7 +204,7 @@ export function CaixaMensagem({
 
     return (
         <DropZone
-            onDrop={(e) => void aoSoltar(e.items)}
+            onDrop={semAnexos ? undefined : (e) => void aoSoltar(e.items)}
             aria-label="Soltar arquivos para anexar"
             className="flex flex-col gap-3 rounded-couro border border-linha bg-superficie p-3 outline-none data-[drop-target]:border-acento data-[drop-target]:bg-acento-suave"
         >
@@ -282,13 +285,17 @@ export function CaixaMensagem({
             {erro !== null && <Alerta>{mensagemDeErro(erro) ?? 'Confira o texto.'}</Alerta>}
 
             <div className="flex flex-wrap items-center gap-3">
-                <FileTrigger allowsMultiple onSelect={(lista) => lista && adicionar([...lista])}>
-                    <Botao variante="discreto" className="!px-0">
-                        <Icone nome="clipe" />
-                        Anexar
-                    </Botao>
-                </FileTrigger>
-                <span className="text-xs text-suave">ou arraste até aqui (até 5, de 20 MB)</span>
+                {!semAnexos && (
+                    <>
+                        <FileTrigger allowsMultiple onSelect={(lista) => lista && adicionar([...lista])}>
+                            <Botao variante="discreto" className="!px-0">
+                                <Icone nome="clipe" />
+                                Anexar
+                            </Botao>
+                        </FileTrigger>
+                        <span className="text-xs text-suave">ou arraste até aqui (até 5, de 20 MB)</span>
+                    </>
+                )}
                 {outraAcao && (
                     <Botao
                         variante="secundario"

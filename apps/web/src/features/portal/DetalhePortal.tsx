@@ -50,7 +50,9 @@ export function DetalhePortal({ id, fuso, voltar = true }: { id: string; fuso: s
             </Alerta>
         )
     const s = consulta.data
-    const encerrada = s.statusExterno === 'CONCLUIDA' || s.statusExterno === 'CANCELADA'
+    // FECHADA ou CANCELADA (F11-08). RESOLVIDA aparece como CONCLUIDA para quem não aprova, mas a conversa segue
+    // aberta até fechar (F11-10): `podeAprovar` vem verdadeiro em toda RESOLVIDA.
+    const encerrada = s.statusExterno === 'CANCELADA' || (s.statusExterno === 'CONCLUIDA' && !s.podeAprovar)
     return (
         <>
             {voltar && (
@@ -77,7 +79,7 @@ export function DetalhePortal({ id, fuso, voltar = true }: { id: string; fuso: s
                     <p className="text-sm whitespace-pre-line">{s.descricao}</p>
                 </section>
             )}
-            <Conversa solicitacao={s} fuso={fuso} encerrada={encerrada} />
+            <Conversa solicitacao={s} fuso={fuso} encerrada={encerrada} podeAbrirNova={voltar} />
         </>
     )
 }
@@ -218,10 +220,13 @@ function Conversa({
     solicitacao: s,
     fuso,
     encerrada,
+    podeAbrirNova,
 }: {
     solicitacao: SolicitacaoPortal
     fuso: string
     encerrada: boolean
+    /** Sessão com conta (no link, o contato só vê esta solicitação). */
+    podeAbrirNova: boolean
 }) {
     const consultas = useQueryClient()
     const interacoes = useQuery(consultaInteracoesPortal(s.id))
@@ -255,9 +260,17 @@ function Conversa({
                 </ol>
             )}
             {encerrada ? (
-                <p className="text-sm text-suave">
-                    Esta solicitação foi encerrada. Para outro assunto, abra uma nova solicitação.
-                </p>
+                <div className="flex flex-wrap items-center gap-3">
+                    <p className="text-sm text-suave">Esta solicitação foi encerrada. Para continuar, abra uma nova.</p>
+                    {podeAbrirNova && (
+                        <Link
+                            to="/portal/nova"
+                            className="rounded-couro border border-linha px-3 py-1.5 text-sm font-semibold text-tinta hover:bg-trilho"
+                        >
+                            Nova solicitação
+                        </Link>
+                    )}
+                </div>
             ) : (
                 <CaixaMensagem
                     rotulo="Mensagem para a equipe"
