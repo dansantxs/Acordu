@@ -18,9 +18,13 @@ public sealed class RelogioDoTenant
 
     public DateTimeOffset Agora => _relogio.GetUtcNow();
 
-    public async Task<DateOnly> HojeAsync(CancellationToken cancellationToken = default)
+    public Task<DateOnly> HojeAsync(CancellationToken cancellationToken = default) =>
+        DiaAsync(_relogio.GetUtcNow(), cancellationToken);
+
+    /// <summary>Dia civil de um instante no fuso do tenant (o apontamento do cronômetro sai no dia do início, F12-07).</summary>
+    public async Task<DateOnly> DiaAsync(DateTimeOffset instante, CancellationToken cancellationToken = default)
     {
         var calendario = await _calendarios.DoTenantAsync(cancellationToken);
-        return DateOnly.FromDateTime(TimeZoneInfo.ConvertTime(_relogio.GetUtcNow(), calendario.Fuso).DateTime);
+        return DateOnly.FromDateTime(TimeZoneInfo.ConvertTime(instante, calendario.Fuso).DateTime);
     }
 }
