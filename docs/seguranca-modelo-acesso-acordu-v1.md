@@ -111,6 +111,7 @@ Efeito do `EscopoPortal` sobre o papel Cliente (aplicado na Application, além d
 - Não é possível atribuir papel CLIENTE por `/convites` nem papel INTERNO pelo convite de contato.
 - Revogar acesso de contato remove o `Vinculo` e **revoga todos os refresh tokens e links** dele naquele tenant.
 - Inativar cliente revoga os acessos de todos os seus contatos.
+- **Efeitos automáticos não pedem a permissão do alvo** (modelo §3.1, F11): a permissão é checada na ação que a pessoa faz, e as transições que o sistema deriva dela valem sem checagem própria. Hoje: criar tarefa (`tarefa.criar`) ou iniciar o cronômetro (`apontamento.criar`) tira a solicitação de ABERTA sem `solicitacao.editar`; iniciar o cronômetro põe a tarefa A_FAZER em FAZENDO sem `tarefa.editar`; a primeira resposta EXTERNA (`solicitacao.comentar`) faz o mesmo na solicitação. Ação conjunta escolhida pela pessoa (concluir ou cancelar tarefas junto) não é efeito automático: pede as duas permissões.
 
 ---
 
