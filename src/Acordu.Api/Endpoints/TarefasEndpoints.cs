@@ -62,6 +62,17 @@ internal static class TarefasEndpoints
             .RequirePermissao(Permissoes.TarefaEditar)
             .Produces<TarefaDto>();
 
+        // Fora do PATCH de propósito (como o contrato da solicitação): o formulário inteiro sem o campo tiraria o projeto.
+        tarefas.MapPut("/{id:guid}/projeto", async (
+            Guid id, ProjetoDaTarefaRequest corpo, HttpRequest requisicao, ComandosTarefa comandos, IConsultasTarefa consultas,
+            CancellationToken cancellationToken) =>
+        {
+            await comandos.MoverParaProjetoAsync(id, corpo, Versoes.IfMatch(requisicao), cancellationToken);
+            return Results.Ok(await DetalheAsync(consultas, id, cancellationToken));
+        })
+            .RequirePermissao(Permissoes.TarefaEditar)
+            .Produces<TarefaDto>();
+
         MapTransicao(tarefas, "/inicio", (c, id, versao, ct) => c.IniciarAsync(id, versao, ct));
         MapTransicao(tarefas, "/conclusao", (c, id, versao, ct) => c.ConcluirAsync(id, versao, ct));
         MapTransicao(tarefas, "/reabertura", (c, id, versao, ct) => c.ReabrirAsync(id, versao, ct));

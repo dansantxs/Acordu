@@ -122,6 +122,7 @@ internal static class CasosDeUso
         services.AddScoped<IManipuladorPosCommit<TarefaCriada>>(sp => sp.GetRequiredService<RegistroDeAtividades>());
         services.AddScoped<IManipuladorPosCommit<TarefaAtribuida>>(sp => sp.GetRequiredService<RegistroDeAtividades>());
         services.AddScoped<IManipuladorPosCommit<TarefaStatusAlterada>>(sp => sp.GetRequiredService<RegistroDeAtividades>());
+        services.AddScoped<IManipuladorPosCommit<TarefaProjetoAlterado>>(sp => sp.GetRequiredService<RegistroDeAtividades>());
         services.AddScoped<IManipuladorPosCommit<ComentarioTarefaRegistrado>>(sp => sp.GetRequiredService<RegistroDeAtividades>());
         services.AddScoped<AlertasSla>();
 

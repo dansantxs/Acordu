@@ -38,6 +38,8 @@ internal static partial class ManipuladorExcecoes
         PeriodoFechadoException e => Problema(422, "periodo-fechado", "Período fechado", e.Message),
         ContratoIncoerenteException e => Problema(422, "contrato-incoerente", "Contrato incoerente", e.Message),
         AnexoInvalidoException e => Problema(422, "anexo-invalido", "Anexo inválido", e.Message),
+        ProjetoDeOutroClienteException e => Problema(422, "projeto-de-outro-cliente", "Projeto de outro cliente", e.Message),
+        ProjetoEncerradoException e => Problema(422, "projeto-encerrado", "Projeto encerrado", e.Message),
         SolicitacaoEncerradaException e => Problema(409, "solicitacao-encerrada", "Solicitação encerrada", e.Message),
         ArquivoGrandeDemaisException e => Problema(413, "anexo-grande-demais", "Anexo acima do limite", e.Message),
         BadHttpRequestException { StatusCode: StatusCodes.Status413PayloadTooLarge } => Problema(
