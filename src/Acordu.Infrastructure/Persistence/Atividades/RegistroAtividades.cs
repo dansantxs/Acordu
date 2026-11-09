@@ -111,7 +111,7 @@ public sealed class RegistroAtividades : IAtividades
                 : l.Tipo == tipoProjeto
                     ? new DetalheAtividadeDto(
                         null, null, null, Projeto(l.StatusDe, nomesProjetos), Projeto(l.StatusPara, nomesProjetos))
-                    : new DetalheAtividadeDto(l.StatusDe, l.StatusPara, Nomes.Pessoa(l.ResponsavelId, pessoas));
+                    : new DetalheAtividadeDto(l.StatusDe, l.StatusPara, Nomes.Pessoa(l.ResponsavelId, pessoas), null, null);
             itens.Add(new AtividadeDto(
                 l.Id,
                 Enum.GetValues<TipoAtividade>().First(x => Texto(x) == l.Tipo),

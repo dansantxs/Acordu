@@ -43,7 +43,7 @@ public sealed record AlvoAtividadeDto(AlvoColaboracao Tipo, Guid Id, string Titu
 /// de agora (nulo = sem projeto), conforme o tipo.
 /// </summary>
 public sealed record DetalheAtividadeDto(
-    string? StatusDe, string? StatusPara, Referencia? Responsavel, Referencia? ProjetoDe = null, Referencia? ProjetoPara = null);
+    string? StatusDe, string? StatusPara, Referencia? Responsavel, Referencia? ProjetoDe, Referencia? ProjetoPara);
 
 /// <summary>Página do feed; <see cref="Proximo"/> é o cursor da próxima (<c>antes</c>), nulo no fim.</summary>
 public sealed record PaginaAtividadesDto(IReadOnlyList<AtividadeDto> Itens, long? Proximo);
