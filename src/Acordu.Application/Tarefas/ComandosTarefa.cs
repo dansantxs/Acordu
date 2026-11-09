@@ -94,6 +94,23 @@ public sealed class ComandosTarefa
         await _unidade.SalvarAsync(cancellationToken);
     }
 
+    /// <summary>
+    /// Vincula, troca ou tira o projeto (F11-23 a F11-26). Projeto que não aparece (outro tenant) é 404; as regras de
+    /// cliente e status são do domínio (422).
+    /// </summary>
+    public async Task MoverParaProjetoAsync(
+        Guid id, ProjetoDaTarefaRequest dados, string? versao, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(dados);
+        var tarefa = await CarregarAsync(id, versao, cancellationToken);
+        var projeto = dados.ProjetoId is { } projetoId
+            ? await _projetos.ObterPorIdAsync(projetoId, cancellationToken)
+                ?? throw new NaoEncontradoException("Projeto não encontrado.")
+            : null;
+        tarefa.MoverParaProjeto(projeto);
+        await _unidade.SalvarAsync(cancellationToken);
+    }
+
     public Task IniciarAsync(Guid id, string? versao, CancellationToken cancellationToken = default) =>
         AlterarAsync(id, versao, t => t.Iniciar(), cancellationToken);
 

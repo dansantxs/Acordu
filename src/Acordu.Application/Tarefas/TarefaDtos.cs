@@ -78,6 +78,9 @@ public sealed record EdicaoTarefaRequest(
     bool VisivelCliente,
     DateOnly? PlanejadaPara = null);
 
+/// <summary>Corpo do <c>PUT /tarefas/{id}/projeto</c> (F11-23): projeto EM_ANDAMENTO do mesmo cliente, ou nulo para tirar.</summary>
+public sealed record ProjetoDaTarefaRequest(Guid? ProjetoId);
+
 /// <summary>Corpo do <c>POST</c> e do <c>PATCH</c> de item; <see cref="Feito"/> nulo mantém a marcação.</summary>
 public sealed record ItemChecklistRequest(string Texto, bool? Feito);
 

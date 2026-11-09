@@ -20,6 +20,7 @@ public sealed class RegistroDeAtividades :
     IManipuladorPosCommit<TarefaCriada>,
     IManipuladorPosCommit<TarefaAtribuida>,
     IManipuladorPosCommit<TarefaStatusAlterada>,
+    IManipuladorPosCommit<TarefaProjetoAlterado>,
     IManipuladorPosCommit<ComentarioTarefaRegistrado>
 {
     private readonly IAtividades _atividades;
@@ -95,6 +96,16 @@ public sealed class RegistroDeAtividades :
         await GravarAsync(
             TipoAtividade.TarefaStatus, _origem.AutorId, false, AlvoColaboracao.Tarefa, evento.TarefaId,
             await ClienteDaTarefaAsync(evento.TarefaId, cancellationToken), Texto(evento.De), Texto(evento.Para),
+            cancellationToken: cancellationToken);
+    }
+
+    /// <summary>Os ids dos projetos vão nas colunas de/para da linha; a leitura troca pelos nomes atuais.</summary>
+    public async Task TratarAsync(TarefaProjetoAlterado evento, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(evento);
+        await GravarAsync(
+            TipoAtividade.TarefaProjeto, _origem.AutorId, false, AlvoColaboracao.Tarefa, evento.TarefaId,
+            await ClienteDaTarefaAsync(evento.TarefaId, cancellationToken), evento.De?.ToString(), evento.Para?.ToString(),
             cancellationToken: cancellationToken);
     }
 
