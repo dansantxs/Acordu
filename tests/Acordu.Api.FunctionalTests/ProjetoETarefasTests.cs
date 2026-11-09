@@ -84,6 +84,83 @@ public sealed class ProjetoETarefasTests(ApiFixture api)
         {
             clienteId = cliente, nome = "Campanha", tarefaIds = new[] { arte },
         }, token: token);
+
+        (await ProjetosDoClienteAsync(equipe, cliente)).Should().Be(0);
+    }
+
+    private static async Task<int> ProjetosDoClienteAsync(Equipe equipe, Guid cliente) =>
+        (await equipe.EsperarAsync(HttpStatusCode.OK, HttpMethod.Get, $"/api/v1/projetos?clienteId={cliente}"))
+            .GetProperty("itens").GetArrayLength();
+
+    [Fact]
+    public async Task Criar_TarefaCancelada_422ENadaECriado()
+    {
+        var equipe = await Equipe.CriarAsync(api);
+        var cliente = await ClienteAsync(equipe);
+        var tarefa = await TarefaAsync(equipe, await SolicitacaoAsync(equipe, cliente), "Arte");
+        await equipe.EsperarAsync(HttpStatusCode.OK, HttpMethod.Post, $"/api/v1/tarefas/{tarefa}/cancelamento");
+
+        var problema = await equipe.EsperarAsync(HttpStatusCode.UnprocessableEntity, HttpMethod.Post, "/api/v1/projetos", new
+        {
+            clienteId = cliente, nome = "Campanha", tarefaIds = new[] { tarefa },
+        });
+
+        problema.GetProperty("type").GetString().Should().EndWith("/transicao-invalida");
+        (await ProjetosDoClienteAsync(equipe, cliente)).Should().Be(0);
+    }
+
+    [Fact]
+    public async Task Criar_TarefaInexistente_400ENadaECriado()
+    {
+        var equipe = await Equipe.CriarAsync(api);
+        var cliente = await ClienteAsync(equipe);
+
+        var problema = await equipe.EsperarAsync(HttpStatusCode.BadRequest, HttpMethod.Post, "/api/v1/projetos", new
+        {
+            clienteId = cliente, nome = "Campanha", tarefaIds = new[] { Guid.NewGuid() },
+        });
+
+        problema.GetProperty("errors").TryGetProperty("tarefaIds", out _).Should().BeTrue();
+        (await ProjetosDoClienteAsync(equipe, cliente)).Should().Be(0);
+    }
+
+    [Fact]
+    public async Task Criar_TarefaDeOutroTenant_400SemRevelarENadaECriado() // F11-29
+    {
+        var equipe = await Equipe.CriarAsync(api);
+        var outra = await Equipe.CriarAsync(api);
+        var cliente = await ClienteAsync(equipe);
+        var alheia = await TarefaAsync(outra, await SolicitacaoAsync(outra, await ClienteAsync(outra)), "Alheia");
+
+        var problema = await equipe.EsperarAsync(HttpStatusCode.BadRequest, HttpMethod.Post, "/api/v1/projetos", new
+        {
+            clienteId = cliente, nome = "Campanha", tarefaIds = new[] { alheia },
+        });
+
+        problema.GetProperty("errors").GetProperty("tarefaIds")[0].GetString().Should().Be("Tarefa não encontrada.");
+        (await ProjetosDoClienteAsync(equipe, cliente)).Should().Be(0);
+        (await equipe.EsperarAsync(HttpStatusCode.OK, HttpMethod.Get, "/api/v1/tarefas")).GetProperty("itens").GetArrayLength()
+            .Should().Be(0);
+        (await outra.EsperarAsync(HttpStatusCode.OK, HttpMethod.Get, $"/api/v1/tarefas/{alheia}"))
+            .GetProperty("projetoId").ValueKind.Should().Be(System.Text.Json.JsonValueKind.Null);
+    }
+
+    [Fact]
+    public async Task Concluir_TarefaDeOutroTenantNaLista_409SemRevelar() // F11-29
+    {
+        var equipe = await Equipe.CriarAsync(api);
+        var outra = await Equipe.CriarAsync(api);
+        var projeto = await ProjetoAsync(equipe, await ClienteAsync(equipe));
+        var nossa = await TarefaNoProjetoAsync(equipe, projeto, "Layout");
+        var alheia = await TarefaAsync(outra, await SolicitacaoAsync(outra, await ClienteAsync(outra)), "Alheia");
+
+        await equipe.EsperarAsync(HttpStatusCode.Conflict, HttpMethod.Post, $"/api/v1/projetos/{projeto}/conclusao", new
+        {
+            tarefas = new { acao = "CONCLUIR", ids = new[] { nossa, alheia } },
+        });
+
+        (await StatusAsync(equipe, $"/api/v1/projetos/{projeto}")).Should().Be("EM_ANDAMENTO");
+        (await StatusAsync(outra, $"/api/v1/tarefas/{alheia}")).Should().Be("A_FAZER");
     }
 
     [Fact]
