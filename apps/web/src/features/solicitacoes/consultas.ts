@@ -1,4 +1,5 @@
 import { keepPreviousData, queryOptions } from '@tanstack/react-query'
+import type { TarefasAbertas } from '@/features/tarefas/consultas'
 import { api, seVersao } from '@/shared/api/cliente'
 import type { components } from '@/shared/api/interno'
 import { EM_ABERTO, type Prioridade, type Status } from './rotulos'
@@ -145,7 +146,6 @@ export type Transicao =
     | { acao: 'cancelamento'; motivo: string; tarefas?: TarefasAbertas }
 
 /** O que fazer com as tarefas abertas junto com a transição (F11c); `ids`: as que a pessoa viu. */
-export type TarefasAbertas = components['schemas']['TarefasAbertasRequest']
 
 export async function transicionar(s: Solicitacao, t: Transicao): Promise<Solicitacao> {
     const opcoes = { params: { path: { id: s.id } }, ...seVersao(s.versao) }

@@ -4,12 +4,13 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { pode } from '@/features/casca/navegacao'
 import { consultaContrato } from '@/features/contratos/consultas'
 import { TIPO_CONTRATO } from '@/features/solicitacoes/rotulos'
-import { consultaTarefasDoProjeto } from '@/features/tarefas/consultas'
+import { consultaTarefasDoProjeto, type TarefasAbertas } from '@/features/tarefas/consultas'
 import { JanelaNovaTarefa } from '@/features/tarefas/JanelaNovaTarefa'
 import { ESTILO_STATUS_TAREFA, STATUS_TAREFA } from '@/features/tarefas/rotulos'
+import { useTarefasAbertas } from '@/features/tarefas/TarefasAbertasJunto'
 import { mensagemDeErro } from '@/shared/api/mensagens'
 import { ErroApi } from '@/shared/api/problema'
-import { avisar, avisarErro } from '@/shared/avisos/avisos'
+import { avisar } from '@/shared/avisos/avisos'
 import { dataCurta, hojeNoFuso } from '@/shared/format/datas'
 import { formatarDuracao } from '@/shared/format/duracao'
 import type { Perfil } from '@/shared/sessao/perfil'
@@ -30,7 +31,15 @@ import { JanelaProjeto } from './JanelaProjeto'
 const ID_TITULO = 'titulo-projeto'
 
 /** Detalhe do projeto em painel (F3e): progresso (RF-PRJ-02), dados, tarefas e nova tarefa no projeto. */
-export function PainelProjeto({ perfil, id }: { perfil: Perfil; id: string }) {
+export function PainelProjeto({
+    perfil,
+    id,
+    abrirConclusao = false,
+}: {
+    perfil: Perfil
+    id: string
+    abrirConclusao?: boolean
+}) {
     const navegar = useNavigate()
     const titulo = useRef<HTMLHeadingElement>(null)
     const consulta = useQuery(consultaProjeto(id))
@@ -70,7 +79,7 @@ export function PainelProjeto({ perfil, id }: { perfil: Perfil; id: string }) {
                         : mensagemDeErro(consulta.error)}
                 </Alerta>
             ) : (
-                <Detalhe projeto={consulta.data} perfil={perfil} refTitulo={titulo} />
+                <Detalhe projeto={consulta.data} perfil={perfil} refTitulo={titulo} abrirConclusao={abrirConclusao} />
             )}
         </PainelLateral>
     )
@@ -104,36 +113,69 @@ function Detalhe({
     projeto: p,
     perfil,
     refTitulo,
+    abrirConclusao,
 }: {
     projeto: Projeto
     perfil: Perfil
     refTitulo: React.RefObject<HTMLHeadingElement | null>
+    abrirConclusao: boolean
 }) {
     const consultas = useQueryClient()
+    const navegar = useNavigate()
     const hoje = hojeNoFuso(perfil.tenant.fusoHorario)
     const [editando, setEditando] = useState(false)
-    const [encerrando, setEncerrando] = useState<'conclusao' | 'cancelamento' | null>(null)
-    const [novaTarefa, setNovaTarefa] = useState(false)
     const gerencia = pode(perfil, 'projeto.gerenciar')
     const emAndamento = p.status === 'EM_ANDAMENTO'
+    const [encerrando, setEncerrando] = useState<'conclusao' | 'cancelamento' | null>(
+        abrirConclusao && gerencia && emAndamento ? 'conclusao' : null,
+    )
+    // O `?concluir=true` já fez seu papel: sai do endereço para recarregar ou voltar não reabrir a janela.
+    useEffect(() => {
+        if (abrirConclusao)
+            void navegar({
+                to: '/projetos/$id',
+                params: { id: p.id },
+                search: (atual: FiltrosProjetos) => ({ ...atual, concluir: undefined }),
+                replace: true,
+            })
+    }, [abrirConclusao, navegar, p.id])
+    const [novaTarefa, setNovaTarefa] = useState(false)
     const doProjeto = useQuery(consultaTarefasDoProjeto(p.id))
     const contrato = useQuery({
         ...consultaContrato(p.contratoId ?? ''),
         enabled: p.contratoId !== null && pode(perfil, 'contrato.ver'),
     })
+    const abertas = (doProjeto.data ?? []).filter((t) => t.status === 'A_FAZER' || t.status === 'FAZENDO')
+    const junto = useTarefasAbertas(
+        abertas,
+        pode(perfil, 'tarefa.editar'),
+        encerrando === 'cancelamento' ? 'CANCELAR' : 'CONCLUIR',
+        encerrando !== null,
+    )
     const encerramento = useMutation({
-        mutationFn: (acao: 'conclusao' | 'cancelamento') => encerrarProjeto(p, acao),
+        mutationFn: ({ acao, tarefas }: { acao: 'conclusao' | 'cancelamento'; tarefas?: TarefasAbertas }) =>
+            encerrarProjeto(p, acao, tarefas),
         onSuccess: async (novo) => {
             consultas.setQueryData(consultaProjeto(p.id).queryKey, novo)
-            await consultas.invalidateQueries({ queryKey: ['projetos', 'lista'] })
+            await Promise.all([
+                consultas.invalidateQueries({ queryKey: ['projetos', 'lista'] }),
+                consultas.invalidateQueries({ queryKey: ['tarefas'] }),
+            ])
             setEncerrando(null)
             avisar(`Projeto ${STATUS_PROJETO[novo.status].toLowerCase()}.`)
         },
-        onError: (erro) => {
-            avisarErro(erro)
-            void consultas.invalidateQueries({ queryKey: consultaProjeto(p.id).queryKey })
-        },
+        // A mensagem fica na janela; a lista de tarefas e a versão voltam atualizadas (F11-31 vale aqui também).
+        onError: () =>
+            Promise.all([
+                consultas.invalidateQueries({ queryKey: consultaProjeto(p.id).queryKey }),
+                consultas.invalidateQueries({ queryKey: consultaTarefasDoProjeto(p.id).queryKey }),
+            ]),
     })
+
+    const abrirEncerramento = (acao: 'conclusao' | 'cancelamento') => {
+        encerramento.reset()
+        setEncerrando(acao)
+    }
 
     const progresso = p.progresso
     const total = Number(progresso.tarefasTotal)
@@ -172,10 +214,10 @@ function Detalhe({
 
             {gerencia && emAndamento && (
                 <div className="flex flex-wrap items-center gap-2">
-                    <Botao onPress={() => setEncerrando('conclusao')}>Concluir projeto</Botao>
+                    <Botao onPress={() => abrirEncerramento('conclusao')}>Concluir projeto</Botao>
                     <Botao
                         variante="discreto"
-                        onPress={() => setEncerrando('cancelamento')}
+                        onPress={() => abrirEncerramento('cancelamento')}
                         className="ml-auto !text-suave hover:!text-vermelho"
                     >
                         Cancelar projeto
@@ -286,15 +328,20 @@ function Detalhe({
                 acao={encerrando === 'conclusao' ? 'Concluir projeto' : 'Cancelar projeto'}
                 aberta={encerrando !== null}
                 aoMudar={(a) => !a && setEncerrando(null)}
-                aoConfirmar={() => encerrando && encerramento.mutate(encerrando)}
+                aoConfirmar={() =>
+                    encerrando &&
+                    encerramento.mutate({ acao: encerrando, ...(junto.pedido ? { tarefas: junto.pedido } : {}) })
+                }
                 ocupada={encerramento.isPending}
+                erro={encerramento.isError ? mensagemDeErro(encerramento.error) : null}
             >
                 <p>
                     {encerrando === 'conclusao'
                         ? 'Projeto concluído não volta a andamento e não recebe tarefas novas.'
                         : 'Projeto cancelado não volta a andamento e não recebe tarefas novas.'}
                 </p>
-                <p>As tarefas e as horas já lançadas continuam como estão.</p>
+                {junto.quadro}
+                <p>As horas já lançadas continuam como estão.</p>
             </Confirmacao>
         </div>
     )

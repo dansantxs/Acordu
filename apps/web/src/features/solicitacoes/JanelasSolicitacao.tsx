@@ -1,63 +1,15 @@
 import { useMutation } from '@tanstack/react-query'
-import { useState } from 'react'
 import { Form } from 'react-aria-components'
 import { opcional } from '@/features/clientes/consultas'
+import type { TarefasAbertas } from '@/features/tarefas/consultas'
+import { type TarefaAberta, useTarefasAbertas } from '@/features/tarefas/TarefasAbertasJunto'
 import { errosDeCampo, mensagemDeErro } from '@/shared/api/mensagens'
 import { Alerta } from '@/shared/ui/Alerta'
 import { Botao } from '@/shared/ui/Botao'
 import { CampoTexto } from '@/shared/ui/CampoTexto'
 import { Janela } from '@/shared/ui/Janela'
-import { Marcador } from '@/shared/ui/Marcador'
 import { LegendaObrigatorios } from '@/shared/ui/Rotulo'
-import { editarSolicitacao, type Solicitacao, type Solucao, type TarefasAbertas } from './consultas'
-
-type TarefaAberta = { id: string; titulo: string }
-
-/**
- * Tarefas abertas na hora de resolver ou cancelar (F11-11, F11-14, F11-20): com `tarefa.editar`, a ação conjunta vem
- * marcada; sem, a lista fica só como aviso. Devolve o pedido para a API (as tarefas que a pessoa viu, F11-31).
- */
-function useTarefasAbertas(
-    tarefas: TarefaAberta[],
-    podeMexer: boolean,
-    acao: 'CONCLUIR' | 'CANCELAR',
-    aberta: boolean,
-) {
-    const [junto, setJunto] = useState(true)
-    // A janela fica montada fechada: cada abertura volta ao padrão (marcado), mesmo que a anterior tenha desmarcado.
-    const [abertaAntes, setAbertaAntes] = useState(aberta)
-    if (aberta !== abertaAntes) {
-        setAbertaAntes(aberta)
-        if (aberta) setJunto(true)
-    }
-    const pedido: TarefasAbertas | undefined =
-        tarefas.length > 0 && podeMexer ? { acao: junto ? acao : 'MANTER', ids: tarefas.map((t) => t.id) } : undefined
-    const quadro =
-        tarefas.length === 0 ? null : (
-            <section aria-label="Tarefas abertas" className="flex flex-col gap-2 rounded-couro border border-linha p-3">
-                <p className="text-sm">
-                    {tarefas.length === 1
-                        ? 'Uma tarefa ainda está aberta:'
-                        : `${tarefas.length} tarefas ainda estão abertas:`}
-                </p>
-                <ul className="list-disc pl-5 text-sm text-suave">
-                    {tarefas.map((t) => (
-                        <li key={t.id}>{t.titulo}</li>
-                    ))}
-                </ul>
-                {podeMexer ? (
-                    <Marcador valor={junto} aoMudar={setJunto}>
-                        {acao === 'CONCLUIR'
-                            ? 'Concluir as tarefas abertas junto'
-                            : 'Cancelar as tarefas abertas junto'}
-                    </Marcador>
-                ) : (
-                    <p className="text-xs text-suave">Elas ficam como estão: mudar tarefas pede outra permissão.</p>
-                )}
-            </section>
-        )
-    return { pedido, quadro }
-}
+import { editarSolicitacao, type Solicitacao, type Solucao } from './consultas'
 
 /** Título e descrição (o resto do formulário muda direto no painel). */
 export function JanelaEdicao({

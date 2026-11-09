@@ -5,6 +5,7 @@ import { Button, Checkbox, Form, Switch } from 'react-aria-components'
 import { pode } from '@/features/casca/navegacao'
 import { opcional } from '@/features/clientes/consultas'
 import { consultaProjetosDoCliente } from '@/features/projetos/consultas'
+import { useSugestaoConclusaoProjeto } from '@/features/projetos/sugestaoConclusao'
 import { useSugestaoResolucao } from '@/features/solicitacoes/sugestaoResolucao'
 import { errosDeCampo, mensagemDeErro } from '@/shared/api/mensagens'
 import { ErroApi } from '@/shared/api/problema'
@@ -203,6 +204,7 @@ function Detalhe({
                     aoMudar={guardar}
                     aoFalhar={falhou}
                     podeEditarSolicitacao={pode(perfil, 'solicitacao.editar')}
+                    podeGerenciarProjeto={pode(perfil, 'projeto.gerenciar')}
                 />
             )}
             {pode(perfil, 'apontamento.criar') && (t.status === 'A_FAZER' || t.status === 'FAZENDO') && (
@@ -585,22 +587,28 @@ function AcoesStatus({
     aoMudar,
     aoFalhar,
     podeEditarSolicitacao,
+    podeGerenciarProjeto,
 }: {
     tarefa: Tarefa
     aoMudar: (nova: Tarefa) => void
     aoFalhar: (erro: unknown) => void
     podeEditarSolicitacao: boolean
+    podeGerenciarProjeto: boolean
 }) {
     const [cancelando, setCancelando] = useState(false)
     const sugerirResolucao = useSugestaoResolucao(podeEditarSolicitacao)
+    const sugerirConclusao = useSugestaoConclusaoProjeto(podeGerenciarProjeto)
     const transicao = useMutation({
         mutationFn: (acao: AcaoTarefa) => transicionarTarefa(t, acao),
         onSuccess: (nova) => {
             aoMudar(nova)
             setCancelando(false)
             avisar(`Tarefa ${STATUS_TAREFA[nova.status].toLowerCase()}.`)
-            // Era a última da solicitação? Sugere resolver (F11-15).
-            if (nova.status === 'CONCLUIDA') void sugerirResolucao(nova)
+            // Era a última da solicitação ou do projeto? Sugere resolver ou concluir (F11-15, F11-28).
+            if (nova.status === 'CONCLUIDA') {
+                void sugerirResolucao(nova)
+                void sugerirConclusao(nova)
+            }
         },
     })
     const acoes = TRANSICOES_TAREFA[t.status]

@@ -341,6 +341,61 @@ describe('detalhe da tarefa', () => {
         })
     })
 
+    describe('última tarefa do projeto (F11-28)', () => {
+        const concluir = (permissoes: string[], statusProjeto = 'EM_ANDAMENTO', outraAberta = false) => {
+            let atual = tarefa({
+                status: 'FAZENDO',
+                versao: '4',
+                solicitacaoId: null,
+                projetoId: 'p1',
+                projetoNome: 'Site',
+            })
+            return app(permissoes, {
+                [`GET /api/v1/tarefas/${ID}`]: () => json(atual),
+                [`POST /api/v1/tarefas/${ID}/conclusao`]: () => {
+                    atual = { ...atual, status: 'CONCLUIDA', versao: '5' }
+                    return json(atual)
+                },
+                'GET /api/v1/projetos/p1': () => json({ id: 'p1', nome: 'Site', status: statusProjeto, versao: '2' }),
+                'GET /api/v1/tarefas': () =>
+                    json({
+                        itens: [
+                            { id: ID, titulo: 'Trocar resistência', status: 'CONCLUIDA' },
+                            ...(outraAberta ? [{ id: 't9', titulo: 'Fotos', status: 'A_FAZER' }] : []),
+                        ],
+                        pagina: 1,
+                        tamanhoPagina: 200,
+                        total: 1,
+                    }),
+            })
+        }
+
+        it('sugere concluir o projeto, e o botão leva à confirmação', async () => {
+            concluir([...EDITAR, 'projeto.gerenciar'])
+            const roteador = await abrir(`/tarefas/${ID}`)
+            const usuario = userEvent.setup()
+            await usuario.click(within(await painel()).getByRole('button', { name: 'Concluir' }))
+            expect(
+                await screen.findByText('Era a última tarefa do projeto. Concluir o projeto agora?'),
+            ).toBeInTheDocument()
+            await usuario.click(screen.getByRole('button', { name: 'Concluir projeto' }))
+            await vi.waitFor(() => expect(roteador.state.location.pathname).toBe('/projetos/p1'))
+        })
+
+        it.each([
+            ['sem projeto.gerenciar', EDITAR, 'EM_ANDAMENTO', false],
+            ['com o projeto já concluído', [...EDITAR, 'projeto.gerenciar'], 'CONCLUIDO', false],
+            ['com outra tarefa aberta no projeto', [...EDITAR, 'projeto.gerenciar'], 'EM_ANDAMENTO', true],
+        ])('%s, não sugere', async (_, permissoes, status, outra) => {
+            concluir(permissoes, status, outra)
+            await abrir(`/tarefas/${ID}`)
+            const usuario = userEvent.setup()
+            await usuario.click(within(await painel()).getByRole('button', { name: 'Concluir' }))
+            expect(await screen.findByText('Tarefa concluída.')).toBeInTheDocument()
+            await expect(screen.findByText(/Era a última tarefa do projeto/, {}, { timeout: 300 })).rejects.toThrow()
+        })
+    })
+
     describe('última tarefa da solicitação (F11-15 a F11-17)', () => {
         const OUTRA_ABERTA = { id: 't0', titulo: 'Diagnóstico', status: 'A_FAZER' }
         const solicitacaoComTarefas = (status: string, outra = { ...OUTRA_ABERTA, status: 'CONCLUIDA' }) => ({

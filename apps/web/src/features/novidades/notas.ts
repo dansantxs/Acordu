@@ -15,6 +15,15 @@ export const NOTAS: NotaVersao[] = [
     {
         data: '2026-11-09',
         publico: 'equipe',
+        titulo: 'Projeto a partir da solicitação',
+        itens: [
+            'No detalhe da solicitação, "Criar projeto" abre o projeto novo com o cliente, o contrato e o título dela, e leva as tarefas abertas para o projeto.',
+            'Concluir ou cancelar um projeto oferece fazer o mesmo com as tarefas abertas dele, e concluir a última tarefa sugere concluir o projeto.',
+        ],
+    },
+    {
+        data: '2026-11-09',
+        publico: 'equipe',
         titulo: 'Tarefa muda de projeto',
         itens: [
             'No painel da tarefa, o campo Projeto leva a tarefa para um projeto em andamento do mesmo cliente, troca de projeto ou tira do projeto. O aviso tem "Desfazer".',

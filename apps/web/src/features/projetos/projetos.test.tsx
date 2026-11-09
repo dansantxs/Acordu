@@ -148,4 +148,117 @@ describe('projetos', () => {
             expect(within(aside).queryByRole('button', { name: 'Concluir projeto' })).not.toBeInTheDocument(),
         )
     })
+    describe('com as tarefas abertas (F11-27, F11-28)', () => {
+        const abertas = [
+            { id: 't1', titulo: 'Arte do cartaz', status: 'FAZENDO', responsavel: null },
+            { id: 't2', titulo: 'Textos', status: 'A_FAZER', responsavel: null },
+        ]
+        const comAbertas = (permissoes: string[], conclusao: Rotas[string]) => {
+            let tarefas = abertas
+            return {
+                mudarTarefas: (novas: typeof abertas) => (tarefas = novas),
+                chamadas: app(permissoes, {
+                    'GET /api/v1/tarefas': (_, url) => pagina(url.searchParams.get('projetoId') === ID ? tarefas : []),
+                    [`POST /api/v1/projetos/${ID}/conclusao`]: conclusao,
+                    [`POST /api/v1/projetos/${ID}/cancelamento`]: () =>
+                        json(projeto({ status: 'CANCELADO', versao: '3' })),
+                }),
+            }
+        }
+
+        it('concluir oferece concluir as abertas junto, marcado, e manda as que a pessoa viu', async () => {
+            const { chamadas } = comAbertas([...GERENCIA, 'tarefa.editar'], () =>
+                json(projeto({ status: 'CONCLUIDO', versao: '3' })),
+            )
+            await abrir(`/projetos/${ID}`)
+            const aside = await screen.findByRole('complementary', { name: 'Campanha de Natal' })
+            const usuario = userEvent.setup()
+            await within(aside).findByRole('link', { name: 'Textos' })
+            await usuario.click(within(aside).getByRole('button', { name: 'Concluir projeto' }))
+            const janela = await screen.findByRole('dialog', { name: 'Concluir o projeto?' })
+            expect(within(janela).getByText('2 tarefas ainda estão abertas:')).toBeInTheDocument()
+            expect(within(janela).getByRole('checkbox', { name: 'Concluir as tarefas abertas junto' })).toBeChecked()
+            await usuario.click(within(janela).getByRole('button', { name: 'Concluir projeto' }))
+            await vi.waitFor(() =>
+                expect(chamadas.find((c) => c.caminho.endsWith('/conclusao'))?.corpo).toEqual({
+                    tarefas: { acao: 'CONCLUIR', ids: ['t1', 't2'] },
+                }),
+            )
+        })
+
+        it('cancelar oferece cancelar junto; desmarcado, manda MANTER', async () => {
+            const { chamadas } = comAbertas([...GERENCIA, 'tarefa.editar'], () => json(projeto()))
+            await abrir(`/projetos/${ID}`)
+            const aside = await screen.findByRole('complementary', { name: 'Campanha de Natal' })
+            const usuario = userEvent.setup()
+            await within(aside).findByRole('link', { name: 'Textos' })
+            await usuario.click(within(aside).getByRole('button', { name: 'Cancelar projeto' }))
+            const janela = await screen.findByRole('dialog', { name: 'Cancelar o projeto?' })
+            await usuario.click(within(janela).getByRole('checkbox', { name: 'Cancelar as tarefas abertas junto' }))
+            await usuario.click(within(janela).getByRole('button', { name: 'Cancelar projeto' }))
+            await vi.waitFor(() =>
+                expect(chamadas.find((c) => c.caminho.endsWith('/cancelamento'))?.corpo).toEqual({
+                    tarefas: { acao: 'MANTER', ids: ['t1', 't2'] },
+                }),
+            )
+        })
+
+        it('sem tarefa.editar, só avisa e manda sem tarefas', async () => {
+            const { chamadas } = comAbertas(GERENCIA, () => json(projeto({ status: 'CONCLUIDO', versao: '3' })))
+            await abrir(`/projetos/${ID}`)
+            const aside = await screen.findByRole('complementary', { name: 'Campanha de Natal' })
+            const usuario = userEvent.setup()
+            await within(aside).findByRole('link', { name: 'Textos' })
+            await usuario.click(within(aside).getByRole('button', { name: 'Concluir projeto' }))
+            const janela = await screen.findByRole('dialog', { name: 'Concluir o projeto?' })
+            expect(within(janela).getByText(/mudar tarefas pede outra permissão/)).toBeInTheDocument()
+            await usuario.click(within(janela).getByRole('button', { name: 'Concluir projeto' }))
+            await vi.waitFor(() =>
+                expect(chamadas.find((c) => c.caminho.endsWith('/conclusao'))?.corpo).toEqual({ tarefas: null }),
+            )
+        })
+
+        it('lista mudou no meio: mostra o 409 na janela e recebe a lista de agora', async () => {
+            let tentativas = 0
+            const cenario = comAbertas([...GERENCIA, 'tarefa.editar'], () => {
+                tentativas++
+                if (tentativas > 1) return json(projeto({ status: 'CONCLUIDO', versao: '3' }))
+                cenario.mudarTarefas([...abertas, { id: 't3', titulo: 'Fotos', status: 'A_FAZER', responsavel: null }])
+                return json(
+                    {
+                        status: 409,
+                        type: 'https://acordu.app.br/erros/conflito-versao',
+                        title: 'Versão divergente',
+                        detail: 'A lista de tarefas abertas mudou. Confira e confirme de novo.',
+                    },
+                    409,
+                )
+            })
+            await abrir(`/projetos/${ID}`)
+            const aside = await screen.findByRole('complementary', { name: 'Campanha de Natal' })
+            const usuario = userEvent.setup()
+            await within(aside).findByRole('link', { name: 'Textos' })
+            await usuario.click(within(aside).getByRole('button', { name: 'Concluir projeto' }))
+            const janela = await screen.findByRole('dialog', { name: 'Concluir o projeto?' })
+            await usuario.click(within(janela).getByRole('button', { name: 'Concluir projeto' }))
+
+            expect(
+                await within(janela).findByText('A lista de tarefas abertas mudou. Confira e confirme de novo.'),
+            ).toBeInTheDocument()
+            expect(await within(janela).findByText('Fotos')).toBeInTheDocument()
+            await usuario.click(within(janela).getByRole('button', { name: 'Concluir projeto' }))
+            await vi.waitFor(() =>
+                expect(cenario.chamadas.filter((c) => c.caminho.endsWith('/conclusao')).at(-1)?.corpo).toEqual({
+                    tarefas: { acao: 'CONCLUIR', ids: ['t1', 't2', 't3'] },
+                }),
+            )
+        })
+
+        it('com ?concluir=true, abre a confirmação e limpa o endereço (F11-28)', async () => {
+            comAbertas(GERENCIA, () => json(projeto()))
+            const roteador = await abrir(`/projetos/${ID}?concluir=true`)
+            expect(await screen.findByRole('dialog', { name: 'Concluir o projeto?' })).toBeInTheDocument()
+            await vi.waitFor(() => expect(roteador.state.location.search).not.toHaveProperty('concluir'))
+        })
+    })
 })

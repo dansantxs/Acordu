@@ -296,7 +296,8 @@ export const SECOES_AJUDA: SecaoAjuda[] = [
         passos: [
             'Crie o projeto com cliente, contrato, início, prazo e estimativa total.',
             'No painel, acompanhe o progresso (tarefas concluídas e horas apontadas contra a estimativa) e crie as tarefas do projeto.',
-            'Conclua ou cancele quando acabar.',
+            'Quando uma solicitação cresce, use "Criar projeto" no detalhe dela: o projeto já vem com o cliente, o contrato e o título, e leva as tarefas abertas da solicitação, que continuam ligadas a ela.',
+            'Conclua ou cancele quando acabar. Se ainda houver tarefas abertas, a confirmação oferece concluí-las ou cancelá-las junto; ao concluir a última tarefa, o aviso oferece concluir o projeto.',
         ],
         imagens: [{ captura: 'projetos', legenda: 'Os projetos com status, prazo e estimativa.' }],
     },
