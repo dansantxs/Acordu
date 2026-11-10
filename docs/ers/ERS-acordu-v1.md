@@ -245,6 +245,11 @@ Convenções: **RF** = requisito funcional, **RNF** = não funcional. Verificaç
 | RF-DAS-04 | Contratos: consumo de cada contrato ativo no período corrente. | D |
 | RF-DAS-05 | Próximas tarefas recorrentes e tarefas vencidas. | D |
 
+**Sugestões** (F13, 10/11)
+| ID | Requisito | Verif. |
+|---|---|---|
+| RF-SUG-01 | "Sugerir melhoria" para qualquer pessoa da equipe (nunca pelo portal): texto de 10 a 2.000 caracteres, até 5 por hora por pessoa. Guardada fora dos tenants (a empresa e a pessoa só como referência) e avisada à Nebrys em #sugestoes com o texto, a tela e o nome da empresa, sem o nome nem o e-mail da pessoa. | T |
+
 ### 3.3 Requisitos não funcionais
 
 **Segurança e isolamento**
@@ -287,6 +292,13 @@ Convenções: **RF** = requisito funcional, **RNF** = não funcional. Verificaç
 | RNF-DIS-01 | Backup diário do banco para armazenamento de objetos fora do provedor do banco; restore testado. Anexos com cópia fora do provedor de arquivos a partir do primeiro cliente pagante (ADR 0010 §8; decidido em 03/11/2026). | D |
 | RNF-LOC-01 | Datas persistidas em UTC; exibição e cálculo de SLA no fuso do tenant. | T |
 | RNF-UX-01 | App instalável (PWA) para a equipe, com ícone próprio; o service worker não guarda respostas da API (F12). | D |
+
+**Operação** (F13, 10/11; ADR 0012)
+| ID | Requisito | Verif. |
+|---|---|---|
+| RNF-OPS-01 | Logs estruturados (JSON, um por linha, formato que o Error Reporting agrupa, sem SDK): erro com rota modelo, método e identificadores de tenant e usuário; nunca corpo, query string, cabeçalhos, e-mail ou nome. | T |
+| RNF-OPS-02 | A operação é avisada no Discord, pela própria aplicação e sem SDK, de erro novo, falha de job, queda da API, deploy e backup, com deduplicação (uma vez a cada 24 h por erro, teto de 20 avisos por hora) e menções desligadas; a falha do aviso nunca muda a resposta ao usuário. | T |
+| RNF-OPS-03 | Os erros do app no navegador são registrados por rota própria, pública, com limite por IP e corpo pequeno, sem dado pessoal nem identificador de contato ou cliente. | T |
 
 ### 3.4 Requisitos de banco de dados (modelo lógico)
 
