@@ -33,7 +33,8 @@ internal static partial class ErrosWebEndpoints
             .AllowAnonymous()
             .RequireRateLimiting(ComposicaoSeguranca.LimiteErrosWeb)
             .WithTags("Operação")
-            .Accepts<ErroWebRequest>("application/json")
+            // text/plain: o app manda assim para ser requisição simples, sem preflight do CORS (o corpo é JSON igual).
+            .Accepts<ErroWebRequest>("application/json", "text/plain")
             .Produces(StatusCodes.Status204NoContent)
             .ProducesProblem(StatusCodes.Status400BadRequest)
             .ProducesProblem(StatusCodes.Status413PayloadTooLarge)
