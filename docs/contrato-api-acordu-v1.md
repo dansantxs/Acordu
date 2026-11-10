@@ -14,7 +14,7 @@
 
 Convenções gerais, com as adaptações marcadas como (Acordu):
 
-- **Autenticação:** `Authorization: Bearer <token>` em tudo, exceto `/auth/*` e a troca de link do portal.
+- **Autenticação:** `Authorization: Bearer <token>` em tudo, exceto `/auth/*`, a troca de link do portal, o feed ICS da agenda (`/agenda/{token}.ics`, §11d) e o relato de erro do app (`POST /erros-web`, §16).
 - **Tenant:** sempre derivado do token (tenant ativo). Nunca na URL nem no corpo.
 - **Duas superfícies (ADR 0002):**
   - `/api/v1/*` — equipe do prestador. Token com papel **Cliente** → **403** em qualquer rota interna.
@@ -881,5 +881,6 @@ Pública (sem login, sem cookie): pega erros também na tela de entrar, no cadas
 - `mensagem` é obrigatória (`400` em `errors.mensagem`); o resto é opcional. Campos longos são cortados (mensagem 500, pilha 4.000, rota 200, navegador 200 caracteres); versão fora de `[A-Za-z0-9.-]{1,40}` vira `desconhecida`.
 - Antes de registrar, a API limpa: e-mails viram `[email]`, ids (GUID) `:id`, números de 4 dígitos ou mais `#`, e a query das URLs sai. A rota vira modelo (ids, números e trechos longos → `:id`, sem query nem `#`); fora do padrão (não começa com `/`, ou começa com `//`), `(sem rota)`.
 - Responde `204`. O erro vira uma linha `ERROR` do serviço `acordu-web` no log (Error Reporting) e passa pelos avisos de #alertas, com a impressão digital da mensagem sem números, do primeiro quadro sem o hash do arquivo e da rota modelo.
-- O app só relata em produção (`VITE_VERSAO`), uma vez por erro e por carga de página, e nunca uma resposta da API ou uma falha de rede.
+- A versão do relato vai no `serviceContext` do Error Reporting (uma aba com o SPA antigo mostra a dela). Também saem antes de registrar: tokens base64url de 32 caracteres ou mais (`[token]`), números formatados como CPF, CNPJ ou telefone (`#`) e crases (viram `'`, para não abrir código no Discord). A query só sai de URLs; linha e coluna da pilha ficam.
+- O app só relata em produção (`VITE_VERSAO`), uma vez por erro e por carga de página (no máximo 10 por carga), e nunca uma resposta da API, uma falha de rede, `Script error.`, `AbortError` ou um chunk que sumiu depois de um deploy. Manda como `text/plain` (requisição simples, sem preflight do CORS); a API lê o corpo como JSON.
 

@@ -26,7 +26,7 @@ Antes do primeiro cliente, a Nebrys precisa saber, sem abrir painel, de erro nov
    - A mensagem de exceção não carrega dado pessoal: `Include Error Detail` (Npgsql) e `EnableSensitiveDataLogging` (EF) ficam proibidos fora do desenvolvimento.
    - Sem a variável, sai o console de texto de sempre. O Error Reporting é o lugar de investigar, e não manda aviso.
 2. **A própria aplicação avisa** (RNF-OPS-02), por uma porta de "avisos de operação" na Application. A Infrastructure implementa a porta postando no webhook do Discord por HTTP.
-   - Tem deduplicação: uma tabela global de ocorrências, fora dos tenants; um aviso por erro a cada 24 h; teto de 20 por hora.
+   - Tem deduplicação: uma tabela global de ocorrências, fora dos tenants; um aviso por erro a cada 24 h; teto de 20 por hora por serviço (a rota pública dos erros do app não esgota o teto da API).
    - As menções vão desligadas.
    - A falha do aviso nunca muda a resposta ao usuário.
    - Sem webhook configurado, nada sai.
