@@ -42,7 +42,7 @@ public sealed partial class AvisosDeErro : IAvisosDeErro
         """;
 
     private const string SqlNaHora = """
-        SELECT count(*) FROM ocorrencias_erro WHERE avisada_em > @hora AND NOT por_resumo
+        SELECT count(*) FROM ocorrencias_erro WHERE avisada_em > @hora AND avisada_em <= @agora AND NOT por_resumo
         """;
 
     private const string SqlSegurar = "UPDATE ocorrencias_erro SET segurada = true WHERE impressao = @impressao";
@@ -52,12 +52,24 @@ public sealed partial class AvisosDeErro : IAvisosDeErro
         WHERE impressao = @impressao AND (avisada_em IS NULL OR avisada_em <= @dia)
         """;
 
+    // SKIP LOCKED: outra transação que está com a linha (ela mesma voltando a avisar) fica fora do resumo, sem deadlock.
     private const string SqlResumir = """
-        WITH resumidas AS (
-            UPDATE ocorrencias_erro SET segurada = false, avisada_em = @agora, desde_aviso = 0, por_resumo = true
+        WITH alvo AS (
+            SELECT impressao, avisada_em AS antes, desde_aviso AS desde_antes FROM ocorrencias_erro
             WHERE segurada AND impressao <> @impressao
-            RETURNING 1)
-        SELECT count(*) FROM resumidas
+            FOR UPDATE SKIP LOCKED),
+        feitas AS (
+            UPDATE ocorrencias_erro o SET segurada = false, avisada_em = @agora, desde_aviso = 0, por_resumo = true
+            FROM alvo WHERE o.impressao = alvo.impressao
+            RETURNING o.impressao, alvo.antes, alvo.desde_antes)
+        SELECT impressao, antes, desde_antes FROM feitas
+        """;
+
+    // O aviso não saiu: a ocorrência volta a como estava (devida), e as resumidas voltam a seguradas.
+    private const string SqlDesfazer = """
+        UPDATE ocorrencias_erro SET avisada_em = @antes, desde_aviso = desde_aviso + @desde, segurada = @segurada,
+            por_resumo = false
+        WHERE impressao = @impressao AND avisada_em = @agora
         """;
 
     private static readonly TimeSpan Quieto = TimeSpan.FromHours(24);
@@ -114,8 +126,47 @@ public sealed partial class AvisosDeErro : IAvisosDeErro
             decisao = DecidirEmMemoria(Impressao(erro), agora);
         }
 
-        if (decisao.Avisar)
-            await _mensageiro.EnviarAsync(CanalOperacao.Alertas, Texto(erro, decisao, _opcoes.LinkErros), cancellationToken);
+        if (!decisao.Avisar)
+            return;
+        if (await _mensageiro.EnviarAsync(CanalOperacao.Alertas, Texto(erro, decisao, _opcoes.LinkErros), cancellationToken))
+            return;
+
+        // Não saiu (Discord fora ou lento): sem desfazer, o erro ficaria quieto por 24 h sem ninguém saber dele.
+        if (decisao.Reserva is { } reserva)
+            await DesfazerAsync(reserva);
+        else
+            _semBanco.TryRemove(new KeyValuePair<string, DateTimeOffset>(Impressao(erro), agora));
+    }
+
+    /// <summary>Prazo próprio: o de quem chamou pode ter acabado (é justamente quando o aviso não sai).</summary>
+    private async Task DesfazerAsync(Reserva reserva)
+    {
+        using var prazo = new CancellationTokenSource(TimeSpan.FromSeconds(5));
+        try
+        {
+            await using var escopo = _escopos.CreateAsyncScope();
+            var db = escopo.ServiceProvider.GetRequiredService<AcorduDbContext>();
+            await using var transacao = await db.Database.BeginTransactionAsync(prazo.Token);
+            var conexao = db.Database.GetDbConnection();
+            var linhas = reserva.Resumidas.Select(r => (r.Impressao, r.Antes, r.DesdeAntes, Segurada: true))
+                .Prepend((reserva.Impressao, reserva.AvisadaAntes, reserva.DesdeAntes, Segurada: false));
+            foreach (var (impressao, antes, desde, segurada) in linhas)
+            {
+                await using var desfazer = Comando(conexao, transacao, SqlDesfazer);
+                Parametro(desfazer, "impressao", impressao);
+                Parametro(desfazer, "antes", antes is { } valor ? (object)valor : DBNull.Value);
+                Parametro(desfazer, "desde", desde);
+                Parametro(desfazer, "segurada", segurada);
+                Parametro(desfazer, "agora", reserva.Agora);
+                await desfazer.ExecuteNonQueryAsync(prazo.Token);
+            }
+
+            await transacao.CommitAsync(prazo.Token);
+        }
+        catch (Exception ex) when (ex is DbException or InvalidOperationException or OperationCanceledException or TimeoutException)
+        {
+            NaoDesfez(_logger, ex.GetType().Name);
+        }
     }
 
     internal static string Texto(ErroInesperado erro, Decisao decisao, Uri? link)
@@ -129,7 +180,8 @@ public sealed partial class AvisosDeErro : IAvisosDeErro
             .Append(erro.Quadro is null ? "" : $" em `{erro.Quadro}`")
             .Append(CultureInfo.InvariantCulture, $"\n`{erro.Rota}`");
         if (decisao.Segurados > 0)
-            texto.Append(CultureInfo.InvariantCulture, $"\n+{decisao.Segurados} avisos segurados pelo teto da hora.");
+            texto.Append(CultureInfo.InvariantCulture,
+                $"\n+{decisao.Segurados} {(decisao.Segurados == 1 ? "aviso segurado" : "avisos segurados")} pelo teto da hora.");
         if (decisao.SemBanco)
             texto.Append("\n(sem banco: deduplicado só nesta instância)");
         if (link is not null)
@@ -164,19 +216,20 @@ public sealed partial class AvisosDeErro : IAvisosDeErro
 
         var decisao = Decisao.Quieto;
         if (avisadaEm is null || avisadaEm <= agora - Quieto)
-            decisao = await ReservarAsync(conexao, transacao, impressao, agora, avisadaEm is null ? null : desdeAviso, cancellationToken);
+            decisao = await ReservarAsync(conexao, transacao, impressao, agora, avisadaEm, desdeAviso, cancellationToken);
 
         await transacao.CommitAsync(cancellationToken);
         return decisao;
     }
 
     private async Task<Decisao> ReservarAsync(
-        DbConnection conexao, IDbContextTransaction transacao, string impressao, DateTimeOffset agora, int? vezes,
-        CancellationToken cancellationToken)
+        DbConnection conexao, IDbContextTransaction transacao, string impressao, DateTimeOffset agora, DateTimeOffset? avisadaAntes,
+        int desdeAviso, CancellationToken cancellationToken)
     {
         await using (var naHora = Comando(conexao, transacao, SqlNaHora))
         {
             Parametro(naHora, "hora", agora.AddHours(-1));
+            Parametro(naHora, "agora", agora);
             if (Convert.ToInt32(await naHora.ExecuteScalarAsync(cancellationToken), CultureInfo.InvariantCulture) >= _opcoes.TetoPorHora)
             {
                 await using var segurar = Comando(conexao, transacao, SqlSegurar);
@@ -196,11 +249,20 @@ public sealed partial class AvisosDeErro : IAvisosDeErro
                 return Decisao.Quieto;
         }
 
-        await using var resumir = Comando(conexao, transacao, SqlResumir);
-        Parametro(resumir, "impressao", impressao);
-        Parametro(resumir, "agora", agora);
-        var segurados = Convert.ToInt32(await resumir.ExecuteScalarAsync(cancellationToken), CultureInfo.InvariantCulture);
-        return new Decisao(true, vezes, segurados, SemBanco: false);
+        var resumidas = new List<Resumida>();
+        await using (var resumir = Comando(conexao, transacao, SqlResumir))
+        {
+            Parametro(resumir, "impressao", impressao);
+            Parametro(resumir, "agora", agora);
+            await using var leitor = await resumir.ExecuteReaderAsync(cancellationToken);
+            while (await leitor.ReadAsync(cancellationToken))
+                resumidas.Add(new Resumida(
+                    leitor.GetString(0), leitor.IsDBNull(1) ? null : leitor.GetFieldValue<DateTimeOffset>(1), leitor.GetInt32(2)));
+        }
+
+        // O "desde o último aviso" já conta esta vez; o desfazer devolve o que havia antes dela.
+        var reserva = new Reserva(impressao, agora, avisadaAntes, desdeAviso, resumidas);
+        return new Decisao(true, avisadaAntes is null ? null : desdeAviso, resumidas.Count, SemBanco: false, reserva);
     }
 
     private Decisao DecidirEmMemoria(string impressao, DateTimeOffset agora)
@@ -239,11 +301,21 @@ public sealed partial class AvisosDeErro : IAvisosDeErro
 
     private static string Cortar(string texto, int maximo) => texto.Length <= maximo ? texto : texto[..maximo];
 
-    /// <summary>Se avisa; <c>Vezes</c> nulo é "Erro novo"; quantos segurados vão no resumo.</summary>
-    internal sealed record Decisao(bool Avisar, int? Vezes, int Segurados, bool SemBanco)
+    /// <summary>Se avisa; <c>Vezes</c> nulo é "Erro novo"; quantos segurados vão no resumo; a reserva, para desfazer.</summary>
+    internal sealed record Decisao(bool Avisar, int? Vezes, int Segurados, bool SemBanco, Reserva? Reserva = null)
     {
         public static readonly Decisao Quieto = new(false, null, 0, false);
     }
+
+    /// <summary>Como a ocorrência e as resumidas estavam antes da reserva.</summary>
+    internal sealed record Reserva(
+        string Impressao, DateTimeOffset Agora, DateTimeOffset? AvisadaAntes, int DesdeAntes, IReadOnlyList<Resumida> Resumidas);
+
+    internal sealed record Resumida(string Impressao, DateTimeOffset? Antes, int DesdeAntes);
+
+    [LoggerMessage(EventId = 603, Level = LogLevel.Warning,
+        Message = "O aviso de erro não saiu e a reserva não foi desfeita ({Falha}); o erro fica quieto até 24 h.")]
+    private static partial void NaoDesfez(ILogger logger, string falha);
 
     [LoggerMessage(EventId = 602, Level = LogLevel.Warning,
         Message = "Deduplicação dos avisos de erro sem banco ({Falha}); deduplicando em memória.")]

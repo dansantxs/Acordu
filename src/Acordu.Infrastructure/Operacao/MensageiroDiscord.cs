@@ -9,6 +9,10 @@ public sealed record OpcoesDiscord(Uri? Alertas, Uri? Deploy, Uri? Sugestoes)
 {
     public static readonly OpcoesDiscord Desligado = new(null, null, null);
 
+    /// <summary>Sem as URLs: o <c>ToString</c> gerado do record imprimiria os segredos.</summary>
+    public override string ToString() =>
+        $"OpcoesDiscord {{ Alertas = {Alertas is not null}, Deploy = {Deploy is not null}, Sugestoes = {Sugestoes is not null} }}";
+
     /// <summary>Webhook informado: só https (é um segredo, e o Discord só aceita assim).</summary>
     public static Uri? Webhook(string? valor, string nome)
     {
