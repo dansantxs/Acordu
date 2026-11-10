@@ -40,6 +40,17 @@ describe('portal: base', () => {
         expect(criar).not.toHaveBeenCalled()
     })
 
+    it('o portal não oferece "Sugerir melhoria" (F13-25)', async () => {
+        comContato({
+            'GET /api/v1/portal/solicitacoes': () => pagina([resumo('s1', 12, 'Site fora do ar', 'EM_ANDAMENTO')]),
+        })
+        await abrir('/portal')
+        await screen.findByRole('link', { name: /Site fora do ar/ })
+        await userEvent.click(screen.getByRole('button', { name: /, menu$/ }))
+        const itens = (await screen.findAllByRole('menuitem')).map((i) => i.textContent)
+        expect(itens).toEqual(['Sair'])
+    })
+
     it('lista em andamento, conta o que espera o contato e troca de grupo pelo endereço', async () => {
         const chamadas = comContato({
             'GET /api/v1/portal/solicitacoes': (_, url) =>

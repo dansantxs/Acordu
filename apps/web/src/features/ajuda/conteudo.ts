@@ -412,6 +412,22 @@ export const SECOES_AJUDA: SecaoAjuda[] = [
         ],
     },
     {
+        id: 'sugerir',
+        titulo: 'Sugerir melhoria',
+        grupo: 'comecar',
+        permissoes: [],
+        resumo: 'Achou algo que poderia ser melhor no Acordu? Conte direto para a equipe que faz o sistema.',
+        passos: [
+            'Abra o menu com o seu nome e escolha "Sugerir melhoria".',
+            'Escreva o que poderia ser melhor (de 10 a 2.000 caracteres) e envie. A tela de onde você abriu vai junto, sem os dados dela.',
+        ],
+        dicas: [
+            'Não escreva dados dos seus clientes: a sugestão vai para a equipe do Acordu, fora dos dados da sua empresa.',
+            'Quem lê a sugestão vê o nome da empresa, não o seu nome nem o seu e-mail.',
+            'Dá para mandar até 5 sugestões por hora.',
+        ],
+    },
+    {
         id: 'sla',
         titulo: 'SLA em horas úteis',
         grupo: 'conceitos',

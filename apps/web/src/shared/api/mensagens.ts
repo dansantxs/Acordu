@@ -7,7 +7,8 @@ import { ErroApi } from './problema'
 export function mensagemDeErro(erro: unknown): string | null {
     if (erro instanceof ErroApi) {
         if (Object.keys(erro.campos).length > 0) return null
-        if (erro.status === 429) return 'Muitas tentativas seguidas. Aguarde um minuto e tente de novo.'
+        // O limite de um caso de uso (sugestões por hora, F13e) traz a própria mensagem; o do rate limiter, não.
+        if (erro.status === 429) return erro.detalhe ?? 'Muitas tentativas seguidas. Aguarde um minuto e tente de novo.'
         if (erro.status >= 500) return 'O servidor não conseguiu concluir agora. Tente de novo em instantes.'
         return erro.message
     }
