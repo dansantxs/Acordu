@@ -408,6 +408,11 @@
               "schema": {
                 "$ref": "#/components/schemas/ErroWebRequest"
               }
+            },
+            "text/plain": {
+              "schema": {
+                "$ref": "#/components/schemas/ErroWebRequest"
+              }
             }
           },
           "required": true

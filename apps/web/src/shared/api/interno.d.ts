@@ -626,6 +626,7 @@ export interface paths {
             requestBody: {
                 content: {
                     'application/json': components['schemas']['ErroWebRequest']
+                    'text/plain': components['schemas']['ErroWebRequest']
                 }
             }
             responses: {
