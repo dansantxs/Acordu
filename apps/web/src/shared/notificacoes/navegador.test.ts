@@ -94,6 +94,30 @@ describe('notificação do navegador', () => {
             expect(notificar(ANA, aviso('n8', -1), vi.fn(), AGORA)).toBe(true)
         })
 
+        it('onde a página não pode (Android), mostra pelo service worker com o caminho do item', async () => {
+            vi.stubGlobal(
+                'Notification',
+                class extends NotificacaoFalsa {
+                    constructor(titulo: string, opcoes: NotificationOptions) {
+                        super(titulo, opcoes)
+                        throw new TypeError('Illegal constructor')
+                    }
+                },
+            )
+            const mostrar = vi.fn(async () => undefined)
+            vi.stubGlobal('navigator', {
+                ...navigator,
+                serviceWorker: { controller: {}, ready: Promise.resolve({ showNotification: mostrar }) },
+            })
+            expect(notificar(ANA, aviso('n10'), vi.fn(), AGORA)).toBe(true)
+            await vi.waitFor(() =>
+                expect(mostrar).toHaveBeenCalledWith(
+                    'Nova solicitação #1042',
+                    expect.objectContaining({ tag: 'n10', data: { caminho: '/solicitacoes/s1' } }),
+                ),
+            )
+        })
+
         it('aviso velho (mais de 10 min) ou de antes de ligar não vira notificação', () => {
             expect(notificar(ANA, aviso('n3', 13), vi.fn(), AGORA)).toBe(false)
             expect(notificar(ANA, aviso('n4', 61), vi.fn(), AGORA)).toBe(false)

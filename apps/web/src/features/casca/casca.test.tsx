@@ -1,6 +1,7 @@
-import { screen, within } from '@testing-library/react'
+import { act, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { prepararInstalacao } from '@/shared/app/instalacao'
 import { reiniciarParaTestes } from '@/shared/sessao/sessao'
 import { abrir, comSessao, json, perfil, servidor, type Rotas } from '@/testes/app'
 
@@ -105,6 +106,28 @@ describe('casca do app', () => {
         expect(within(screen.getByRole('menuitem', { name: /Bordô/ })).getByLabelText('escolhido')).toBeInTheDocument()
         await usuario.click(screen.getByRole('menuitem', { name: /Café/ }))
         expect(document.documentElement.dataset.couro).toBeUndefined()
+    })
+
+    it('o manifesto entra com a casca, e "Instalar o Acordu" aparece quando o navegador oferece (F12-26)', async () => {
+        prepararInstalacao(false)
+        app([])
+        await abrir('/')
+        const usuario = userEvent.setup()
+        expect(document.head.querySelector('link[rel="manifest"]')).not.toBeNull()
+        await usuario.click(await screen.findByRole('button', { name: /Ana Prado/ }))
+        expect(screen.queryByRole('menuitem', { name: 'Instalar o Acordu' })).not.toBeInTheDocument()
+        await usuario.keyboard('{Escape}')
+
+        const pedido = Object.assign(new Event('beforeinstallprompt', { cancelable: true }), {
+            prompt: vi.fn(async () => undefined),
+            userChoice: Promise.resolve({ outcome: 'accepted' }),
+        })
+        act(() => {
+            window.dispatchEvent(pedido)
+        })
+        await usuario.click(screen.getByRole('button', { name: /Ana Prado/ }))
+        await usuario.click(await screen.findByRole('menuitem', { name: 'Instalar o Acordu' }))
+        expect(pedido.prompt).toHaveBeenCalled()
     })
 
     it('marca o destino atual', async () => {

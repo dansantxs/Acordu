@@ -112,7 +112,7 @@ export function notificar(
         const notificacao = new Notification(aviso.titulo, {
             ...(aviso.corpo ? { body: aviso.corpo } : {}),
             tag: aviso.id,
-            icon: '/favicon.svg',
+            icon: '/icones/icone-192.png',
         })
         notificacao.onclick = () => {
             window.focus()
@@ -121,7 +121,18 @@ export function notificar(
         }
         return true
     } catch {
-        // Android Chrome só aceita notificação pelo service worker (F12f); aqui, sem ela, segue o aviso do app.
-        return false
+        // Android Chrome só aceita notificação pelo service worker (F12f): mostra por ele, e o clique abre o item lá.
+        if (!('serviceWorker' in navigator) || !navigator.serviceWorker.controller) return false
+        void navigator.serviceWorker.ready
+            .then((registro) =>
+                registro.showNotification(aviso.titulo, {
+                    ...(aviso.corpo ? { body: aviso.corpo } : {}),
+                    tag: aviso.id,
+                    icon: '/icones/icone-192.png',
+                    data: { caminho: aviso.caminho ?? '/' },
+                }),
+            )
+            .catch(() => undefined)
+        return true
     }
 }
