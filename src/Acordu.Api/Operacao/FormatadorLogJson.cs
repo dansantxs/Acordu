@@ -26,6 +26,13 @@ internal sealed class FormatadorLogJson(string versao, string servico = Formatad
     internal static readonly FrozenSet<string> CamposDoContexto =
         new[] { "rota", "metodo", "tenantId", "usuarioId" }.ToFrozenSet(StringComparer.Ordinal);
 
+    /// <summary>
+    /// Escopos especiais, fora do <c>contexto</c>: o erro que veio de outro serviço (o app no navegador, F13d) traz o
+    /// nome dele e a pilha em texto (não há exceção .NET).
+    /// </summary>
+    internal const string EscopoServico = "servico";
+    internal const string EscopoPilha = "pilha";
+
     // Log não é HTML: acentos ficam legíveis em vez de é.
     private static readonly JsonWriterOptions OpcoesEscrita = new() { Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping };
 
@@ -50,7 +57,7 @@ internal sealed class FormatadorLogJson(string versao, string servico = Formatad
             if (Activity.Current is { } atividade && atividade.TraceId != default)
                 json.WriteString("traceId", atividade.TraceId.ToHexString());
 
-            var contexto = Contexto(scopeProvider);
+            var (contexto, outroServico, pilha) = Contexto(scopeProvider);
             if (contexto.Count > 0)
             {
                 json.WriteStartObject("contexto");
@@ -60,15 +67,16 @@ internal sealed class FormatadorLogJson(string versao, string servico = Formatad
             }
 
             // A pilha num campo próprio, que o Error Reporting lê, e a mensagem limpa para o resumo do Cloud Logging.
-            if (excecao is not null)
-                json.WriteString("stack_trace", excecao.ToString());
+            var textoDaPilha = excecao?.ToString() ?? pilha;
+            if (textoDaPilha is not null)
+                json.WriteString("stack_trace", textoDaPilha);
 
             if (erro)
             {
-                if (excecao is not null)
+                if (textoDaPilha is not null)
                     json.WriteString("@type", TipoEventoErro);
                 json.WriteStartObject("serviceContext");
-                json.WriteString("service", servico);
+                json.WriteString("service", outroServico ?? servico);
                 json.WriteString("version", versao);
                 json.WriteEndObject();
             }
@@ -89,9 +97,9 @@ internal sealed class FormatadorLogJson(string versao, string servico = Formatad
         _ => "DEFAULT",
     };
 
-    private static SortedDictionary<string, string> Contexto(IExternalScopeProvider? escopos)
+    private static (SortedDictionary<string, string> Contexto, string? Servico, string? Pilha) Contexto(IExternalScopeProvider? escopos)
     {
-        var contexto = new SortedDictionary<string, string>(StringComparer.Ordinal);
+        var lido = new Lido();
         escopos?.ForEachScope(
             static (escopo, destino) =>
             {
@@ -99,11 +107,27 @@ internal sealed class FormatadorLogJson(string versao, string servico = Formatad
                     return;
                 foreach (var (chave, valor) in pares)
                 {
-                    if (CamposDoContexto.Contains(chave) && valor is not null)
-                        destino[chave] = Convert.ToString(valor, System.Globalization.CultureInfo.InvariantCulture) ?? "";
+                    if (valor is null)
+                        continue;
+                    var texto = Convert.ToString(valor, System.Globalization.CultureInfo.InvariantCulture) ?? "";
+                    if (chave == EscopoServico)
+                        destino.Servico = texto;
+                    else if (chave == EscopoPilha)
+                        destino.Pilha = texto;
+                    else if (CamposDoContexto.Contains(chave))
+                        destino.Campos[chave] = texto;
                 }
             },
-            contexto);
-        return contexto;
+            lido);
+        return (lido.Campos, lido.Servico, lido.Pilha);
+    }
+
+    private sealed class Lido
+    {
+        public SortedDictionary<string, string> Campos { get; } = new(StringComparer.Ordinal);
+
+        public string? Servico { get; set; }
+
+        public string? Pilha { get; set; }
     }
 }
