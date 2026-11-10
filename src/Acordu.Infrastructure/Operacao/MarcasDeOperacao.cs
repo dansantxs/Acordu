@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using System.Data.Common;
 using Acordu.Application.Abstractions.Operacao;
 using Acordu.Infrastructure.Persistence;
@@ -36,7 +37,7 @@ internal sealed class MarcaOperacaoConfiguration : IEntityTypeConfiguration<Marc
 
 /// <summary>
 /// <c>INSERT ... ON CONFLICT DO NOTHING</c>: quem inseriu é o primeiro e avisa. Num escopo próprio, como os avisos de
-/// erro. Sem banco, devolve <c>true</c> (avisa a mais em vez de calar uma falha).
+/// erro. Sem banco, deduplica em memória: avisa na primeira vez de cada chave nesta instância, em vez de calar uma falha.
 /// </summary>
 public sealed partial class MarcasDeOperacao : IMarcasDeOperacao
 {
@@ -45,6 +46,7 @@ public sealed partial class MarcasDeOperacao : IMarcasDeOperacao
     private readonly IServiceScopeFactory _escopos;
     private readonly TimeProvider _relogio;
     private readonly ILogger<MarcasDeOperacao> _logger;
+    private readonly ConcurrentDictionary<string, byte> _semBanco = new(StringComparer.Ordinal);
 
     public MarcasDeOperacao(IServiceScopeFactory escopos, TimeProvider relogio, ILogger<MarcasDeOperacao> logger)
     {
@@ -70,14 +72,16 @@ public sealed partial class MarcasDeOperacao : IMarcasDeOperacao
         }
         catch (Exception ex) when (ex is DbException or InvalidOperationException or TimeoutException)
         {
+            // Sem banco, em memória: avisa, mas não a cada tick do mesmo dia.
             SemBanco(_logger, ex.GetType().Name);
-            return true;
+            return _semBanco.TryAdd(chave, 0);
         }
     }
 
     public async Task DesmarcarAsync(string chave, CancellationToken cancellationToken = default)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(chave);
+        _semBanco.TryRemove(chave, out _);
         try
         {
             await using var escopo = _escopos.CreateAsyncScope();
