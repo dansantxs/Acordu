@@ -225,6 +225,8 @@ jobs:
           VITE_TEMPO_REAL: polling
           # Chave do site do Turnstile (pública), conferida no passo "Variáveis da API", antes de publicar.
           VITE_TURNSTILE_CHAVE: ${{ vars.TURNSTILE_CHAVE_SITE }}
+          # Vai junto dos relatos de erro do app (F13d); sem ela o app não relata.
+          VITE_VERSAO: ${{ github.sha }}
         run: |
           pnpm install --frozen-lockfile
           pnpm build
