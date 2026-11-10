@@ -130,7 +130,7 @@ Endpoint S3: `https://<id-da-conta>.r2.cloudflarestorage.com` (secret `R2_ENDPOI
 Projeto **`acordu-web`** (upload direto pelo `wrangler pages deploy`, sem integração Git; o primeiro deploy o cria), domínio `acordu.app.br`.
 
 Token de API do Cloudflare para o `deploy.yml` (secret `CLOUDFLARE_API_TOKEN`; o ID da conta vai em `CLOUDFLARE_ACCOUNT_ID`). O Cloudflare não restringe token a um script ou projeto, só a conta e zona; o mínimo é:
-- conta: *Workers Scripts: Edit* e *Cloudflare Pages: Edit*;
+- conta: *Workers Scripts: Edit*, *Workers KV Storage: Edit* (o KV da vigia é criado no primeiro deploy) e *Cloudflare Pages: Edit*;
 - zona `acordu.app.br`: *Workers Routes: Edit* e *DNS: Edit* (o domínio personalizado `api.acordu.app.br` do Worker cria o registro).
 
 Conferir no primeiro deploy; se o `wrangler` pedir outra permissão, acrescentá-la aqui.
@@ -159,7 +159,7 @@ O Acordu envia e-mail para os **clientes dos clientes**: reputação de domínio
 
 ## Parte E — Monitoramento
 
-- **UptimeRobot:** monitor HTTP em `https://api.acordu.app.br/api/health`, 5 min, alerta por e-mail (até a vigia do F13h substituí-lo).
+- **Vigia (F13h):** o Worker `acordu-vigia` sobe pelo `deploy.yml`, com o KV e o segredo `DISCORD_ALERTAS`; não há nada a configurar à mão. Sem UptimeRobot (ADR 0012).
 - **Discord (ADR 0012):** um servidor privado com três canais, cada um com um webhook (Configurações do canal → Integrações → Webhooks):
   - **#alertas** → secret `DISCORD_ALERTAS`: erros da API e do app, jobs com falha, queda, deploy e backup que falharam. Deixe a notificação do celular ligada.
   - **#deploy** → secret `DISCORD_DEPLOY`: deploy ok, heartbeat do backup e resumo do diário. Pode ficar silenciado.
@@ -236,7 +236,7 @@ C5. Widget do Turnstile → TURNSTILE_CHAVE_SITE e API_TURNSTILE_SEGREDO
 → primeiro deploy (cria o serviço Cloud Run, o Worker e o Pages)
 C3/C4. Domínios do Pages e do Worker; ORIGEM e TOKEN_ORIGEM (= API_TOKEN_ORIGEM) → BORDA_ATIVA=true
 A6. Cloud Scheduler (tick e diário) + alerta de falha
-E.  UptimeRobot + Discord
+E.  Discord (três webhooks; a vigia sobe com o deploy)
 → cadastro de teste em acordu.app.br (Turnstile, confirmação do e-mail, convite)
 → BACKUP_ATIVO=true; primeiro backup
 → restore testado
@@ -257,7 +257,7 @@ E.  UptimeRobot + Discord
 - [ ] Login e refresh funcionando de `acordu.app.br` para `api.acordu.app.br`.
 - [ ] `acordu-tick` e `acordu-diario` no Scheduler, com alerta de falha.
 - [ ] Resend verificado + DMARC.
-- [ ] UptimeRobot ativo; webhook do Discord recebendo deploy e backup.
+- [ ] Webhooks do Discord: #deploy recebendo deploy e backup; #alertas recebendo a vigia (teste: parar o serviço por 10 min) e os erros; #sugestoes recebendo uma sugestão de teste.
 - [ ] Turnstile no cadastro: conta de teste criada; sem o token, cadastro recusado.
 - [ ] Backup diário rodando e restore testado.
 
@@ -279,6 +279,6 @@ _(preencher conforme executar)_
 | Pages | `acordu-web` — _pendente_ |
 | Domínios | `acordu.app.br`, `acordu.com.br` — _registrar_ |
 | Resend | domínio verificado? _pendente_ |
-| UptimeRobot | _pendente_ |
+| Vigia | `acordu-vigia` — _pendente_ (sobe com o deploy) |
 
 > Regra de segurança: IDs numéricos, chaves, senhas e connection strings **não** entram neste documento nem no repositório.

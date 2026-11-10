@@ -38,7 +38,7 @@
                 ├─ endpoint direto (acordu_migrator) ─► Neon   (migrations, pg_dump)
                 └─ token R2 só de escrita ────────────► R2  acordu-backups
  Cloud Scheduler ── X-Job-Token ──► api.acordu.app.br/internal/jobs/{tick,diario}
- UptimeRobot ── a cada 5 min ──► api.acordu.app.br/api/health   (não toca o banco)
+ Worker vigia ── a cada 5 min ──► api.acordu.app.br/api/health   (não toca o banco; queda → #alertas)
 ```
 
 ### 2.1 Worker da borda (`acordu-api-borda`)
@@ -48,7 +48,15 @@ Proxy fino, sem lógica de negócio:
 - acrescenta `X-Origem-Token` (segredo do Worker) e grava `CF-Connecting-IP` em `X-Forwarded-For`, descartando o que o cliente mandou nesse cabeçalho;
 - não armazena em cache nenhuma resposta da API;
 - código em `infra/cloudflare/api-borda/` (TypeScript, `wrangler`), publicado pelo `deploy.yml`; `ORIGEM` (variável) e `TOKEN_ORIGEM` (segredo) definidos no provisionamento; sem eles, o Worker responde 500 em vez de repassar sem o token;
-- testado na CI (job **Borda (Worker)**: tipos, testes do repasse e empacotamento com `wrangler deploy --dry-run`).
+- testado na CI (job **Worker (api-borda)**: tipos, testes do repasse e empacotamento com `wrangler deploy --dry-run`).
+
+### 2.1a Worker da vigia (`acordu-vigia`, F13h, ADR 0012)
+
+- Cron Trigger de 5 min: `GET https://api.acordu.app.br/api/health` pela internet e pela borda, como um cliente (`global_fetch_strictly_public`), com 15 s de espera;
+- duas falhas seguidas avisam "API fora do ar desde HH:MM" em #alertas, uma vez por queda; a volta avisa "API voltou, fora por N min"; uma falha só (partida a frio) não avisa;
+- estado no KV `ESTADO`, gravado só quando muda (uma queda gasta três gravações); o KV é criado no primeiro deploy pelo provisionamento automático do `wrangler` (o id não fica no repositório);
+- `DISCORD_ALERTAS` vai como segredo do Worker pelo `deploy.yml`; sem ele, a vigia só registra no log;
+- sem rota pública; código em `infra/cloudflare/vigia/`, testado na CI (job **Worker (vigia)**).
 
 Com `Proxy__TokenOrigem` definido, a API responde 404 a requisição sem o token (inclusive `/api/health` e `/internal/jobs/*`), antes de proxy, autenticação e rate limit, e retira o cabeçalho depois de conferir. A URL `*.run.app` deixa de ser porta de entrada. `Proxy__Saltos` só passa de 1 com o token ativo.
 
@@ -167,9 +175,9 @@ Cada job é um endpoint interno (`POST /internal/jobs/<nome>`): `X-Job-Token` co
 
 ## 9. Monitoramento
 
-- **UptimeRobot** em `https://api.acordu.app.br/api/health` a cada 5 min (avisa queda e mantém a instância quente parte do tempo).
+- **Vigia** (Worker `acordu-vigia`, §2.1a) em `https://api.acordu.app.br/api/health` a cada 5 min: avisa a queda e a volta em #alertas e mantém a instância quente parte do tempo, como fazia o UptimeRobot (ADR 0012).
 - **Pré-aquecimento pela UI:** ao carregar qualquer tela o SPA já renova a sessão (`POST /api/v1/auth/refresh`), o que acorda o container da API antes de a pessoa digitar; por isso não há chamada extra ao `/api/health` (F8d). O banco acorda na primeira requisição que o consulta (com cookie, a própria renovação; sem cookie, o login).
-- Logs do Cloud Run em JSON (`Logs__Formato=json`): os erros aparecem agrupados no Error Reporting, por serviço e versão, sem SDK (ADR 0012, F13a). Discord (deploy e backup: sucesso em #deploy, falha em #alertas, F13g), alerta do Cloud Monitoring para os jobs e de orçamento (e-mail). Erro 500 novo vira aviso em #alertas pela própria API (F13b), um por erro a cada 24 h e no máximo 20 por hora; as falhas dos jobs vão para #alertas e o resumo do diário para #deploy (F13c); os erros do app no navegador chegam por `POST /api/v1/erros-web` como serviço `acordu-web`, só com `VITE_VERSAO` no build (o commit, no `deploy.yml`; F13d); a vigia no lugar do UptimeRobot chega no F13h.
+- Logs do Cloud Run em JSON (`Logs__Formato=json`): os erros aparecem agrupados no Error Reporting, por serviço e versão, sem SDK (ADR 0012, F13a). Discord (deploy e backup: sucesso em #deploy, falha em #alertas, F13g), alerta do Cloud Monitoring para os jobs e de orçamento (e-mail). Erro 500 novo vira aviso em #alertas pela própria API (F13b), um por erro a cada 24 h e no máximo 20 por hora; as falhas dos jobs vão para #alertas e o resumo do diário para #deploy (F13c); os erros do app no navegador chegam por `POST /api/v1/erros-web` como serviço `acordu-web`, só com `VITE_VERSAO` no build (o commit, no `deploy.yml`; F13d).
 - **Mensal:** CU-h e armazenamento no Neon; vCPU-s no Cloud Run; requisições/dia no Worker; armazenamento no R2. São os gatilhos dos níveis 1 e 2 do ADR 0010.
 
 ---

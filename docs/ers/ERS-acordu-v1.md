@@ -546,6 +546,7 @@ actor "Contato do cliente" as ct
 cloud "Cloudflare" {
   component "Pages\nacordu.app.br (SPA)" as spa
   component "Worker\napi.acordu.app.br" as borda
+  component "Worker vigia\n(cron 5 min + KV)" as vigia
   database "R2\n(anexos + backups)" as r2
 }
 cloud "Google Cloud · us-east4" {
@@ -554,6 +555,7 @@ cloud "Google Cloud · us-east4" {
 }
 database "Neon · Postgres 17\naws-us-east-1" as pg
 cloud "Resend" as mail
+cloud "Discord\n#alertas · #deploy · #sugestoes" as discord
 
 eq --> spa : HTTPS
 ct --> spa : HTTPS (/portal)
@@ -564,6 +566,9 @@ sched --> borda : /internal/jobs
 api --> pg : endpoint pooled
 api --> r2 : anexos (URL assinada)
 api --> mail : notificações
+api --> discord : avisos de operação (ADR 0012)
+vigia --> borda : /api/health
+vigia --> discord : queda e volta
 @enduml
 ```
 
