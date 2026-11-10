@@ -86,7 +86,7 @@ Os endpoints `/internal/jobs/*` já existem: `X-Job-Token`, idempotentes, todos 
 ### 7. Cold start
 
 - Pré-aquecimento pelo SPA (nota de 03/11, F8d: a renovação da sessão que o SPA já faz ao carregar qualquer tela acorda o container da API, como faria o `/api/health`, que também não toca o banco; então não há chamada separada), ReadyToRun, imagem `aspnet` *chiseled extra* (com ICU e tzdata, exigidos pelo SLA) e *startup CPU boost*.
-- UptimeRobot em `https://api.acordu.app.br/api/health` a cada 5 min. Cada ping é uma requisição de milissegundos, pouco perto da cota.
+- UptimeRobot em `https://api.acordu.app.br/api/health` a cada 5 min. Cada ping é uma requisição de milissegundos, pouco perto da cota. (Emenda de 10/11: a vigia do ADR 0012 substitui o UptimeRobot no mesmo intervalo; os avisos de operação e os logs estruturados estão lá.)
 
 ### 8. Deploy, migrations e backup
 

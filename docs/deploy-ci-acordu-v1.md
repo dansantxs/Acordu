@@ -147,7 +147,7 @@ Cada job é um endpoint interno (`POST /internal/jobs/<nome>`): `X-Job-Token` co
   - `Armazenamento__Endpoint=https://<conta>.r2.cloudflarestorage.com`, `Armazenamento__Regiao=auto`, `Armazenamento__Bucket=acordu-anexos`, `Armazenamento__ChaveAcesso` / `Armazenamento__ChaveSecreta` (token R2 de leitura e escrita só em `acordu-anexos`);
   - limites opcionais (`RateLimit__Auth__PorMinuto` 10, `RateLimit__Refresh__PorMinuto` 30, `RateLimit__Portal__PorMinuto` 10, `RateLimit__Agenda__PorMinuto` 30, `RateLimit__Registro__PorHora` 3);
   - `Turnstile__Segredo` (proteção do cadastro, RNF-SEG-10; obrigatório no `deploy.yml`, secret `API_TURNSTILE_SEGREDO`);
-  - (Sentry fora do F8: o SDK é dependência de fornecedor; erros de aplicação ficam nos logs do Cloud Run até uma decisão própria, spec do F8, decisão 3.)
+  - `Logs__Formato=json` (logs estruturados para o Cloud Logging e o Error Reporting, RNF-OPS-01) e `App__Versao` (o commit, no `serviceContext` dos erros); fixas no `deploy.yml` (ADR 0012).
 - **Segredo do Worker:** `TOKEN_ORIGEM`; variável `ORIGEM` com a URL `*.run.app`.
 - **Risco aceito (nível 0):** os secrets de produção são do repositório, não de um *environment* com restrição de branch (o plano Free com repositório privado não oferece). O WIF limita o Google à `main`, mas um workflow alterado em qualquer branch do próprio repositório alcança Neon (migrator), R2 e Cloudflare. A guarda `if: github.ref == 'refs/heads/main'` do `deploy.yml` evita engano, não abuso. Mitigação: só o Daniel tem escrita no repositório, com MFA; PRs de fork não recebem secrets. Revisar quando houver outro colaborador ou cliente pagante (environment protegido ou Secret Manager).
 - Secret Manager fica como evolução.
@@ -167,7 +167,7 @@ Cada job é um endpoint interno (`POST /internal/jobs/<nome>`): `X-Job-Token` co
 
 - **UptimeRobot** em `https://api.acordu.app.br/api/health` a cada 5 min (avisa queda e mantém a instância quente parte do tempo).
 - **Pré-aquecimento pela UI:** ao carregar qualquer tela o SPA já renova a sessão (`POST /api/v1/auth/refresh`), o que acorda o container da API antes de a pessoa digitar; por isso não há chamada extra ao `/api/health` (F8d). O banco acorda na primeira requisição que o consulta (com cookie, a própria renovação; sem cookie, o login).
-- Logs do Cloud Run (erros), Discord (deploy e backup), alerta do Cloud Monitoring para os jobs e de orçamento (e-mail). Monitoramento de erros de aplicação (Sentry ou OpenTelemetry) fica para decisão própria.
+- Logs do Cloud Run em JSON (`Logs__Formato=json`): os erros aparecem agrupados no Error Reporting, por serviço e versão, sem SDK (ADR 0012, F13a). Discord (deploy e backup), alerta do Cloud Monitoring para os jobs e de orçamento (e-mail). Os avisos de operação no Discord e a vigia no lugar do UptimeRobot chegam nos próximos PRs do F13.
 - **Mensal:** CU-h e armazenamento no Neon; vCPU-s no Cloud Run; requisições/dia no Worker; armazenamento no R2. São os gatilhos dos níveis 1 e 2 do ADR 0010.
 
 ---
