@@ -115,7 +115,71 @@ describe('vigia da API (F13h)', () => {
         const ok = rede(200)
         await checar(env, depois(25), ok.buscar)
 
-        expect(ok.avisos).toEqual(['**API voltou** · fora por 25 min.'])
+        // A duração vai até a volta (20 min), não até o aviso que saiu depois.
+        expect(ok.avisos).toEqual(['**API voltou** · fora por 20 min.'])
+    })
+
+    it('caiu de novo antes de a volta ser avisada: é a mesma queda, sem aviso novo', async () => {
+        const estado = kv({ falhas: 2, foraDesde: AS_14.toISOString(), avisada: true, voltouEm: depois(20).toISOString() })
+        const fora = rede(503)
+
+        await checar({ ESTADO: estado.ns, DISCORD_ALERTAS: WEBHOOK }, depois(25), fora.buscar)
+
+        expect(fora.avisos).toEqual([])
+        expect(estado.valor()).toEqual({ falhas: 2, foraDesde: AS_14.toISOString(), avisada: true })
+    })
+
+    it('F13-34: a espera do health é de 15 s', async () => {
+        vi.useFakeTimers()
+        try {
+            const estado = kv({ falhas: 1, foraDesde: AS_14.toISOString(), avisada: false })
+            const avisos: string[] = []
+            let abortadoEm: number | null = null
+            const inicio = Date.now()
+            const buscar = vi.fn((url: RequestInfo | URL, init?: RequestInit) => {
+                if (String(url) === WEBHOOK) {
+                    avisos.push((JSON.parse(String(init?.body)) as { content: string }).content)
+                    return Promise.resolve(new Response(null, { status: 204 }))
+                }
+                // O health não responde: só o sinal de espera encerra a chamada.
+                return new Promise<Response>((_, rejeitar) => {
+                    init?.signal?.addEventListener('abort', () => {
+                        abortadoEm = Date.now() - inicio
+                        rejeitar(init.signal!.reason)
+                    })
+                })
+            }) as unknown as typeof fetch
+
+            const checagem = checar({ ESTADO: estado.ns, DISCORD_ALERTAS: WEBHOOK }, depois(5), buscar)
+            await vi.advanceTimersByTimeAsync(14_999)
+            expect(abortadoEm).toBeNull()
+            await vi.advanceTimersByTimeAsync(1)
+            await checagem
+
+            expect(abortadoEm).toBe(15_000)
+            expect(avisos).toEqual(['**API fora do ar** desde 14:00 (Brasília).'])
+        } finally {
+            vi.useRealTimers()
+        }
+    })
+
+    it('o cron chama a checagem com a hora agendada, sem segurar o evento', async () => {
+        const estado = kv()
+        const esperas: Promise<unknown>[] = []
+        const buscar = vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response('ok', { status: 200 }))
+        try {
+            const vigia = (await import('./index')).default
+            await vigia.scheduled(
+                { scheduledTime: AS_14.getTime(), cron: '*/5 * * * *', noRetry: () => undefined } as unknown as ScheduledController,
+                { ESTADO: estado.ns },
+                { waitUntil: (p: Promise<unknown>) => esperas.push(p), passThroughOnException: () => undefined } as unknown as ExecutionContext,
+            )
+            expect(esperas).toHaveLength(1)
+            await Promise.all(esperas)
+            expect(buscar).toHaveBeenCalledWith(ALVO_PADRAO, expect.objectContaining({ signal: expect.any(AbortSignal) }))
+        } finally {
+            buscar.mockRestore()
+        }
     })
 
     it('sem webhook: só o log, e a queda continua para avisar quando houver', async () => {

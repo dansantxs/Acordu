@@ -20,6 +20,8 @@ export interface Estado {
     foraDesde?: string
     /** Se a queda já foi avisada (a volta só é avisada se a queda foi). */
     avisada: boolean
+    /** Quando voltou, se o aviso da volta ainda não saiu (a duração conta até aqui, não até o aviso). */
+    voltouEm?: string
 }
 
 export const CHAVE = 'estado'
@@ -40,14 +42,16 @@ export function horaDeBrasilia(instante: Date): string {
 }
 
 async function saudavel(alvo: string, buscar: typeof fetch): Promise<boolean> {
+    // Prazo pelo setTimeout (e não AbortSignal.timeout) para o teste controlar o relógio.
+    const controle = new AbortController()
+    const prazo = setTimeout(() => controle.abort(new DOMException('Passou de 15 s', 'TimeoutError')), ESPERA_MS)
     try {
-        const resposta = await buscar(alvo, {
-            headers: { 'User-Agent': 'acordu-vigia' },
-            signal: AbortSignal.timeout(ESPERA_MS),
-        })
+        const resposta = await buscar(alvo, { headers: { 'User-Agent': 'acordu-vigia' }, signal: controle.signal })
         return resposta.status === 200
     } catch {
         return false
+    } finally {
+        clearTimeout(prazo)
     }
 }
 
@@ -85,10 +89,14 @@ export async function checar(env: Env, agora: Date, buscar: typeof fetch = fetch
     if (await saudavel(env.ALVO ?? ALVO_PADRAO, buscar)) {
         depois = EM_PE
         if (antes.avisada && antes.foraDesde) {
-            const minutos = Math.max(1, Math.round((agora.getTime() - Date.parse(antes.foraDesde)) / 60_000))
-            // Se o aviso da volta não sair, fica como está e tenta de novo na próxima checagem.
-            if (!(await avisar(env, `**API voltou** · fora por ${minutos} min.`, buscar))) depois = antes
+            const voltouEm = antes.voltouEm ?? agora.toISOString()
+            const minutos = Math.max(1, Math.round((Date.parse(voltouEm) - Date.parse(antes.foraDesde)) / 60_000))
+            // Se o aviso da volta não sair, guarda quando voltou e tenta de novo na próxima checagem.
+            if (!(await avisar(env, `**API voltou** · fora por ${minutos} min.`, buscar))) depois = { ...antes, voltouEm }
         }
+    } else if (antes.voltouEm) {
+        // Caiu de novo antes de a volta ser avisada: é a mesma queda, ainda avisada.
+        depois = { falhas: antes.falhas, foraDesde: antes.foraDesde, avisada: true }
     } else {
         const foraDesde = antes.foraDesde ?? agora.toISOString()
         depois = { falhas: antes.falhas + 1, foraDesde, avisada: antes.avisada }
