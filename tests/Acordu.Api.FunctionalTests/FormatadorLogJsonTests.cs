@@ -106,4 +106,23 @@ public sealed class FormatadorLogJsonTests
         contexto.GetProperty("rota").GetString().Should().Be("/api/v1/clientes/{id}");
         contexto.GetRawText().Should().NotContain("ana@exemplo.com").And.NotContain("7c1f");
     }
+
+    [Fact]
+    public void Write_ErroDeOutroServicoComPilhaEmTexto_ServicoEPilhaDoEscopo() // F13-15
+    {
+        var escopos = new LoggerExternalScopeProvider();
+        using var escopo = escopos.Push(new Dictionary<string, object?>
+        {
+            [FormatadorLogJson.EscopoServico] = "acordu-web",
+            [FormatadorLogJson.EscopoPilha] = "TypeError: x\n    at f (index.js:1:2)",
+            ["rota"] = "/tarefas",
+        });
+
+        var linha = Formatar(LogLevel.Error, "Erro no app.", escopos: escopos);
+
+        linha.GetProperty("serviceContext").GetProperty("service").GetString().Should().Be("acordu-web");
+        linha.GetProperty("stack_trace").GetString().Should().StartWith("TypeError: x");
+        linha.GetProperty("@type").GetString().Should().EndWith("ReportedErrorEvent");
+        linha.GetProperty("contexto").EnumerateObject().Select(p => p.Name).Should().ContainSingle().Which.Should().Be("rota");
+    }
 }
