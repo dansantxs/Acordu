@@ -101,7 +101,7 @@ Com `Proxy__TokenOrigem` definido, a API responde 404 a requisição sem o token
 5. **Healthcheck** `GET /api/health` pela borda; falhou → tráfego de volta à revisão anterior (`gcloud run services update-traffic --to-revisions`). Até a borda apontar para o serviço (variável `BORDA_ATIVA=true`, runbook C4), confere direto na URL `*.run.app`, com o `X-Origem-Token`. Só "serviço não existe" conta como primeiro deploy; outro erro ao ler o serviço para o deploy, para não desligar o rollback.
 6. **Worker:** `wrangler deploy` de `infra/cloudflare/api-borda` (`keep_vars`: `ORIGEM` e `TOKEN_ORIGEM` ficam como estão).
 7. **SPA:** build de `apps/web` com `VITE_URL_API=https://api.acordu.app.br`, `VITE_TEMPO_REAL=polling` e `VITE_TURNSTILE_CHAVE` (variável `TURNSTILE_CHAVE_SITE`, obrigatória), publicado no Pages (`wrangler pages deploy` no projeto `acordu-web`, criado no primeiro deploy). O `public/_headers` vai junto: além da CSP, `no-cache` no `sw.js` e no `manifest.webmanifest` (app instalável, F12f). O token do Cloudflare tem o mínimo de conta e zona (runbook C3); o Cloudflare não restringe token a um script ou projeto.
-8. Discord: falha sempre; sucesso com a tag.
+8. Discord (`.github/actions/avisar-discord`, F13g): sucesso em #deploy com o commit; falha em #alertas com o link da execução. Sem o webhook do canal, pula; o Discord fora só vira aviso no log.
 
 ---
 
@@ -136,7 +136,7 @@ Cada job é um endpoint interno (`POST /internal/jobs/<nome>`): `X-Job-Token` co
 
 ## 7. Segredos e configuração
 
-- **GitHub Actions:** nenhuma chave do Google (WIF). Nomes das variáveis e dos secrets no runbook ("Segredos do GitHub"). Variáveis `GCP_WIF_PROVIDER`, `GCP_PROJECT_ID`, `BORDA_ATIVA`, `BACKUP_ATIVO` e `TURNSTILE_CHAVE_SITE` (chave do site do Turnstile, pública, para o build do SPA; conferida antes de publicar). Secrets: connection string direta do `acordu_migrator`, variáveis da API (abaixo), token do Cloudflare (Pages + Worker), token R2 de backup, webhook do Discord.
+- **GitHub Actions:** nenhuma chave do Google (WIF). Nomes das variáveis e dos secrets no runbook ("Segredos do GitHub"). Variáveis `GCP_WIF_PROVIDER`, `GCP_PROJECT_ID`, `BORDA_ATIVA`, `BACKUP_ATIVO` e `TURNSTILE_CHAVE_SITE` (chave do site do Turnstile, pública, para o build do SPA; conferida antes de publicar). Secrets: connection string direta do `acordu_migrator`, variáveis da API (abaixo), token do Cloudflare (Pages + Worker), token R2 de backup, webhooks do Discord (`DISCORD_ALERTAS`, `DISCORD_DEPLOY`, `DISCORD_SUGESTOES`, um por canal; ADR 0012). Variável opcional `OPERACAO_LINK_ERROS` (link do Error Reporting nos avisos de erro).
 - **Variáveis da API no Cloud Run:**
   - `ConnectionStrings__Acordu` (pooled, `acordu_app`);
   - `Jwt__ChaveAssinatura`; `Jobs__Token`;
@@ -149,7 +149,7 @@ Cada job é um endpoint interno (`POST /internal/jobs/<nome>`): `X-Job-Token` co
   - limites opcionais (`RateLimit__ErrosWeb__PorMinuto` 10, `RateLimit__Auth__PorMinuto` 10, `RateLimit__Refresh__PorMinuto` 30, `RateLimit__Portal__PorMinuto` 10, `RateLimit__Agenda__PorMinuto` 30, `RateLimit__Registro__PorHora` 3);
   - `Turnstile__Segredo` (proteção do cadastro, RNF-SEG-10; obrigatório no `deploy.yml`, secret `API_TURNSTILE_SEGREDO`);
   - `Logs__Formato=json` (logs estruturados para o Cloud Logging e o Error Reporting, RNF-OPS-01) e `App__Versao` (o commit, no `serviceContext` dos erros); fixas no `deploy.yml` (ADR 0012).
-  - `Discord__Alertas`, `Discord__Deploy`, `Discord__Sugestoes` (webhooks dos canais, só https; sem, o canal não envia), `Operacao__AvisosPorHora` (teto de avisos de erro, padrão 20) e `Operacao__LinkErros` (link do Error Reporting na mensagem); os webhooks entram no `deploy.yml` no F13g.
+  - `Discord__Alertas`, `Discord__Deploy`, `Discord__Sugestoes` (webhooks dos canais, só https; sem, o canal não envia), `Operacao__AvisosPorHora` (teto de avisos de erro, padrão 20) e `Operacao__LinkErros` (link do Error Reporting na mensagem). O `deploy.yml` passa os mesmos webhooks dos workflows (`DISCORD_*`) e a variável `OPERACAO_LINK_ERROS`; sem um webhook, a API sobe e o deploy avisa no log que aquele canal fica sem avisos.
 - **Segredo do Worker:** `TOKEN_ORIGEM`; variável `ORIGEM` com a URL `*.run.app`.
 - **Risco aceito (nível 0):** os secrets de produção são do repositório, não de um *environment* com restrição de branch (o plano Free com repositório privado não oferece). O WIF limita o Google à `main`, mas um workflow alterado em qualquer branch do próprio repositório alcança Neon (migrator), R2 e Cloudflare. A guarda `if: github.ref == 'refs/heads/main'` do `deploy.yml` evita engano, não abuso. Mitigação: só o Daniel tem escrita no repositório, com MFA; PRs de fork não recebem secrets. Revisar quando houver outro colaborador ou cliente pagante (environment protegido ou Secret Manager).
 - Secret Manager fica como evolução.
@@ -161,7 +161,7 @@ Cada job é um endpoint interno (`POST /internal/jobs/<nome>`): `X-Job-Token` co
 - **Banco:** `backup.yml`, às 04:00 (`0 7 * * *` UTC), só com `BACKUP_ATIVO=true`: `pg_dump -Fc` (imagem `postgres:17` no runner, confere o arquivo com `pg_restore --list`) no endpoint direto → `acordu-backups/db/AAAA-MM-DD.dump` no R2, com token que só escreve nesse bucket. Retenção de 14 dias por lifecycle do bucket.
 - **Anexos:** o R2 não tem versionamento. A aplicação só apaga objeto ao trocar o logotipo do portal, e o token da API só alcança `acordu-anexos`. Cópia fora do Cloudflare quando houver cliente pagante (ADR 0010 §8).
 - **Restore testado** antes do primeiro cliente real: `pg_restore` num branch do Neon ou num Postgres 17 local, com a API apontada para ele (passo a passo no runbook, "Restore").
-- Discord: falha sempre; heartbeat diário de sucesso.
+- Discord: heartbeat diário de sucesso em #deploy; falha em #alertas.
 
 ---
 
@@ -169,7 +169,7 @@ Cada job é um endpoint interno (`POST /internal/jobs/<nome>`): `X-Job-Token` co
 
 - **UptimeRobot** em `https://api.acordu.app.br/api/health` a cada 5 min (avisa queda e mantém a instância quente parte do tempo).
 - **Pré-aquecimento pela UI:** ao carregar qualquer tela o SPA já renova a sessão (`POST /api/v1/auth/refresh`), o que acorda o container da API antes de a pessoa digitar; por isso não há chamada extra ao `/api/health` (F8d). O banco acorda na primeira requisição que o consulta (com cookie, a própria renovação; sem cookie, o login).
-- Logs do Cloud Run em JSON (`Logs__Formato=json`): os erros aparecem agrupados no Error Reporting, por serviço e versão, sem SDK (ADR 0012, F13a). Discord (deploy e backup), alerta do Cloud Monitoring para os jobs e de orçamento (e-mail). Erro 500 novo vira aviso em #alertas pela própria API (F13b), um por erro a cada 24 h e no máximo 20 por hora; as falhas dos jobs vão para #alertas e o resumo do diário para #deploy (F13c); os erros do app no navegador chegam por `POST /api/v1/erros-web` como serviço `acordu-web`, só com `VITE_VERSAO` no build (o commit, no `deploy.yml`; F13d); a vigia no lugar do UptimeRobot chegam nos próximos PRs do F13.
+- Logs do Cloud Run em JSON (`Logs__Formato=json`): os erros aparecem agrupados no Error Reporting, por serviço e versão, sem SDK (ADR 0012, F13a). Discord (deploy e backup: sucesso em #deploy, falha em #alertas, F13g), alerta do Cloud Monitoring para os jobs e de orçamento (e-mail). Erro 500 novo vira aviso em #alertas pela própria API (F13b), um por erro a cada 24 h e no máximo 20 por hora; as falhas dos jobs vão para #alertas e o resumo do diário para #deploy (F13c); os erros do app no navegador chegam por `POST /api/v1/erros-web` como serviço `acordu-web`, só com `VITE_VERSAO` no build (o commit, no `deploy.yml`; F13d); a vigia no lugar do UptimeRobot chega no F13h.
 - **Mensal:** CU-h e armazenamento no Neon; vCPU-s no Cloud Run; requisições/dia no Worker; armazenamento no R2. São os gatilhos dos níveis 1 e 2 do ADR 0010.
 
 ---
