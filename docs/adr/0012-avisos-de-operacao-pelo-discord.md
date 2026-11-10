@@ -20,9 +20,10 @@ Antes do primeiro cliente, a Nebrys precisa saber, sem abrir painel, de erro nov
 
 1. **Logs estruturados, sem SDK** (RNF-OPS-01):
    - Com `Logs__Formato=json`, a API escreve uma linha JSON por entrada. Os campos que o Cloud Logging lê do stdout são `severity`, `message` e `time`.
-   - O erro sai no formato que o Error Reporting agrupa: a pilha na `message`, o `@type` de evento de erro e o `serviceContext`, com o serviço e a versão de `App__Versao`.
+   - O erro sai no formato que o Error Reporting agrupa: a pilha em `stack_trace`, o `@type` de evento de erro e o `serviceContext`, com o serviço e a versão de `App__Versao`. A `message` fica limpa.
    - Dos escopos, só entram a rota modelo, o método e os identificadores de tenant e usuário.
-   - O ASP.NET também grava um log para cada exceção não tratada. Esse log é filtrado, para o mesmo 500 não contar duas vezes.
+   - O ASP.NET também grava um log para cada exceção tratada pelo handler. No modo JSON esse diagnóstico é suprimido (`SuppressDiagnosticsCallback`): o mesmo 500 não conta duas vezes, e os 4xx de regra de negócio não viram erro. A falha do próprio handler continua no log.
+   - A mensagem de exceção não carrega dado pessoal: `Include Error Detail` (Npgsql) e `EnableSensitiveDataLogging` (EF) ficam proibidos fora do desenvolvimento.
    - Sem a variável, sai o console de texto de sempre. O Error Reporting é o lugar de investigar, e não manda aviso.
 2. **A própria aplicação avisa** (RNF-OPS-02), por uma porta de "avisos de operação" na Application. A Infrastructure implementa a porta postando no webhook do Discord por HTTP.
    - Tem deduplicação: uma tabela global de ocorrências, fora dos tenants; um aviso por erro a cada 24 h; teto de 20 por hora.
