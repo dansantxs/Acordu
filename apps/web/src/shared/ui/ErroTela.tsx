@@ -1,4 +1,6 @@
 import { Link, useRouter, type ErrorComponentProps } from '@tanstack/react-router'
+import { useEffect } from 'react'
+import { relatarErro } from '../operacao/relatoDeErros'
 import { ErroApi } from '../api/problema'
 import { mensagemDeErro } from '../api/mensagens'
 import { Botao } from './Botao'
@@ -18,6 +20,10 @@ function textoDoErro(erro: unknown): { titulo: string; detalhe: string } {
 export function ErroTela({ error, reset }: ErrorComponentProps) {
     const roteador = useRouter()
     const { titulo, detalhe } = textoDoErro(error)
+    // Defeito do app vai para a operação (F13-15); resposta da API e falta de rede, não.
+    useEffect(() => {
+        relatarErro(error)
+    }, [error])
     return (
         <div
             role="alert"

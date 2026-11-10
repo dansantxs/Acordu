@@ -11,14 +11,19 @@ export function mensagemDeErro(erro: unknown): string | null {
         if (erro.status >= 500) return 'O servidor não conseguiu concluir agora. Tente de novo em instantes.'
         return erro.message
     }
-    // Só a falha de rede do `fetch` é "sem conexão" (Chrome: "Failed to fetch"; Firefox: "NetworkError…"; Safari: "Load
-    // failed"). Outro `TypeError` é defeito do código e não pode mandar a pessoa conferir a internet.
-    if (
+    if (ehFalhaDeRede(erro)) return 'Sem conexão com o servidor. Confira a internet e tente de novo.'
+    return 'Algo deu errado. Tente de novo.'
+}
+
+/**
+ * Só a falha de rede do `fetch` é "sem conexão" (Chrome: "Failed to fetch"; Firefox: "NetworkError…"; Safari: "Load
+ * failed"). Outro `TypeError` é defeito do código e não pode mandar a pessoa conferir a internet.
+ */
+export function ehFalhaDeRede(erro: unknown): boolean {
+    return (
         erro instanceof TypeError &&
         /^(failed to fetch|networkerror|network error|load failed|fetch failed)/i.test(erro.message)
     )
-        return 'Sem conexão com o servidor. Confira a internet e tente de novo.'
-    return 'Algo deu errado. Tente de novo.'
 }
 
 /** Erros de campo no formato do `Form` do React Aria (`validationErrors`). */

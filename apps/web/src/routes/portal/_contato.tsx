@@ -1,7 +1,9 @@
-import { createFileRoute, Outlet, redirect } from '@tanstack/react-router'
+import { createFileRoute, Outlet, redirect, type ErrorComponentProps } from '@tanstack/react-router'
+import { useEffect } from 'react'
 import { CascaPortal } from '@/features/portal/CascaPortal'
 import { consultaEu } from '@/features/portal/consultas'
 import { ErroApi } from '@/shared/api/problema'
+import { relatarErro } from '@/shared/operacao/relatoDeErros'
 import { consultaPerfil, ehContato } from '@/shared/sessao/perfil'
 import { aguardarSessao } from '@/shared/sessao/sessao'
 import { encerrarSessaoLink, sessaoLink } from '@/shared/sessao/sessaoLink'
@@ -37,8 +39,16 @@ export const Route = createFileRoute('/portal/_contato')({
     },
     component: Portal,
     notFoundComponent: NaoEncontrada,
-    errorComponent: TelaSemConexao,
+    errorComponent: ErroDoPortal,
 })
+
+/** Erro ao carregar o portal: a tela de tentar de novo; defeito do app vai para a operação (F13-20). */
+function ErroDoPortal({ error }: ErrorComponentProps) {
+    useEffect(() => {
+        relatarErro(error)
+    }, [error])
+    return <TelaSemConexao />
+}
 
 function Portal() {
     const { eu } = Route.useRouteContext()

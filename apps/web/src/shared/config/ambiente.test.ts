@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { baseDaApi, intervaloDePolling, modoTempoReal } from './ambiente'
+import { baseDaApi, intervaloDePolling, modoTempoReal, versaoDoBuild } from './ambiente'
 
 describe('ambiente do SPA (spec do F8)', () => {
     it('F8-17: com VITE_URL_API a base é a da API; sem ela, a origem do SPA', () => {
@@ -15,5 +15,12 @@ describe('ambiente do SPA (spec do F8)', () => {
         expect(modoTempoReal('qualquer')).toBe('sse')
         expect(intervaloDePolling('polling')).toBe(30_000)
         expect(intervaloDePolling('sse')).toBe(false)
+    })
+
+    it('F13-21: sem VITE_VERSAO não há versão; o commit inteiro vira o curto, como na API', () => {
+        expect(versaoDoBuild(undefined)).toBeUndefined()
+        expect(versaoDoBuild('  ')).toBeUndefined()
+        expect(versaoDoBuild('a62cfef1234567890abcdef1234567890abcdef1')).toBe('a62cfef')
+        expect(versaoDoBuild('1.2.3')).toBe('1.2.3')
     })
 })
