@@ -1,0 +1,19 @@
+# Vigia da API (ADR 0012, spec do F13, F13h): a cada 5 min, GET /api/health pela borda; duas falhas seguidas avisam
+# "API fora do ar" em #alertas, e a volta avisa "API voltou". Substitui o UptimeRobot (o ping também mantém a instância
+# do Cloud Run quente parte do tempo, como antes).
+# ESTADO: KV criado no primeiro deploy (provisionamento automático do wrangler ≥ 4.45; o id não fica no repositório e
+# continua ligado nos deploys seguintes). DISCORD_ALERTAS: segredo, posto pelo deploy.yml (`wrangler secret put`).
+# global_fetch_strictly_public: o fetch para api.acordu.app.br sai pela internet e volta pela borda, como um cliente
+# (sem a flag, a requisição a outro Worker da mesma zona não chega a ele).
+name = "acordu-vigia"
+main = "src/index.ts"
+compatibility_date = "2025-06-01"
+compatibility_flags = ["global_fetch_strictly_public"]
+workers_dev = false
+keep_vars = true
+
+[triggers]
+crons = ["*/5 * * * *"]
+
+[[kv_namespaces]]
+binding = "ESTADO"
