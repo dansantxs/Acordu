@@ -852,7 +852,7 @@ Tipos (`type`) do v1: `validacao` (com `errors` por campo), `transicao-invalida`
 | `409` | Versão divergente (`If-Match`); cronômetro já ativo; solicitação encerrada (RF-SOL-13). |
 | `413` | Anexo acima do limite; relato de erro do app acima de 16 KB. |
 | `422` | Regra de negócio violada. |
-| `429` | Rate limit (login, portal, link, relato de erro do app). |
+| `429` | Rate limit (login, portal, link, relato de erro do app); limite de sugestões por hora. |
 
 ---
 
