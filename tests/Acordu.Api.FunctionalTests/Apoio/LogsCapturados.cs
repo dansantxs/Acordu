@@ -7,9 +7,10 @@ using Microsoft.Extensions.Logging.Abstractions;
 
 namespace Acordu.Api.FunctionalTests.Apoio;
 
-/// <summary>Provedor de log que formata cada entrada (Warning ou acima) com o formatador da Api, como o console faria.</summary>
-internal sealed class LogsCapturados : ILoggerProvider, ISupportExternalScope
+/// <summary>Provedor de log que formata cada entrada (a partir de <c>minimo</c>, padrão Warning) com o formatador da Api, como o console faria.</summary>
+internal sealed class LogsCapturados(LogLevel minimo = LogLevel.Warning) : ILoggerProvider, ISupportExternalScope
 {
+    private readonly LogLevel _minimo = minimo;
     private IExternalScopeProvider? _escopos;
 
     /// <summary>O formatador registrado na Api (definido depois do build); sem ele, nada é capturado.</summary>
@@ -30,7 +31,7 @@ internal sealed class LogsCapturados : ILoggerProvider, ISupportExternalScope
         public IDisposable? BeginScope<TState>(TState state)
             where TState : notnull => dono._escopos?.Push(state);
 
-        public bool IsEnabled(LogLevel logLevel) => logLevel >= LogLevel.Warning;
+        public bool IsEnabled(LogLevel logLevel) => logLevel >= dono._minimo;
 
         public void Log<TState>(
             LogLevel logLevel, EventId eventId, TState state, Exception? exception, Func<TState, Exception?, string> formatter)
