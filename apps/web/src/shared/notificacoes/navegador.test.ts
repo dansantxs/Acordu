@@ -128,7 +128,10 @@ describe('notificação do navegador', () => {
                     }
                 },
             )
-            const mostrar = vi.fn().mockRejectedValueOnce(new TypeError('No notification permission')).mockResolvedValue(undefined)
+            const mostrar = vi
+                .fn()
+                .mockRejectedValueOnce(new TypeError('No notification permission'))
+                .mockResolvedValue(undefined)
             vi.stubGlobal('navigator', {
                 ...navigator,
                 serviceWorker: { controller: {}, ready: Promise.resolve({ showNotification: mostrar }) },

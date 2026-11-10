@@ -94,7 +94,9 @@ describe('manifesto (F12-27)', () => {
         display: string
         icons: { src: string; sizes: string; purpose?: string }[]
     }
-    const pngs = Object.keys(import.meta.glob('../../../public/icones/*.png')).map((c) => c.replace('../../../public', ''))
+    const pngs = Object.keys(import.meta.glob('../../../public/icones/*.png')).map((c) =>
+        c.replace('../../../public', ''),
+    )
 
     it('abre em janela própria, na tela Hoje, com nome e ícones', () => {
         expect(manifesto.name).toBe('Acordu')
