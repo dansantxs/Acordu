@@ -1198,6 +1198,82 @@ namespace Acordu.Infrastructure.Persistence.Migrations
                     b.ToTable("vinculos", (string)null);
                 });
 
+            modelBuilder.Entity("Acordu.Infrastructure.Operacao.OcorrenciaErro", b =>
+                {
+                    b.Property<string>("Impressao")
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)")
+                        .HasColumnName("impressao");
+
+                    b.Property<DateTimeOffset?>("AvisadaEm")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("avisada_em");
+
+                    b.Property<int>("DesdeAviso")
+                        .HasColumnType("integer")
+                        .HasColumnName("desde_aviso");
+
+                    b.Property<bool>("PorResumo")
+                        .HasColumnType("boolean")
+                        .HasColumnName("por_resumo");
+
+                    b.Property<DateTimeOffset>("PrimeiraEm")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("primeira_em");
+
+                    b.Property<string>("Quadro")
+                        .HasMaxLength(300)
+                        .HasColumnType("character varying(300)")
+                        .HasColumnName("quadro");
+
+                    b.Property<string>("Rota")
+                        .IsRequired()
+                        .HasMaxLength(300)
+                        .HasColumnType("character varying(300)")
+                        .HasColumnName("rota");
+
+                    b.Property<bool>("Segurada")
+                        .HasColumnType("boolean")
+                        .HasColumnName("segurada");
+
+                    b.Property<string>("Servico")
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .HasColumnType("character varying(40)")
+                        .HasColumnName("servico");
+
+                    b.Property<string>("Tipo")
+                        .IsRequired()
+                        .HasMaxLength(300)
+                        .HasColumnType("character varying(300)")
+                        .HasColumnName("tipo");
+
+                    b.Property<int>("Total")
+                        .HasColumnType("integer")
+                        .HasColumnName("total");
+
+                    b.Property<DateTimeOffset>("UltimaEm")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("ultima_em");
+
+                    b.Property<string>("Versao")
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .HasColumnType("character varying(40)")
+                        .HasColumnName("versao");
+
+                    b.HasKey("Impressao")
+                        .HasName("pk_ocorrencias_erro");
+
+                    b.HasIndex("AvisadaEm")
+                        .HasDatabaseName("ix_ocorrencias_erro_avisada_em");
+
+                    b.HasIndex("UltimaEm")
+                        .HasDatabaseName("ix_ocorrencias_erro_ultima_em");
+
+                    b.ToTable("ocorrencias_erro", (string)null);
+                });
+
             modelBuilder.Entity("Acordu.Infrastructure.Persistence.Agenda.AssinaturaAgendaRegistro", b =>
                 {
                     b.Property<Guid>("TenantId")
