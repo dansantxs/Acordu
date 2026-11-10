@@ -8,6 +8,9 @@ namespace Acordu.Infrastructure.Persistence.Sugestoes;
 
 internal sealed class SugestaoConfiguration : IEntityTypeConfiguration<Sugestao>
 {
+    /// <summary>Pelo modelo do <c>AcorduDbContext</c>, sem que ele dependa do tipo (F13-27, teste de arquitetura).</summary>
+    public static void Aplicar(ModelBuilder modelo) => modelo.ApplyConfiguration(new SugestaoConfiguration());
+
     public void Configure(EntityTypeBuilder<Sugestao> builder)
     {
         builder.ToTable("sugestoes");
@@ -19,7 +22,8 @@ internal sealed class SugestaoConfiguration : IEntityTypeConfiguration<Sugestao>
         builder.Property(s => s.Tela).HasMaxLength(Sugestao.TelaMaxima);
         builder.HasIndex(s => new { s.PessoaId, s.CriadaEm });
         builder.HasIndex(s => s.EmpresaId);
-        builder.HasIndex(s => s.AvisadaEm);
+        // Só as pendentes, que o tick busca por número.
+        builder.HasIndex(s => s.Numero, "ix_sugestoes_pendentes").HasFilter("avisada_em IS NULL");
     }
 }
 
@@ -57,9 +61,13 @@ public sealed class RegistroSugestoes : ISugestoes
         await ParaAviso(_db.Set<Sugestao>().Where(s => s.AvisadaEm == null && s.CriadaEm <= ate).OrderBy(s => s.Numero).Take(maximo))
             .ToListAsync(cancellationToken);
 
-    public Task MarcarAvisadaAsync(Guid id, DateTimeOffset agora, CancellationToken cancellationToken = default) =>
-        _db.Set<Sugestao>().Where(s => s.Id == id && s.AvisadaEm == null)
-            .ExecuteUpdateAsync(s => s.SetProperty(x => x.AvisadaEm, (DateTimeOffset?)agora), cancellationToken);
+    public async Task<bool> ReservarAsync(Guid id, DateTimeOffset agora, CancellationToken cancellationToken = default) =>
+        await _db.Set<Sugestao>().Where(s => s.Id == id && s.AvisadaEm == null)
+            .ExecuteUpdateAsync(s => s.SetProperty(x => x.AvisadaEm, (DateTimeOffset?)agora), cancellationToken) == 1;
+
+    public Task DesfazerReservaAsync(Guid id, DateTimeOffset agora, CancellationToken cancellationToken = default) =>
+        _db.Set<Sugestao>().Where(s => s.Id == id && s.AvisadaEm == agora)
+            .ExecuteUpdateAsync(s => s.SetProperty(x => x.AvisadaEm, (DateTimeOffset?)null), cancellationToken);
 
     private IQueryable<SugestaoParaAviso> ParaAviso(IQueryable<Sugestao> sugestoes) =>
         from s in sugestoes
