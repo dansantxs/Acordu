@@ -87,6 +87,7 @@ public static class DependencyInjection
         services.AddSingleton<ExpurgoNotificacoes>();
         services.AddSingleton<ExpurgoAtividades>();
         services.AddSingleton<ExpurgoCadastros>();
+        services.AddSingleton<Operacao.ExpurgoOcorrenciasErro>();
         services.AddScoped<IConvitesEquipe, ConvitesEquipe>();
         services.AddScoped<IConsultasEquipe, ConsultasEquipe>();
         services.AddScoped<IConsultasComentariosTarefa, ConsultasComentariosTarefa>();
