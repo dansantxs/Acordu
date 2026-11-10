@@ -14,6 +14,8 @@ export class ErroApi extends Error {
     /** Sufixo do `type` (`validacao`, `conflito`, `sem-permissao`…), ou vazio se a resposta não era Problem Details. */
     readonly tipo: string
     readonly campos: Record<string, string[]>
+    /** O `detail` da resposta, quando veio (o texto que a API escreveu para quem usa). */
+    readonly detalhe: string | undefined
 
     constructor(status: number, problema: ProblemDetails | null) {
         super(problema?.detail ?? problema?.title ?? `Erro ${status}`)
@@ -21,6 +23,7 @@ export class ErroApi extends Error {
         this.status = status
         this.tipo = problema?.type?.startsWith(BASE_TIPOS) ? problema.type.slice(BASE_TIPOS.length) : ''
         this.campos = problema?.errors ?? {}
+        this.detalhe = problema?.detail ?? undefined
     }
 
     /** Primeira mensagem do campo (camelCase, com ponto para aninhados: `regra.diaReferencia`). */
