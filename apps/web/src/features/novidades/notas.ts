@@ -13,6 +13,14 @@ export interface NotaVersao {
 
 export const NOTAS: NotaVersao[] = [
     {
+        data: '2026-11-10',
+        publico: 'equipe',
+        titulo: 'Sugerir melhoria',
+        itens: [
+            'No menu com o seu nome, "Sugerir melhoria" manda uma ideia direto para a equipe do Acordu. Seu nome e seu e-mail não vão junto.',
+        ],
+    },
+    {
         data: '2026-11-09',
         publico: 'equipe',
         titulo: 'Acordu como aplicativo',

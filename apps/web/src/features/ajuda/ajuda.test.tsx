@@ -38,6 +38,13 @@ describe('ajuda', () => {
         expect(within(secao).getByText(/Instalar o Acordu/, { selector: 'li' })).toBeInTheDocument()
     })
 
+    it('"Sugerir melhoria" aparece para qualquer papel, com o aviso dos dados de clientes (F13f)', async () => {
+        comPerfil([])
+        await abrir('/ajuda')
+        const secao = await screen.findByRole('region', { name: 'Sugerir melhoria' })
+        expect(within(secao).getByText(/Não escreva dados dos seus clientes/)).toBeInTheDocument()
+    })
+
     it('busca no texto das seções, sem diferenciar acentos', async () => {
         comPerfil(['contrato.ver'])
         await abrir('/ajuda')
