@@ -81,6 +81,11 @@ internal static partial class ManipuladorExcecoes
         {
             AvisoAtrasado(logger);
         }
+        // O aviso promete não lançar; se lançar, a resposta 500 ainda precisa sair.
+        catch (Exception ex) when (ex is not OutOfMemoryException)
+        {
+            AvisoFalhou(logger, ex.GetType().Name);
+        }
     }
 
     internal static ProblemDetails Classificar(Exception? excecao) => excecao switch
@@ -123,6 +128,9 @@ internal static partial class ManipuladorExcecoes
             problema.Extensions["errors"] = new Dictionary<string, string[]> { [nome] = [mensagem] };
         return problema;
     }
+
+    [LoggerMessage(EventId = 3, Level = LogLevel.Warning, Message = "Aviso do erro inesperado falhou ({Falha}); a resposta saiu sem ele.")]
+    private static partial void AvisoFalhou(ILogger logger, string falha);
 
     [LoggerMessage(EventId = 2, Level = LogLevel.Warning, Message = "Aviso do erro inesperado passou do prazo; a resposta saiu sem ele.")]
     private static partial void AvisoAtrasado(ILogger logger);
