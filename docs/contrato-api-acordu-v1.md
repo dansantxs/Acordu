@@ -884,3 +884,19 @@ Pública (sem login, sem cookie): pega erros também na tela de entrar, no cadas
 - A versão do relato vai no `serviceContext` do Error Reporting (uma aba com o SPA antigo mostra a dela). Também saem antes de registrar: tokens base64url de 32 caracteres ou mais (`[token]`), números formatados como CPF, CNPJ ou telefone (`#`) e crases (viram `'`, para não abrir código no Discord). A query só sai de URLs; linha e coluna da pilha ficam.
 - O app só relata em produção (`VITE_VERSAO`), uma vez por erro e por carga de página (no máximo 10 por carga), e nunca uma resposta da API, uma falha de rede, `Script error.`, `AbortError` ou um chunk que sumiu depois de um deploy. Manda como `text/plain` (requisição simples, sem preflight do CORS); a API lê o corpo como JSON.
 
+### `POST /api/v1/sugestoes` — "Sugerir melhoria" (RF-SUG-01, F13e)
+
+Qualquer pessoa da equipe com conta, sem permissão específica (decisão 5 da spec do F13); sessão do portal → `403`, sem login → `401`.
+
+```json
+// requisição
+{ "texto": "Seria bom filtrar tarefas por cliente.", "tela": "/tarefas" }
+// 201
+{ "id": "…", "numero": 12 }
+```
+
+- `texto` de 10 a 2.000 caracteres (sem os espaços das pontas) → senão `400` em `errors.texto`. `tela` é opcional: vira rota modelo; fora do padrão, fica sem.
+- Até 5 por hora por pessoa → `429 limite-requisicoes` com "Muitas sugestões em pouco tempo. Tente de novo mais tarde.".
+- A sugestão é gravada fora dos tenants e sai em #sugestoes com o número, o texto, a tela e o nome da empresa, sem a pessoa e com menções desligadas. Se o Discord não responder em 3 s, a resposta sai igual e o próximo tick reenvia (`sugestoesReenviadas` na resposta do tick).
+- Nenhuma rota lista ou devolve sugestões.
+
