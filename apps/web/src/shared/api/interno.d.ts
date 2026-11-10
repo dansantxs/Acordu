@@ -607,6 +607,70 @@ export interface paths {
         patch?: never
         trace?: never
     }
+    '/api/v1/erros-web': {
+        parameters: {
+            query?: never
+            header?: never
+            path?: never
+            cookie?: never
+        }
+        get?: never
+        put?: never
+        post: {
+            parameters: {
+                query?: never
+                header?: never
+                path?: never
+                cookie?: never
+            }
+            requestBody: {
+                content: {
+                    'application/json': components['schemas']['ErroWebRequest']
+                }
+            }
+            responses: {
+                /** @description No Content */
+                204: {
+                    headers: {
+                        [name: string]: unknown
+                    }
+                    content?: never
+                }
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown
+                    }
+                    content: {
+                        'application/problem+json': components['schemas']['ProblemDetails']
+                    }
+                }
+                /** @description Payload Too Large */
+                413: {
+                    headers: {
+                        [name: string]: unknown
+                    }
+                    content: {
+                        'application/problem+json': components['schemas']['ProblemDetails']
+                    }
+                }
+                /** @description Too Many Requests */
+                429: {
+                    headers: {
+                        [name: string]: unknown
+                    }
+                    content: {
+                        'application/problem+json': components['schemas']['ProblemDetails']
+                    }
+                }
+            }
+        }
+        delete?: never
+        options?: never
+        head?: never
+        patch?: never
+        trace?: never
+    }
     '/api/v1/clientes': {
         parameters: {
             query?: never
@@ -5441,6 +5505,13 @@ export interface components {
             cidade: string
             uf: string
         }
+        ErroWebRequest: {
+            mensagem: null | string
+            pilha: null | string
+            rota: null | string
+            versao: null | string
+            navegador: null | string
+        }
         /** @enum {unknown} */
         EscopoPortal: 'PROPRIAS' | 'TODAS_DO_CLIENTE' | null
         EsqueciSenhaRequest: {
@@ -5761,6 +5832,14 @@ export interface components {
         }
         /** @enum {unknown} */
         Prioridade: 'BAIXA' | 'MEDIA' | 'ALTA' | 'URGENTE'
+        ProblemDetails: {
+            type?: null | string
+            title?: null | string
+            /** Format: int32 */
+            status?: null | number | string
+            detail?: null | string
+            instance?: null | string
+        }
         ProgressoProjetoDto: {
             /** Format: int32 */
             tarefasConcluidas: number | string
