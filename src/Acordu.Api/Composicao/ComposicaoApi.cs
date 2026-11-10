@@ -4,6 +4,7 @@ using System.Text.Json.Serialization;
 using Acordu.Api.Endpoints;
 using Acordu.Api.Erros;
 using Acordu.Api.Jobs;
+using Acordu.Api.Operacao;
 using Acordu.Api.Seguranca;
 using Acordu.Application.Abstractions;
 using Acordu.Application.Autenticacao;
@@ -50,6 +51,7 @@ internal static class ComposicaoApi
     {
         ArgumentNullException.ThrowIfNull(configuracao);
         AmbienteDeExecucao.Conferir();
+        services.AddLogsAcordu(configuracao);
         var conexao = configuracao.GetConnectionString("Acordu")
             ?? throw new InvalidOperationException("Connection string 'Acordu' não configurada (ConnectionStrings__Acordu).");
         services.AddInfrastructure(conexao);
