@@ -112,7 +112,7 @@ Cada job é um endpoint interno (`POST /internal/jobs/<nome>`): `X-Job-Token` co
 | Job do Scheduler | Agenda (`America/Sao_Paulo`) | Endpoint | Faz |
 |---|---|---|---|
 | `acordu-tick` | `*/15 7-19 * * 1-6` | `/internal/jobs/tick` | Tarefas recorrentes, outbox pendente, alertas de SLA e cronômetros esquecidos (F12e). Responde `{ tarefasRecorrentes, outboxProcessadas, alertasSla, cronometrosEsquecidos, falhas }`. Fora da janela do agendamento (depois das 19h e aos domingos), o aviso de esquecido sai no primeiro tick seguinte. |
-| `acordu-diario` | `40 6 * * *` | `/internal/jobs/diario` | Roda em sequência `fechamento-automatico`, `expurgo-auditoria`, `expurgo-notificacoes` (que apaga também o feed de atividade com mais de 90 dias) e `expurgo-cadastros` (empresa não liberada há 7 dias ou mais e sem dados, RF-AUT-07). Responde `{ fechadas, auditoriaRemovida, notificacoesRemovidas, atividadesRemovidas, cadastrosRemovidos, falhas }`; um passo que falha é logado, conta em `falhas` e não impede os seguintes. |
+| `acordu-diario` | `40 6 * * *` | `/internal/jobs/diario` | Roda em sequência `fechamento-automatico`, `expurgo-auditoria`, `expurgo-notificacoes` (que apaga também o feed de atividade com mais de 90 dias) `expurgo-cadastros` (empresa não liberada há 7 dias ou mais e sem dados, RF-AUT-07) e `expurgo-ocorrencias-erro` (ocorrências de erro sem repetição há 90 dias, ADR 0012). Responde `{ fechadas, auditoriaRemovida, notificacoesRemovidas, atividadesRemovidas, cadastrosRemovidos, ocorrenciasErroRemovidas, falhas }`; um passo que falha é logado, conta em `falhas` e não impede os seguintes. |
 
 - Os endpoints diários individuais continuam existindo para disparo manual; o expurgo de cadastros roda só pelo diário.
 - Retry do Scheduler com backoff curto; o próximo disparo cobre o anterior.
@@ -148,6 +148,7 @@ Cada job é um endpoint interno (`POST /internal/jobs/<nome>`): `X-Job-Token` co
   - limites opcionais (`RateLimit__Auth__PorMinuto` 10, `RateLimit__Refresh__PorMinuto` 30, `RateLimit__Portal__PorMinuto` 10, `RateLimit__Agenda__PorMinuto` 30, `RateLimit__Registro__PorHora` 3);
   - `Turnstile__Segredo` (proteção do cadastro, RNF-SEG-10; obrigatório no `deploy.yml`, secret `API_TURNSTILE_SEGREDO`);
   - `Logs__Formato=json` (logs estruturados para o Cloud Logging e o Error Reporting, RNF-OPS-01) e `App__Versao` (o commit, no `serviceContext` dos erros); fixas no `deploy.yml` (ADR 0012).
+  - `Discord__Alertas`, `Discord__Deploy`, `Discord__Sugestoes` (webhooks dos canais, só https; sem, o canal não envia), `Operacao__AvisosPorHora` (teto de avisos de erro, padrão 20) e `Operacao__LinkErros` (link do Error Reporting na mensagem); os webhooks entram no `deploy.yml` no F13g.
 - **Segredo do Worker:** `TOKEN_ORIGEM`; variável `ORIGEM` com a URL `*.run.app`.
 - **Risco aceito (nível 0):** os secrets de produção são do repositório, não de um *environment* com restrição de branch (o plano Free com repositório privado não oferece). O WIF limita o Google à `main`, mas um workflow alterado em qualquer branch do próprio repositório alcança Neon (migrator), R2 e Cloudflare. A guarda `if: github.ref == 'refs/heads/main'` do `deploy.yml` evita engano, não abuso. Mitigação: só o Daniel tem escrita no repositório, com MFA; PRs de fork não recebem secrets. Revisar quando houver outro colaborador ou cliente pagante (environment protegido ou Secret Manager).
 - Secret Manager fica como evolução.
@@ -167,7 +168,7 @@ Cada job é um endpoint interno (`POST /internal/jobs/<nome>`): `X-Job-Token` co
 
 - **UptimeRobot** em `https://api.acordu.app.br/api/health` a cada 5 min (avisa queda e mantém a instância quente parte do tempo).
 - **Pré-aquecimento pela UI:** ao carregar qualquer tela o SPA já renova a sessão (`POST /api/v1/auth/refresh`), o que acorda o container da API antes de a pessoa digitar; por isso não há chamada extra ao `/api/health` (F8d). O banco acorda na primeira requisição que o consulta (com cookie, a própria renovação; sem cookie, o login).
-- Logs do Cloud Run em JSON (`Logs__Formato=json`): os erros aparecem agrupados no Error Reporting, por serviço e versão, sem SDK (ADR 0012, F13a). Discord (deploy e backup), alerta do Cloud Monitoring para os jobs e de orçamento (e-mail). Os avisos de operação no Discord e a vigia no lugar do UptimeRobot chegam nos próximos PRs do F13.
+- Logs do Cloud Run em JSON (`Logs__Formato=json`): os erros aparecem agrupados no Error Reporting, por serviço e versão, sem SDK (ADR 0012, F13a). Discord (deploy e backup), alerta do Cloud Monitoring para os jobs e de orçamento (e-mail). Erro 500 novo vira aviso em #alertas pela própria API (F13b), um por erro a cada 24 h e no máximo 20 por hora; os de jobs, do app e a vigia no lugar do UptimeRobot chegam nos próximos PRs do F13.
 - **Mensal:** CU-h e armazenamento no Neon; vCPU-s no Cloud Run; requisições/dia no Worker; armazenamento no R2. São os gatilhos dos níveis 1 e 2 do ADR 0010.
 
 ---

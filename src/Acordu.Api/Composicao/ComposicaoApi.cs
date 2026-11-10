@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.Globalization;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using Acordu.Api.Endpoints;
@@ -7,10 +8,12 @@ using Acordu.Api.Jobs;
 using Acordu.Api.Operacao;
 using Acordu.Api.Seguranca;
 using Acordu.Application.Abstractions;
+using Acordu.Application.Abstractions.Operacao;
 using Acordu.Application.Autenticacao;
 using Acordu.Infrastructure;
 using Acordu.Infrastructure.Armazenamento;
 using Acordu.Infrastructure.Email;
+using Acordu.Infrastructure.Operacao;
 using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.OpenApi;
@@ -52,6 +55,7 @@ internal static class ComposicaoApi
         ArgumentNullException.ThrowIfNull(configuracao);
         AmbienteDeExecucao.Conferir();
         services.AddLogsAcordu(configuracao);
+        AdicionarOperacao(services, configuracao);
         var conexao = configuracao.GetConnectionString("Acordu")
             ?? throw new InvalidOperationException("Connection string 'Acordu' não configurada (ConnectionStrings__Acordu).");
         services.AddInfrastructure(conexao);
@@ -97,6 +101,36 @@ internal static class ComposicaoApi
             opcoes.AddDocumentTransformer(Identificar("Acordu — portal"));
         });
         return services;
+    }
+
+    /// <summary>Nome do HttpClient do Discord (os testes trocam o handler por ele).</summary>
+    internal const string NomeClienteDiscord = "discord";
+
+    /// <summary>
+    /// Avisos de operação (ADR 0012): webhooks do Discord por canal (<c>Discord__Alertas</c>, <c>__Deploy</c>,
+    /// <c>__Sugestoes</c>; sem, o canal não envia), teto de avisos de erro por hora (<c>Operacao__AvisosPorHora</c>,
+    /// padrão 20) e link do Error Reporting (<c>Operacao__LinkErros</c>). 3 s de espera: o aviso nunca segura a resposta.
+    /// </summary>
+    private static void AdicionarOperacao(IServiceCollection services, IConfiguration configuracao)
+    {
+        var discord = new OpcoesDiscord(
+            OpcoesDiscord.Webhook(configuracao["Discord:Alertas"], "Discord__Alertas"),
+            OpcoesDiscord.Webhook(configuracao["Discord:Deploy"], "Discord__Deploy"),
+            OpcoesDiscord.Webhook(configuracao["Discord:Sugestoes"], "Discord__Sugestoes"));
+        var teto = int.TryParse(configuracao["Operacao:AvisosPorHora"], CultureInfo.InvariantCulture, out var valor) && valor > 0
+            ? valor
+            : OpcoesAvisosDeErro.TetoPadrao;
+        var link = Uri.TryCreate(configuracao["Operacao:LinkErros"], UriKind.Absolute, out var uri) ? uri : null;
+
+        services.AddHttpClient(NomeClienteDiscord, http => http.Timeout = TimeSpan.FromSeconds(3));
+        // O HttpClient registra a URL de cada chamada (Information), e a do webhook é o segredo.
+        services.AddLogging(logs => logs.AddFilter($"System.Net.Http.HttpClient.{NomeClienteDiscord}", LogLevel.None));
+        services.TryAddSingleton<IMensageiroOperacao>(sp => new MensageiroDiscord(
+            sp.GetRequiredService<IHttpClientFactory>().CreateClient(NomeClienteDiscord),
+            discord,
+            sp.GetRequiredService<ILogger<MensageiroDiscord>>()));
+        services.TryAddSingleton(new OpcoesAvisosDeErro(teto, link));
+        services.TryAddSingleton<IAvisosDeErro, AvisosDeErro>();
     }
 
     /// <summary>Nome do HttpClient do Turnstile (os testes trocam o handler por ele).</summary>

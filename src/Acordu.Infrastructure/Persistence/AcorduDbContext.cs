@@ -136,6 +136,7 @@ public sealed class AcorduDbContext : IdentityUserContext<Usuario, Guid>
         builder.ApplyConfiguration(new AtividadeConfiguration());
         builder.ApplyConfiguration(new AssinaturaAgendaConfiguration());
         builder.ApplyConfiguration(new ContadorConfiguration());
+        Acordu.Infrastructure.Operacao.OcorrenciaErroConfiguration.Aplicar(builder);
 
         AplicarFiltros(builder);
     }
