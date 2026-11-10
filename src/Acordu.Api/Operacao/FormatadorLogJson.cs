@@ -1,4 +1,5 @@
 using System.Buffers;
+using System.Collections.Frozen;
 using System.Diagnostics;
 using System.Text;
 using System.Text.Encodings.Web;
@@ -10,8 +11,8 @@ namespace Acordu.Api.Operacao;
 
 /// <summary>
 /// Log estruturado (RNF-OPS-01, ADR 0012): uma linha JSON por entrada, nos campos que o Cloud Logging lê do stdout
-/// (<c>severity</c>, <c>message</c>, <c>time</c>) e no formato que o Error Reporting agrupa, sem SDK: erro com a pilha na
-/// <c>message</c>, <c>@type</c> de evento de erro e <c>serviceContext</c>. Dos escopos, só os campos de
+/// (<c>severity</c>, <c>message</c>, <c>time</c>) e no formato que o Error Reporting agrupa, sem SDK: erro com a pilha em
+/// <c>stack_trace</c>, <c>@type</c> de evento de erro e <c>serviceContext</c>. Dos escopos, só os campos de
 /// <see cref="CamposDoContexto"/> entram (rota modelo, método e identificadores): o caminho real, a query, o corpo e os
 /// cabeçalhos ficam de fora (segurança §6).
 /// </summary>
@@ -22,8 +23,8 @@ internal sealed class FormatadorLogJson(string versao, string servico = Formatad
     private const string TipoEventoErro = "type.googleapis.com/google.devtools.clouderrorreporting.v1beta1.ReportedErrorEvent";
 
     /// <summary>Únicos campos de escopo que vão para o log; o resto (caminho, ids de conexão do ASP.NET) é descartado.</summary>
-    internal static readonly IReadOnlySet<string> CamposDoContexto =
-        new HashSet<string>(StringComparer.Ordinal) { "rota", "metodo", "tenantId", "usuarioId" };
+    internal static readonly FrozenSet<string> CamposDoContexto =
+        new[] { "rota", "metodo", "tenantId", "usuarioId" }.ToFrozenSet(StringComparer.Ordinal);
 
     // Log não é HTML: acentos ficam legíveis em vez de é.
     private static readonly JsonWriterOptions OpcoesEscrita = new() { Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping };
@@ -42,7 +43,7 @@ internal sealed class FormatadorLogJson(string versao, string servico = Formatad
         {
             json.WriteStartObject();
             json.WriteString("severity", Severidade(logEntry.LogLevel));
-            json.WriteString("message", excecao is null ? mensagem : $"{mensagem}\n{excecao}");
+            json.WriteString("message", mensagem);
             json.WriteString("time", DateTimeOffset.UtcNow);
             json.WriteString("categoria", logEntry.Category);
             json.WriteNumber("eventId", logEntry.EventId.Id);
@@ -57,6 +58,10 @@ internal sealed class FormatadorLogJson(string versao, string servico = Formatad
                     json.WriteString(chave, valor);
                 json.WriteEndObject();
             }
+
+            // A pilha num campo próprio, que o Error Reporting lê, e a mensagem limpa para o resumo do Cloud Logging.
+            if (excecao is not null)
+                json.WriteString("stack_trace", excecao.ToString());
 
             if (erro)
             {

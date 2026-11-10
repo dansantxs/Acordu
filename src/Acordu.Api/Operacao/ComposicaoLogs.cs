@@ -1,3 +1,4 @@
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Logging.Console;
 
 namespace Acordu.Api.Operacao;
@@ -11,8 +12,9 @@ internal static class ComposicaoLogs
 {
     public const string FormatoJson = "json";
 
-    /// <summary>Categoria do log que o ASP.NET grava para toda exceção não tratada: o <c>ManipuladorExcecoes</c> já grava.</summary>
-    internal const string CategoriaExceptionHandler = "Microsoft.AspNetCore.Diagnostics.ExceptionHandlerMiddleware";
+    /// <summary>Se o log sai em JSON (produção).</summary>
+    public static bool EmJson(IConfiguration configuracao) =>
+        string.Equals(configuracao["Logs:Formato"]?.Trim(), FormatoJson, StringComparison.OrdinalIgnoreCase);
 
     public static void AddLogsAcordu(this IServiceCollection services, IConfiguration configuracao)
     {
@@ -24,12 +26,7 @@ internal static class ComposicaoLogs
             throw new InvalidOperationException($"Logs__Formato aceita só '{FormatoJson}' (veio '{formato}').");
 
         var versao = configuracao["App:Versao"] is { Length: > 0 } v ? v.Trim() : "dev";
-        services.AddLogging(logs =>
-        {
-            logs.AddConsole(opcoes => opcoes.FormatterName = FormatadorLogJson.Nome);
-            // Sem isso, cada 500 viraria dois erros no Error Reporting, um deles sem o contexto da requisição.
-            logs.AddFilter(CategoriaExceptionHandler, LogLevel.None);
-        });
-        services.AddSingleton<ConsoleFormatter>(new FormatadorLogJson(versao));
+        services.AddLogging(logs => logs.AddConsole(opcoes => opcoes.FormatterName = FormatadorLogJson.Nome));
+        services.TryAddEnumerable(ServiceDescriptor.Singleton<ConsoleFormatter, FormatadorLogJson>(_ => new FormatadorLogJson(versao)));
     }
 }

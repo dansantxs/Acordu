@@ -179,7 +179,14 @@ internal static class ComposicaoApi
     public static GruposApi UseAcorduApi(this WebApplication app)
     {
         ArgumentNullException.ThrowIfNull(app);
-        app.UseExceptionHandler(new ExceptionHandlerOptions { ExceptionHandler = ManipuladorExcecoes.TratarAsync });
+        app.UseExceptionHandler(new ExceptionHandlerOptions
+        {
+            ExceptionHandler = ManipuladorExcecoes.TratarAsync,
+            // No JSON, o ManipuladorExcecoes é o único a registrar a exceção tratada: sem isso, cada 500 viraria dois
+            // erros no Error Reporting (um sem o contexto) e cada 4xx de regra de negócio viraria um. A falha do próprio
+            // handler continua no log (ADR 0012).
+            SuppressDiagnosticsCallback = ComposicaoLogs.EmJson(app.Configuration) ? static _ => true : null,
+        });
         app.UseStatusCodePages();
         if (!app.Environment.IsDevelopment())
             app.UseHsts();
