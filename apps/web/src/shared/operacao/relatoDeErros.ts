@@ -8,6 +8,7 @@
  */
 import { BASE_API, VERSAO } from '../config/ambiente'
 import { ehFalhaDeRede } from '../api/mensagens'
+import type { components } from '../api/interno'
 import { ErroApi } from '../api/problema'
 
 const LIMITE_MENSAGEM = 500
@@ -15,15 +16,18 @@ const LIMITE_PILHA = 4000
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 
+/** Teto por carga de página: um laço com mensagens sempre diferentes não fica mandando até levar 429. */
+const TETO_POR_CARGA = 10
+
+/**
+ * Não são defeito do Acordu: script de outra origem sem detalhe (o Turnstile, por exemplo), requisição cancelada e
+ * chunk que sumiu depois de um deploy (a aba antiga pede um arquivo que não existe mais; recarregar resolve).
+ */
+const NAO_E_DEFEITO = /^(script error\.?$|aborterror|.*dynamically imported module|.*importing a module script failed)/i
+
 const relatados = new Set<string>()
 
-export interface RelatoDeErro {
-    mensagem: string
-    pilha?: string
-    rota: string
-    versao: string
-    navegador: string
-}
+export type RelatoDeErro = components['schemas']['ErroWebRequest']
 
 /** `/clientes/7c1f…/contratos` → `/clientes/:id/contratos`; números e trechos longos também viram `:id`. */
 export function rotaModelo(caminho: string): string {
@@ -41,11 +45,13 @@ export function montarRelato(
 ): RelatoDeErro | null {
     if (!versao || erro instanceof ErroApi || ehFalhaDeRede(erro)) return null
     const comoErro = erro instanceof Error ? erro : null
+    if (comoErro?.name === 'AbortError') return null
     const mensagem = (comoErro ? `${comoErro.name}: ${comoErro.message}` : String(erro)).slice(0, LIMITE_MENSAGEM)
-    if (!mensagem.trim()) return null
+    if (!mensagem.trim() || NAO_E_DEFEITO.test(comoErro?.message ?? mensagem) || NAO_E_DEFEITO.test(mensagem))
+        return null
     return {
         mensagem,
-        ...(comoErro?.stack ? { pilha: comoErro.stack.slice(0, LIMITE_PILHA) } : {}),
+        pilha: comoErro?.stack?.slice(0, LIMITE_PILHA) ?? null,
         rota: rotaModelo(caminho),
         versao,
         navegador: (globalThis.navigator?.userAgent ?? '').slice(0, 200),
@@ -57,12 +63,14 @@ export function relatarErro(erro: unknown, enviar: typeof fetch = globalThis.fet
     const relato = montarRelato(erro)
     if (!relato) return false
     const chave = `${relato.mensagem}\n${relato.pilha?.split('\n')[1] ?? ''}`
-    if (relatados.has(chave)) return false
+    if (relatados.has(chave) || relatados.size >= TETO_POR_CARGA) return false
     relatados.add(chave)
     try {
         void enviar(`${BASE_API}api/v1/erros-web`, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            // `text/plain` é requisição simples: sem o preflight do CORS, que o `keepalive` nem sempre aceita. A API lê o
+            // corpo como JSON de qualquer jeito.
+            headers: { 'Content-Type': 'text/plain' },
             body: JSON.stringify(relato),
             // Sem cookie nem token: a rota é pública, e o relato não diz quem é a pessoa.
             credentials: 'omit',
