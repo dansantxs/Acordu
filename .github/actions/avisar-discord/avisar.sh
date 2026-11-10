@@ -22,9 +22,12 @@ fi
 
 # Menções desligadas: nenhum texto aciona @everyone, @here ou um cargo.
 corpo=$(jq -n --arg t "$texto" '{content: $t, allowed_mentions: {parse: []}}')
-if curl -fsS --max-time 10 -o /dev/null -H 'Content-Type: application/json' -d "$corpo" "$webhook" 2>/dev/null; then
+# O stderr do curl fica de fora (pode trazer a URL); o código de saída diz o motivo (22: HTTP de erro, 28: tempo).
+curl -fsS --max-time 10 -o /dev/null -H 'Content-Type: application/json' -d "$corpo" "$webhook" 2>/dev/null
+codigo=$?
+if [[ $codigo -eq 0 ]]; then
   echo "Aviso em $canal."
 else
-  echo "::warning::O aviso em $canal não saiu (o workflow segue)."
+  echo "::warning::O aviso em $canal não saiu (curl $codigo; o workflow segue)."
 fi
 exit 0
