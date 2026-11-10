@@ -53,4 +53,15 @@ public sealed class OperacaoTests
         fora.IsSuccessful.Should().BeTrue(
             "a Api só manda o texto e recebe o número; violações: {0}", string.Join(", ", fora.FailingTypeNames ?? []));
     }
+
+    [Fact]
+    public void Sugestoes_AApiSoUsaOsComandos() // F13-27
+    {
+        var naApi = Types.InAssembly(Camadas.Api)
+            .ShouldNot().HaveDependencyOnAny("Acordu.Application.Sugestoes.ISugestoes", "Acordu.Application.Sugestoes.SugestaoParaAviso")
+            .GetResult();
+
+        naApi.IsSuccessful.Should().BeTrue(
+            "a Api manda o texto e recebe o número, nunca lê sugestões; violações: {0}", string.Join(", ", naApi.FailingTypeNames ?? []));
+    }
 }

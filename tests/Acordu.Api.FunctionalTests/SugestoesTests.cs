@@ -40,13 +40,21 @@ public sealed class SugestoesTests(ApiFixture api)
         return (resposta.StatusCode, texto.Length == 0 ? default : JsonDocument.Parse(texto).RootElement.Clone());
     }
 
-    private async Task<(Guid? Empresa, Guid? Pessoa, DateTimeOffset? AvisadaEm)> GravadaAsync(Guid id)
+    private async Task<Linha> GravadaAsync(Guid id)
     {
         await using var db = api.DaEquipe(Guid.NewGuid());
-        var linha = await db.Database
-            .SqlQuery<Linha>($"SELECT empresa_id AS \"Empresa\", pessoa_id AS \"Pessoa\", avisada_em AS \"AvisadaEm\" FROM sugestoes WHERE id = {id}")
+        return await db.Database
+            .SqlQuery<Linha>($"""
+                SELECT empresa_id AS "Empresa", pessoa_id AS "Pessoa", avisada_em AS "AvisadaEm", texto AS "Texto", tela AS "Tela"
+                FROM sugestoes WHERE id = {id}
+                """)
             .SingleAsync();
-        return (linha.Empresa, linha.Pessoa, linha.AvisadaEm);
+    }
+
+    private static async Task<Guid> UsuarioAsync(Equipe equipe)
+    {
+        using var eu = await equipe.GetAsync("/api/v1/auth/eu");
+        return (await Equipe.JsonAsync(eu)).GetProperty("usuarioId").GetGuid();
     }
 
     private sealed class Linha
@@ -56,6 +64,10 @@ public sealed class SugestoesTests(ApiFixture api)
         public Guid? Pessoa { get; set; }
 
         public DateTimeOffset? AvisadaEm { get; set; }
+
+        public string Texto { get; set; } = "";
+
+        public string? Tela { get; set; }
     }
 
     [Fact]
@@ -67,7 +79,7 @@ public sealed class SugestoesTests(ApiFixture api)
 
         var (status, corpo) = await EnviarAsync(app, equipe.Dono, new
         {
-            texto = "Seria bom filtrar tarefas por cliente. @everyone",
+            texto = "  Seria bom filtrar tarefas por cliente. @everyone  ",
             tela = "/tarefas/7c1f0e2a-1b2c-4d5e-8f90-a1b2c3d4e5f6?aba=2",
         });
 
@@ -76,7 +88,9 @@ public sealed class SugestoesTests(ApiFixture api)
         numero.Should().BePositive();
         var gravada = await GravadaAsync(corpo.GetProperty("id").GetGuid());
         gravada.Empresa.Should().Be(equipe.TenantId);
-        gravada.Pessoa.Should().NotBeNull();
+        gravada.Pessoa.Should().Be(await UsuarioAsync(equipe));
+        gravada.Texto.Should().Be("Seria bom filtrar tarefas por cliente. @everyone", "sem os espaços das pontas");
+        gravada.Tela.Should().Be("/tarefas/:id");
         gravada.AvisadaEm.Should().NotBeNull();
         var mensagem = discord.Mensagens.Should().ContainSingle().Subject;
         mensagem.Webhook.Should().Be(new Uri(DiscordFalso.Sugestoes));
@@ -144,6 +158,24 @@ public sealed class SugestoesTests(ApiFixture api)
     }
 
     [Fact]
+    public async Task Enviar_CincoHaMaisDeUmaHora_AceitaDeNovo() // F13-30
+    {
+        var equipe = await Equipe.CriarAsync(api);
+        var pessoa = await UsuarioAsync(equipe);
+        var antigas = api.Relogio.Agora.AddMinutes(-61);
+        await using (var db = api.DaEquipe(Guid.NewGuid()))
+        {
+            for (var i = 0; i < 5; i++)
+                await db.Database.ExecuteSqlAsync($"""
+                    INSERT INTO sugestoes (id, empresa_id, pessoa_id, texto, criada_em, avisada_em)
+                    VALUES ({Guid.NewGuid()}, {equipe.TenantId}, {pessoa}, {"Sugestão antiga da pessoa."}, {antigas}, {antigas})
+                    """);
+        }
+
+        (await EnviarAsync(api.App, equipe.Dono, new { texto = "Sugestão depois da janela." })).Status.Should().Be(HttpStatusCode.Created);
+    }
+
+    [Fact]
     public async Task Enviar_DiscordFora_201EOTickReenvia() // F13-29
     {
         var equipe = await Equipe.CriarAsync(api);
@@ -158,6 +190,9 @@ public sealed class SugestoesTests(ApiFixture api)
         (await GravadaAsync(id)).AvisadaEm.Should().BeNull("o Discord estava fora");
 
         fora = false;
+        // Só esta pendente no tick: as de outros testes (sem webhook) não entram na conta das 20.
+        await using (var db = api.DaEquipe(Guid.NewGuid()))
+            await db.Database.ExecuteSqlAsync($"UPDATE sugestoes SET avisada_em = now() WHERE avisada_em IS NULL AND id <> {id}");
         var antes = api.Relogio.Agora;
         api.Relogio.Agora = antes.AddMinutes(2);
         JsonElement tick;
@@ -175,7 +210,8 @@ public sealed class SugestoesTests(ApiFixture api)
             api.Relogio.Agora = antes;
         }
 
-        tick.GetProperty("sugestoesReenviadas").GetInt32().Should().BeGreaterThanOrEqualTo(1);
+        tick.GetProperty("sugestoesReenviadas").GetInt32().Should().Be(1);
+        tick.GetProperty("falhas").GetInt32().Should().Be(0);
         (await GravadaAsync(id)).AvisadaEm.Should().NotBeNull();
         discord.Textos(DiscordFalso.Sugestoes).Should().HaveCountGreaterThanOrEqualTo(2)
             .And.Contain(t => t.Contains("Sugestão que espera o Discord voltar.", StringComparison.Ordinal));
