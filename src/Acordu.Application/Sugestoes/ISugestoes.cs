@@ -19,5 +19,12 @@ public interface ISugestoes
     /// <summary>As que não saíram em #sugestoes, criadas até <paramref name="ate"/>, das mais antigas.</summary>
     Task<IReadOnlyList<SugestaoParaAviso>> PendentesAsync(DateTimeOffset ate, int maximo, CancellationToken cancellationToken = default);
 
-    Task MarcarAvisadaAsync(Guid id, DateTimeOffset agora, CancellationToken cancellationToken = default);
+    /// <summary>
+    /// Reserva o aviso (marca como avisada) antes de mandar: só quem reservou manda, então a requisição e dois ticks ao
+    /// mesmo tempo não duplicam. <c>false</c> se outro já reservou.
+    /// </summary>
+    Task<bool> ReservarAsync(Guid id, DateTimeOffset agora, CancellationToken cancellationToken = default);
+
+    /// <summary>O aviso não saiu: volta a pendente (só se a reserva ainda é esta).</summary>
+    Task DesfazerReservaAsync(Guid id, DateTimeOffset agora, CancellationToken cancellationToken = default);
 }

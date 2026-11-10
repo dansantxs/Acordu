@@ -50,6 +50,9 @@ public sealed class ComandosSugestao
         var sugestao = Sugestao.Criar(Guid.NewGuid(), tenant, usuario, texto, tela, agora);
         var numero = await _sugestoes.GravarAsync(sugestao, cancellationToken);
 
+        if (!_mensageiro.Configurado(CanalOperacao.Sugestoes))
+            return new SugestaoCriadaDto(sugestao.Id, numero);
+
         using var prazo = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
         prazo.CancelAfter(PrazoDoAviso);
         try
@@ -57,9 +60,10 @@ public sealed class ComandosSugestao
             if (await _sugestoes.ParaAvisoAsync(sugestao.Id, prazo.Token) is { } paraAviso)
                 await AvisarAsync(paraAviso, prazo.Token);
         }
-        catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
+        // Gravada já está: o aviso é o de menos. Prazo, banco ou rede, fica pendente e o tick reenvia; a pessoa recebe o
+        // número de qualquer jeito (um 500 aqui faria ela mandar de novo).
+        catch (Exception ex) when (ex is not OperationCanceledException || !cancellationToken.IsCancellationRequested)
         {
-            // Fica pendente; o tick reenvia.
         }
 
         return new SugestaoCriadaDto(sugestao.Id, numero);
@@ -81,16 +85,34 @@ public sealed class ComandosSugestao
         return enviadas;
     }
 
-    internal static string Texto(SugestaoParaAviso sugestao) =>
-        string.Create(
+    /// <summary>
+    /// Cabeçalho e texto, até o limite de uma mensagem do Discord: texto longo é cortado com a nota de que a íntegra está
+    /// no banco (o adaptador cortaria o fim sem avisar).
+    /// </summary>
+    public static string Texto(SugestaoParaAviso sugestao)
+    {
+        var cabecalho = string.Create(
             CultureInfo.InvariantCulture,
-            $"**Sugestão #{sugestao.Numero}** · {sugestao.Empresa}{(sugestao.Tela is { } tela ? $" · tela `{tela.Replace('`', '\'')}`" : "")}\n{sugestao.Texto}");
+            $"**Sugestão #{sugestao.Numero}** · {sugestao.Empresa}{(sugestao.Tela is { } tela ? $" · tela `{tela.Replace('`', '\'')}`" : "")}\n");
+        var nota = string.Create(CultureInfo.InvariantCulture, $"… (íntegra no banco, #{sugestao.Numero})");
+        var espaco = LimiteMensagem - cabecalho.Length;
+        return sugestao.Texto.Length <= espaco
+            ? cabecalho + sugestao.Texto
+            : cabecalho + sugestao.Texto[..Math.Max(0, espaco - nota.Length)] + nota;
+    }
 
+    /// <summary>Limite de uma mensagem do Discord.</summary>
+    private const int LimiteMensagem = 2000;
+
+    /// <summary>Reserva, manda e, se não saiu, desfaz a reserva. <c>false</c> só quando o Discord falhou.</summary>
     private async Task<bool> AvisarAsync(SugestaoParaAviso sugestao, CancellationToken cancellationToken)
     {
-        if (!await _mensageiro.EnviarAsync(CanalOperacao.Sugestoes, Texto(sugestao), cancellationToken))
-            return false;
-        await _sugestoes.MarcarAvisadaAsync(sugestao.Id, _relogio.GetUtcNow(), CancellationToken.None);
-        return true;
+        var agora = _relogio.GetUtcNow();
+        if (!await _sugestoes.ReservarAsync(sugestao.Id, agora, cancellationToken))
+            return true;
+        if (await _mensageiro.EnviarAsync(CanalOperacao.Sugestoes, Texto(sugestao), cancellationToken))
+            return true;
+        await _sugestoes.DesfazerReservaAsync(sugestao.Id, agora, CancellationToken.None);
+        return false;
     }
 }
