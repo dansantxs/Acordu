@@ -4,6 +4,7 @@ using Acordu.Application.Notificacoes;
 using Acordu.Application.Recorrencias;
 using Acordu.Application.Solicitacoes;
 using Acordu.Infrastructure.Agendamento;
+using Acordu.Infrastructure.Operacao;
 using Acordu.Infrastructure.Persistence.Auditoria;
 using Acordu.Infrastructure.Persistence.Atividades;
 using Acordu.Infrastructure.Persistence.Cadastros;
@@ -88,7 +89,7 @@ internal static class JobsEndpoints
 
     /// <summary>
     /// O disparo diário do Scheduler (ADR 0010 §5; o plano gratuito tem 3 jobs): fechamento automático, expurgo da
-    /// auditoria, expurgo das notificações e do feed e expurgo dos cadastros abandonados (RF-AUT-07), em sequência. Um passo que falha é logado, entra em <c>falhas</c>
+    /// auditoria, expurgo das notificações e do feed, expurgo dos cadastros abandonados (RF-AUT-07) e das ocorrências de erro (ADR 0012), em sequência. Um passo que falha é logado, entra em <c>falhas</c>
     /// e não impede os seguintes; os endpoints individuais continuam para disparo manual.
     /// </summary>
     private static void MapDiario(RouteGroupBuilder jobs) =>
@@ -98,6 +99,7 @@ internal static class JobsEndpoints
             ExpurgoNotificacoes notificacoes,
             ExpurgoAtividades atividades,
             ExpurgoCadastros cadastros,
+            ExpurgoOcorrenciasErro ocorrencias,
             ILoggerFactory logs,
             CancellationToken cancellationToken) =>
         {
@@ -122,6 +124,7 @@ internal static class JobsEndpoints
                         falhasPorTenant += expurgo.Falhas;
                         return expurgo.Removidos;
                     }),
+                    new("expurgo-ocorrencias-erro", ocorrencias.ExecutarAsync),
                 ],
                 logs.CreateLogger(typeof(PassosDiario)),
                 cancellationToken);
@@ -132,6 +135,7 @@ internal static class JobsEndpoints
                 notificacoesRemovidas = resultado.Contagens[2],
                 atividadesRemovidas = resultado.Contagens[3],
                 cadastrosRemovidos = resultado.Contagens[4],
+                ocorrenciasErroRemovidas = resultado.Contagens[5],
                 falhas = resultado.Falhas + falhasPorTenant,
             });
         });

@@ -1,4 +1,6 @@
+using Acordu.Api.Operacao;
 using Acordu.Api.Seguranca;
+using Acordu.Application.Abstractions.Operacao;
 using Acordu.Application.Anexos;
 using Acordu.Application.Common;
 using Acordu.Domain.Exceptions;
@@ -25,8 +27,11 @@ internal static partial class ManipuladorExcecoes
         if (problema.Status == StatusCodes.Status500InternalServerError)
         {
             var logger = http.RequestServices.GetRequiredService<ILoggerFactory>().CreateLogger(typeof(ManipuladorExcecoes));
-            using (logger.BeginScope(ContextoDoErro(http)))
-                ErroInesperado(logger, excecao);
+            var contexto = ContextoDoErro(http);
+            using (logger.BeginScope(contexto))
+                RegistrarErroInesperado(logger, excecao);
+            if (excecao is not null)
+                await AvisarAsync(http, excecao, contexto, logger);
         }
 
         http.Response.StatusCode = problema.Status ?? StatusCodes.Status500InternalServerError;
@@ -53,6 +58,29 @@ internal static partial class ManipuladorExcecoes
         if (http.User.FindFirst(ClaimsAcordu.Usuario)?.Value is { Length: > 0 } usuario)
             contexto["usuarioId"] = usuario;
         return contexto;
+    }
+
+    /// <summary>Prazo do aviso: passou dele, a resposta sai sem esperar (F13-09).</summary>
+    internal static readonly TimeSpan PrazoDoAviso = TimeSpan.FromSeconds(3);
+
+    /// <summary>Aviso em #alertas pela impressão digital do erro (F13-05), sem a mensagem da exceção.</summary>
+    private static async Task AvisarAsync(HttpContext http, Exception excecao, Dictionary<string, object?> contexto, ILogger logger)
+    {
+        if (http.RequestServices.GetService<IAvisosDeErro>() is not { } avisos)
+            return;
+        var versao = http.RequestServices.GetRequiredService<IConfiguration>()["App:Versao"] is { Length: > 0 } v ? v : "dev";
+        var erro = new ErroInesperado(
+            FormatadorLogJson.ServicoApi, excecao.GetType().FullName ?? excecao.GetType().Name, QuadroDoAcordu.De(excecao),
+            $"{contexto["metodo"]} {contexto["rota"]}", versao);
+        using var prazo = new CancellationTokenSource(PrazoDoAviso);
+        try
+        {
+            await avisos.AvisarAsync(erro, prazo.Token).WaitAsync(prazo.Token);
+        }
+        catch (OperationCanceledException)
+        {
+            AvisoAtrasado(logger);
+        }
     }
 
     internal static ProblemDetails Classificar(Exception? excecao) => excecao switch
@@ -96,6 +124,9 @@ internal static partial class ManipuladorExcecoes
         return problema;
     }
 
+    [LoggerMessage(EventId = 2, Level = LogLevel.Warning, Message = "Aviso do erro inesperado passou do prazo; a resposta saiu sem ele.")]
+    private static partial void AvisoAtrasado(ILogger logger);
+
     [LoggerMessage(EventId = 1, Level = LogLevel.Error, Message = "Erro inesperado ao processar a requisição.")]
-    private static partial void ErroInesperado(ILogger logger, Exception? excecao);
+    private static partial void RegistrarErroInesperado(ILogger logger, Exception? excecao);
 }
