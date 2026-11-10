@@ -159,9 +159,14 @@ O Acordu envia e-mail para os **clientes dos clientes**: reputação de domínio
 
 ## Parte E — Monitoramento
 
-- **UptimeRobot:** monitor HTTP em `https://api.acordu.app.br/api/health`, 5 min, alerta por e-mail.
-- **Discord:** webhook num canal privado → secret `DISCORD_WEBHOOK` (deploy e backup avisam por ele; sem o secret, só pulam o aviso).
-- Sem Sentry no F8 (spec do F8, decisão 3): erros de aplicação ficam nos logs do Cloud Run.
+- **UptimeRobot:** monitor HTTP em `https://api.acordu.app.br/api/health`, 5 min, alerta por e-mail (até a vigia do F13h substituí-lo).
+- **Discord (ADR 0012):** um servidor privado com três canais, cada um com um webhook (Configurações do canal → Integrações → Webhooks):
+  - **#alertas** → secret `DISCORD_ALERTAS`: erros da API e do app, jobs com falha, queda, deploy e backup que falharam. Deixe a notificação do celular ligada.
+  - **#deploy** → secret `DISCORD_DEPLOY`: deploy ok, heartbeat do backup e resumo do diário. Pode ficar silenciado.
+  - **#sugestoes** → secret `DISCORD_SUGESTOES`: as sugestões das equipes.
+  - Os workflows e a API usam os mesmos secrets (o `deploy.yml` passa os três para a API). Sem um deles, aquele canal só fica sem avisos.
+  - Opcional: variável `OPERACAO_LINK_ERROS` com o link do Error Reporting do projeto, que vai nos avisos de erro.
+- Sem Sentry (ADR 0012): os erros ficam no Error Reporting, pelos logs JSON da API.
 
 ---
 
@@ -187,7 +192,8 @@ Repositório → Settings → Secrets and variables → Actions. Só os nomes fi
 | Secret | `API_R2_CHAVE_ACESSO`, `API_R2_CHAVE_SECRETA` | Token `acordu-api-anexos` (C2) |
 | Secret | `R2_BACKUP_CHAVE_ACESSO`, `R2_BACKUP_CHAVE_SECRETA` | Token `acordu-backup` (C2) |
 | Secret | `CLOUDFLARE_API_TOKEN`, `CLOUDFLARE_ACCOUNT_ID` | Token do deploy e ID da conta (C3) |
-| Secret | `DISCORD_WEBHOOK` | Webhook do canal de avisos (E) |
+| Secret | `DISCORD_ALERTAS`, `DISCORD_DEPLOY`, `DISCORD_SUGESTOES` | Webhooks de #alertas, #deploy e #sugestoes (E) |
+| Variável | `OPERACAO_LINK_ERROS` | Opcional: link do Error Reporting nos avisos de erro (E) |
 
 O `deploy.yml` recusa publicar se faltar algum obrigatório; sem `R2_ENDPOINT`, a API sobe sem anexos. Os valores aleatórios: `openssl rand -base64 48`.
 

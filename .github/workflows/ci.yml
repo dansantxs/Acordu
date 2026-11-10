@@ -28,6 +28,7 @@ jobs:
       web: ${{ steps.filtro.outputs.web == 'true' || github.event_name != 'pull_request' }}
       imagem: ${{ steps.filtro.outputs.imagem == 'true' || github.event_name != 'pull_request' }}
       borda: ${{ steps.filtro.outputs.borda == 'true' || github.event_name != 'pull_request' }}
+      acoes: ${{ steps.filtro.outputs.acoes == 'true' || github.event_name != 'pull_request' }}
     steps:
       # No pull_request o filtro lista os arquivos pela API (pull-requests: read); não precisa de checkout.
       - uses: dorny/paths-filter@v3
@@ -38,7 +39,8 @@ jobs:
           filters: |
             pipeline: &pipeline
               - .github/workflows/ci.yml
-              - .github/actions/**
+              # Só a ação que sobe o Acordu: o aviso do Discord tem o job próprio ("Ações").
+              - .github/actions/subir-acordu/**
               - .editorconfig
               - .gitattributes
             backend:
@@ -64,10 +66,28 @@ jobs:
               - Directory.*.props
               - docker/**
               - .dockerignore
+            # Aviso do Discord dos workflows (ADR 0012, F13g).
+            acoes:
+              - .github/actions/avisar-discord/**
+              - .github/workflows/ci.yml
             # Worker de api.acordu.app.br (spec do F8, F8-23 a F8-25).
             borda:
               - *pipeline
               - infra/cloudflare/**
+
+  acoes:
+    name: Ações (aviso do Discord)
+    needs: mudancas
+    if: needs.mudancas.outputs.acoes == 'true'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: .github/actions
+          persist-credentials: false
+      - name: Testes do avisar.sh
+        run: bash .github/actions/avisar-discord/avisar.test.sh
 
   backend:
     name: Backend (.NET)
@@ -314,7 +334,7 @@ jobs:
   # tudo pulado e o PR aparentemente aprovado.
   ci-ok:
     name: CI ok
-    needs: [mudancas, backend, web, e2e, imagem, borda]
+    needs: [mudancas, acoes, backend, web, e2e, imagem, borda]
     if: always()
     runs-on: ubuntu-24.04
     timeout-minutes: 5

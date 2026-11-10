@@ -24,6 +24,12 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 20
     steps:
+      # Só a action do aviso (o backup não precisa do código).
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: .github/actions
+          persist-credentials: false
+
       # O secret está no formato do Npgsql (o mesmo das migrations); o pg_dump lê as variáveis PG* da libpq.
       - name: Conexão
         env:
@@ -112,19 +118,13 @@ jobs:
           aws s3 cp "$ARQUIVO" "s3://acordu-backups/db/$DIA.dump" --endpoint-url "$ENDPOINT" --only-show-errors
           echo "Enviado: acordu-backups/db/$DIA.dump"
 
-      # Falha sempre; sucesso como heartbeat diário (deploy-ci §8).
+      # Sucesso como heartbeat diário em #deploy; falha em #alertas (deploy-ci §8; ADR 0012, F13-32).
       - name: Discord
         if: always()
-        env:
-          WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
-          STATUS: ${{ job.status }}
-          DIA: ${{ steps.dump.outputs.dia }}
-          RUN: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
-        run: |
-          [[ -z "$WEBHOOK" ]] && { echo "Sem DISCORD_WEBHOOK; aviso pulado."; exit 0; }
-          if [[ "$STATUS" == "success" ]]; then
-            texto="Backup ok: db/$DIA.dump"
-          else
-            texto="Backup falhou ($STATUS): $RUN"
-          fi
-          jq -n --arg t "$texto" '{content: $t}' | curl -fsS -H 'Content-Type: application/json' -d @- "$WEBHOOK"
+        uses: ./.github/actions/avisar-discord
+        with:
+          status: ${{ job.status }}
+          ok: "**Backup ok** · db/${{ steps.dump.outputs.dia }}.dump"
+          falha: "**Backup falhou** (${{ job.status }}): ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+          deploy: ${{ secrets.DISCORD_DEPLOY }}
+          alertas: ${{ secrets.DISCORD_ALERTAS }}
