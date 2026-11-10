@@ -2,7 +2,7 @@ name: Deploy
 
 # Produção do nível 0 (ADR 0010; deploy-ci-acordu-v1.md §4). Disparo manual, só na main, até haver cliente pagante
 # (spec do F8, decisão 1): Actions → Deploy → Run workflow. Ordem: CI verde no commit → imagem → migrations → nova
-# revisão → health pela borda (falhou: tráfego volta à anterior) → Worker → SPA → Discord.
+# revisão → health pela borda (falhou: tráfego volta à anterior) → Worker → vigia → SPA → Discord.
 # Nomes de variáveis e segredos do repositório: setup-infra-acordu.md, "Segredos do GitHub".
 
 on:
@@ -221,6 +221,7 @@ jobs:
           cache: pnpm
           cache-dependency-path: |
             infra/cloudflare/api-borda/pnpm-lock.yaml
+            infra/cloudflare/vigia/pnpm-lock.yaml
             apps/web/pnpm-lock.yaml
 
       # keep_vars no wrangler.toml: ORIGEM e TOKEN_ORIGEM, definidos no painel, ficam como estão.
@@ -232,6 +233,24 @@ jobs:
         run: |
           pnpm install --frozen-lockfile
           pnpm exec wrangler deploy
+
+      # Vigia da API (ADR 0012, F13h): o KV ESTADO é criado no primeiro deploy (provisionamento do wrangler) e segue
+      # ligado depois. O webhook de #alertas vai como segredo do Worker; sem ele, a vigia só registra no log.
+      - name: Vigia
+        working-directory: infra/cloudflare/vigia
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          DISCORD_ALERTAS: ${{ secrets.DISCORD_ALERTAS }}
+        run: |
+          pnpm install --frozen-lockfile
+          pnpm exec wrangler deploy
+          if [[ -n "$DISCORD_ALERTAS" ]]; then
+            printf '%s' "$DISCORD_ALERTAS" | pnpm exec wrangler secret put DISCORD_ALERTAS > /dev/null
+            echo "Webhook de #alertas na vigia."
+          else
+            echo "::warning::Sem DISCORD_ALERTAS: a vigia não avisa a queda da API."
+          fi
 
       - name: SPA (build)
         working-directory: apps/web
