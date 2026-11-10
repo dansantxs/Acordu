@@ -130,6 +130,9 @@ jobs:
               "TempoReal__Sse": "false",
               "Armazenamento__Regiao": "auto",
               "Armazenamento__Bucket": "acordu-anexos",
+              # Logs JSON para o Cloud Logging e o Error Reporting; a versão é o commit (ADR 0012, F13a).
+              "Logs__Formato": "json",
+              "App__Versao": os.environ["GITHUB_SHA"][:7],
           }
           # Turnstile__Segredo: sem ele o cadastro público fica sem desafio (RNF-SEG-10; spec do F9, F9-46).
           obrigatorias = ["ConnectionStrings__Acordu", "Jwt__ChaveAssinatura", "Jobs__Token", "Proxy__TokenOrigem",

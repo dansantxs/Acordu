@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| **Status** | Aprovada |
+| **Status** | Em implementação |
 | **Data** | 09/11/2026 |
 | **Requisitos** | RNF-OPS-01, RNF-OPS-02, RNF-OPS-03, RF-SUG-01 (ERS). Tocados: RNF-SEG-08, RNF-POR-01, RNF-PRIV-01 |
 | **ADRs** | 0010 (hospedagem; o monitoramento muda), 0012 (novo: avisos de operação) |
@@ -24,10 +24,10 @@ Os erros também ficam no Error Reporting do Google para investigar. A pessoa da
 
 | Id | Dado | Quando | Então | Teste |
 |---|---|---|---|---|
-| F13-01 | API com `Logs__Formato=json` | qualquer log | sai uma linha JSON por entrada, com `severity`, `message`, `time`, `categoria`, `eventId` e `traceId` | — |
-| F13-02 | idem | requisição termina em 500 | a entrada tem `severity` `ERROR`, a pilha na `message` e `serviceContext` (`acordu-api` e a versão de `App__Versao`), formato que o Error Reporting agrupa sem SDK [D1] | — (unitário do formatador; o agrupamento é conferido no primeiro deploy) |
-| F13-03 | API sem `Logs__Formato` (desenvolvimento, testes) | qualquer log | sai o console de texto de hoje | — |
-| F13-04 | erro 500 numa rota com dados na query e no corpo | o erro vai para o log | a entrada tem a rota como modelo (`/api/v1/tarefas/{id}`), o método, `tenantId` e `usuarioId`; não tem corpo, query string, cabeçalhos, e-mail nem nome (segurança §6) | — |
+| F13-01 | API com `Logs__Formato=json` | qualquer log | sai uma linha JSON por entrada, com `severity`, `message`, `time`, `categoria`, `eventId` e `traceId` | `FormatadorLogJsonTests › Write_Informacao_UmaLinhaComOsCamposDoCloudLogging`; `… Write_DentroDeUmaAtividade_TraceIdDela`; `… Write_CadaNivel_SeveridadeDoCloudLogging`; `ComposicaoLogsTests › AddLogsAcordu_ComJson_ConsoleUsaOFormatadorComAVersao` |
+| F13-02 | idem | requisição termina em 500 | a entrada tem `severity` `ERROR`, a pilha (`stack_trace`) e `serviceContext` (`acordu-api` e a versão de `App__Versao`), formato que o Error Reporting agrupa sem SDK [D1] | `FormatadorLogJsonTests › Write_Erro_PilhaEContextoDoServico`; `LogDoErroTests › Erro500_ComDadosNaRequisicao…`; o agrupamento é conferido no primeiro deploy |
+| F13-03 | API sem `Logs__Formato` (desenvolvimento, testes) | qualquer log | sai o console de texto de hoje | `ComposicaoLogsTests › AddLogsAcordu_SemFormato_ConsoleDeTexto` |
+| F13-04 | erro 500 numa rota com dados na query e no corpo | o erro vai para o log | a entrada tem a rota como modelo (`/api/v1/tarefas/{id}`), o método, `tenantId` e `usuarioId`; não tem corpo, query string, cabeçalhos, e-mail nem nome (segurança §6) | `LogDoErroTests › Erro500_ComDadosNaRequisicao_UmaLinhaComRotaModeloEIdentificadoresSemOsDados`; `FormatadorLogJsonTests › Write_DosEscopos_SoOsCamposDoContexto` |
 
 ### Avisos de erro no Discord (F13b)
 
@@ -185,3 +185,4 @@ Cada PR contra a `main`, sem empilhar, com testes e CI verde. F13a vem primeiro;
 
 - 09/11 — rascunho.
 - 10/11 — o Daniel aprovou todas as recomendações (D1 a D6) e pediu o PR da spec.
+- 10/11 — F13a: ADR 0012 aberto. No modo JSON, o diagnóstico do `ExceptionHandlerMiddleware` é suprimido, para o mesmo 500 não contar duas vezes no Error Reporting; com isso os 4xx de regra de negócio também deixam de ser erro (`LogDoErroTests › ErroDeRegra_4xx_NaoViraErroNoLog`). A pilha vai em `stack_trace` (o F13-02 dizia "na `message`"; mesmo efeito no Error Reporting, com a mensagem limpa). A correlação com o trace do Cloud Logging (`logging.googleapis.com/trace`) fica para conferir no primeiro deploy. `Logs__Formato` e `App__Versao` já entram no `deploy.yml` aqui (estavam previstos no F13g): sem eles o F13a não vale em produção. `Logs__Formato` com outro valor que não `json` impede a API de subir (`ComposicaoLogsTests › AddLogsAcordu_FormatoDesconhecido_NaoSobe`).

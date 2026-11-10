@@ -1,3 +1,4 @@
+using Acordu.Api.Seguranca;
 using Acordu.Application.Anexos;
 using Acordu.Application.Common;
 using Acordu.Domain.Exceptions;
@@ -24,12 +25,34 @@ internal static partial class ManipuladorExcecoes
         if (problema.Status == StatusCodes.Status500InternalServerError)
         {
             var logger = http.RequestServices.GetRequiredService<ILoggerFactory>().CreateLogger(typeof(ManipuladorExcecoes));
-            ErroInesperado(logger, excecao);
+            using (logger.BeginScope(ContextoDoErro(http)))
+                ErroInesperado(logger, excecao);
         }
 
         http.Response.StatusCode = problema.Status ?? StatusCodes.Status500InternalServerError;
         var servico = http.RequestServices.GetRequiredService<IProblemDetailsService>();
         await servico.WriteAsync(new ProblemDetailsContext { HttpContext = http, ProblemDetails = problema, Exception = excecao });
+    }
+
+    /// <summary>
+    /// Contexto do erro no log (RNF-OPS-01): a rota modelo (<c>/api/v1/tarefas/{id}</c>, nunca o caminho com os valores
+    /// nem a query), o método e os identificadores de tenant e usuário. Nada de corpo, cabeçalho, e-mail ou nome.
+    /// </summary>
+    internal static Dictionary<string, object?> ContextoDoErro(HttpContext http)
+    {
+        var rota = http.Features.Get<IExceptionHandlerFeature>()?.Endpoint is RouteEndpoint endpoint
+            ? endpoint.RoutePattern.RawText
+            : null;
+        var contexto = new Dictionary<string, object?>(StringComparer.Ordinal)
+        {
+            ["rota"] = rota ?? "(sem rota)",
+            ["metodo"] = http.Request.Method,
+        };
+        if (http.User.FindFirst(ClaimsAcordu.Tenant)?.Value is { Length: > 0 } tenant)
+            contexto["tenantId"] = tenant;
+        if (http.User.FindFirst(ClaimsAcordu.Usuario)?.Value is { Length: > 0 } usuario)
+            contexto["usuarioId"] = usuario;
+        return contexto;
     }
 
     internal static ProblemDetails Classificar(Exception? excecao) => excecao switch
