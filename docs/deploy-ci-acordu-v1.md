@@ -146,7 +146,7 @@ Cada job é um endpoint interno (`POST /internal/jobs/<nome>`): `X-Job-Token` co
   - `TempoReal__Sse=false`;
   - `Email__ResendChave`, `Email__Remetente` (padrão `nao-responda@send.acordu.app.br`), `Email__NomeRemetente`;
   - `Armazenamento__Endpoint=https://<conta>.r2.cloudflarestorage.com`, `Armazenamento__Regiao=auto`, `Armazenamento__Bucket=acordu-anexos`, `Armazenamento__ChaveAcesso` / `Armazenamento__ChaveSecreta` (token R2 de leitura e escrita só em `acordu-anexos`);
-  - limites opcionais (`RateLimit__Auth__PorMinuto` 10, `RateLimit__Refresh__PorMinuto` 30, `RateLimit__Portal__PorMinuto` 10, `RateLimit__Agenda__PorMinuto` 30, `RateLimit__Registro__PorHora` 3);
+  - limites opcionais (`RateLimit__ErrosWeb__PorMinuto` 10, `RateLimit__Auth__PorMinuto` 10, `RateLimit__Refresh__PorMinuto` 30, `RateLimit__Portal__PorMinuto` 10, `RateLimit__Agenda__PorMinuto` 30, `RateLimit__Registro__PorHora` 3);
   - `Turnstile__Segredo` (proteção do cadastro, RNF-SEG-10; obrigatório no `deploy.yml`, secret `API_TURNSTILE_SEGREDO`);
   - `Logs__Formato=json` (logs estruturados para o Cloud Logging e o Error Reporting, RNF-OPS-01) e `App__Versao` (o commit, no `serviceContext` dos erros); fixas no `deploy.yml` (ADR 0012).
   - `Discord__Alertas`, `Discord__Deploy`, `Discord__Sugestoes` (webhooks dos canais, só https; sem, o canal não envia), `Operacao__AvisosPorHora` (teto de avisos de erro, padrão 20) e `Operacao__LinkErros` (link do Error Reporting na mensagem); os webhooks entram no `deploy.yml` no F13g.
@@ -169,7 +169,7 @@ Cada job é um endpoint interno (`POST /internal/jobs/<nome>`): `X-Job-Token` co
 
 - **UptimeRobot** em `https://api.acordu.app.br/api/health` a cada 5 min (avisa queda e mantém a instância quente parte do tempo).
 - **Pré-aquecimento pela UI:** ao carregar qualquer tela o SPA já renova a sessão (`POST /api/v1/auth/refresh`), o que acorda o container da API antes de a pessoa digitar; por isso não há chamada extra ao `/api/health` (F8d). O banco acorda na primeira requisição que o consulta (com cookie, a própria renovação; sem cookie, o login).
-- Logs do Cloud Run em JSON (`Logs__Formato=json`): os erros aparecem agrupados no Error Reporting, por serviço e versão, sem SDK (ADR 0012, F13a). Discord (deploy e backup), alerta do Cloud Monitoring para os jobs e de orçamento (e-mail). Erro 500 novo vira aviso em #alertas pela própria API (F13b), um por erro a cada 24 h e no máximo 20 por hora; as falhas dos jobs vão para #alertas e o resumo do diário para #deploy (F13c); os erros do app e a vigia no lugar do UptimeRobot chegam nos próximos PRs do F13.
+- Logs do Cloud Run em JSON (`Logs__Formato=json`): os erros aparecem agrupados no Error Reporting, por serviço e versão, sem SDK (ADR 0012, F13a). Discord (deploy e backup), alerta do Cloud Monitoring para os jobs e de orçamento (e-mail). Erro 500 novo vira aviso em #alertas pela própria API (F13b), um por erro a cada 24 h e no máximo 20 por hora; as falhas dos jobs vão para #alertas e o resumo do diário para #deploy (F13c); os erros do app no navegador chegam por `POST /api/v1/erros-web` como serviço `acordu-web`, só com `VITE_VERSAO` no build (o commit, no `deploy.yml`; F13d); a vigia no lugar do UptimeRobot chegam nos próximos PRs do F13.
 - **Mensal:** CU-h e armazenamento no Neon; vCPU-s no Cloud Run; requisições/dia no Worker; armazenamento no R2. São os gatilhos dos níveis 1 e 2 do ADR 0010.
 
 ---

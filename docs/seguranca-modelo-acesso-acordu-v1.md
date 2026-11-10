@@ -220,6 +220,7 @@ Quem, tenant, ação, alvo, quando (IP opcional). Não audita leituras. Mecanism
 ## 9. Requisitos adicionais
 
 - **Rate limiting:** login, `/auth/portal/link` (por IP e por token), abertura de solicitação pelo portal, upload de anexos.
+  - Relato de erro do app (`POST /api/v1/erros-web`, pública, F13d): 10 por minuto por IP, IPv6 por /64 (`RateLimit__ErrosWeb__PorMinuto`), corpo de até 16 KB. Vai sem cookie nem token; a API limpa e-mails, ids, números longos e a query antes de registrar, e o app não manda id de contato, cliente ou link.
   - As rotas públicas de `/auth` (login, convites, recuperação de senha) e o reenvio da confirmação: 10 por minuto por IP (`RateLimit__Auth__PorMinuto`).
   - **Cadastro (`/auth/registro`): limite próprio**, 3 por hora por IP (padrão, `RateLimit__Registro__PorHora`; IPv6 agrupado por /64, para trocar de endereço dentro do prefixo não renovar a cota), mais o Turnstile (RNF-SEG-10, 04/11). Substitui o de `/auth` nessa rota: o ASP.NET aplica uma política por rota, e os 3 por hora já são mais restritos que os 10 por minuto.
   - **Turnstile (F9c):** conferido no servidor por HTTP (`siteverify`), sem SDK, com sucesso, ação `registro` e hostname. Fail-closed: sem resposta do Cloudflare (ou com o segredo do servidor recusado, que vai para o log como erro), o cadastro é recusado. Desligado sem `Turnstile__Segredo`. As chaves de teste do Cloudflare não servem com ele ligado: a resposta delas traz outro hostname e é recusada.
