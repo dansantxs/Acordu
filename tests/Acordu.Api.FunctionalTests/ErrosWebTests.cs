@@ -156,6 +156,17 @@ public sealed class ErrosWebTests(ApiFixture api)
     }
 
     [Fact]
+    public async Task Registrar_ComoTextPlain_Aceita() // F13-15 (o app manda assim, sem preflight)
+    {
+        using var http = api.NovoHttp();
+        using var conteudo = new StringContent(JsonSerializer.Serialize(new { mensagem = Unica() }), Encoding.UTF8, "text/plain");
+
+        using var resposta = await http.PostAsync(new Uri(Rota, UriKind.Relative), conteudo);
+
+        resposta.StatusCode.Should().Be(HttpStatusCode.NoContent);
+    }
+
+    [Fact]
     public async Task Registrar_CorpoSemTamanhoAcimaDe16KB_413() // F13-19
     {
         using var http = api.NovoHttp();
