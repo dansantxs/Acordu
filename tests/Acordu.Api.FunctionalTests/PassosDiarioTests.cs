@@ -23,6 +23,7 @@ public sealed class PassosDiarioTests
         rodados.Should().Equal("primeiro", "ultimo");
         resultado.Contagens.Should().Equal(3, 0, 5);
         resultado.Falhas.Should().Be(1);
+        resultado.PassosFalhos.Should().Equal("quebra");
     }
 
     [Fact]
