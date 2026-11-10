@@ -53,6 +53,45 @@ describe('Sugerir melhoria (F13f)', () => {
         expect(envio?.corpo).toEqual({ texto: 'Filtrar tarefas por cliente', tela: '/' })
     })
 
+    it('a tela vai como rota modelo, sem o id (F13-23)', async () => {
+        const chamadas = app({ 'POST /api/v1/sugestoes': () => json({ id: 'x', numero: 13 }, 201) })
+        await abrir('/inexistente/7c1f0e2a-1b2c-4d5e-8f90-a1b2c3d4e5f6?aba=2')
+        const { usuario, janela } = await abrirJanela()
+        await usuario.type(within(janela).getByRole('textbox'), 'Uma tela que não existe')
+        await usuario.click(within(janela).getByRole('button', { name: 'Enviar' }))
+
+        await screen.findByText('Obrigado! A sugestão foi para a equipe do Acordu.')
+        expect(chamadas.find((c) => c.caminho === '/api/v1/sugestoes')?.corpo).toMatchObject({
+            tela: '/inexistente/:id',
+        })
+    })
+
+    it('Cancelar depois de um erro: ao reabrir, a janela vem limpa', async () => {
+        app({
+            'POST /api/v1/sugestoes': () =>
+                problema(429, { type: 'https://acordu.app.br/erros/limite-requisicoes', detail: 'Muitas sugestões.' }),
+        })
+        await abrir('/')
+        const { usuario, janela } = await abrirJanela()
+        await usuario.type(within(janela).getByRole('textbox'), 'Uma sugestão a mais')
+        await usuario.click(within(janela).getByRole('button', { name: 'Enviar' }))
+        await within(janela).findByRole('alert')
+        await usuario.click(within(janela).getByRole('button', { name: 'Cancelar' }))
+
+        const { janela: deNovo } = await abrirJanela()
+        expect(within(deNovo).queryByRole('alert')).not.toBeInTheDocument()
+    })
+
+    it('o contador conta sem os espaços das pontas, como o envio', async () => {
+        app()
+        await abrir('/')
+        const { usuario, janela } = await abrirJanela()
+        await usuario.type(within(janela).getByRole('textbox'), '   nove     ')
+
+        expect(within(janela).getByText(/\(4\/2\.000\)/)).toBeInTheDocument()
+        expect(within(janela).getByRole('button', { name: 'Enviar' })).toBeDisabled()
+    })
+
     it('o erro do campo aparece no campo (F13-24)', async () => {
         app({
             'POST /api/v1/sugestoes': () =>
@@ -85,7 +124,7 @@ describe('Sugerir melhoria (F13f)', () => {
         await usuario.click(within(janela).getByRole('button', { name: 'Enviar' }))
 
         expect(await within(janela).findByRole('alert')).toHaveTextContent(
-            /Muitas tentativas seguidas|Muitas sugestões/,
+            'Muitas sugestões em pouco tempo. Tente de novo mais tarde.',
         )
     })
 })

@@ -46,12 +46,9 @@ describe('portal: base', () => {
         })
         await abrir('/portal')
         await screen.findByRole('link', { name: /Site fora do ar/ })
-        expect(screen.queryByText('Sugerir melhoria')).not.toBeInTheDocument()
-        for (const botao of screen.getAllByRole('button')) {
-            await userEvent.click(botao).catch(() => undefined)
-            expect(screen.queryByText('Sugerir melhoria')).not.toBeInTheDocument()
-            await userEvent.keyboard('{Escape}')
-        }
+        await userEvent.click(screen.getByRole('button', { name: /, menu$/ }))
+        const itens = (await screen.findAllByRole('menuitem')).map((i) => i.textContent)
+        expect(itens).toEqual(['Sair'])
     })
 
     it('lista em andamento, conta o que espera o contato e troca de grupo pelo endereço', async () => {
