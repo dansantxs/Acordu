@@ -88,6 +88,8 @@ public static class DependencyInjection
         services.AddSingleton<ExpurgoAtividades>();
         services.AddSingleton<ExpurgoCadastros>();
         services.AddSingleton<Operacao.ExpurgoOcorrenciasErro>();
+        services.AddSingleton<Operacao.MarcasDeOperacao>();
+        services.AddSingleton<Application.Abstractions.Operacao.IMarcasDeOperacao>(sp => sp.GetRequiredService<Operacao.MarcasDeOperacao>());
         services.AddScoped<IConvitesEquipe, ConvitesEquipe>();
         services.AddScoped<IConsultasEquipe, ConsultasEquipe>();
         services.AddScoped<IConsultasComentariosTarefa, ConsultasComentariosTarefa>();
