@@ -159,7 +159,7 @@ O Acordu envia e-mail para os **clientes dos clientes**: reputação de domínio
 
 ## Parte E — Monitoramento
 
-- **Vigia (F13h):** o Worker `acordu-vigia` sobe pelo `deploy.yml`, com o KV e o segredo `DISCORD_ALERTAS`; não há nada a configurar à mão. Sem UptimeRobot (ADR 0012).
+- **Vigia (F13h):** o Worker `acordu-vigia` sobe pelo `deploy.yml`, com o KV e o segredo `DISCORD_ALERTAS`; não há nada a configurar à mão. Sem UptimeRobot (ADR 0012). Se o primeiro deploy criar o KV `acordu-vigia-estado` e falhar antes de publicar a vigia (ou se a vigia for apagada), o deploy seguinte não consegue criar outro com o mesmo nome: apague o namespace no painel (Workers → KV) e rode o deploy de novo.
 - **Discord (ADR 0012):** um servidor privado com três canais, cada um com um webhook (Configurações do canal → Integrações → Webhooks):
   - **#alertas** → secret `DISCORD_ALERTAS`: erros da API e do app, jobs com falha, queda, deploy e backup que falharam. Deixe a notificação do celular ligada.
   - **#deploy** → secret `DISCORD_DEPLOY`: deploy ok, heartbeat do backup e resumo do diário. Pode ficar silenciado.

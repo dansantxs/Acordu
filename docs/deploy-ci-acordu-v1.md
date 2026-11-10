@@ -54,7 +54,7 @@ Proxy fino, sem lógica de negócio:
 
 - Cron Trigger de 5 min: `GET https://api.acordu.app.br/api/health` pela internet e pela borda, como um cliente (`global_fetch_strictly_public`), com 15 s de espera;
 - duas falhas seguidas avisam "API fora do ar desde HH:MM" em #alertas, uma vez por queda; a volta avisa "API voltou, fora por N min"; uma falha só (partida a frio) não avisa;
-- estado no KV `ESTADO`, gravado só quando muda (uma queda gasta três gravações); o KV é criado no primeiro deploy pelo provisionamento automático do `wrangler` (o id não fica no repositório);
+- estado no KV `ESTADO`, gravado só quando muda (uma queda gasta três gravações com o Discord respondendo; sem webhook ou com o Discord fora, a queda grava a cada checagem, até 288 por dia, abaixo do teto de 1.000); a volta guarda a hora em que voltou, para a duração não crescer se o aviso atrasar; o KV é criado no primeiro deploy pelo provisionamento automático do `wrangler` (o id não fica no repositório);
 - `DISCORD_ALERTAS` vai como segredo do Worker pelo `deploy.yml`; sem ele, a vigia só registra no log;
 - sem rota pública; código em `infra/cloudflare/vigia/`, testado na CI (job **Worker (vigia)**).
 
@@ -109,7 +109,8 @@ Com `Proxy__TokenOrigem` definido, a API responde 404 a requisição sem o token
 5. **Healthcheck** `GET /api/health` pela borda; falhou → tráfego de volta à revisão anterior (`gcloud run services update-traffic --to-revisions`). Até a borda apontar para o serviço (variável `BORDA_ATIVA=true`, runbook C4), confere direto na URL `*.run.app`, com o `X-Origem-Token`. Só "serviço não existe" conta como primeiro deploy; outro erro ao ler o serviço para o deploy, para não desligar o rollback.
 6. **Worker:** `wrangler deploy` de `infra/cloudflare/api-borda` (`keep_vars`: `ORIGEM` e `TOKEN_ORIGEM` ficam como estão).
 7. **SPA:** build de `apps/web` com `VITE_URL_API=https://api.acordu.app.br`, `VITE_TEMPO_REAL=polling` e `VITE_TURNSTILE_CHAVE` (variável `TURNSTILE_CHAVE_SITE`, obrigatória), publicado no Pages (`wrangler pages deploy` no projeto `acordu-web`, criado no primeiro deploy). O `public/_headers` vai junto: além da CSP, `no-cache` no `sw.js` e no `manifest.webmanifest` (app instalável, F12f). O token do Cloudflare tem o mínimo de conta e zona (runbook C3); o Cloudflare não restringe token a um script ou projeto.
-8. Discord (`.github/actions/avisar-discord`, F13g): sucesso em #deploy com o commit; falha em #alertas com o link da execução. Sem o webhook do canal, pula; o Discord fora só vira aviso no log.
+8. **Vigia:** `wrangler deploy` de `infra/cloudflare/vigia` (o KV `ESTADO` é criado no primeiro deploy) e `wrangler secret put DISCORD_ALERTAS`. Vem por último e não segura o deploy: se falhar, o passo avisa no log e a API e o SPA ficam no ar.
+9. Discord (`.github/actions/avisar-discord`, F13g): sucesso em #deploy com o commit; falha em #alertas com o link da execução. Sem o webhook do canal, pula; o Discord fora só vira aviso no log.
 
 ---
 
@@ -144,7 +145,7 @@ Cada job é um endpoint interno (`POST /internal/jobs/<nome>`): `X-Job-Token` co
 
 ## 7. Segredos e configuração
 
-- **GitHub Actions:** nenhuma chave do Google (WIF). Nomes das variáveis e dos secrets no runbook ("Segredos do GitHub"). Variáveis `GCP_WIF_PROVIDER`, `GCP_PROJECT_ID`, `BORDA_ATIVA`, `BACKUP_ATIVO` e `TURNSTILE_CHAVE_SITE` (chave do site do Turnstile, pública, para o build do SPA; conferida antes de publicar). Secrets: connection string direta do `acordu_migrator`, variáveis da API (abaixo), token do Cloudflare (Pages + Worker), token R2 de backup, webhooks do Discord (`DISCORD_ALERTAS`, `DISCORD_DEPLOY`, `DISCORD_SUGESTOES`, um por canal; ADR 0012). Variável opcional `OPERACAO_LINK_ERROS` (link do Error Reporting nos avisos de erro).
+- **GitHub Actions:** nenhuma chave do Google (WIF). Nomes das variáveis e dos secrets no runbook ("Segredos do GitHub"). Variáveis `GCP_WIF_PROVIDER`, `GCP_PROJECT_ID`, `BORDA_ATIVA`, `BACKUP_ATIVO` e `TURNSTILE_CHAVE_SITE` (chave do site do Turnstile, pública, para o build do SPA; conferida antes de publicar). Secrets: connection string direta do `acordu_migrator`, variáveis da API (abaixo), token do Cloudflare (Pages, Workers e o KV da vigia), token R2 de backup, webhooks do Discord (`DISCORD_ALERTAS`, `DISCORD_DEPLOY`, `DISCORD_SUGESTOES`, um por canal; ADR 0012). Variável opcional `OPERACAO_LINK_ERROS` (link do Error Reporting nos avisos de erro).
 - **Variáveis da API no Cloud Run:**
   - `ConnectionStrings__Acordu` (pooled, `acordu_app`);
   - `Jwt__ChaveAssinatura`; `Jobs__Token`;
@@ -158,7 +159,7 @@ Cada job é um endpoint interno (`POST /internal/jobs/<nome>`): `X-Job-Token` co
   - `Turnstile__Segredo` (proteção do cadastro, RNF-SEG-10; obrigatório no `deploy.yml`, secret `API_TURNSTILE_SEGREDO`);
   - `Logs__Formato=json` (logs estruturados para o Cloud Logging e o Error Reporting, RNF-OPS-01) e `App__Versao` (o commit, no `serviceContext` dos erros); fixas no `deploy.yml` (ADR 0012).
   - `Discord__Alertas`, `Discord__Deploy`, `Discord__Sugestoes` (webhooks dos canais, só https; sem, o canal não envia), `Operacao__AvisosPorHora` (teto de avisos de erro, padrão 20) e `Operacao__LinkErros` (link do Error Reporting na mensagem). O `deploy.yml` passa os mesmos webhooks dos workflows (`DISCORD_*`) e a variável `OPERACAO_LINK_ERROS`; sem um webhook, a API sobe e o deploy avisa no log que aquele canal fica sem avisos.
-- **Segredo do Worker:** `TOKEN_ORIGEM`; variável `ORIGEM` com a URL `*.run.app`.
+- **Segredo do Worker da borda:** `TOKEN_ORIGEM`; variável `ORIGEM` com a URL `*.run.app`. **Da vigia:** `DISCORD_ALERTAS`, posto pelo `deploy.yml`.
 - **Risco aceito (nível 0):** os secrets de produção são do repositório, não de um *environment* com restrição de branch (o plano Free com repositório privado não oferece). O WIF limita o Google à `main`, mas um workflow alterado em qualquer branch do próprio repositório alcança Neon (migrator), R2 e Cloudflare. A guarda `if: github.ref == 'refs/heads/main'` do `deploy.yml` evita engano, não abuso. Mitigação: só o Daniel tem escrita no repositório, com MFA; PRs de fork não recebem secrets. Revisar quando houver outro colaborador ou cliente pagante (environment protegido ou Secret Manager).
 - Secret Manager fica como evolução.
 
