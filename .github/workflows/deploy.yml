@@ -117,6 +117,11 @@ jobs:
           Armazenamento__Endpoint: ${{ secrets.R2_ENDPOINT }}
           Armazenamento__ChaveAcesso: ${{ secrets.API_R2_CHAVE_ACESSO }}
           Armazenamento__ChaveSecreta: ${{ secrets.API_R2_CHAVE_SECRETA }}
+          # Avisos de operação da API (ADR 0012): os mesmos webhooks dos workflows; sem, o canal não envia.
+          Discord__Alertas: ${{ secrets.DISCORD_ALERTAS }}
+          Discord__Deploy: ${{ secrets.DISCORD_DEPLOY }}
+          Discord__Sugestoes: ${{ secrets.DISCORD_SUGESTOES }}
+          Operacao__LinkErros: ${{ vars.OPERACAO_LINK_ERROS }}
         run: |
           python3 - "$RUNNER_TEMP/env-api.yaml" <<'PY'
           import json, os, sys
@@ -139,6 +144,8 @@ jobs:
                           "Email__ResendChave", "Turnstile__Segredo"]
           # Sem endpoint do R2, a API sobe sem anexos (ComposicaoApi); com ele, as chaves são obrigatórias.
           opcionais = ["Armazenamento__Endpoint", "Armazenamento__ChaveAcesso", "Armazenamento__ChaveSecreta"]
+          # Sem webhook, o canal não envia (a API sobe igual); sem o link, o aviso de erro sai sem ele.
+          avisos = ["Discord__Alertas", "Discord__Deploy", "Discord__Sugestoes", "Operacao__LinkErros"]
 
           faltam = [n for n in obrigatorias if not os.environ.get(n, "").strip()]
           if not os.environ.get("TURNSTILE_CHAVE_SITE", "").strip():
@@ -149,7 +156,7 @@ jobs:
               sys.exit("Faltam: " + ", ".join(faltam))
 
           variaveis = dict(fixas)
-          variaveis.update({n: os.environ[n] for n in obrigatorias + opcionais if os.environ.get(n)})
+          variaveis.update({n: os.environ[n] for n in obrigatorias + opcionais + avisos if os.environ.get(n)})
           if "Armazenamento__Endpoint" not in variaveis:
               for n in ("Armazenamento__Regiao", "Armazenamento__Bucket"):
                   variaveis.pop(n)
@@ -157,6 +164,9 @@ jobs:
           with open(os.open(caminho, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600), "w") as f:
               json.dump(variaveis, f)  # JSON é YAML válido.
           print("Variáveis:", ", ".join(sorted(variaveis)))
+          sem = [n for n in avisos[:3] if n not in variaveis]
+          if sem:
+              print("::warning::Sem " + ", ".join(sem) + ": esses canais do Discord não recebem avisos da API.")
           PY
 
       # Parâmetros do deploy-ci §2.2. O --to-latest desfaz um rollback anterior, que fixa o tráfego numa revisão.
@@ -245,17 +255,13 @@ jobs:
           fi
           "$wrangler" pages deploy dist --project-name acordu-web --branch main --commit-hash "$GITHUB_SHA"
 
+      # Sucesso em #deploy, falha em #alertas (ADR 0012, F13-31).
       - name: Discord
         if: always()
-        env:
-          WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
-          STATUS: ${{ job.status }}
-          RUN: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
-        run: |
-          [[ -z "$WEBHOOK" ]] && { echo "Sem DISCORD_WEBHOOK; aviso pulado."; exit 0; }
-          if [[ "$STATUS" == "success" ]]; then
-            texto="Deploy ok: ${GITHUB_SHA:0:7}"
-          else
-            texto="Deploy falhou ($STATUS) em ${GITHUB_SHA:0:7}: $RUN"
-          fi
-          jq -n --arg t "$texto" '{content: $t}' | curl -fsS -H 'Content-Type: application/json' -d @- "$WEBHOOK"
+        uses: ./.github/actions/avisar-discord
+        with:
+          status: ${{ job.status }}
+          ok: "**Deploy ok** · `${{ github.sha }}`"
+          falha: "**Deploy falhou** (${{ job.status }}) em `${{ github.sha }}`: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+          deploy: ${{ secrets.DISCORD_DEPLOY }}
+          alertas: ${{ secrets.DISCORD_ALERTAS }}
