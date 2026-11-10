@@ -156,6 +156,34 @@ public sealed class ErrosWebTests(ApiFixture api)
     }
 
     [Fact]
+    public async Task Registrar_CorpoSemTamanhoAcimaDe16KB_413() // F13-19
+    {
+        using var http = api.NovoHttp();
+        var grande = Encoding.UTF8.GetBytes(JsonSerializer.Serialize(new { mensagem = "x", pilha = new string('a', 17 * 1024) }));
+        using var conteudo = new StreamContent(new MemoryStream(grande));
+        conteudo.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue("text/plain");
+        using var pedido = new HttpRequestMessage(HttpMethod.Post, new Uri(Rota, UriKind.Relative)) { Content = conteudo };
+        pedido.Headers.TransferEncodingChunked = true;
+
+        using var resposta = await http.SendAsync(pedido);
+
+        resposta.StatusCode.Should().Be(HttpStatusCode.RequestEntityTooLarge);
+    }
+
+    [Fact]
+    public async Task Registrar_VersaoDoRelato_NoServiceContext() // F13-15
+    {
+        var (app, _, logs) = await ApiAsync();
+        await using var montada = app;
+
+        using var resposta = await EnviarAsync(app, new { mensagem = Unica(), versao = "velha12" });
+
+        resposta.StatusCode.Should().Be(HttpStatusCode.NoContent);
+        logs.Linhas.Single(l => l.GetProperty("severity").GetString() == "ERROR")
+            .GetProperty("serviceContext").GetProperty("version").GetString().Should().Be("velha12", "uma aba com o SPA antigo mostra a versão dela");
+    }
+
+    [Fact]
     public async Task Registrar_CamposLongos_Cortados() // F13-19
     {
         var (app, _, logs) = await ApiAsync();
@@ -183,8 +211,23 @@ public sealed class ErrosWebTests(ApiFixture api)
     [InlineData("    at https://acordu.app.br/assets/index-B3x9aZk1.js:1:2", "(anônima) (assets/index.js)")]
     [InlineData("Ab@https://acordu.app.br/assets/index-B3x9aZk1.js:12:345", "Ab (assets/index.js)")]
     [InlineData("@https://acordu.app.br/assets/chunk-Dd7_kq0P.js:3:4", "(anônima) (assets/chunk.js)")]
+    [InlineData("    at Ab (https://acordu.app.br/assets/index-BbhaJrIF.js:1:144523)", "Ab (assets/index.js)")]
+    [InlineData("    at async Carregar (https://acordu.app.br/assets/consultas--pNxrSBH.js:1:20345)", "Carregar (assets/consultas.js)")]
+    [InlineData("    at new Painel (https://acordu.app.br/assets/_app-DUkjv1h-.js:2:3)", "Painel (assets/_app.js)")]
+    [InlineData("    at Object.salvar [as onPress] (https://acordu.app.br/assets/Button-BE1-a82j.js:9:88)", "Object.salvar (assets/Button.js)")]
     public void PrimeiroQuadro_ChromeEFirefox_FuncaoEArquivoSemHash(string linha, string esperado) =>
-        ErrosWebEndpoints.PrimeiroQuadro($"TypeError: x\n{linha}").Should().Be(esperado);
+        ErrosWebEndpoints.PrimeiroQuadro(ErrosWebEndpoints.Limpar($"TypeError: x\n{linha}", 4000)).Should().Be(esperado);
+
+    [Theory]
+    [InlineData("CPF 123.456.789-00 inválido", "CPF # inválido")]
+    [InlineData("CNPJ 12.345.678/0001-90", "CNPJ #")]
+    [InlineData("ligar (18) 99999-1234", "ligar #")]
+    [InlineData("link /p/AbCdEfGhIjKlMnOpQrStUvWxYz0123456789_-abc expirou", "link /p/[token] expirou")]
+    [InlineData("Unexpected token '?' em a?.b", "Unexpected token '?' em a?.b")]
+    [InlineData("x `](https://mal.site) y", "x '](https://mal.site) y")]
+    [InlineData("versão 1.2.3 na linha 12", "versão 1.2.3 na linha 12")]
+    public void Limpar_DadosEMarkdown_Saem(string texto, string esperado) =>
+        ErrosWebEndpoints.Limpar(texto, 500).Should().Be(esperado);
 
     [Theory]
     [InlineData("/clientes/7c1f0e2a-1b2c-4d5e-8f90-a1b2c3d4e5f6/contratos?aba=2", "/clientes/:id/contratos")]
