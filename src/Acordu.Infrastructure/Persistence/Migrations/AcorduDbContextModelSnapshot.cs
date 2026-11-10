@@ -986,65 +986,6 @@ namespace Acordu.Infrastructure.Persistence.Migrations
                     b.ToTable("solicitacoes", (string)null);
                 });
 
-            modelBuilder.Entity("Acordu.Domain.Entities.Sugestao", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .HasColumnType("uuid")
-                        .HasColumnName("id");
-
-                    b.Property<DateTimeOffset?>("AvisadaEm")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("avisada_em");
-
-                    b.Property<DateTimeOffset>("CriadaEm")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("criada_em");
-
-                    b.Property<Guid?>("EmpresaId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("empresa_id");
-
-                    b.Property<int>("Numero")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer")
-                        .HasColumnName("numero");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityAlwaysColumn(b.Property<int>("Numero"));
-
-                    b.Property<Guid?>("PessoaId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("pessoa_id");
-
-                    b.Property<string>("Tela")
-                        .HasMaxLength(200)
-                        .HasColumnType("character varying(200)")
-                        .HasColumnName("tela");
-
-                    b.Property<string>("Texto")
-                        .IsRequired()
-                        .HasMaxLength(2000)
-                        .HasColumnType("character varying(2000)")
-                        .HasColumnName("texto");
-
-                    b.HasKey("Id")
-                        .HasName("pk_sugestoes");
-
-                    b.HasIndex("AvisadaEm")
-                        .HasDatabaseName("ix_sugestoes_avisada_em");
-
-                    b.HasIndex("EmpresaId")
-                        .HasDatabaseName("ix_sugestoes_empresa_id");
-
-                    b.HasIndex("Numero")
-                        .IsUnique()
-                        .HasDatabaseName("ix_sugestoes_numero");
-
-                    b.HasIndex("PessoaId", "CriadaEm")
-                        .HasDatabaseName("ix_sugestoes_pessoa_id_criada_em");
-
-                    b.ToTable("sugestoes", (string)null);
-                });
-
             modelBuilder.Entity("Acordu.Domain.Entities.Tarefa", b =>
                 {
                     b.Property<Guid>("Id")

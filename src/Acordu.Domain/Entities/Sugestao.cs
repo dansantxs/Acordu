@@ -64,6 +64,4 @@ public sealed class Sugestao
             telaLimpa = telaLimpa[..TelaMaxima];
         return new Sugestao(id, empresaId, pessoaId, limpo, telaLimpa, agora);
     }
-
-    public void MarcarAvisada(DateTimeOffset agora) => AvisadaEm ??= agora;
 }
