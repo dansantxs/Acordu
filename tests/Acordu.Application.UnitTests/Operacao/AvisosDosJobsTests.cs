@@ -91,6 +91,38 @@ public sealed class AvisosDosJobsTests
     }
 
     [Fact]
+    public async Task DiarioAsync_ComFalha_SoAlertasSemResumo() // F13-13, F13-14
+    {
+        var mensageiro = new Mensageiro(CanalOperacao.Alertas, CanalOperacao.Deploy);
+
+        await Avisos(mensageiro).DiarioAsync([new("expurgo-auditoria", 1)], [("fechadas", 2)]);
+
+        mensageiro.Enviadas.Should().ContainSingle().Which.Canal.Should().Be(CanalOperacao.Alertas);
+    }
+
+    [Fact]
+    public async Task DiarioAsync_SemFalha_SoOResumo() // F13-14
+    {
+        var mensageiro = new Mensageiro(CanalOperacao.Alertas, CanalOperacao.Deploy);
+
+        await Avisos(mensageiro).DiarioAsync([], [("fechadas", 2)]);
+
+        mensageiro.Enviadas.Should().ContainSingle().Which.Canal.Should().Be(CanalOperacao.Deploy);
+    }
+
+    [Fact]
+    public void PorPasso_LancouEFalhouPorTenant_SomaPorPassoSemZerados() =>
+        AvisosDosJobs.PorPasso(
+                ["expurgo-auditoria", "expurgo-cadastros"],
+                [new("fechamento-automatico", 2), new("expurgo-cadastros", 0), new("recorrencias", 0)])
+            .Should().BeEquivalentTo(new[]
+            {
+                new FalhaDePasso("expurgo-auditoria", 1),
+                new FalhaDePasso("expurgo-cadastros", 1),
+                new FalhaDePasso("fechamento-automatico", 2),
+            });
+
+    [Fact]
     public async Task FalhasAsync_SemWebhookDeAlertas_NadaSaiNemMarca()
     {
         var mensageiro = new Mensageiro(CanalOperacao.Deploy);
@@ -101,7 +133,7 @@ public sealed class AvisosDosJobsTests
     }
 
     [Fact]
-    public async Task ResumoDoDiarioAsync_UmaVezPorDiaEmDeploy() // F13-14
+    public async Task ResumoDoDiarioAsync_DisparoRepetidoNoDia_UmaMensagemEmDeploy() // F13-14
     {
         var mensageiro = new Mensageiro(CanalOperacao.Deploy);
         var avisos = Avisos(mensageiro);

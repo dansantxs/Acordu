@@ -32,8 +32,19 @@ public sealed class AvisosDosJobsTests(ApiFixture api)
             new Dictionary<string, string?> { ["Discord:Deploy"] = DiscordFalso.Deploy, ["Discord:Alertas"] = DiscordFalso.Alertas },
             servicos: s => s.AddHttpClient(ComposicaoApi.NomeClienteDiscord).ConfigurePrimaryHttpMessageHandler(() => discord));
 
-        var primeiro = await DiarioAsync(app);
-        await DiarioAsync(app);
+        // Um dia só deste teste: a marca do resumo fica no banco compartilhado.
+        var antes = api.Relogio.Agora;
+        api.Relogio.Agora = antes.AddDays(3);
+        JsonElement primeiro;
+        try
+        {
+            primeiro = await DiarioAsync(app);
+            await DiarioAsync(app);
+        }
+        finally
+        {
+            api.Relogio.Agora = antes;
+        }
 
         primeiro.GetProperty("falhas").GetInt32().Should().Be(0);
         primeiro.TryGetProperty("marcasOperacaoRemovidas", out _).Should().BeTrue();
