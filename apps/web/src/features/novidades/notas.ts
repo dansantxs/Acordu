@@ -18,7 +18,7 @@ export const NOTAS: NotaVersao[] = [
         titulo: 'Acordu como aplicativo',
         itens: [
             'Dá para instalar o Acordu no computador e no celular, com ícone próprio: no Chrome ou no Edge, use "Instalar o Acordu" no menu com o seu nome; no iPhone, Compartilhar > "Adicionar à Tela de Início".',
-            'Instalado no Android, o Acordu também mostra as notificações do sistema.',
+            'No Android (instalado ou no Chrome), o Acordu também mostra as notificações do sistema.',
         ],
     },
     {

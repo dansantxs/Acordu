@@ -1,7 +1,7 @@
 import { act, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { prepararInstalacao } from '@/shared/app/instalacao'
+import { prepararInstalacao, reiniciarInstalacaoParaTestes } from '@/shared/app/instalacao'
 import { reiniciarParaTestes } from '@/shared/sessao/sessao'
 import { abrir, comSessao, json, perfil, servidor, type Rotas } from '@/testes/app'
 
@@ -18,7 +18,10 @@ function app(permissoes: string[], extras: Rotas = {}) {
 
 describe('casca do app', () => {
     beforeEach(() => reiniciarParaTestes())
-    afterEach(() => vi.unstubAllGlobals())
+    afterEach(() => {
+        reiniciarInstalacaoParaTestes()
+        vi.unstubAllGlobals()
+    })
 
     it('a capa só mostra o que o papel pode ver', async () => {
         app(['solicitacao.ver', 'tarefa.ver'])
@@ -113,8 +116,8 @@ describe('casca do app', () => {
         app([])
         await abrir('/')
         const usuario = userEvent.setup()
-        expect(document.head.querySelector('link[rel="manifest"]')).not.toBeNull()
         await usuario.click(await screen.findByRole('button', { name: /Ana Prado/ }))
+        expect(document.head.querySelector('link[rel="manifest"]')).not.toBeNull()
         expect(screen.queryByRole('menuitem', { name: 'Instalar o Acordu' })).not.toBeInTheDocument()
         await usuario.keyboard('{Escape}')
 

@@ -118,6 +118,27 @@ describe('notificação do navegador', () => {
             )
         })
 
+        it('se o service worker falhar ao mostrar, outra tentativa pode mostrar depois', async () => {
+            vi.stubGlobal(
+                'Notification',
+                class extends NotificacaoFalsa {
+                    constructor(titulo: string, opcoes: NotificationOptions) {
+                        super(titulo, opcoes)
+                        throw new TypeError('Illegal constructor')
+                    }
+                },
+            )
+            const mostrar = vi.fn().mockRejectedValueOnce(new TypeError('No notification permission')).mockResolvedValue(undefined)
+            vi.stubGlobal('navigator', {
+                ...navigator,
+                serviceWorker: { controller: {}, ready: Promise.resolve({ showNotification: mostrar }) },
+            })
+            expect(notificar(ANA, aviso('n11'), vi.fn(), AGORA)).toBe(true)
+            await vi.waitFor(() => expect(localStorage.getItem('acordu:notificada:n11')).toBeNull())
+            expect(notificar(ANA, aviso('n11'), vi.fn(), AGORA)).toBe(true)
+            await vi.waitFor(() => expect(mostrar).toHaveBeenCalledTimes(2))
+        })
+
         it('aviso velho (mais de 10 min) ou de antes de ligar não vira notificação', () => {
             expect(notificar(ANA, aviso('n3', 13), vi.fn(), AGORA)).toBe(false)
             expect(notificar(ANA, aviso('n4', 61), vi.fn(), AGORA)).toBe(false)

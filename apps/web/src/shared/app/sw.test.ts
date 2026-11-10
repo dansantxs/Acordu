@@ -52,7 +52,7 @@ describe('service worker (F12-28, F12-29)', () => {
     it('navegação vai à rede; sem rede, mostra "Sem conexão"', async () => {
         sw.buscar.mockRejectedValueOnce(new TypeError('Failed to fetch'))
         let resposta: Promise<unknown> = Promise.resolve()
-        sw.ouvintes.fetch!({ request: { mode: 'navigate' }, respondWith: (p: Promise<unknown>) => (resposta = p) })
+        sw.ouvintes.fetch!({ request: { mode: 'navigate', url: 'https://acordu.app.br/tarefas/x' }, respondWith: (p: Promise<unknown>) => (resposta = p) })
         expect(await resposta).toBe('pagina-offline')
         expect(sw.buscar).toHaveBeenCalled()
     })
@@ -63,9 +63,35 @@ describe('service worker (F12-28, F12-29)', () => {
             request: { mode: 'cors', url: 'https://api.acordu.app.br/api/v1/tarefas' },
             respondWith: responder,
         })
-        sw.ouvintes.fetch!({ request: { mode: 'no-cors' }, respondWith: responder })
+        sw.ouvintes.fetch!({ request: { mode: 'no-cors', url: 'https://acordu.app.br/assets/index.js' }, respondWith: responder })
+        sw.ouvintes.fetch!({ request: { mode: 'no-cors', url: 'https://outro.site/offline.css' }, respondWith: responder })
         expect(responder).not.toHaveBeenCalled()
         expect(sw.caches.match).not.toHaveBeenCalled()
+    })
+
+    it('sem rede, o estilo e o ícone da página "Sem conexão" vêm do cache', async () => {
+        sw.buscar.mockRejectedValue(new TypeError('Failed to fetch'))
+        for (const caminho of ['/offline.css', '/icones/icone-192.png']) {
+            let resposta: Promise<unknown> = Promise.resolve()
+            sw.ouvintes.fetch!({
+                request: { mode: 'no-cors', url: `https://acordu.app.br${caminho}` },
+                respondWith: (p: Promise<unknown>) => (resposta = p),
+            })
+            expect(await resposta).toBe('pagina-offline')
+            expect(sw.caches.match).toHaveBeenLastCalledWith(caminho, { cacheName: 'acordu-casca-1' })
+        }
+    })
+
+    it('clique na notificação com caminho de fora abre só o início', async () => {
+        for (const caminho of ['//mal.site/x', 'https://mal.site/x', '/\\mal.site']) {
+            let espera: Promise<unknown> = Promise.resolve()
+            sw.ouvintes.notificationclick!({
+                notification: { close: vi.fn(), data: { caminho } },
+                waitUntil: (p: Promise<unknown>) => (espera = p),
+            })
+            await espera
+            expect(sw.janela.navigate).toHaveBeenLastCalledWith('/')
+        }
     })
 
     it('clique na notificação foca a janela aberta e leva ao item', async () => {

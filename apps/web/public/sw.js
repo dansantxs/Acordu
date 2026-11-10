@@ -27,14 +27,29 @@ self.addEventListener('activate', (evento) => {
 })
 
 self.addEventListener('fetch', (evento) => {
-    // Só a navegação passa por aqui; o resto (API, arquivos do app) segue direto, sem cache do service worker.
-    if (evento.request.mode !== 'navigate') return
-    evento.respondWith(fetch(evento.request).catch(() => caches.match('/offline.html', { cacheName: VERSAO })))
+    const pedido = evento.request
+    // Navegação: sempre a rede; sem rede, "Sem conexão".
+    if (pedido.mode === 'navigate') {
+        evento.respondWith(fetch(pedido).catch(() => caches.match('/offline.html', { cacheName: VERSAO })))
+        return
+    }
+    // O que a página "Sem conexão" usa (caminho exato, mesma origem): rede primeiro, cache sem rede. O resto (API,
+    // arquivos do app) segue direto, sem cache do service worker.
+    const url = new URL(pedido.url)
+    if (url.origin !== self.location.origin || !CASCA.includes(url.pathname)) return
+    evento.respondWith(fetch(pedido).catch(() => caches.match(url.pathname, { cacheName: VERSAO })))
 })
+
+/** Só caminho interno do app ("/x"), nunca outra origem ("//x", "https://x"). */
+function caminhoInterno(valor) {
+    return typeof valor === 'string' && valor.startsWith('/') && !valor.startsWith('//') && !valor.startsWith('/\\')
+        ? valor
+        : '/'
+}
 
 self.addEventListener('notificationclick', (evento) => {
     evento.notification.close()
-    const caminho = (evento.notification.data && evento.notification.data.caminho) || '/'
+    const caminho = caminhoInterno(evento.notification.data && evento.notification.data.caminho)
     evento.waitUntil(
         self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((janelas) => {
             const aberta = janelas.find((j) => new URL(j.url).origin === self.location.origin)

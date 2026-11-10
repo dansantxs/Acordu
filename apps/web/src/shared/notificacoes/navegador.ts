@@ -80,6 +80,11 @@ function reservar(id: string, agora: number): boolean {
     return true
 }
 
+/** Desfaz a reserva quando a notificação não saiu: outra aba, ou a próxima consulta, tenta de novo. */
+function liberar(id: string): void {
+    armazenamento()?.removeItem(PREFIXO_MOSTRADA + id)
+}
+
 export interface Notificavel {
     /** Único por aviso: decide a repetição entre abas. */
     id: string
@@ -94,7 +99,8 @@ export interface Notificavel {
 /**
  * Mostra a notificação se a pessoa ligou, o navegador permite, o aviso é novo (depois de ligar e há menos de 10 min,
  * com 2 min de folga de relógio) e nenhuma outra aba já mostrou. Sai também com o Acordu visível: o pop-up é o mesmo
- * aviso do sino, e quem não quer desliga. `abrir` recebe o caminho no clique.
+ * aviso do sino, e quem não quer desliga. `abrir` recebe o caminho no clique. Devolve se tentou mostrar: pelo service
+ * worker a resposta vem depois, e uma falha lá só desfaz a reserva (o aviso continua no sino de qualquer jeito).
  */
 export function notificar(
     escopo: string,
@@ -122,7 +128,10 @@ export function notificar(
         return true
     } catch {
         // Android Chrome só aceita notificação pelo service worker (F12f): mostra por ele, e o clique abre o item lá.
-        if (!('serviceWorker' in navigator) || !navigator.serviceWorker.controller) return false
+        if (!('serviceWorker' in navigator) || !navigator.serviceWorker.controller) {
+            liberar(aviso.id)
+            return false
+        }
         void navigator.serviceWorker.ready
             .then((registro) =>
                 registro.showNotification(aviso.titulo, {
@@ -132,7 +141,7 @@ export function notificar(
                     data: { caminho: aviso.caminho ?? '/' },
                 }),
             )
-            .catch(() => undefined)
+            .catch(() => liberar(aviso.id))
         return true
     }
 }
