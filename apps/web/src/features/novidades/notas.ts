@@ -17,7 +17,7 @@ export const NOTAS: NotaVersao[] = [
         publico: 'equipe',
         titulo: 'Sugerir melhoria',
         itens: [
-            'No menu com o seu nome, "Sugerir melhoria" manda uma ideia direto para a equipe do Acordu. Seu nome e seu e-mail não vão junto.',
+            'No menu com o seu nome, "Sugerir melhoria" manda uma ideia direto para a equipe do Acordu. Quem lê vê o nome da empresa, não o seu nome nem o seu e-mail.',
         ],
     },
     {

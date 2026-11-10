@@ -423,7 +423,7 @@ export const SECOES_AJUDA: SecaoAjuda[] = [
         ],
         dicas: [
             'Não escreva dados dos seus clientes: a sugestão vai para a equipe do Acordu, fora dos dados da sua empresa.',
-            'Seu nome e seu e-mail não vão na sugestão; vai o nome da empresa.',
+            'Quem lê a sugestão vê o nome da empresa, não o seu nome nem o seu e-mail.',
             'Dá para mandar até 5 sugestões por hora.',
         ],
     },
