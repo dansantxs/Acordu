@@ -45,8 +45,7 @@ public sealed class SugestoesTests(ApiFixture api)
         await using var db = api.DaEquipe(Guid.NewGuid());
         return await db.Database
             .SqlQuery<Linha>($"""
-                SELECT empresa_id AS "Empresa", pessoa_id AS "Pessoa", avisada_em AS "AvisadaEm", texto AS "Texto", tela AS "Tela"
-                FROM sugestoes WHERE id = {id}
+                SELECT empresa_id, pessoa_id, avisada_em, texto, tela FROM sugestoes WHERE id = {id}
                 """)
             .SingleAsync();
     }
@@ -59,9 +58,10 @@ public sealed class SugestoesTests(ApiFixture api)
 
     private sealed class Linha
     {
-        public Guid? Empresa { get; set; }
+        // Colunas pelo nome em snake_case (a convenção do contexto vale também para o tipo não mapeado).
+        public Guid? EmpresaId { get; set; }
 
-        public Guid? Pessoa { get; set; }
+        public Guid? PessoaId { get; set; }
 
         public DateTimeOffset? AvisadaEm { get; set; }
 
@@ -87,8 +87,8 @@ public sealed class SugestoesTests(ApiFixture api)
         var numero = corpo.GetProperty("numero").GetInt32();
         numero.Should().BePositive();
         var gravada = await GravadaAsync(corpo.GetProperty("id").GetGuid());
-        gravada.Empresa.Should().Be(equipe.TenantId);
-        gravada.Pessoa.Should().Be(await UsuarioAsync(equipe));
+        gravada.EmpresaId.Should().Be(equipe.TenantId);
+        gravada.PessoaId.Should().Be(await UsuarioAsync(equipe));
         gravada.Texto.Should().Be("Seria bom filtrar tarefas por cliente. @everyone", "sem os espaços das pontas");
         gravada.Tela.Should().Be("/tarefas/:id");
         gravada.AvisadaEm.Should().NotBeNull();
