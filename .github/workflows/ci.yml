@@ -39,7 +39,8 @@ jobs:
           filters: |
             pipeline: &pipeline
               - .github/workflows/ci.yml
-              - .github/actions/**
+              # Só a ação que sobe o Acordu: o aviso do Discord tem o job próprio ("Ações").
+              - .github/actions/subir-acordu/**
               - .editorconfig
               - .gitattributes
             backend:
@@ -74,7 +75,6 @@ jobs:
               - *pipeline
               - infra/cloudflare/**
 
-
   acoes:
     name: Ações (aviso do Discord)
     needs: mudancas
@@ -88,6 +88,7 @@ jobs:
           persist-credentials: false
       - name: Testes do avisar.sh
         run: bash .github/actions/avisar-discord/avisar.test.sh
+
   backend:
     name: Backend (.NET)
     needs: mudancas
