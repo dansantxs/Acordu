@@ -4,6 +4,7 @@ using System.Text.RegularExpressions;
 using Acordu.Api.Erros;
 using Acordu.Api.Seguranca;
 using Acordu.Application.Abstractions.Operacao;
+using Acordu.Application.Common;
 using Microsoft.AspNetCore.Http.Json;
 using Microsoft.Extensions.Options;
 
@@ -57,7 +58,7 @@ internal static partial class ErrosWebEndpoints
 
         var mensagem = Limpar(pedido?.Mensagem, LimiteMensagem);
         if (mensagem.Length == 0)
-            throw new ArgumentException("A mensagem do erro é obrigatória.", "mensagem");
+            throw ErroDeCampo.Criar("mensagem", "A mensagem do erro é obrigatória.");
 
         var pilha = Limpar(pedido?.Pilha, LimitePilha);
         var rota = RotaModelo(pedido?.Rota);
