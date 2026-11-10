@@ -2,9 +2,9 @@
 
 | | |
 |---|---|
-| **Status** | Rascunho |
+| **Status** | Aprovada |
 | **Data** | 09/11/2026 |
-| **Requisitos** | Propostos nesta spec: RNF-OPS-01, RNF-OPS-02, RNF-OPS-03 e RF-SUG-01 (ERS, §5). Tocados: RNF-SEG-08, RNF-POR-01, RNF-PRIV-01 |
+| **Requisitos** | RNF-OPS-01, RNF-OPS-02, RNF-OPS-03, RF-SUG-01 (ERS). Tocados: RNF-SEG-08, RNF-POR-01, RNF-PRIV-01 |
 | **ADRs** | 0010 (hospedagem; o monitoramento muda), 0012 (novo: avisos de operação) |
 
 ## 1. Objetivo
@@ -143,7 +143,7 @@ Os erros também ficam no Error Reporting do Google para investigar. A pessoa da
 
 ## 5. Impacto nos documentos
 
-- **ERS (mudanças propostas, porque não há requisito hoje):**
+- **ERS (já atualizada no PR da spec):**
   - **RNF-OPS-01:** erros com contexto e sem dado pessoal, nos logs estruturados.
   - **RNF-OPS-02:** a operação é avisada de erro novo, falha de job, queda, deploy e backup, com deduplicação.
   - **RNF-OPS-03:** os erros do app no navegador são registrados, sem dado pessoal.
@@ -184,3 +184,4 @@ Cada PR contra a `main`, sem empilhar, com testes e CI verde. F13a vem primeiro;
 ## 7. Registro
 
 - 09/11 — rascunho.
+- 10/11 — o Daniel aprovou todas as recomendações (D1 a D6) e pediu o PR da spec.
