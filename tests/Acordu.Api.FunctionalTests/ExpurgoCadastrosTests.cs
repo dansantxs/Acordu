@@ -189,6 +189,30 @@ public sealed class ExpurgoCadastrosTests(ApiFixture api)
     }
 
     [Fact]
+    public async Task Diario_CadastroComSugestao_ExpurgaEASugestaoFicaSemEmpresaNemPessoa() // F13e, RNF-PRIV-01
+    {
+        var cadastro = await RegistrarAsync();
+        using var http = api.NovoHttp();
+        using var pedido = new HttpRequestMessage(HttpMethod.Post, new Uri("/api/v1/sugestoes", UriKind.Relative))
+        {
+            Content = JsonContent.Create(new { texto = "Sugestão de quem desistiu do cadastro." }),
+        };
+        pedido.Headers.Authorization = new AuthenticationHeaderValue("Bearer", cadastro.Token);
+        using var resposta = await http.SendAsync(pedido);
+        resposta.StatusCode.Should().Be(HttpStatusCode.Created);
+        var id = (await resposta.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("id").GetGuid();
+
+        await DiarioAsync(TimeSpan.FromDays(8));
+
+        await using var db = api.DaEquipe(Guid.NewGuid());
+        (await db.Tenants.IgnoreQueryFilters().AnyAsync(t => t.Id == cadastro.TenantId)).Should().BeFalse("a sugestão não conta como dado da empresa");
+        var restantes = await db.Database
+            .SqlQuery<int>($"SELECT count(*)::int AS \"Value\" FROM sugestoes WHERE id = {id} AND empresa_id IS NULL AND pessoa_id IS NULL")
+            .SingleAsync();
+        restantes.Should().Be(1, "a sugestão é da Nebrys: fica, sem a empresa nem a pessoa");
+    }
+
+    [Fact]
     public async Task Diario_RodadoDeNovo_NaoRemoveMais() // F9-36
     {
         await RegistrarAsync();

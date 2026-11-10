@@ -4,6 +4,7 @@ using Acordu.Application.Notificacoes;
 using Acordu.Application.Operacao;
 using Acordu.Application.Recorrencias;
 using Acordu.Application.Solicitacoes;
+using Acordu.Application.Sugestoes;
 using Acordu.Infrastructure.Agendamento;
 using Acordu.Infrastructure.Operacao;
 using Acordu.Infrastructure.Persistence.Auditoria;
@@ -19,7 +20,7 @@ namespace Acordu.Api.Jobs;
 /// <c>X-Job-Token</c>; idempotentes e por todos os tenants. Sem token configurado, ou com token errado, respondem 404
 /// (não revelam a rota).
 /// </summary>
-internal static class JobsEndpoints
+internal static partial class JobsEndpoints
 {
     public const string CabecalhoToken = "X-Job-Token";
 
@@ -39,7 +40,12 @@ internal static class JobsEndpoints
         // os alertas de SLA (RF-NOT-02). As recorrências vêm antes: nenhum efeito pós-commit delas hoje, mas a ordem
         // deixa qualquer um futuro sair no mesmo tick.
         jobs.MapPost("/tick", async (
-            ProcessadorOutbox processador, ExecutorPorTenant executor, AvisosDosJobs avisos, CancellationToken cancellationToken) =>
+            ProcessadorOutbox processador,
+            ExecutorPorTenant executor,
+            AvisosDosJobs avisos,
+            ComandosSugestao sugestoes,
+            ILoggerFactory logs,
+            CancellationToken cancellationToken) =>
         {
             var recorrencias = await executor.ExecutarAsync(
                 "recorrencias",
@@ -64,10 +70,26 @@ internal static class JobsEndpoints
                 "cronometros-esquecidos",
                 (servicos, ct) => servicos.GetRequiredService<AvisosCronometroEsquecido>().ExecutarAsync(ct),
                 cancellationToken);
+            // Sugestões que não saíram em #sugestoes na hora (F13-29). Como os outros passos: a falha conta e não derruba o tick.
+            var sugestoesReenviadas = 0;
+            var falhaSugestoes = 0;
+            try
+            {
+                sugestoesReenviadas = await sugestoes.ReenviarPendentesAsync(cancellationToken);
+            }
+            catch (Exception ex) when (ex is not OperationCanceledException || !cancellationToken.IsCancellationRequested)
+            {
+                falhaSugestoes = 1;
+                ReenvioFalhou(logs.CreateLogger(typeof(JobsEndpoints)), ex);
+            }
+
             // Falha por tenant em algum passo: #alertas, uma vez por passo e por dia (F13-13).
             await avisos.FalhasAsync(
                 "tick",
-                [new("recorrencias", recorrencias.Falhas), new("alertas-sla", alertas.Falhas), new("cronometros-esquecidos", esquecidos.Falhas)],
+                [
+                    new("recorrencias", recorrencias.Falhas), new("alertas-sla", alertas.Falhas),
+                    new("cronometros-esquecidos", esquecidos.Falhas), new("sugestoes-pendentes", falhaSugestoes),
+                ],
                 cancellationToken);
             return Results.Ok(new
             {
@@ -75,7 +97,8 @@ internal static class JobsEndpoints
                 outboxProcessadas = total,
                 alertasSla = alertas.Tratados,
                 cronometrosEsquecidos = esquecidos.Tratados,
-                falhas = recorrencias.Falhas + alertas.Falhas + esquecidos.Falhas,
+                sugestoesReenviadas,
+                falhas = recorrencias.Falhas + alertas.Falhas + esquecidos.Falhas + falhaSugestoes,
             });
         });
 
@@ -188,4 +211,7 @@ internal static class JobsEndpoints
         var recebido = http.Request.Headers[CabecalhoToken].ToString();
         return CryptographicOperations.FixedTimeEquals(Encoding.UTF8.GetBytes(recebido), Encoding.UTF8.GetBytes(esperado));
     }
+
+    [LoggerMessage(EventId = 302, Level = LogLevel.Error, Message = "Tick: o reenvio das sugestões pendentes falhou.")]
+    private static partial void ReenvioFalhou(ILogger logger, Exception erro);
 }

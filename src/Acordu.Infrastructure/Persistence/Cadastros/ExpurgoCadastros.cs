@@ -94,6 +94,11 @@ public sealed partial class ExpurgoCadastros
             return false;
         foreach (var tipo in TiposComTenant(db))
             await (Task<int>)Apagar.MakeGenericMethod(tipo).Invoke(null, [db, tenantId, cancellationToken])!;
+        // Sugestões são da Nebrys, não do tenant: ficam, mas sem a empresa nem a pessoa (RNF-PRIV-01, F13e).
+        await db.Set<Sugestao>().Where(sugestao => sugestao.EmpresaId == tenantId)
+            .ExecuteUpdateAsync(
+                campos => campos.SetProperty(x => x.EmpresaId, (Guid?)null).SetProperty(x => x.PessoaId, (Guid?)null),
+                cancellationToken);
 
         if (tenant.CriadoPorUsuarioId is { } criador && !await TemRastroForaAsync(db, criador, tenantId, cancellationToken))
         {

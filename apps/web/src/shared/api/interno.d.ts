@@ -2385,6 +2385,63 @@ export interface paths {
         patch?: never
         trace?: never
     }
+    '/api/v1/sugestoes': {
+        parameters: {
+            query?: never
+            header?: never
+            path?: never
+            cookie?: never
+        }
+        get?: never
+        put?: never
+        post: {
+            parameters: {
+                query?: never
+                header?: never
+                path?: never
+                cookie?: never
+            }
+            requestBody: {
+                content: {
+                    'application/json': components['schemas']['SugestaoRequest']
+                }
+            }
+            responses: {
+                /** @description Created */
+                201: {
+                    headers: {
+                        [name: string]: unknown
+                    }
+                    content: {
+                        'application/json': components['schemas']['SugestaoCriadaDto']
+                    }
+                }
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown
+                    }
+                    content: {
+                        'application/problem+json': components['schemas']['ProblemDetails']
+                    }
+                }
+                /** @description Too Many Requests */
+                429: {
+                    headers: {
+                        [name: string]: unknown
+                    }
+                    content: {
+                        'application/problem+json': components['schemas']['ProblemDetails']
+                    }
+                }
+            }
+        }
+        delete?: never
+        options?: never
+        head?: never
+        patch?: never
+        trace?: never
+    }
     '/api/v1/eventos': {
         parameters: {
             query?: never
@@ -6165,6 +6222,16 @@ export interface components {
             | 'CANCELADA'
         /** @enum {unknown} */
         StatusTarefa: 'A_FAZER' | 'FAZENDO' | 'CONCLUIDA' | 'CANCELADA'
+        SugestaoCriadaDto: {
+            /** Format: uuid */
+            id: string
+            /** Format: int32 */
+            numero: number | string
+        }
+        SugestaoRequest: {
+            texto: string
+            tela: null | string
+        }
         TarefaDaSolicitacaoDto: {
             /** Format: uuid */
             id: string

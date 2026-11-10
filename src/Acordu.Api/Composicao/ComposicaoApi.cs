@@ -265,6 +265,7 @@ internal static class ComposicaoApi
         grupos.Interno.MapSeguidores();
         grupos.Interno.MapAgenda();
         grupos.Interno.MapNotificacoes();
+        grupos.Interno.MapSugestoes();
         // Nível 0 do ADR 0010 (§4): SSE desligado por configuração; sem a rota, /eventos responde 404.
         if (app.Configuration.GetValue("TempoReal:Sse", true))
             grupos.Interno.MapEventos();

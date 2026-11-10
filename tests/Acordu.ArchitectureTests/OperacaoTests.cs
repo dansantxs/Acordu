@@ -36,4 +36,32 @@ public sealed class OperacaoTests
         foraDaOperacao.IsSuccessful.Should().BeTrue(
             "só as marcas e o expurgo tocam a tabela; violações: {0}", string.Join(", ", foraDaOperacao.FailingTypeNames ?? []));
     }
+
+    [Fact]
+    public void Sugestao_NenhumaRotaNemOutraFeatureUsa() // F13-27
+    {
+        const string sugestao = "Acordu.Domain.Entities.Sugestao";
+        Camadas.Domain.GetType(sugestao).Should().NotBeNull("o teste perde o sentido se o tipo mudar de nome");
+        var fora = Types.InAssemblies([Camadas.Api, Camadas.Application, Camadas.Infrastructure])
+            .That().DoNotResideInNamespace("Acordu.Application.Sugestoes")
+            .And().DoNotResideInNamespace("Acordu.Infrastructure.Persistence.Sugestoes")
+            .And().DoNotResideInNamespace("Acordu.Infrastructure.Persistence.Migrations")
+            .And().DoNotHaveNameMatching("^ExpurgoCadastros")
+            .ShouldNot().HaveDependencyOn(sugestao)
+            .GetResult();
+
+        fora.IsSuccessful.Should().BeTrue(
+            "a Api só manda o texto e recebe o número; violações: {0}", string.Join(", ", fora.FailingTypeNames ?? []));
+    }
+
+    [Fact]
+    public void Sugestoes_AApiSoUsaOsComandos() // F13-27
+    {
+        var naApi = Types.InAssembly(Camadas.Api)
+            .ShouldNot().HaveDependencyOnAny("Acordu.Application.Sugestoes.ISugestoes", "Acordu.Application.Sugestoes.SugestaoParaAviso")
+            .GetResult();
+
+        naApi.IsSuccessful.Should().BeTrue(
+            "a Api manda o texto e recebe o número, nunca lê sugestões; violações: {0}", string.Join(", ", naApi.FailingTypeNames ?? []));
+    }
 }

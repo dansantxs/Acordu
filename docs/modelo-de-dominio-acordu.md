@@ -477,6 +477,10 @@ Desenho base do ADR 0001 (`Tenant`, `Usuario` global, `Vinculo` N-N, `Papel`, `P
 
 ---
 
+### 4.14 Sugestao (RF-SUG-01, F13e)
+- Sugestão de melhoria de alguém da equipe **para a Nebrys**: global, fora dos tenants (sem filtro global; não é dado do prestador). Campos: `Numero` (sequencial global, do banco), `EmpresaId` e `PessoaId` só como referência (não se chamam `TenantId`, para não entrarem no filtro nem no expurgo do tenant), `Texto` (10 a 2.000 caracteres, sem os espaços das pontas), `Tela` (rota modelo, até 200), `CriadaEm`, `AvisadaEm` (nulo enquanto não saiu em #sugestoes).
+- Expurgo de cadastro abandonado: a sugestão fica, com `EmpresaId` e `PessoaId` nulos (RNF-PRIV-01). Nenhuma rota lista ou devolve sugestões.
+
 ## 5. Value objects
 
 | VO | Composição | Regras |

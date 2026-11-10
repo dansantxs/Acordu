@@ -2356,6 +2356,55 @@
         }
       }
     },
+    "/api/v1/sugestoes": {
+      "post": {
+        "tags": [
+          "Sugestões"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SugestaoRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SugestaoCriadaDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too Many Requests",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/eventos": {
       "get": {
         "tags": [
@@ -9800,6 +9849,45 @@
           "CANCELADA"
         ]
       },
+      "SugestaoCriadaDto": {
+        "required": [
+          "id",
+          "numero"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "numero": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          }
+        }
+      },
+      "SugestaoRequest": {
+        "required": [
+          "texto",
+          "tela"
+        ],
+        "type": "object",
+        "properties": {
+          "texto": {
+            "type": "string"
+          },
+          "tela": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
       "TarefaDaSolicitacaoDto": {
         "required": [
           "id",
@@ -10386,6 +10474,9 @@
     },
     {
       "name": "Dashboard"
+    },
+    {
+      "name": "Sugestões"
     },
     {
       "name": "Tempo real"
