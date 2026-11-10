@@ -96,7 +96,7 @@ internal static class JobsEndpoints
 
     /// <summary>
     /// O disparo diário do Scheduler (ADR 0010 §5; o plano gratuito tem 3 jobs): fechamento automático, expurgo da
-    /// auditoria, expurgo das notificações e do feed, expurgo dos cadastros abandonados (RF-AUT-07) e das ocorrências de erro (ADR 0012), em sequência. Um passo que falha é logado, entra em <c>falhas</c>
+    /// auditoria, expurgo das notificações e do feed, expurgo dos cadastros abandonados (RF-AUT-07), das ocorrências de erro e das marcas de operação (ADR 0012), em sequência; no fim, os avisos do F13c. Um passo que falha é logado, entra em <c>falhas</c>
     /// e não impede os seguintes; os endpoints individuais continuam para disparo manual.
     /// </summary>
     private static void MapDiario(RouteGroupBuilder jobs) =>
@@ -139,27 +139,18 @@ internal static class JobsEndpoints
                 ],
                 logs.CreateLogger(typeof(PassosDiario)),
                 cancellationToken);
-            var falhas = resultado.PassosFalhos.Select(p => new FalhaDePasso(p, 1))
-                .Append(new FalhaDePasso("fechamento-automatico", falhasFechamento))
-                .Append(new FalhaDePasso("expurgo-cadastros", falhasCadastros))
-                .GroupBy(f => f.Passo, StringComparer.Ordinal)
-                .Select(g => new FalhaDePasso(g.Key, g.Sum(f => f.Falhas)))
-                .ToList();
-            if (falhas.Any(f => f.Falhas > 0))
-            {
-                await avisos.FalhasAsync("diario", falhas, cancellationToken);
-            }
-            else
-            {
-                // Sem falha, o resumo em #deploy (F13-14): a falta dele num dia avisa que o agendamento parou.
-                await avisos.ResumoDoDiarioAsync(
-                    [
-                        ("fechadas", resultado.Contagens[0]), ("auditoria", resultado.Contagens[1]),
-                        ("notificações", resultado.Contagens[2]), ("atividades", resultado.Contagens[3]),
-                        ("cadastros", resultado.Contagens[4]), ("ocorrências de erro", resultado.Contagens[5]),
-                    ],
-                    cancellationToken);
-            }
+            var falhas = AvisosDosJobs.PorPasso(
+                resultado.PassosFalhos,
+                [new("fechamento-automatico", falhasFechamento), new("expurgo-cadastros", falhasCadastros)]);
+            await avisos.DiarioAsync(
+                falhas,
+                [
+                    ("fechadas", resultado.Contagens[0]), ("auditoria", resultado.Contagens[1]),
+                    ("notificações", resultado.Contagens[2]), ("atividades", resultado.Contagens[3]),
+                    ("cadastros", resultado.Contagens[4]), ("ocorrências de erro", resultado.Contagens[5]),
+                    ("marcas", resultado.Contagens[6]),
+                ],
+                cancellationToken);
 
             return Results.Ok(new
             {
