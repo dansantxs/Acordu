@@ -128,7 +128,8 @@ acordu/
 │  └─ api.Dockerfile                   # linux/amd64, aspnet chiseled extra (ICU + tzdata), ReadyToRun
 ├─ infra/
 │  └─ cloudflare/
-│     └─ api-borda/                    # Worker de api.acordu.app.br: proxy para o Cloud Run + token de origem
+│     ├─ api-borda/                    # Worker de api.acordu.app.br: proxy para o Cloud Run + token de origem
+│     └─ vigia/                        # Worker da vigia: health a cada 5 min, queda e volta em #alertas (ADR 0012)
 ├─ docker-compose.dev.yml              # dev local: Postgres 17 na porta 5434 (object storage local entra no marco de anexos)
 ├─ Acordu.sln
 ├─ Directory.Build.props

@@ -296,26 +296,31 @@ jobs:
           exit 1
 
   borda:
-    name: Borda (Worker)
+    name: Worker (${{ matrix.worker }})
     needs: mudancas
     if: needs.mudancas.outputs.borda == 'true'
     runs-on: ubuntu-24.04
     timeout-minutes: 10
+    # A borda da API (F8) e a vigia (F13h): mesmas ferramentas, cada uma com o seu lockfile.
+    strategy:
+      fail-fast: false
+      matrix:
+        worker: [api-borda, vigia]
     defaults:
       run:
-        working-directory: infra/cloudflare/api-borda
+        working-directory: infra/cloudflare/${{ matrix.worker }}
     steps:
       - uses: actions/checkout@v4
 
       - uses: pnpm/action-setup@v4
         with:
-          package_json_file: infra/cloudflare/api-borda/package.json
+          package_json_file: infra/cloudflare/${{ matrix.worker }}/package.json
 
       - uses: actions/setup-node@v4
         with:
           node-version: 22
           cache: pnpm
-          cache-dependency-path: infra/cloudflare/api-borda/pnpm-lock.yaml
+          cache-dependency-path: infra/cloudflare/${{ matrix.worker }}/pnpm-lock.yaml
 
       - name: Instalar
         run: pnpm install --frozen-lockfile
