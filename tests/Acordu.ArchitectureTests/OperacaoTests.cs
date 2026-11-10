@@ -10,6 +10,7 @@ public sealed class OperacaoTests
     [Fact]
     public void OcorrenciaErro_SoAOperacaoDaInfrastructureUsa()
     {
+        Camadas.Infrastructure.GetType(Ocorrencia).Should().NotBeNull("o teste perde o sentido se o tipo mudar de nome");
         var foraDaOperacao = Types.InAssemblies([Camadas.Api, Camadas.Application, Camadas.Infrastructure])
             .That().DoNotResideInNamespace("Acordu.Infrastructure.Operacao")
             .And().DoNotResideInNamespace("Acordu.Infrastructure.Persistence.Migrations")

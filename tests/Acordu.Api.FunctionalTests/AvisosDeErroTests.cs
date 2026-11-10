@@ -154,7 +154,7 @@ public sealed class AvisosDeErroTests(ApiFixture api)
 
         var textos = discord.Textos(DiscordFalso.Alertas);
         textos.Should().HaveCount(3);
-        textos[2].Should().StartWith("**Erro novo**").And.Contain("+1 avisos segurados pelo teto da hora.");
+        textos[2].Should().StartWith("**Erro novo**").And.Contain("+1 aviso segurado pelo teto da hora.");
     }
 
     [Fact]
@@ -165,14 +165,18 @@ public sealed class AvisosDeErroTests(ApiFixture api)
             await Task.Delay(TimeSpan.FromSeconds(20), ct);
             return new HttpResponseMessage(HttpStatusCode.NoContent);
         });
-        var (app, rotas) = await ApiAsync(discord);
+        var logs = new LogsCapturados();
+        var (app, rotas) = await ApiAsync(discord, logs: logs);
         await using var montada = app;
 
         var cronometro = Stopwatch.StartNew();
         var status = await ChamarAsync(app, rotas[0]);
 
         status.Should().Be(HttpStatusCode.InternalServerError);
-        cronometro.Elapsed.Should().BeLessThan(TimeSpan.FromSeconds(8));
+        cronometro.Elapsed.Should().BeLessThan(TimeSpan.FromSeconds(4.5));
+        logs.Linhas.Select(l => l.GetProperty("message").GetString()).Should().Contain(
+            m => m!.StartsWith("Aviso de operação (Alertas) não saiu", StringComparison.Ordinal)
+                || m.StartsWith("Aviso do erro inesperado passou do prazo", StringComparison.Ordinal));
     }
 
     [Fact]
@@ -190,6 +194,24 @@ public sealed class AvisosDeErroTests(ApiFixture api)
         logs.Linhas.Select(l => l.GetRawText()).Should().NotContain(
             l => l.Contains("alertas-dos-testes", StringComparison.Ordinal),
             "o webhook é segredo: nem o log do HttpClient (Information) pode trazer a URL");
+    }
+
+    [Fact]
+    public async Task Erro500_AvisoNaoSaiu_OMesmoErroAvisaNaProximaVez() // F13-09
+    {
+        var tentativas = 0;
+        var discord = new DiscordFalso(_ => Task.FromResult(new HttpResponseMessage(
+            Interlocked.Increment(ref tentativas) == 1 ? HttpStatusCode.InternalServerError : HttpStatusCode.NoContent)));
+        var (app, rotas) = await ApiAsync(discord);
+        await using var montada = app;
+
+        await ChamarAsync(app, rotas[0]);
+        await ChamarAsync(app, rotas[0]);
+
+        var textos = discord.Textos(DiscordFalso.Alertas);
+        textos.Should().HaveCount(2, "o primeiro não saiu e a reserva foi desfeita");
+        textos[1].Should().StartWith("**Erro novo**");
+        (await TotalAsync(rotas[0])).Should().Be(2);
     }
 
     [Fact]
