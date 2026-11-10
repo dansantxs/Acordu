@@ -1,0 +1,17 @@
+{
+    "name": "Acordu",
+    "short_name": "Acordu",
+    "description": "Atendimento, tarefas e contratos, com o cliente acompanhando.",
+    "lang": "pt-BR",
+    "id": "/",
+    "start_url": "/",
+    "scope": "/",
+    "display": "standalone",
+    "background_color": "#3B2A20",
+    "theme_color": "#3B2A20",
+    "icons": [
+        { "src": "/icones/icone-192.png", "sizes": "192x192", "type": "image/png" },
+        { "src": "/icones/icone-512.png", "sizes": "512x512", "type": "image/png" },
+        { "src": "/icones/icone-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+    ]
+}
