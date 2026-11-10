@@ -397,6 +397,21 @@ export const SECOES_AJUDA: SecaoAjuda[] = [
         ],
     },
     {
+        id: 'instalar',
+        titulo: 'Instalar o Acordu',
+        grupo: 'comecar',
+        permissoes: [],
+        resumo: 'O Acordu pode virar um aplicativo no computador ou no celular, com ícone próprio e janela só dele.',
+        passos: [
+            'No Chrome ou no Edge (computador ou Android), abra o menu com o seu nome e escolha "Instalar o Acordu". Se a opção não aparecer, o navegador já instalou ou não oferece; procure o ícone de instalar na barra de endereço.',
+            'No iPhone ou iPad, abra o Acordu no Safari, toque em Compartilhar e depois em "Adicionar à Tela de Início".',
+            'O aplicativo abre direto no Acordu. Sem internet, ele mostra "Sem conexão": nenhum dado de cliente fica guardado no aparelho.',
+        ],
+        dicas: [
+            'No Android (instalado ou no Chrome), o Acordu também mostra as notificações do sistema (ligue em Minha conta > Neste navegador).',
+        ],
+    },
+    {
         id: 'sla',
         titulo: 'SLA em horas úteis',
         grupo: 'conceitos',

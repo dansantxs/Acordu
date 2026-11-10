@@ -3,6 +3,7 @@ import { useCallback, useEffect, useState } from 'react'
 import { Button, Dialog, Modal, ModalOverlay } from 'react-aria-components'
 import { pode } from '@/features/casca/navegacao'
 import { AvisoEnvioBloqueado } from '@/features/sessao/AvisoConfirmacao'
+import { anunciarManifesto } from '@/shared/app/instalacao'
 import { useLembreteCronometro } from '@/shared/cronometro/useLembreteCronometro'
 import { escopoNotificacoes } from '@/shared/notificacoes/navegador'
 import type { Perfil } from '@/shared/sessao/perfil'
@@ -26,6 +27,8 @@ export function Casca({ perfil }: { perfil: Perfil }) {
     const roteador = useRouter()
     const abrirCaminho = useCallback((caminho: string) => roteador.history.push(caminho), [roteador])
     useLembreteCronometro(escopoNotificacoes(perfil), pode(perfil, 'apontamento.criar'), abrirCaminho)
+    // App instalável só para a equipe (F12-26): o manifesto entra com a casca.
+    useEffect(() => anunciarManifesto(), [])
     // O couro escolhido vale no app da equipe (o portal tira; ver CascaPortal).
     useEffect(() => aplicarCouro(couroAtual()), [])
     const abrirBusca = () => {

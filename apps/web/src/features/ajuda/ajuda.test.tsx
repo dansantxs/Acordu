@@ -30,6 +30,14 @@ describe('ajuda', () => {
         expect(imagem.closest('a')).toHaveAttribute('href', '/ajuda/solicitacoes.webp')
     })
 
+    it('"Instalar o Acordu" aparece para qualquer papel, com o caminho do iPhone (F12-30)', async () => {
+        comPerfil([])
+        await abrir('/ajuda')
+        const secao = await screen.findByRole('region', { name: 'Instalar o Acordu' })
+        expect(within(secao).getByText(/Adicionar à Tela de Início/)).toBeInTheDocument()
+        expect(within(secao).getByText(/Instalar o Acordu/, { selector: 'li' })).toBeInTheDocument()
+    })
+
     it('busca no texto das seções, sem diferenciar acentos', async () => {
         comPerfil(['contrato.ver'])
         await abrir('/ajuda')

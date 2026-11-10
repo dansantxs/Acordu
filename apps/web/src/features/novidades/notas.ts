@@ -15,6 +15,15 @@ export const NOTAS: NotaVersao[] = [
     {
         data: '2026-11-09',
         publico: 'equipe',
+        titulo: 'Acordu como aplicativo',
+        itens: [
+            'Dá para instalar o Acordu no computador e no celular, com ícone próprio: no Chrome ou no Edge, use "Instalar o Acordu" no menu com o seu nome; no iPhone, Compartilhar > "Adicionar à Tela de Início".',
+            'No Android (instalado ou no Chrome), o Acordu também mostra as notificações do sistema.',
+        ],
+    },
+    {
+        data: '2026-11-09',
+        publico: 'equipe',
         titulo: 'Cronômetro esquecido',
         itens: [
             'O cronômetro que ficou ligado depois do expediente (ou por mais de 10 horas) aparece em destaque com "Ficou ligado?", e parar já sugere a duração até o fim do expediente.',
