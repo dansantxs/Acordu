@@ -1,6 +1,7 @@
 using System.Security.Cryptography;
 using System.Text;
 using Acordu.Application.Notificacoes;
+using Acordu.Application.Operacao;
 using Acordu.Application.Recorrencias;
 using Acordu.Application.Solicitacoes;
 using Acordu.Infrastructure.Agendamento;
@@ -37,7 +38,8 @@ internal static class JobsEndpoints
         // Gera as tarefas recorrentes devidas (RF-REC-03), varre a outbox (o que não saiu no fim das requisições) e envia
         // os alertas de SLA (RF-NOT-02). As recorrências vêm antes: nenhum efeito pós-commit delas hoje, mas a ordem
         // deixa qualquer um futuro sair no mesmo tick.
-        jobs.MapPost("/tick", async (ProcessadorOutbox processador, ExecutorPorTenant executor, CancellationToken cancellationToken) =>
+        jobs.MapPost("/tick", async (
+            ProcessadorOutbox processador, ExecutorPorTenant executor, AvisosDosJobs avisos, CancellationToken cancellationToken) =>
         {
             var recorrencias = await executor.ExecutarAsync(
                 "recorrencias",
@@ -61,6 +63,11 @@ internal static class JobsEndpoints
             var esquecidos = await executor.ExecutarAsync(
                 "cronometros-esquecidos",
                 (servicos, ct) => servicos.GetRequiredService<AvisosCronometroEsquecido>().ExecutarAsync(ct),
+                cancellationToken);
+            // Falha por tenant em algum passo: #alertas, uma vez por passo e por dia (F13-13).
+            await avisos.FalhasAsync(
+                "tick",
+                [new("recorrencias", recorrencias.Falhas), new("alertas-sla", alertas.Falhas), new("cronometros-esquecidos", esquecidos.Falhas)],
                 cancellationToken);
             return Results.Ok(new
             {
@@ -89,7 +96,7 @@ internal static class JobsEndpoints
 
     /// <summary>
     /// O disparo diário do Scheduler (ADR 0010 §5; o plano gratuito tem 3 jobs): fechamento automático, expurgo da
-    /// auditoria, expurgo das notificações e do feed, expurgo dos cadastros abandonados (RF-AUT-07) e das ocorrências de erro (ADR 0012), em sequência. Um passo que falha é logado, entra em <c>falhas</c>
+    /// auditoria, expurgo das notificações e do feed, expurgo dos cadastros abandonados (RF-AUT-07), das ocorrências de erro e das marcas de operação (ADR 0012), em sequência; no fim, os avisos do F13c. Um passo que falha é logado, entra em <c>falhas</c>
     /// e não impede os seguintes; os endpoints individuais continuam para disparo manual.
     /// </summary>
     private static void MapDiario(RouteGroupBuilder jobs) =>
@@ -100,10 +107,13 @@ internal static class JobsEndpoints
             ExpurgoAtividades atividades,
             ExpurgoCadastros cadastros,
             ExpurgoOcorrenciasErro ocorrencias,
+            MarcasDeOperacao marcas,
+            AvisosDosJobs avisos,
             ILoggerFactory logs,
             CancellationToken cancellationToken) =>
         {
-            var falhasPorTenant = 0;
+            var falhasFechamento = 0;
+            var falhasCadastros = 0;
             var resultado = await PassosDiario.ExecutarAsync(
                 [
                     new("fechamento-automatico", async ct =>
@@ -112,7 +122,7 @@ internal static class JobsEndpoints
                             "fechamento-automatico",
                             (servicos, c) => servicos.GetRequiredService<FechamentoAutomatico>().ExecutarAsync(c),
                             ct);
-                        falhasPorTenant = fechamento.Falhas;
+                        falhasFechamento = fechamento.Falhas;
                         return fechamento.Tratados;
                     }),
                     new("expurgo-auditoria", auditoria.ExecutarAsync),
@@ -121,13 +131,27 @@ internal static class JobsEndpoints
                     new("expurgo-cadastros", async ct =>
                     {
                         var expurgo = await cadastros.ExecutarAsync(ct);
-                        falhasPorTenant += expurgo.Falhas;
+                        falhasCadastros = expurgo.Falhas;
                         return expurgo.Removidos;
                     }),
                     new("expurgo-ocorrencias-erro", ocorrencias.ExecutarAsync),
+                    new("expurgo-marcas-operacao", marcas.ExpurgarAsync),
                 ],
                 logs.CreateLogger(typeof(PassosDiario)),
                 cancellationToken);
+            var falhas = AvisosDosJobs.PorPasso(
+                resultado.PassosFalhos,
+                [new("fechamento-automatico", falhasFechamento), new("expurgo-cadastros", falhasCadastros)]);
+            await avisos.DiarioAsync(
+                falhas,
+                [
+                    ("fechadas", resultado.Contagens[0]), ("auditoria", resultado.Contagens[1]),
+                    ("notificações", resultado.Contagens[2]), ("atividades", resultado.Contagens[3]),
+                    ("cadastros", resultado.Contagens[4]), ("ocorrências de erro", resultado.Contagens[5]),
+                    ("marcas", resultado.Contagens[6]),
+                ],
+                cancellationToken);
+
             return Results.Ok(new
             {
                 fechadas = resultado.Contagens[0],
@@ -136,7 +160,8 @@ internal static class JobsEndpoints
                 atividadesRemovidas = resultado.Contagens[3],
                 cadastrosRemovidos = resultado.Contagens[4],
                 ocorrenciasErroRemovidas = resultado.Contagens[5],
-                falhas = resultado.Falhas + falhasPorTenant,
+                marcasOperacaoRemovidas = resultado.Contagens[6],
+                falhas = resultado.Falhas + falhasFechamento + falhasCadastros,
             });
         });
 

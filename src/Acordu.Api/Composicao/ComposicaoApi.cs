@@ -9,6 +9,7 @@ using Acordu.Api.Operacao;
 using Acordu.Api.Seguranca;
 using Acordu.Application.Abstractions;
 using Acordu.Application.Abstractions.Operacao;
+using Acordu.Application.Operacao;
 using Acordu.Application.Autenticacao;
 using Acordu.Infrastructure;
 using Acordu.Infrastructure.Armazenamento;
@@ -131,6 +132,7 @@ internal static class ComposicaoApi
             sp.GetRequiredService<ILogger<MensageiroDiscord>>()));
         services.TryAddSingleton(new OpcoesAvisosDeErro(teto, link));
         services.TryAddSingleton<IAvisosDeErro, AvisosDeErro>();
+        services.TryAddSingleton<AvisosDosJobs>();
     }
 
     /// <summary>Nome do HttpClient do Turnstile (os testes trocam o handler por ele).</summary>

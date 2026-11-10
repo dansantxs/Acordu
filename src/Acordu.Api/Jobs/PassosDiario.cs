@@ -3,8 +3,8 @@ namespace Acordu.Api.Jobs;
 /// <summary>Um passo do job diário: nome (para o log) e o que ele faz, devolvendo quantos itens tratou.</summary>
 internal sealed record PassoDiario(string Nome, Func<CancellationToken, Task<int>> Executar);
 
-/// <summary>Contagem de cada passo, na ordem, e quantos passos falharam.</summary>
-internal sealed record ResultadoDiario(IReadOnlyList<int> Contagens, int Falhas);
+/// <summary>Contagem de cada passo, na ordem, quantos passos falharam e quais (para o aviso em #alertas, F13-13).</summary>
+internal sealed record ResultadoDiario(IReadOnlyList<int> Contagens, int Falhas, IReadOnlyList<string> PassosFalhos);
 
 /// <summary>
 /// Roda os passos do job diário em sequência (ADR 0010 §5). Um passo que falha é logado, conta 0 e entra em
@@ -17,6 +17,7 @@ internal static partial class PassosDiario
     {
         var contagens = new int[passos.Count];
         var falhas = 0;
+        var falhos = new List<string>();
         for (var i = 0; i < passos.Count; i++)
         {
             try
@@ -27,11 +28,12 @@ internal static partial class PassosDiario
             catch (Exception ex) when (ex is not OperationCanceledException || !cancellationToken.IsCancellationRequested)
             {
                 falhas++;
+                falhos.Add(passos[i].Nome);
                 PassoFalhou(logger, ex, passos[i].Nome);
             }
         }
 
-        return new ResultadoDiario(contagens, falhas);
+        return new ResultadoDiario(contagens, falhas, falhos);
     }
 
     [LoggerMessage(EventId = 301, Level = LogLevel.Error, Message = "Job diário: o passo '{Passo}' falhou.")]

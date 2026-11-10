@@ -1198,6 +1198,26 @@ namespace Acordu.Infrastructure.Persistence.Migrations
                     b.ToTable("vinculos", (string)null);
                 });
 
+            modelBuilder.Entity("Acordu.Infrastructure.Operacao.MarcaOperacao", b =>
+                {
+                    b.Property<string>("Chave")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("chave");
+
+                    b.Property<DateTimeOffset>("CriadaEm")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("criada_em");
+
+                    b.HasKey("Chave")
+                        .HasName("pk_marcas_operacao");
+
+                    b.HasIndex("CriadaEm")
+                        .HasDatabaseName("ix_marcas_operacao_criada_em");
+
+                    b.ToTable("marcas_operacao", (string)null);
+                });
+
             modelBuilder.Entity("Acordu.Infrastructure.Operacao.OcorrenciaErro", b =>
                 {
                     b.Property<string>("Impressao")
