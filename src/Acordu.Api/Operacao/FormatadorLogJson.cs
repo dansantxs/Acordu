@@ -32,6 +32,7 @@ internal sealed class FormatadorLogJson(string versao, string servico = Formatad
     /// </summary>
     internal const string EscopoServico = "servico";
     internal const string EscopoPilha = "pilha";
+    internal const string EscopoVersao = "versao";
 
     // Log não é HTML: acentos ficam legíveis em vez de é.
     private static readonly JsonWriterOptions OpcoesEscrita = new() { Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping };
@@ -57,7 +58,7 @@ internal sealed class FormatadorLogJson(string versao, string servico = Formatad
             if (Activity.Current is { } atividade && atividade.TraceId != default)
                 json.WriteString("traceId", atividade.TraceId.ToHexString());
 
-            var (contexto, outroServico, pilha) = Contexto(scopeProvider);
+            var (contexto, outroServico, pilha, outraVersao) = Contexto(scopeProvider);
             if (contexto.Count > 0)
             {
                 json.WriteStartObject("contexto");
@@ -77,7 +78,7 @@ internal sealed class FormatadorLogJson(string versao, string servico = Formatad
                     json.WriteString("@type", TipoEventoErro);
                 json.WriteStartObject("serviceContext");
                 json.WriteString("service", outroServico ?? servico);
-                json.WriteString("version", versao);
+                json.WriteString("version", outraVersao ?? versao);
                 json.WriteEndObject();
             }
 
@@ -97,7 +98,8 @@ internal sealed class FormatadorLogJson(string versao, string servico = Formatad
         _ => "DEFAULT",
     };
 
-    private static (SortedDictionary<string, string> Contexto, string? Servico, string? Pilha) Contexto(IExternalScopeProvider? escopos)
+    private static (SortedDictionary<string, string> Contexto, string? Servico, string? Pilha, string? Versao) Contexto(
+        IExternalScopeProvider? escopos)
     {
         var lido = new Lido();
         escopos?.ForEachScope(
@@ -114,12 +116,14 @@ internal sealed class FormatadorLogJson(string versao, string servico = Formatad
                         destino.Servico = texto;
                     else if (chave == EscopoPilha)
                         destino.Pilha = texto;
+                    else if (chave == EscopoVersao)
+                        destino.Versao = texto;
                     else if (CamposDoContexto.Contains(chave))
                         destino.Campos[chave] = texto;
                 }
             },
             lido);
-        return (lido.Campos, lido.Servico, lido.Pilha);
+        return (lido.Campos, lido.Servico, lido.Pilha, lido.Versao);
     }
 
     private sealed class Lido
@@ -129,5 +133,7 @@ internal sealed class FormatadorLogJson(string versao, string servico = Formatad
         public string? Servico { get; set; }
 
         public string? Pilha { get; set; }
+
+        public string? Versao { get; set; }
     }
 }

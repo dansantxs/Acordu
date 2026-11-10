@@ -1,4 +1,3 @@
-using System.Globalization;
 using System.Text.Json;
 using System.Text.RegularExpressions;
 using Acordu.Api.Erros;
@@ -61,14 +60,15 @@ internal static partial class ErrosWebEndpoints
             throw ErroDeCampo.Criar("mensagem", "A mensagem do erro é obrigatória.");
 
         var pilha = Limpar(pedido?.Pilha, LimitePilha);
-        var rota = RotaModelo(pedido?.Rota);
+        var rota = RotaModelo(pedido?.Rota).Replace('`', '\'');
         var versao = pedido?.Versao is { } v && Versao().IsMatch(v) ? v : "desconhecida";
-        var navegador = Cortar(pedido?.Navegador?.Trim() ?? "", LimiteNavegador);
+        var navegador = Cortar(Limpar(pedido?.Navegador, LimiteNavegador), LimiteNavegador);
 
         var logger = logs.CreateLogger(typeof(ErrosWebEndpoints));
         using (logger.BeginScope(new Dictionary<string, object?>(StringComparer.Ordinal)
         {
             [FormatadorLogJson.EscopoServico] = Servico,
+            [FormatadorLogJson.EscopoVersao] = versao,
             [FormatadorLogJson.EscopoPilha] = pilha.Length == 0 ? null : pilha,
             ["rota"] = rota,
         }))
@@ -110,6 +110,11 @@ internal static partial class ErrosWebEndpoints
         {
             AvisoAtrasado(logger);
         }
+        // O aviso promete não lançar; se lançar, o relato não pode virar um 500 (e outro aviso).
+        catch (Exception ex) when (ex is not OutOfMemoryException)
+        {
+            AvisoFalhou(logger, ex.GetType().Name);
+        }
     }
 
     /// <summary>Tira e-mails, ids (GUID) e números longos, e a query das URLs; corta no limite.</summary>
@@ -120,8 +125,11 @@ internal static partial class ErrosWebEndpoints
         var limpo = QueryDeUrl().Replace(texto.Trim(), "");
         limpo = Email().Replace(limpo, "[email]");
         limpo = Identificador().Replace(limpo, ":id");
+        limpo = Token().Replace(limpo, "[token]");
+        limpo = NumeroComSeparadores().Replace(limpo, "#");
         limpo = NumeroLongo().Replace(limpo, "#");
-        return Cortar(limpo, limite);
+        // Crase fecharia o código no Discord e abriria espaço para link mascarado (a rota é pública).
+        return Cortar(limpo.Replace('`', '\''), limite);
     }
 
     /// <summary><c>/clientes/7c1f…/contratos?aba=2</c> → <c>/clientes/:id/contratos</c>; fora do padrão, <c>(sem rota)</c>.</summary>
@@ -160,8 +168,17 @@ internal static partial class ErrosWebEndpoints
 
     private static string Cortar(string texto, int limite) => texto.Length <= limite ? texto : texto[..limite];
 
-    [GeneratedRegex(@"\?[^\s)]*")]
+    /// <summary>Só a query de uma URL (<c>https://…/x.js?t=1</c>), não qualquer <c>?</c> do texto (<c>a?.b</c>).</summary>
+    [GeneratedRegex(@"(?<=[a-z]+://[^\s?)]*)\?[^\s)]*")]
     private static partial Regex QueryDeUrl();
+
+    /// <summary>Trechos base64url longos (tokens de link, JWT).</summary>
+    [GeneratedRegex(@"[A-Za-z0-9_\-]{32,}")]
+    private static partial Regex Token();
+
+    /// <summary>CPF, CNPJ, telefone e afins formatados (grupos curtos com separador), que o número longo não pega.</summary>
+    [GeneratedRegex(@"(?<![:\w])\(?\d{2,}\)?(?:[.\-/ ]\d{2,}){2,}")]
+    private static partial Regex NumeroComSeparadores();
 
     [GeneratedRegex(@"[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}")]
     private static partial Regex Email();
@@ -169,7 +186,8 @@ internal static partial class ErrosWebEndpoints
     [GeneratedRegex(@"\b[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}\b")]
     private static partial Regex Identificador();
 
-    [GeneratedRegex(@"\d{4,}")]
+    /// <summary>Número de 4 dígitos ou mais, menos linha e coluna da pilha (<c>:1:23456</c>), que o quadro precisa.</summary>
+    [GeneratedRegex(@"(?<![:\d])\d{4,}")]
     private static partial Regex NumeroLongo();
 
     [GeneratedRegex(@"\d+")]
@@ -178,18 +196,21 @@ internal static partial class ErrosWebEndpoints
     [GeneratedRegex(@"^[A-Za-z0-9.\-]{1,40}$")]
     private static partial Regex Versao();
 
-    [GeneratedRegex(@"^\s*at (?:(?<funcao>[^\s(]+) \()?(?:[a-z]+://[^/\s]+)?/?(?<arquivo>[^\s:)]+?)(?::\d+){0,2}\)?\s*$")]
+    [GeneratedRegex(@"^\s*at (?:(?:async |new )?(?<funcao>[^\s(]+)(?: \[as [^\]]+\])? \()?(?:[a-z]+://[^/\s]+)?/?(?<arquivo>[^\s:)]+?)(?::\d+){0,2}\)?\s*$")]
     private static partial Regex QuadroChrome();
 
     [GeneratedRegex(@"^\s*(?<funcao>[^@\s]*)@(?:[a-z]+://[^/\s]+)?/?(?<arquivo>[^\s:]+?)(?::\d+){0,2}\s*$")]
     private static partial Regex QuadroFirefox();
 
     /// <summary><c>assets/index-B3x9_aZk.js</c> → <c>assets/index.js</c>.</summary>
-    [GeneratedRegex(@"-[A-Za-z0-9_]{8,}(?=\.[a-z]+$)")]
+    [GeneratedRegex(@"-[A-Za-z0-9_\-]{8}(?=\.[a-z]+$)")]
     private static partial Regex HashDoArquivo();
 
     [LoggerMessage(EventId = 610, Level = LogLevel.Error, Message = "Erro no app: {Mensagem} (versão {Versao}, {Navegador}).")]
     private static partial void ErroDoApp(ILogger logger, string mensagem, string versao, string navegador);
+
+    [LoggerMessage(EventId = 612, Level = LogLevel.Warning, Message = "Aviso do erro do app falhou ({Falha}); a resposta saiu sem ele.")]
+    private static partial void AvisoFalhou(ILogger logger, string falha);
 
     [LoggerMessage(EventId = 611, Level = LogLevel.Warning, Message = "Aviso do erro do app passou do prazo; a resposta saiu sem ele.")]
     private static partial void AvisoAtrasado(ILogger logger);
