@@ -50,6 +50,7 @@ Antes do primeiro cliente, a Nebrys precisa saber, sem abrir painel, de erro nov
 ## Consequências
 
 - O Discord vira a central de operação, e os webhooks são segredos: não entram em log nem no repositório.
-- A tabela de ocorrências e a de sugestões são as primeiras tabelas globais de negócio, fora dos tenants. Nenhuma rota as lê (teste de arquitetura).
+- A tabela de ocorrências, a de marcas de "já avisado" dos jobs (`marcas_operacao`, F13c, retenção de 7 dias) e a de sugestões são as primeiras tabelas globais, fora dos tenants. Nenhuma rota as lê (teste de arquitetura).
+- O "dia" dos avisos dos jobs é o da operação, no fuso padrão do produto (`CalendarioUtil.FusoPadrao`), e não o de algum tenant.
 - Trocar de hospedagem não muda os avisos. Os campos do log seguem a convenção do Google, mas são só JSON no stdout: outro coletor lê igual.
 - O Error Reporting acrescenta `serviceContext` à cota de logs, sem custo à parte no volume do nível 0.
