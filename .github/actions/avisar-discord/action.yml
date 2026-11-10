@@ -1,0 +1,35 @@
+name: Avisar no Discord
+description: >
+  Sucesso em #deploy, falha em #alertas (ADR 0012, F13g). Sem o webhook do canal, pula; falha do Discord só avisa no log.
+
+inputs:
+  status:
+    description: Status do job (`job.status`).
+    required: true
+  ok:
+    description: Texto do sucesso.
+    required: true
+  falha:
+    description: Texto da falha.
+    required: true
+  deploy:
+    description: Webhook de #deploy (secret `DISCORD_DEPLOY`).
+    required: false
+    default: ''
+  alertas:
+    description: Webhook de #alertas (secret `DISCORD_ALERTAS`).
+    required: false
+    default: ''
+
+runs:
+  using: composite
+  steps:
+    - name: Aviso
+      shell: bash
+      env:
+        DISCORD_DEPLOY: ${{ inputs.deploy }}
+        DISCORD_ALERTAS: ${{ inputs.alertas }}
+        STATUS: ${{ inputs.status }}
+        OK: ${{ inputs.ok }}
+        FALHA: ${{ inputs.falha }}
+      run: '"$GITHUB_ACTION_PATH/avisar.sh" "$STATUS" "$OK" "$FALHA"'
