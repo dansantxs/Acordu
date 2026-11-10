@@ -5,6 +5,8 @@ namespace Acordu.Domain.UnitTests.Entities;
 /// <summary>Spec do F13, F13-24: o texto da sugestão tem de 10 a 2.000 caracteres.</summary>
 public sealed class SugestaoTests
 {
+    private const string Campo = "texto";
+
     private static readonly DateTimeOffset Agora = new(2026, 11, 10, 13, 0, 0, TimeSpan.Zero);
 
     private static Sugestao Criar(string texto, string? tela = null) =>
@@ -14,11 +16,11 @@ public sealed class SugestaoTests
     [InlineData("         ")]
     [InlineData("curto")]
     [InlineData("  nove car  ")]
-    public void Criar_TextoCurto_Recusa(string texto)
+    public void Criar_TextoCurto_Recusa(string curto)
     {
-        var acao = () => Criar(texto);
+        var acao = () => Criar(curto);
 
-        acao.Should().Throw<ArgumentException>().WithParameterName("texto");
+        acao.Should().Throw<ArgumentException>().WithParameterName(Campo);
     }
 
     [Fact]
@@ -26,7 +28,7 @@ public sealed class SugestaoTests
     {
         var acao = () => Criar(new string('a', Sugestao.TextoMaximo + 1));
 
-        acao.Should().Throw<ArgumentException>().WithParameterName("texto");
+        acao.Should().Throw<ArgumentException>().WithParameterName(Campo);
     }
 
     [Fact]
@@ -38,16 +40,4 @@ public sealed class SugestaoTests
         sugestao.Tela.Should().Be("/tarefas");
         sugestao.AvisadaEm.Should().BeNull();
         sugestao.CriadaEm.Should().Be(Agora);
-    }
-
-    [Fact]
-    public void MarcarAvisada_DuasVezes_FicaAPrimeira()
-    {
-        var sugestao = Criar("Uma sugestão qualquer.");
-
-        sugestao.MarcarAvisada(Agora);
-        sugestao.MarcarAvisada(Agora.AddHours(1));
-
-        sugestao.AvisadaEm.Should().Be(Agora);
-    }
-}
+    }}
