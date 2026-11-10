@@ -100,6 +100,7 @@ acordu/
 │  │  ├─ Armazenamento/                # object storage S3-compatível (R2) + URLs assinadas
 │  │  ├─ Email/                        # Resend + outbox
 │  │  ├─ Agendamento/                  # jobs idempotentes: recorrências, fechamento automático, alertas de SLA
+│  │  ├─ Operacao/                     # avisos ao Discord, ocorrências de erro (fora dos tenants, ADR 0012)
 │  │  ├─ Seguranca/                    # Identity, JWT, tokens de link
 │  │  └─ DependencyInjection.cs
 │  ├─ Acordu.Api/                      # COMPOSITION ROOT

@@ -33,14 +33,14 @@ Os erros também ficam no Error Reporting do Google para investigar. A pessoa da
 
 | Id | Dado | Quando | Então | Teste |
 |---|---|---|---|---|
-| F13-05 | webhook de #alertas configurado | acontece um 500 com uma impressão digital nunca vista (tipo da exceção, primeiro quadro do código do Acordu e rota modelo) | sai uma mensagem "Erro novo" em #alertas com o tipo, o quadro, a rota, a versão e o link para o Error Reporting; sem a mensagem da exceção [D1, D2] | — |
-| F13-06 | erro já avisado há menos de 24 h | ele se repete | nada sai; a contagem sobe | — |
-| F13-07 | erro avisado há 24 h ou mais | ele se repete | sai "Erro de novo: N vezes desde o último aviso" [D2] | — |
-| F13-08 | 20 avisos já enviados na última hora | chega um erro novo | não sai na hora; o próximo aviso depois da hora diz "N avisos segurados" [D2] | — |
-| F13-09 | Discord fora do ar ou lento | a API tenta avisar | a resposta ao usuário não muda nem espera mais que 3 s; a falha vai para o log como aviso, sem a URL do webhook | — |
-| F13-10 | sem webhook configurado (desenvolvimento, testes) | qualquer erro | nada sai e nada falha | — |
-| F13-11 | qualquer mensagem da API ao Discord | é enviada | vai com menções desligadas (`allowed_mentions` vazio): texto nenhum aciona `@everyone` ou `@here` | — |
-| F13-12 | ocorrências de erro gravadas | qualquer pessoa, de qualquer empresa, usa a API | nenhuma rota devolve as ocorrências: elas ficam fora dos tenants e só a operação as vê no banco e no Discord | — (teste de arquitetura: nenhum endpoint lê a tabela) |
+| F13-05 | webhook de #alertas configurado | acontece um 500 com uma impressão digital nunca vista (tipo da exceção, primeiro quadro do código do Acordu e rota modelo) | sai uma mensagem "Erro novo" em #alertas com o tipo, o quadro, a rota, a versão e o link para o Error Reporting; sem a mensagem da exceção [D1, D2] | `AvisosDeErroTests › Erro500_Novo_AvisaComAImpressaoSemAMensagemEComMencoesDesligadas`; `QuadroDoAcorduTests` |
+| F13-06 | erro já avisado há menos de 24 h | ele se repete | nada sai; a contagem sobe | `AvisosDeErroTests › Erro500_RepetidoEm24h_NaoAvisaEConta` |
+| F13-07 | erro avisado há 24 h ou mais | ele se repete | sai "Erro de novo: N vezes desde o último aviso" [D2] | `AvisosDeErroTests › Erro500_RepetidoDepoisDe24h_AvisaDeNovoComAContagem` |
+| F13-08 | 20 avisos já enviados na última hora | chega um erro novo | não sai na hora; o próximo aviso depois da hora diz "N avisos segurados" [D2] | `AvisosDeErroTests › Erro500_TetoDaHora_SeguraEResumeNoProximoAviso` |
+| F13-09 | Discord fora do ar ou lento | a API tenta avisar | a resposta ao usuário não muda nem espera mais que 3 s; a falha vai para o log como aviso, sem a URL do webhook | `AvisosDeErroTests › Erro500_DiscordLento_RespostaNaoEsperaMaisQueOPrazo`; `… Erro500_DiscordFora_RespostaIgualEFalhaNoLogSemAUrl`; `AvisosDeErroSemBancoTests` |
+| F13-10 | sem webhook configurado (desenvolvimento, testes) | qualquer erro | nada sai e nada falha | `AvisosDeErroTests › Erro500_SemWebhook_NadaSaiENadaGrava` |
+| F13-11 | qualquer mensagem da API ao Discord | é enviada | vai com menções desligadas (`allowed_mentions` vazio): texto nenhum aciona `@everyone` ou `@here` | `AvisosDeErroTests › Erro500_Novo_AvisaComAImpressao…` (as mensagens das sugestões e dos jobs entram nos PRs delas) |
+| F13-12 | ocorrências de erro gravadas | qualquer pessoa, de qualquer empresa, usa a API | nenhuma rota devolve as ocorrências: elas ficam fora dos tenants e só a operação as vê no banco e no Discord | `OperacaoTests › OcorrenciaErro_SoAOperacaoDaInfrastructureUsa` (arquitetura) |
 
 ### Jobs (F13c)
 
@@ -185,4 +185,5 @@ Cada PR contra a `main`, sem empilhar, com testes e CI verde. F13a vem primeiro;
 
 - 09/11 — rascunho.
 - 10/11 — o Daniel aprovou todas as recomendações (D1 a D6) e pediu o PR da spec.
+- 10/11 — F13b: a porta é `IMensageiroOperacao` (canal e texto) e `IAvisosDeErro` (Application/Abstractions/Operacao); `MensageiroDiscord` e `AvisosDeErro` na Infrastructure. A deduplicação usa um escopo próprio, porque o `DbContext` da requisição que falhou pode estar numa transação abortada. Sem banco, o aviso sai deduplicado só em memória, com a nota "sem banco" (o erro pode ser o banco, e o `/api/health` não o consulta). Os avisos resumidos pelo teto contam como avisados (quietos por 24 h), mas não entram no teto da hora seguinte. O log do HttpClient do Discord fica desligado: ele registra a URL, que é o segredo. Webhook que não é https impede a API de subir. 4xx não avisa. Os webhooks entram no `deploy.yml` no F13g (sem eles, produção não avisa; não há deploy ainda).
 - 10/11 — F13a: ADR 0012 aberto. No modo JSON, o diagnóstico do `ExceptionHandlerMiddleware` é suprimido, para o mesmo 500 não contar duas vezes no Error Reporting; com isso os 4xx de regra de negócio também deixam de ser erro (`LogDoErroTests › ErroDeRegra_4xx_NaoViraErroNoLog`). A pilha vai em `stack_trace` (o F13-02 dizia "na `message`"; mesmo efeito no Error Reporting, com a mensagem limpa). A correlação com o trace do Cloud Logging (`logging.googleapis.com/trace`) fica para conferir no primeiro deploy. `Logs__Formato` e `App__Versao` já entram no `deploy.yml` aqui (estavam previstos no F13g): sem eles o F13a não vale em produção. `Logs__Formato` com outro valor que não `json` impede a API de subir (`ComposicaoLogsTests › AddLogsAcordu_FormatoDesconhecido_NaoSobe`).
