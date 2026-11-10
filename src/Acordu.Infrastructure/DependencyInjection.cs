@@ -89,6 +89,7 @@ public static class DependencyInjection
         services.AddSingleton<ExpurgoCadastros>();
         services.AddSingleton<Operacao.ExpurgoOcorrenciasErro>();
         services.AddSingleton<Operacao.MarcasDeOperacao>();
+        services.AddScoped<Application.Sugestoes.ISugestoes, Persistence.Sugestoes.RegistroSugestoes>();
         services.AddSingleton<Application.Abstractions.Operacao.IMarcasDeOperacao>(sp => sp.GetRequiredService<Operacao.MarcasDeOperacao>());
         services.AddScoped<IConvitesEquipe, ConvitesEquipe>();
         services.AddScoped<IConsultasEquipe, ConsultasEquipe>();
