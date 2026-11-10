@@ -20,6 +20,7 @@ using Acordu.Application.AcessosPortal;
 using Acordu.Application.Projetos;
 using Acordu.Application.Recorrencias;
 using Acordu.Application.Solicitacoes;
+using Acordu.Application.Sugestoes;
 using Acordu.Application.Tarefas;
 using Acordu.Domain.Events;
 
@@ -44,6 +45,7 @@ internal static class CasosDeUso
         services.AddScoped<AvisoInterno>();
         services.AddScoped<ValidacaoMencoes>();
         services.AddScoped<ComandosNotificacoes>();
+        services.AddScoped<ComandosSugestao>();
         services.AddScoped<ComandosCliente>();
         services.AddScoped<ComandosContrato>();
         services.AddScoped<ComandosSolicitacao>();

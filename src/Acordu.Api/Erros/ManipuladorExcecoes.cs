@@ -105,6 +105,7 @@ internal static partial class ManipuladorExcecoes
         AcessoNegadoException e => Problema(403, "sem-permissao", "Sem permissão", e.Message),
         EmailNaoConfirmadoException e => Problema(422, "email-nao-confirmado", "E-mail não confirmado", e.Message),
         CronometroAtivoException e => Problema(409, "cronometro-ativo", "Cronômetro já ativo", e.Message),
+        LimiteExcedidoException e => Problema(429, "limite-requisicoes", "Limite de requisições", e.Message),
         ListaDesatualizadaException e => Problema(409, "conflito-versao", "Versão divergente", e.Message),
         DbUpdateConcurrencyException => Problema(
             409, "conflito-versao", "Versão divergente", "O recurso foi alterado por outra requisição. Recarregue e tente de novo."),

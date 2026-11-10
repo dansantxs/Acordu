@@ -4,6 +4,7 @@ using Acordu.Application.Notificacoes;
 using Acordu.Application.Operacao;
 using Acordu.Application.Recorrencias;
 using Acordu.Application.Solicitacoes;
+using Acordu.Application.Sugestoes;
 using Acordu.Infrastructure.Agendamento;
 using Acordu.Infrastructure.Operacao;
 using Acordu.Infrastructure.Persistence.Auditoria;
@@ -39,7 +40,11 @@ internal static class JobsEndpoints
         // os alertas de SLA (RF-NOT-02). As recorrências vêm antes: nenhum efeito pós-commit delas hoje, mas a ordem
         // deixa qualquer um futuro sair no mesmo tick.
         jobs.MapPost("/tick", async (
-            ProcessadorOutbox processador, ExecutorPorTenant executor, AvisosDosJobs avisos, CancellationToken cancellationToken) =>
+            ProcessadorOutbox processador,
+            ExecutorPorTenant executor,
+            AvisosDosJobs avisos,
+            ComandosSugestao sugestoes,
+            CancellationToken cancellationToken) =>
         {
             var recorrencias = await executor.ExecutarAsync(
                 "recorrencias",
@@ -64,6 +69,8 @@ internal static class JobsEndpoints
                 "cronometros-esquecidos",
                 (servicos, ct) => servicos.GetRequiredService<AvisosCronometroEsquecido>().ExecutarAsync(ct),
                 cancellationToken);
+            // Sugestões que não saíram em #sugestoes na hora (F13-29).
+            var sugestoesReenviadas = await sugestoes.ReenviarPendentesAsync(cancellationToken);
             // Falha por tenant em algum passo: #alertas, uma vez por passo e por dia (F13-13).
             await avisos.FalhasAsync(
                 "tick",
@@ -75,6 +82,7 @@ internal static class JobsEndpoints
                 outboxProcessadas = total,
                 alertasSla = alertas.Tratados,
                 cronometrosEsquecidos = esquecidos.Tratados,
+                sugestoesReenviadas,
                 falhas = recorrencias.Falhas + alertas.Falhas + esquecidos.Falhas,
             });
         });
