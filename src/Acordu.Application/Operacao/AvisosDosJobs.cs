@@ -1,5 +1,6 @@
 using System.Globalization;
 using Acordu.Application.Abstractions.Operacao;
+using Acordu.Domain.Entities;
 
 namespace Acordu.Application.Operacao;
 
@@ -13,10 +14,8 @@ public sealed record FalhaDePasso(string Passo, int Falhas);
 /// </summary>
 public sealed class AvisosDosJobs
 {
-    /// <summary>Fuso da operação da Nebrys: decide o "dia" das marcas.</summary>
-    public const string FusoOperacao = "America/Sao_Paulo";
-
-    private static readonly TimeZoneInfo Fuso = TimeZoneInfo.FindSystemTimeZoneById(FusoOperacao);
+    /// <summary>Fuso da operação da Nebrys (o padrão do produto, conferido na partida): decide o "dia" das marcas.</summary>
+    private static readonly TimeZoneInfo Fuso = TimeZoneInfo.FindSystemTimeZoneById(CalendarioUtil.FusoPadrao);
 
     private readonly IMensageiroOperacao _mensageiro;
     private readonly IMarcasDeOperacao _marcas;
@@ -51,6 +50,35 @@ public sealed class AvisosDosJobs
         return enviadas;
     }
 
+    /// <summary>
+    /// Fim do diário: com falha em algum passo, só os alertas (F13-13); sem falha, o resumo em #deploy (F13-14).
+    /// </summary>
+    public async Task DiarioAsync(
+        IReadOnlyList<FalhaDePasso> falhas, IEnumerable<(string Rotulo, int Valor)> contagens, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(falhas);
+        if (falhas.Any(f => f.Falhas > 0))
+            await FalhasAsync("diario", falhas, cancellationToken);
+        else
+            await ResumoDoDiarioAsync(contagens, cancellationToken);
+    }
+
+    /// <summary>
+    /// Falhas por passo: o passo que lançou conta 1; o que falhou em alguns tenants conta quantos (sem somar os dois,
+    /// porque a falha por tenant só é conhecida quando o passo termina).
+    /// </summary>
+    public static IReadOnlyList<FalhaDePasso> PorPasso(IEnumerable<string> passosQueLancaram, IEnumerable<FalhaDePasso> porTenant)
+    {
+        ArgumentNullException.ThrowIfNull(passosQueLancaram);
+        ArgumentNullException.ThrowIfNull(porTenant);
+        return passosQueLancaram.Select(p => new FalhaDePasso(p, 1))
+            .Concat(porTenant)
+            .GroupBy(f => f.Passo, StringComparer.Ordinal)
+            .Select(g => new FalhaDePasso(g.Key, g.Sum(f => f.Falhas)))
+            .Where(f => f.Falhas > 0)
+            .ToList();
+    }
+
     /// <summary>Resumo do diário em #deploy (só quando não houve falha), uma vez por dia.</summary>
     public Task<bool> ResumoDoDiarioAsync(IEnumerable<(string Rotulo, int Valor)> contagens, CancellationToken cancellationToken = default)
     {
@@ -71,7 +99,8 @@ public sealed class AvisosDosJobs
             return false;
         if (await _mensageiro.EnviarAsync(canal, texto, cancellationToken))
             return true;
-        await _marcas.DesmarcarAsync(marca, cancellationToken);
+        // Sem o token de quem chamou: se ele cancelou, é justamente quando o aviso não saiu e a marca precisa sair.
+        await _marcas.DesmarcarAsync(marca, CancellationToken.None);
         return false;
     }
 
