@@ -36,6 +36,9 @@ internal static class ComposicaoSeguranca
     /// <summary>Feed ICS da agenda assinável, por IP (os calendários buscam de tempos em tempos).</summary>
     public const string LimiteAgenda = "agenda";
 
+    /// <summary>Erros do app no navegador (F13-19): rota pública, por IP (IPv6 por /64), padrão 10 por minuto.</summary>
+    public const string LimiteErrosWeb = "erros-web";
+
     public static IServiceCollection AddSegurancaApi(this IServiceCollection services, IConfiguration configuracao)
     {
         var jwt = ConfiguracaoJwt.De(configuracao);
@@ -89,6 +92,7 @@ internal static class ComposicaoSeguranca
         var limitePortal = configuracao.GetValue("RateLimit:Portal:PorMinuto", 10);
         var limiteAgenda = configuracao.GetValue("RateLimit:Agenda:PorMinuto", 30);
         var limiteRegistro = configuracao.GetValue("RateLimit:Registro:PorHora", 3);
+        var limiteErrosWeb = configuracao.GetValue("RateLimit:ErrosWeb:PorMinuto", 10);
         services.AddRateLimiter(opcoes =>
         {
             opcoes.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
@@ -104,6 +108,9 @@ internal static class ComposicaoSeguranca
             opcoes.AddPolicy(LimiteRegistro, http => RateLimitPartition.GetFixedWindowLimiter(
                 ChaveDoIp(http.Connection.RemoteIpAddress),
                 _ => new FixedWindowRateLimiterOptions { PermitLimit = limiteRegistro, Window = TimeSpan.FromHours(1), QueueLimit = 0 }));
+            opcoes.AddPolicy(LimiteErrosWeb, http => RateLimitPartition.GetFixedWindowLimiter(
+                ChaveDoIp(http.Connection.RemoteIpAddress),
+                _ => new FixedWindowRateLimiterOptions { PermitLimit = limiteErrosWeb, Window = TimeSpan.FromMinutes(1), QueueLimit = 0 }));
             opcoes.AddPolicy(LimiteAuth, http => RateLimitPartition.GetFixedWindowLimiter(
                 http.Connection.RemoteIpAddress?.ToString() ?? "desconhecido",
                 _ => new FixedWindowRateLimiterOptions { PermitLimit = limite, Window = TimeSpan.FromMinutes(1), QueueLimit = 0 }));

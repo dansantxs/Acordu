@@ -7,4 +7,6 @@ interface ImportMetaEnv {
     readonly VITE_TEMPO_REAL?: string
     /** Chave do site do Turnstile no cadastro (pública). Sem ela, sem desafio. */
     readonly VITE_TURNSTILE_CHAVE?: string
+    /** Commit do build (produção). Sem ela (dev, testes), os erros do app não são relatados à API. */
+    readonly VITE_VERSAO?: string
 }

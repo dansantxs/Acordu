@@ -14,7 +14,7 @@
 
 Convenções gerais, com as adaptações marcadas como (Acordu):
 
-- **Autenticação:** `Authorization: Bearer <token>` em tudo, exceto `/auth/*` e a troca de link do portal.
+- **Autenticação:** `Authorization: Bearer <token>` em tudo, exceto `/auth/*`, a troca de link do portal, o feed ICS da agenda (`/agenda/{token}.ics`, §11d) e o relato de erro do app (`POST /erros-web`, §16).
 - **Tenant:** sempre derivado do token (tenant ativo). Nunca na URL nem no corpo.
 - **Duas superfícies (ADR 0002):**
   - `/api/v1/*` — equipe do prestador. Token com papel **Cliente** → **403** em qualquer rota interna.
@@ -836,7 +836,7 @@ O `tick` responde também `alertasSla` (solicitações alertadas), `tarefasRecor
 }
 ```
 
-Tipos (`type`) do v1: `validacao` (com `errors` por campo), `transicao-invalida`, `periodo-fechado`, `contrato-incoerente`, `projeto-de-outro-cliente`, `projeto-encerrado` (422, F11d), `anexo-invalido` (422: tipo não permitido, vazio, mais de 5), `anexo-grande-demais` (413), `conflito-versao`, `cronometro-ativo`, `solicitacao-encerrada` (409), `nao-encontrado`, `sem-permissao`, `email-nao-confirmado` (422: a empresa ainda não envia a terceiros, §2), `nao-autenticado` (401), `limite-requisicoes` (429), `erro-interno` (500).
+Tipos (`type`) do v1: `validacao` (com `errors` por campo), `transicao-invalida`, `periodo-fechado`, `contrato-incoerente`, `projeto-de-outro-cliente`, `projeto-encerrado` (422, F11d), `anexo-invalido` (422: tipo não permitido, vazio, mais de 5), `anexo-grande-demais` (413), `corpo-grande-demais` (413: relato de erro do app acima de 16 KB, §16), `conflito-versao`, `cronometro-ativo`, `solicitacao-encerrada` (409), `nao-encontrado`, `sem-permissao`, `email-nao-confirmado` (422: a empresa ainda não envia a terceiros, §2), `nao-autenticado` (401), `limite-requisicoes` (429), `erro-interno` (500).
 
 ---
 
@@ -850,12 +850,37 @@ Tipos (`type`) do v1: `validacao` (com `errors` por campo), `transicao-invalida`
 | `403` | Sem permissão; papel Cliente em rota interna; sessão de link fora do seu escopo. |
 | `404` | Inexistente, de outro tenant **ou de outro cliente**. |
 | `409` | Versão divergente (`If-Match`); cronômetro já ativo; solicitação encerrada (RF-SOL-13). |
-| `413` | Anexo acima do limite. |
+| `413` | Anexo acima do limite; relato de erro do app acima de 16 KB. |
 | `422` | Regra de negócio violada. |
-| `429` | Rate limit (login, portal, link). |
+| `429` | Rate limit (login, portal, link, relato de erro do app). |
 
 ---
 
 ## 15. Versionamento
 
 `/api/v1`; mudança incompatível abre `/api/v2`. Entradas previstas para a v2 (e-mail e WhatsApp como origem, base de conhecimento, projeção do contrato, relatório PDF) entram como **novos** endpoints ou campos aditivos.
+
+---
+
+## 16. Operação (F13, ADR 0012)
+
+### `POST /api/v1/erros-web` — erro do app no navegador (RNF-OPS-03, F13d)
+
+Pública (sem login, sem cookie): pega erros também na tela de entrar, no cadastro e no portal por link. Limite por IP (IPv6 por /64) de 10 por minuto (`RateLimit__ErrosWeb__PorMinuto`) → `429`; corpo acima de 16 KB → `413 corpo-grande-demais`.
+
+```json
+{
+  "mensagem": "TypeError: x.y is not a function",
+  "pilha": "TypeError: x.y is not a function\n    at Ab (https://acordu.app.br/assets/index-B3x9aZk1.js:12:345)",
+  "rota": "/tarefas/:id",
+  "versao": "abc1234",
+  "navegador": "Mozilla/5.0 ..."
+}
+```
+
+- `mensagem` é obrigatória (`400` em `errors.mensagem`); o resto é opcional. Campos longos são cortados (mensagem 500, pilha 4.000, rota 200, navegador 200 caracteres); versão fora de `[A-Za-z0-9.-]{1,40}` vira `desconhecida`.
+- Antes de registrar, a API limpa: e-mails viram `[email]`, ids (GUID) `:id`, números de 4 dígitos ou mais `#`, e a query das URLs sai. A rota vira modelo (ids, números e trechos longos → `:id`, sem query nem `#`); fora do padrão (não começa com `/`, ou começa com `//`), `(sem rota)`.
+- Responde `204`. O erro vira uma linha `ERROR` do serviço `acordu-web` no log (Error Reporting) e passa pelos avisos de #alertas, com a impressão digital da mensagem sem números, do primeiro quadro sem o hash do arquivo e da rota modelo.
+- A versão do relato vai no `serviceContext` do Error Reporting (uma aba com o SPA antigo mostra a dela). Também saem antes de registrar: tokens base64url de 32 caracteres ou mais (`[token]`), números formatados como CPF, CNPJ ou telefone (`#`) e crases (viram `'`, para não abrir código no Discord). A query só sai de URLs; linha e coluna da pilha ficam.
+- O app só relata em produção (`VITE_VERSAO`), uma vez por erro e por carga de página (no máximo 10 por carga), e nunca uma resposta da API, uma falha de rede, `Script error.`, `AbortError` ou um chunk que sumiu depois de um deploy. Manda como `text/plain` (requisição simples, sem preflight do CORS); a API lê o corpo como JSON.
+

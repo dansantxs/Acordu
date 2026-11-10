@@ -42,7 +42,8 @@ public sealed partial class AvisosDeErro : IAvisosDeErro
         """;
 
     private const string SqlNaHora = """
-        SELECT count(*) FROM ocorrencias_erro WHERE avisada_em > @hora AND avisada_em <= @agora AND NOT por_resumo
+        SELECT count(*) FROM ocorrencias_erro
+        WHERE servico = @servico AND avisada_em > @hora AND avisada_em <= @agora AND NOT por_resumo
         """;
 
     private const string SqlSegurar = "UPDATE ocorrencias_erro SET segurada = true WHERE impressao = @impressao";
@@ -216,20 +217,21 @@ public sealed partial class AvisosDeErro : IAvisosDeErro
 
         var decisao = Decisao.Quieto;
         if (avisadaEm is null || avisadaEm <= agora - Quieto)
-            decisao = await ReservarAsync(conexao, transacao, impressao, agora, avisadaEm, desdeAviso, cancellationToken);
+            decisao = await ReservarAsync(conexao, transacao, impressao, erro.Servico, agora, avisadaEm, desdeAviso, cancellationToken);
 
         await transacao.CommitAsync(cancellationToken);
         return decisao;
     }
 
     private async Task<Decisao> ReservarAsync(
-        DbConnection conexao, IDbContextTransaction transacao, string impressao, DateTimeOffset agora, DateTimeOffset? avisadaAntes,
+        DbConnection conexao, IDbContextTransaction transacao, string impressao, string servico, DateTimeOffset agora, DateTimeOffset? avisadaAntes,
         int desdeAviso, CancellationToken cancellationToken)
     {
         await using (var naHora = Comando(conexao, transacao, SqlNaHora))
         {
             Parametro(naHora, "hora", agora.AddHours(-1));
             Parametro(naHora, "agora", agora);
+            Parametro(naHora, "servico", Cortar(servico, 40));
             if (Convert.ToInt32(await naHora.ExecuteScalarAsync(cancellationToken), CultureInfo.InvariantCulture) >= _opcoes.TetoPorHora)
             {
                 await using var segurar = Comando(conexao, transacao, SqlSegurar);

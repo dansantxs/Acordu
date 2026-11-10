@@ -35,3 +35,16 @@ export const CHAVE_TURNSTILE = chaveTurnstile(import.meta.env.VITE_TURNSTILE_CHA
  */
 export const intervaloDePolling = (modo: ModoTempoReal = MODO_TEMPO_REAL): number | false =>
     modo === 'polling' ? 30_000 : false
+
+/**
+ * Versão do build (`VITE_VERSAO`, o commit no deploy; spec do F13, F13d): vai junto do relato de erro. Sem ela, o app não
+ * relata erros (desenvolvimento, testes, E2E: F13-21).
+ */
+export function versaoDoBuild(valor: string | undefined): string | undefined {
+    const versao = valor?.trim()
+    if (!versao) return undefined
+    // O commit inteiro vira o curto, como o `App__Versao` da API: a mesma versão nos dois serviços.
+    return /^[0-9a-f]{40}$/i.test(versao) ? versao.slice(0, 7) : versao.slice(0, 40)
+}
+
+export const VERSAO = versaoDoBuild(import.meta.env.VITE_VERSAO)
