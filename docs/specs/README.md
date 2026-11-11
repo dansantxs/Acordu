@@ -1,6 +1,6 @@
 # Specs por marco
 
-Cada marco do Acordu, a partir do F8, começa por uma spec nesta pasta (ADR 0011).
+Cada marco do Acordu, a partir do F8, começa por uma spec nesta pasta. Desde o P1 o processo está em [`docs/processo.md`](../processo.md) (ADR 0013), com spec e design separados.
 
 - Uma pasta por marco: `docs/specs/<marco>-<nome-curto>/spec.md` (ex.: `F8-deploy`).
 - Comece por `_template.md` ou pelo comando `/spec <marco>` do Claude Code.
@@ -15,3 +15,4 @@ Cada marco do Acordu, a partir do F8, começa por uma spec nesta pasta (ADR 0011
 | F11 | [Fluxo sem retrabalho entre solicitação, tarefas e projeto](F11-fluxo-sem-retrabalho/spec.md) | Concluída |
 | F12 | [Cronômetro sem retrabalho, notificação do navegador e app instalável](F12-cronometro-notificacoes-app/spec.md) | Concluída |
 | F13 | [Monitoramento pelo Discord e "Sugerir melhoria"](F13-monitoramento-sugestoes/spec.md) | Concluída |
+| P1 | [Fábrica agêntica semi-autônoma](P1-fabrica-agentica/spec.md) ([design](P1-fabrica-agentica/design.md)) | Aprovada |

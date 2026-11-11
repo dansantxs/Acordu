@@ -1,6 +1,6 @@
 # ADR 0011 — Desenvolvimento guiado por spec (SDD) por marco
 
-- **Status:** Aceito
+- **Status:** Substituído pelo ADR 0013 (11/11/2026)
 - **Data:** 28/10/2026
 - **Contexto do projeto:** Acordu (a partir do F8 e da v2)
 
