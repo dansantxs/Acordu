@@ -10,4 +10,4 @@ Uma pasta por marco: `docs/specs/<marco>-<nome-curto>/`, com `spec.md` (o quê) 
 | F11 | [Fluxo sem retrabalho entre solicitação, tarefas e projeto](F11-fluxo-sem-retrabalho/spec.md) | — | Concluída |
 | F12 | [Cronômetro sem retrabalho, notificação do navegador e app instalável](F12-cronometro-notificacoes-app/spec.md) | — | Concluída |
 | F13 | [Monitoramento pelo Discord e "Sugerir melhoria"](F13-monitoramento-sugestoes/spec.md) | — | Concluída |
-| P1 | [Fábrica agêntica semi-autônoma](P1-fabrica-agentica/spec.md) | [design](P1-fabrica-agentica/design.md) | Em implementação |
+| P1 | [Fábrica agêntica semi-autônoma](P1-fabrica-agentica/spec.md) | [design](P1-fabrica-agentica/design.md) | Concluída |

@@ -4,7 +4,7 @@ Fonte única de **como** o Acordu é construído. O **porquê** está no ADR 001
 
 Um **orquestrador** conduz o trabalho e aciona **subagentes**, um por papel e um de cada vez. O Daniel decide nos **portões**. Entre um portão e outro, o orquestrador segue sem perguntar.
 
-> Itens marcados com (P1c) entram nesse PR do marco P1. Os comandos `/spec`, `/design`, `/plano`, `/tarefas` e `/pr` continuam valendo para rodar uma etapa à mão, fora do orquestrador.
+> Os comandos `/spec`, `/design`, `/plano`, `/tarefas` e `/pr` continuam valendo para rodar uma etapa à mão, fora do orquestrador.
 
 ## 1. Onde fica cada coisa
 
@@ -42,7 +42,7 @@ Specs dos marcos F8 a F13 continuam num arquivo só (`spec.md` com tudo): o form
 
 Subagentes nunca acionam outros subagentes e nunca fazem commit, push, merge, branch nem usam o `gh`. Só o orquestrador fala com o Daniel.
 
-Comandos fora do fluxo de um marco: `/roadmap` (etapa 1), `/deploy` (etapa 6) e `/triagem` (etapa 7), todos no P1c; `/pr`, que o orquestrador usa e que também serve para trabalho avulso.
+Comandos fora do fluxo de um marco (`.claude/commands/`): `/roadmap` (etapa 1), `/deploy` (etapa 6) e `/triagem` (etapa 7); `/pr`, que o orquestrador usa e que também serve para trabalho avulso.
 
 ## 3. Etapas
 
@@ -130,7 +130,7 @@ PRÓXIMO: etapa sugerida, ou "nenhum"
 
 ## 7. Backlog (GitHub Issues)
 
-Rótulos (criados no P1c):
+Rótulos (`bash scripts/rotulos.sh` cria ou atualiza):
 
 | Rótulo | Uso |
 |---|---|
