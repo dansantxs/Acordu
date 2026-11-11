@@ -1,0 +1,17 @@
+{
+  "marco": "<marco>",
+  "issue": null,
+  "etapa": "ESPECIFICANDO",
+  "branch": null,
+  "pr": { "id": null, "numero": null },
+  "feitos": [],
+  "contadores": { "devolucoesNaEtapa": 0, "rodadasNoPr": 0 },
+  "verificacao": ["node scripts/conferir-specs.mjs"],
+  "portoes": {
+    "G1": null,
+    "G2": null
+  },
+  "ressalvas": [],
+  "bloqueios": [],
+  "atualizadoEm": null
+}

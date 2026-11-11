@@ -1,14 +1,14 @@
 # Acordu — Estado
 
-Visão geral curta, atualizada por cada PR (`docs/processo.md` §1). O histórico está no git, nos PRs e no registro dos designs. Atualizado em 11/11/2026.
+Visão geral curta, atualizada por cada PR (`docs/processo.md` §1). O histórico está no git, nos PRs e no registro dos designs. Atualizado em 11/11/2026 (P1b).
 
 ## Em revisão
 
-- **P1a** — unificação do processo: ponteiros para `docs/processo.md`, templates de spec e design, `/design`, convenção de PR e `/pr`, este arquivo, conferência das specs na CI.
+- **P1b** — orquestrador `/marco`, subagentes `analista`, `arquiteto`, `desenvolvedor`, `testador` e `revisor-spec`, `estado.json`, `.claude/settings.json`.
 
 ## Marco em andamento
 
-- **P1 — fábrica agêntica semi-autônoma** ([spec](specs/P1-fabrica-agentica/spec.md), [design](specs/P1-fabrica-agentica/design.md)). Na `main`: processo, ADR 0013 (#175, #176). Falta: P1b (orquestrador `/marco`, subagentes, `estado.json`, permissões) e P1c (`/roadmap`, `/deploy`, `/triagem`, rótulos).
+- **P1 — fábrica agêntica semi-autônoma** ([spec](specs/P1-fabrica-agentica/spec.md), [design](specs/P1-fabrica-agentica/design.md)). Na `main`: processo, ADR 0013, unificação e convenção de PR (#175–#177). Falta: P1c (`/roadmap`, `/deploy`, `/triagem`, rótulos).
 
 ## Onde o produto está
 
