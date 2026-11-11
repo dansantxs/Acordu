@@ -22,11 +22,12 @@ export function conferirSpecs(raiz) {
             problemas.push(`${pasta}: falta spec.md`);
             continue;
         }
-        if (!LEGADOS.has(marco) && !existsSync(join(caminho, 'design.md'))) {
-            problemas.push(`${pasta}: falta design.md (fora do formato legado F8–F13, spec e design são separados)`);
-        }
         const linhas = readFileSync(spec, 'utf8').split(/\r?\n/);
         const status = linhas.map(celulas).find((c) => c[0] === '**Status**')?.[1] ?? '';
+        // Spec em Rascunho ainda espera o arquiteto (etapa 2 do processo): o design vem depois, no mesmo PR.
+        if (!LEGADOS.has(marco) && !status.startsWith('Rascunho') && !existsSync(join(caminho, 'design.md'))) {
+            problemas.push(`${pasta}: falta design.md (fora do formato legado F8–F13, spec e design são separados)`);
+        }
         const concluida = status.startsWith('Concluída');
         const vistos = new Set();
         let naTabela = false;

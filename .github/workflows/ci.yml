@@ -71,10 +71,11 @@ jobs:
             acoes:
               - .github/actions/avisar-discord/**
               - .github/workflows/ci.yml
-            # Estrutura das specs dos marcos (docs/processo.md; P1-06 a P1-08).
+            # Estrutura das specs e garantias da fábrica (docs/processo.md; P1-06 a P1-08, P1-20 a P1-22).
             specs:
               - docs/specs/**
-              - scripts/conferir-specs*
+              - scripts/conferir-*
+              - .claude/**
               - .github/workflows/ci.yml
             # Worker de api.acordu.app.br (spec do F8, F8-23 a F8-25).
             borda:
@@ -107,12 +108,13 @@ jobs:
           sparse-checkout: |
             docs/specs
             scripts
+            .claude
           persist-credentials: false
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-      - name: Testes do conferir-specs
-        run: node --test scripts/conferir-specs.test.mjs
+      - name: Testes do conferir-specs e garantias da fábrica
+        run: node --test scripts/conferir-specs.test.mjs scripts/conferir-fabrica.test.mjs
       - name: Estrutura das specs
         run: node scripts/conferir-specs.mjs
 

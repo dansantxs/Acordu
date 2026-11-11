@@ -36,8 +36,13 @@ test('marco novo completo passa', () => {
 });
 
 test('P1-06: marco novo sem design.md falha com a pasta', () => {
-    const raiz = raizCom({ 'P2-coisa': { 'spec.md': spec('Rascunho') } });
+    const raiz = raizCom({ 'P2-coisa': { 'spec.md': spec('Aprovada') } });
     assert.deepEqual(conferirSpecs(raiz), ['P2-coisa: falta design.md (fora do formato legado F8–F13, spec e design são separados)']);
+});
+
+test('P1-06: spec em Rascunho sem design.md passa (o arquiteto ainda não rodou)', () => {
+    const raiz = raizCom({ 'P2-coisa': { 'spec.md': spec('Rascunho', '| P2-01 | a | b | c | — |') } });
+    assert.deepEqual(conferirSpecs(raiz), []);
 });
 
 test('P1-06: marco legado sem design.md passa', () => {
