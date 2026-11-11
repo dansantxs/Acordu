@@ -1,10 +1,10 @@
 # Acordu — Processo de desenvolvimento (fábrica agêntica semi-autônoma)
 
-Fonte única de **como** o Acordu é construído. O **porquê** está no ADR 0013. `CLAUDE.md`, o README das specs, as convenções e os agentes do Claude Code apontam para cá e não repetem estas regras.
+Fonte única de **como** o Acordu é construído. O **porquê** está no ADR 0013. `CLAUDE.md`, o README das specs, as convenções e os comandos do Claude Code apontam para cá e não repetem estas regras; os agentes repetem só os próprios limites (o que podem e não podem tocar), porque começam sem contexto.
 
 Um **orquestrador** conduz o trabalho e aciona **subagentes**, um por papel e um de cada vez. O Daniel decide nos **portões**. Entre um portão e outro, o orquestrador segue sem perguntar.
 
-> Itens marcados com (P1b) ou (P1c) entram nesses PRs do marco P1. Até lá vale o fluxo com comandos: `/spec`, `/design`, `/plano`, `/tarefas`, `/pr` e `revisor-spec`.
+> Itens marcados com (P1c) entram nesse PR do marco P1. Os comandos `/spec`, `/design`, `/plano`, `/tarefas` e `/pr` continuam valendo para rodar uma etapa à mão, fora do orquestrador.
 
 ## 1. Onde fica cada coisa
 
@@ -16,8 +16,8 @@ Cada informação tem um lugar só. Na dúvida, siga esta tabela.
 | Requisito do produto (vale para sempre) | `docs/ers/ERS-acordu-v1.md` | uma spec cria ou muda um RF/RNF |
 | **O quê** um marco entrega: objetivo, cenários, fora de escopo | `docs/specs/<marco>/spec.md` | etapa 2; viva até o fim do marco |
 | **Como** o marco é feito: decisões D, impacto nos documentos, divisão em PRs, registro | `docs/specs/<marco>/design.md` | etapa 3; o registro cresce a cada PR |
-| Onde o trabalho do marco parou (máquina) | `docs/specs/<marco>/estado.json` (P1b) | só o orquestrador escreve, a cada passo |
-| Anotações de trabalho dos agentes | `docs/specs/<marco>/notas/` (P1b) | durante o marco; nunca na raiz |
+| Onde o trabalho do marco parou (máquina) | `docs/specs/<marco>/estado.json` | só o orquestrador escreve, a cada passo |
+| Anotações de trabalho dos agentes | `docs/specs/<marco>/notas/` | durante o marco; nunca na raiz |
 | Decisão de arquitetura que vale **além** do marco | `docs/adr/NNNN-*.md` | o design promove uma D a ADR |
 | Regra de código que vale para todo o repositório | `docs/convencoes-codigo-acordu.md` | um PR cria a regra |
 | Formato de commit e de PR | `docs/convencoes-commit-acordu.md`, `docs/convencoes-pr-acordu.md` | raramente |
@@ -33,12 +33,12 @@ Specs dos marcos F8 a F13 continuam num arquivo só (`spec.md` com tudo): o form
 
 | Papel | Arquivo | Faz | Não faz |
 |---|---|---|---|
-| **Orquestrador** | `/marco` (P1b) | conduz as etapas, monta o handoff, troca de branch, confere no disco, roda os testes, escreve o `estado.json`, faz commit e push, abre o PR | escreve código ou spec; faz merge; dispara deploy sem o G4 |
-| Analista | agente `analista` (P1b) | `spec.md` e o RF/RNF novo na ERS | design, código |
-| Arquiteto | agente `arquiteto` (P1b) | `design.md`, rascunho de ADR, revisão contra ADRs | código |
-| Desenvolvedor | agente `desenvolvedor` (P1b) | código e testes de unidade de um PR da divisão, documentos afetados | mudar cenários; editar testes de aceite do testador |
-| Testador (QA) | agente `testador` (P1b) | testes que verificam o "então" de cada cenário, isolamento, `If-Match`, casos de borda; coluna Teste | código de produção |
-| Revisor | agente `revisor-spec` | revisa a branch contra spec, design, ADRs e convenções | editar arquivos |
+| **Orquestrador** | `/marco` (`.claude/commands/marco.md`) | conduz as etapas, monta o handoff, troca de branch, confere no disco, roda os testes, escreve o `estado.json`, faz commit e push, abre o PR | escreve código ou spec; faz merge; dispara deploy sem o G4 |
+| Analista | agente `analista` | `spec.md` e o RF/RNF novo na ERS | design, código |
+| Arquiteto | agente `arquiteto` | `design.md`, rascunho de ADR, revisão contra ADRs | código |
+| Desenvolvedor | agente `desenvolvedor` | código e testes (unidade e funcionais) de um PR da divisão, documentos afetados | mudar cenários; editar testes de aceite do testador |
+| Testador (QA) | agente `testador` (modelo `sonnet`) | testes que verificam o "então" de cada cenário, isolamento, `If-Match`, casos de borda; coluna Teste | código de produção |
+| Revisor | agente `revisor-spec` (modelo `sonnet`) | revisa a branch contra spec, design, ADRs e convenções | editar arquivos |
 
 Subagentes nunca acionam outros subagentes e nunca fazem commit, push, merge, branch nem usam o `gh`. Só o orquestrador fala com o Daniel.
 
@@ -49,7 +49,7 @@ Comandos fora do fluxo de um marco: `/roadmap` (etapa 1), `/deploy` (etapa 6) e 
 | # | Etapa | Quem | Sai | Avança quando (conferido no disco) | Portão |
 |---|---|---|---|---|---|
 | 1 | Planejamento | `/roadmap` | até três candidatos a marco | — | **G1** — o Daniel escolhe (issue `marco`) |
-| 2 | Requisitos | analista | `spec.md`, ERS | cenários numerados sem repetição; `conferir-specs` sai 0 | — |
+| 2 | Requisitos | analista | `spec.md` (Rascunho), ERS | cenários numerados sem repetição; `conferir-specs` sai 0 (spec em Rascunho dispensa o design) | — |
 | 3 | Design | arquiteto; `/plano` confere | `design.md`, ADR se preciso | toda D com opções e recomendação; divisão em PRs com cenários; `/plano` sem achado grave | **G2** — merge do PR de spec e design, com a escolha de cada D |
 | 4 | Desenvolvimento | desenvolvedor | código, testes, documentos | testes da área e build saem 0 (o orquestrador roda) | — |
 | 5 | Testes e revisão | testador, depois revisor | testes que faltavam, parecer | cenários do PR com teste; revisor sem achado que bloqueia; testes saem 0 | — |
@@ -66,13 +66,13 @@ Depois do G3, o orquestrador segue para o próximo PR da divisão (volta à etap
 Template `docs/specs/_template/spec.md`. Cenários **dado / quando / então**, numerados `<marco>-NN`, em tabelas com a coluna Id; o título de cada tabela pode nomear o PR da divisão que a entrega (é só rótulo: a divisão fica no design). Um comportamento por cenário, com permissão, isolamento entre tenants e clientes e erro sempre que se aplicam. Requisito que falta na ERS entra na ERS no mesmo PR. Dúvida de requisito volta ao Daniel (NEEDS_CLARIFICATION); o analista não inventa.
 
 ### 3.3 Design
-Template `docs/specs/_template/design.md`. Decisões D com opções e recomendação justificada, impacto em cada documento ("nenhum" também é resposta), divisão em PRs pequenos e independentes com os cenários de cada um, e o registro. Spec e design vão no mesmo PR; o G2 aprova os dois e as escolhas das D.
+Template `docs/specs/_template/design.md`. Decisões D com opções e recomendação justificada, impacto em cada documento ("nenhum" também é resposta), divisão em PRs pequenos e independentes com os cenários de cada um, e o registro. Spec e design vão no mesmo PR; antes de abri-lo, o orquestrador muda o status da spec para `Aprovada` (o merge é a aprovação) e o G2 aprova os dois e as escolhas das D.
 
 ### 3.4 Desenvolvimento
 Um PR da divisão por vez, numa branch a partir da `main`: Domain → Application → Infrastructure → Api → web, testes de cada cenário, documentos afetados no mesmo PR. Dúvida técnica o desenvolvedor decide e registra como premissa no `notas/`; cenário que se mostra errado volta como NEEDS_CLARIFICATION e reabre o G2 só para aquela mudança.
 
 ### 3.5 Testes e revisão
-O testador escreve o que falta para cada cenário do PR verificar o "então". O revisor dá parecer `aprovado`, `aprovado com ressalvas` (as ressalvas vão para a descrição do PR) ou `reprovado`. Reprovado ou defeito do testador volta ao desenvolvedor e passa de novo pelo testador e pelo revisor. O orquestrador preenche a coluna Teste e o registro do design, faz os commits por camada e abre o PR com o `/pr`.
+O testador escreve o que falta para cada cenário do PR verificar o "então". O revisor dá parecer `aprovado`, `aprovado com ressalvas` (as ressalvas vão para a descrição do PR) ou `reprovado`. Reprovado ou defeito do testador volta ao desenvolvedor e passa de novo pelo testador e pelo revisor. O testador preenche a coluna Teste; o orquestrador confere, preenche o registro do design, faz os commits por camada e abre o PR com o `/pr`.
 
 ### 3.6 Implantação
 `/deploy` confere o `CI ok` da `main`, mostra o que entra desde o último deploy e, só com o "pode" do Daniel, dispara o `deploy.yml`, acompanha e roda as conferências pendentes das specs (verificações marcadas "no primeiro deploy"). Falha: o workflow já faz rollback; o comando relata e abre issue `bug`.
@@ -112,13 +112,20 @@ BLOQUEIOS: itens, ou "nenhum"
 PRÓXIMO: etapa sugerida, ou "nenhum"
 ```
 
-**Verificação no disco:** o orquestrador confere que os `ARTEFATOS` existem e mudaram (`git status`, `git diff`), roda ele mesmo os comandos de `TESTES` e só avança se saírem 0. Relato sem arquivo ou sem comando executado é etapa não concluída. Antes de cada acionamento, o orquestrador confere a branch (`git branch --show-current`); trabalho na `main` reprova a etapa.
+**Verificação no disco:**
+- Antes de cada acionamento, o orquestrador confere a branch (`git branch --show-current`) e tira uma foto: o `HEAD` (`git rev-parse HEAD`) e a árvore de trabalho (`git add -A && git write-tree`, que inclui arquivos novos sem fazer commit).
+- Na volta: a branch e o `HEAD` são os mesmos (subagente não troca de branch nem faz commit; se fez, o commit é desfeito com `reset --soft` e a etapa reprovada); os arquivos que o subagente mudou são `git diff --name-only <árvore antes> <árvore depois>` (com a mesma foto). Cada caminho em `ARTEFATOS` tem de estar nessa lista, e nada fora do que o papel pode tocar (§2): o testador só testes e a coluna Teste, o revisor nada.
+- A foto deixa o trabalho no stage: subagentes leem com `git diff HEAD`, e o orquestrador faz `git reset` antes de agrupar os commits por camada.
+- O orquestrador roda ele mesmo os comandos de `TESTES` e só avança se saírem 0. Relato sem arquivo ou sem comando executado é etapa não concluída. Trabalho na `main` reprova a etapa.
 
 ## 6. Devoluções, limites e estado
 
-- Até **2 devoluções por etapa** e **5 rodadas de correção por PR** (revisor ou testador reprovando, CI falhando). Estourou: `BLOCKED`, o orquestrador para e explica ao Daniel.
+- **Devolução:** o trabalho volta a um subagente para refazer (conferência no disco falhou, parecer `reprovado`, CI vermelha). Conta na etapa de quem refaz e zera quando essa etapa é aceita. Até **2 por etapa**.
+- **Rodada:** cada volta ao desenvolvedor dentro do mesmo PR, venha do testador, do revisor ou da CI. Não zera até o PR ser mesclado. Até **5 por PR**.
+- Estourou um dos dois: `BLOCKED`, o orquestrador para e explica ao Daniel.
 - Mudança de requisito sempre volta ao G2.
-- `docs/specs/<marco>/estado.json` guarda: etapa, PR atual e branch, contadores de devolução e de rodadas, comandos de verificação, portões aprovados (com o trecho da mensagem ou o número do PR mesclado) e bloqueios. Uma sessão nova lê o arquivo e continua da primeira etapa pendente; o merge é conferido com `gh pr view`.
+- `docs/specs/<marco>/estado.json` guarda: etapa, PR atual e branch, contadores de devolução e de rodadas, comandos de verificação, portões aprovados (com o trecho da mensagem ou o número do PR mesclado) e bloqueios. Uma sessão nova lê o arquivo e continua da primeira etapa pendente; o merge é conferido pelo GitHub. O arquivo é versionado: o orquestrador grava a etapa de espera (`AGUARDANDO_G2`, `AGUARDANDO_MERGE`) **antes** do commit e do PR, para o estado que entra na `main` ser o de espera.
+- Modelo do arquivo: `docs/specs/_template/estado.json` (`feitos` lista os PRs da divisão já mesclados; `portoes` guarda o trecho da mensagem ou o número do PR).
 - Ciclo do campo `etapa`: `ESPECIFICANDO` → `PROJETANDO` → ⏸ `AGUARDANDO_G2` → `IMPLEMENTANDO` → `TESTANDO` → `REVISANDO` → `PUBLICANDO_PR` → ⏸ `AGUARDANDO_MERGE` → (próximo PR: `IMPLEMENTANDO`) → `CONCLUIDO`. `BLOCKED` e `CANCELADO` em qualquer ponto.
 
 ## 7. Backlog (GitHub Issues)
@@ -140,9 +147,9 @@ Issue de marco fechada pelo último PR do marco. Issue de bug fechada pelo PR da
 
 Regra escrita só no prompt depende de o modelo obedecer; a ferramenta aplica a do cabeçalho.
 
-- **Agentes** (`.claude/agents/*.md`): `tools:` limita o que cada um usa (o revisor só lê; nenhum subagente tem o `gh` nem o `git` de escrita no prompt, e o orquestrador confere no disco).
-- **`.claude/settings.json`** (P1b), negado para todos: `gh pr merge`, `git push --force`/`-f`, `git reset --hard`, `git rebase`, `git push origin main`, `gh workflow run deploy.yml` sem pergunta (`ask`).
-- **Modelo diferente para quem verifica:** o revisor e o testador usam outro modelo que o desenvolvedor (campo `model:` do agente), para os erros não serem os mesmos de quem escreveu.
+- **Agentes** (`.claude/agents/*.md`): `tools:` limita o que cada um usa (o revisor não tem ferramenta de edição). O Claude Code não restringe subcomandos do `Bash` por subagente, então "subagente não troca de branch, não faz commit e não toca fora do papel" é garantido pela foto antes e depois de cada acionamento (§5).
+- **`.claude/settings.json`**, negado para todos, inclusive o orquestrador: merge de PR (`gh pr merge` e a rota da API), `git push --force`/`-f`/`--force-with-lease`, push na `main`, `git reset --hard`, `git rebase`, apagar branch (`git branch -D`, `push --delete`). Pedem confirmação (`ask`): disparar o `deploy.yml` e o `backup.yml`. As regras casam pelo começo do comando; não são uma barreira contra quem quer contorná-las, e sim contra o engano.
+- **Modelo diferente para quem verifica:** revisor e testador fixam `model: sonnet`; analista, arquiteto e desenvolvedor herdam o da sessão (`inherit`, normalmente o Opus). Com a sessão no Sonnet a diversidade some: use o Opus na sessão do `/marco`.
 
 ## 9. Rastreabilidade
 

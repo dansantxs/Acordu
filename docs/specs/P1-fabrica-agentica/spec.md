@@ -25,7 +25,7 @@ A maior parte do marco é texto de processo e comandos do Claude Code: a verific
 | P1-03 | marco novo | `/spec <marco>` | cria a pasta com `spec.md` (só o quê) a partir de `docs/specs/_template/spec.md` e a linha no README | manual: `/spec` no próximo marco (F14) |
 | P1-04 | spec em rascunho | `/design <marco>` | cria `design.md` a partir de `docs/specs/_template/design.md` com decisões D (opções e recomendação), impacto, divisão em PRs e registro | manual: `/design` no próximo marco (F14) |
 | P1-05 | decisão D que outro marco terá de seguir | o design é escrito | a D aponta para um ADR ou convenção criado no mesmo PR | manual: `/plano` no próximo marco (item 6 do comando) |
-| P1-06 | pasta de marco P1 ou posterior sem `design.md` | a CI roda | o job falha dizendo qual pasta | `scripts/conferir-specs.test.mjs › P1-06: marco novo sem design.md falha com a pasta`; `… marco legado sem design.md passa` |
+| P1-06 | pasta de marco P1 ou posterior sem `design.md`, com a spec fora de `Rascunho` | a CI roda | o job falha dizendo qual pasta (spec em `Rascunho` ainda espera o arquiteto e passa) | `scripts/conferir-specs.test.mjs › P1-06: marco novo sem design.md falha com a pasta`; `… spec em Rascunho sem design.md passa (o arquiteto ainda não rodou)`; `… marco legado sem design.md passa` |
 | P1-07 | spec com Id de cenário repetido ou fora do padrão `<marco>-NN` | a CI roda | o job falha com o Id | `scripts/conferir-specs.test.mjs › P1-07: id repetido falha`; `… id de outro marco ou sem dois dígitos falha`; `… id com letra, minúscula, travessão ou sublinhado falha` |
 | P1-08 | spec com status `Concluída` e cenário com Teste `—` | a CI roda | o job falha com o cenário | `scripts/conferir-specs.test.mjs › P1-08: spec Concluída com cenário sem Teste falha`; `… spec em implementação com cenário sem Teste passa` |
 | P1-09 | branch pronta | `/pr` | a descrição segue `docs/convencoes-pr-acordu.md` (título, O que entrega, Decisões não óbvias, Checklist, rodapé) e o PR é aberto contra a `main` sem perguntar | manual: a descrição deste PR segue a convenção; o `/pr` é conferido no primeiro PR aberto por ele |
@@ -35,21 +35,21 @@ A maior parte do marco é texto de processo e comandos do Claude Code: a verific
 
 | Id | Dado | Quando | Então | Teste |
 |---|---|---|---|---|
-| P1-11 | marco com spec e design aprovados (G2) | `/marco <id>` | aciona desenvolvedor → testador → revisor, um de cada vez, com o handoff do processo §5, e abre o PR pelo `/pr` | — |
-| P1-12 | um subagente devolve `DONE` com um arquivo em `ARTEFATOS` que não mudou | o orquestrador confere | a etapa não avança e conta como devolução | — |
-| P1-13 | o desenvolvedor diz que os testes passaram | o orquestrador confere | ele mesmo roda os comandos de `TESTES`; código de saída ≠ 0 devolve ao desenvolvedor | — |
-| P1-14 | o revisor dá `reprovado` ou o testador acha defeito | a etapa termina | o trabalho volta ao desenvolvedor e passa de novo pelo testador e pelo revisor | — |
-| P1-15 | terceira devolução na mesma etapa, ou sexta rodada no PR | acontece | `estado.json` fica `BLOCKED` e o orquestrador para explicando ao Daniel | — |
-| P1-16 | `aprovado com ressalvas` | o PR é aberto | as ressalvas estão na descrição do PR | — |
-| P1-17 | branch atual diferente da do PR | o orquestrador vai acionar um subagente | troca para a branch e confere com `git branch --show-current` antes; trabalho na `main` reprova a etapa | — |
-| P1-18 | sessão nova com `estado.json` em `IMPLEMENTANDO` | `/marco <id>` | continua da etapa pendente, sem refazer as anteriores | — |
-| P1-19 | `estado.json` em `AGUARDANDO_MERGE` | `/marco <id>` | confere com `gh pr view`; mesclado → próximo PR da divisão; não mesclado → para | — |
-| P1-20 | qualquer agente | tenta `gh pr merge`, `git push --force`, `git reset --hard`, `git rebase` ou push na `main` | a permissão do `.claude/settings.json` nega | — |
-| P1-21 | um subagente | tenta `git commit`, `git push` ou `gh` | não tem a ferramenta ou a permissão nega | — |
-| P1-22 | revisor e testador | são acionados | usam um modelo diferente do desenvolvedor (`model:` no agente) | — |
-| P1-23 | dúvida de requisito durante a implementação | o subagente devolve `NEEDS_CLARIFICATION` | o orquestrador para e leva ao Daniel; a mudança volta ao G2 | — |
-| P1-24 | qualquer etapa | encontra algo irreversível ou não previsto no design | para e pergunta (processo §4) | — |
-| P1-25 | marco novo | `/marco <id>` sem spec | aciona o analista e depois o arquiteto, roda o `/plano`, abre o PR de spec e design e para no G2 | — |
+| P1-11 | marco com spec e design aprovados (G2) | `/marco <id>` | aciona desenvolvedor → testador → revisor, um de cada vez, com o handoff do processo §5, e abre o PR pelo `/pr` | manual: no primeiro marco conduzido pelo `/marco` (F14) |
+| P1-12 | um subagente devolve `DONE` com um arquivo em `ARTEFATOS` que não mudou | o orquestrador confere | a etapa não avança e conta como devolução | manual: no primeiro marco conduzido pelo `/marco` (F14) |
+| P1-13 | o desenvolvedor diz que os testes passaram | o orquestrador confere | ele mesmo roda os comandos de `TESTES`; código de saída ≠ 0 devolve ao desenvolvedor | manual: no primeiro marco conduzido pelo `/marco` (F14) |
+| P1-14 | o revisor dá `reprovado` ou o testador acha defeito | a etapa termina | o trabalho volta ao desenvolvedor e passa de novo pelo testador e pelo revisor | manual: no primeiro marco conduzido pelo `/marco` (F14) |
+| P1-15 | terceira devolução na mesma etapa, ou sexta rodada no PR | acontece | `estado.json` fica `BLOCKED` e o orquestrador para explicando ao Daniel | manual: no primeiro marco conduzido pelo `/marco` (F14) |
+| P1-16 | `aprovado com ressalvas` | o PR é aberto | as ressalvas estão na descrição do PR | manual: no primeiro marco conduzido pelo `/marco` (F14) |
+| P1-17 | branch atual diferente da do PR | o orquestrador vai acionar um subagente | troca para a branch e confere com `git branch --show-current` antes; trabalho na `main` reprova a etapa | manual: no primeiro marco conduzido pelo `/marco` (F14) |
+| P1-18 | sessão nova com `estado.json` em `IMPLEMENTANDO` | `/marco <id>` | continua da etapa pendente, sem refazer as anteriores | manual: no primeiro marco conduzido pelo `/marco` (F14) |
+| P1-19 | `estado.json` em `AGUARDANDO_MERGE` | `/marco <id>` | confere com `gh pr view`; mesclado → próximo PR da divisão; não mesclado → para | manual: no primeiro marco conduzido pelo `/marco` (F14) |
+| P1-20 | qualquer agente | tenta `gh pr merge`, `git push --force`, `git reset --hard`, `git rebase` ou push na `main` | a permissão do `.claude/settings.json` nega | `scripts/conferir-fabrica.test.mjs › P1-20: settings nega merge, force push, push na main, reset --hard, rebase e apagar branch`; a negação em si é do Claude Code |
+| P1-21 | um subagente | faz `git commit` | o orquestrador vê o `HEAD` mudado, desfaz o commit (`reset --soft`) e reprova a etapa; o revisor nem tem ferramenta de edição | `scripts/conferir-fabrica.test.mjs › P1-21: revisor sem ferramenta de edição`; a conferência do `HEAD`: manual: no primeiro marco conduzido pelo `/marco` (F14) |
+| P1-22 | revisor e testador | são acionados | usam um modelo diferente do desenvolvedor (`model:` no agente) | `scripts/conferir-fabrica.test.mjs › P1-22: testador e revisor usam outro modelo; os demais herdam o da sessão` |
+| P1-23 | dúvida de requisito durante a implementação | o subagente devolve `NEEDS_CLARIFICATION` | o orquestrador para e leva ao Daniel; a mudança volta ao G2 | manual: no primeiro marco conduzido pelo `/marco` (F14) |
+| P1-24 | qualquer etapa | encontra algo irreversível ou não previsto no design | para e pergunta (processo §4) | manual: no primeiro marco conduzido pelo `/marco` (F14) |
+| P1-25 | marco novo | `/marco <id>` sem spec | aciona o analista e depois o arquiteto, roda o `/plano`, abre o PR de spec e design e para no G2 | manual: no primeiro marco conduzido pelo `/marco` (F14) |
 
 ### Comandos fora do marco (P1c)
 
