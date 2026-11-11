@@ -6,15 +6,13 @@ Acordu (Nebrys): gestão de atendimento, tarefas e contratos para pequenos prest
 
 O Acordu é escrito do zero. **Nada do ASMTasks** (sistema da empregadora do Daniel) é reaproveitado: código, schema, telas, textos ou dados. Nunca peça, leia ou cite o ASMTasks como referência; na dúvida sobre a origem de algo, pare e pergunte.
 
-## Papéis e fluxo
+## Como trabalhar
 
-- O Claude implementa; o Daniel revisa e decide.
-- **Desenvolvimento guiado por spec (ADR 0011):** todo marco começa por `docs/specs/<marco>/spec.md`. O PR da spec é a aprovação do plano; sem spec aprovada, não há código do marco. Comandos: `/spec`, `/plano`, `/tarefas`.
-- Decisão que depende do Daniel: mostre opções e recomendação e espere. Tarefa simples: execute direto.
-- **PRs pequenos contra a `main`, sem empilhar**, sempre com testes e CI verde. Descrição explica as decisões não óbvias e cita os cenários da spec que entrega.
-- Antes de abrir um PR: rode os testes da área e o subagente `revisor-spec`.
-- Decisão de arquitetura nova → ADR em `docs/adr/`. Convenção nova → `docs/convencoes-codigo-acordu.md`. No mesmo PR.
-- Commits em Conventional Commits (`docs/convencoes-commit-acordu.md`), agrupados por camada.
+O processo inteiro (etapas, papéis, portões, onde fica cada coisa, formato de spec e design) está em **`docs/processo.md`** (ADR 0013). Leia antes de começar qualquer marco. O essencial:
+
+- O Claude implementa; o Daniel decide nos portões (processo §4).
+- Comandos: `/spec`, `/design`, `/plano`, `/tarefas`, `/pr`; formato de commit e PR em `docs/convencoes-commit-acordu.md` e `docs/convencoes-pr-acordu.md`.
+- Comece pelo `docs/estado.md`: o que está em revisão e os próximos passos.
 
 ## Onde está cada decisão
 
@@ -30,6 +28,8 @@ O Acordu é escrito do zero. **Nada do ASMTasks** (sistema da empregadora do Dan
 | Deploy e infra | `docs/deploy-ci-acordu-v1.md`, `docs/setup-infra-acordu.md` (ADR 0010) |
 | Specs dos marcos | `docs/specs/` |
 | Processo (etapas, portões, onde fica cada coisa) | `docs/processo.md` (ADR 0013) |
+| Estado do projeto | `docs/estado.md` |
+| Commits e PRs | `docs/convencoes-commit-acordu.md`, `docs/convencoes-pr-acordu.md` |
 
 Se uma tarefa exigir mudar um desses documentos, diga qual e por quê, e mude no mesmo PR.
 

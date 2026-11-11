@@ -173,8 +173,8 @@
 - **Assertions:** AwesomeAssertions (fork Apache 2.0 do FluentAssertions). Não usar FluentAssertions 8+, que exige licença comercial para produto pago.
 - **Nomes de teste:** `Metodo_Cenario_ResultadoEsperado` (ex.: `Resolver_SemSolucao_LancaExcecao`). Um arquivo de teste por classe testada.
 - **Casos de borda documentados viram teste:** checklists dos documentos (read side §11, ADR 0003) são a lista mínima.
-- Commits: `convencoes-commit-acordu.md`. Layout: `estrutura-repositorio-acordu.md`.
-- **(Acordu) Specs por marco (ADR 0011):** a partir do F8, cada marco tem `docs/specs/<marco>-<nome>/spec.md` (template em `docs/specs/_template.md`), aprovada no próprio PR antes de qualquer código. Cenários numerados `<marco>-NN` no formato dado / quando / então; cada um cita o teste que o cobre. PR de código cita os cenários que entrega e atualiza a spec no mesmo PR quando o comportamento muda. Regras para o Claude em `CLAUDE.md`; comandos em `.claude/commands/` e subagente em `.claude/agents/`.
+- Commits: `convencoes-commit-acordu.md`. PRs: `convencoes-pr-acordu.md`. Layout: `estrutura-repositorio-acordu.md`.
+- **(Acordu) Specs e processo:** spec e design por marco, cenários, portões e PRs seguem `docs/processo.md` (ADR 0013); formato do PR em `docs/convencoes-pr-acordu.md`.
 - **(Acordu) Jobs da CI (F8a):** todo job novo do `ci.yml` depende de `mudancas` e tem `if` pela área que ele cobre (saída nova no `dorny/paths-filter` quando for uma área nova), e entra no `needs` do `CI ok`. Na `main` e no disparo manual tudo roda. A CI de uma branch só existe com o PR aberto: para validar antes da revisão, abra o PR como rascunho.
 
 ---

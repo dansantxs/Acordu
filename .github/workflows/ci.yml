@@ -29,6 +29,7 @@ jobs:
       imagem: ${{ steps.filtro.outputs.imagem == 'true' || github.event_name != 'pull_request' }}
       borda: ${{ steps.filtro.outputs.borda == 'true' || github.event_name != 'pull_request' }}
       acoes: ${{ steps.filtro.outputs.acoes == 'true' || github.event_name != 'pull_request' }}
+      specs: ${{ steps.filtro.outputs.specs == 'true' || github.event_name != 'pull_request' }}
     steps:
       # No pull_request o filtro lista os arquivos pela API (pull-requests: read); não precisa de checkout.
       - uses: dorny/paths-filter@v3
@@ -70,6 +71,11 @@ jobs:
             acoes:
               - .github/actions/avisar-discord/**
               - .github/workflows/ci.yml
+            # Estrutura das specs dos marcos (docs/processo.md; P1-06 a P1-08).
+            specs:
+              - docs/specs/**
+              - scripts/conferir-specs*
+              - .github/workflows/ci.yml
             # Worker de api.acordu.app.br (spec do F8, F8-23 a F8-25).
             borda:
               - *pipeline
@@ -88,6 +94,27 @@ jobs:
           persist-credentials: false
       - name: Testes do avisar.sh
         run: bash .github/actions/avisar-discord/avisar.test.sh
+
+  specs:
+    name: Specs
+    needs: mudancas
+    if: needs.mudancas.outputs.specs == 'true'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: |
+            docs/specs
+            scripts
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Testes do conferir-specs
+        run: node --test scripts/conferir-specs.test.mjs
+      - name: Estrutura das specs
+        run: node scripts/conferir-specs.mjs
 
   backend:
     name: Backend (.NET)
@@ -339,7 +366,7 @@ jobs:
   # tudo pulado e o PR aparentemente aprovado.
   ci-ok:
     name: CI ok
-    needs: [mudancas, acoes, backend, web, e2e, imagem, borda]
+    needs: [mudancas, acoes, specs, backend, web, e2e, imagem, borda]
     if: always()
     runs-on: ubuntu-24.04
     timeout-minutes: 5

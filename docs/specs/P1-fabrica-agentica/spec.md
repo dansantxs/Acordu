@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| **Status** | Aprovada |
+| **Status** | Em implementação |
 | **Data** | 11/11/2026 |
 | **Requisitos** | Nenhum RF/RNF do produto (marco de processo) |
 | **ADRs** | 0013 (novo; substitui o 0011) |
@@ -20,16 +20,16 @@ A maior parte do marco é texto de processo e comandos do Claude Code: a verific
 
 | Id | Dado | Quando | Então | Teste |
 |---|---|---|---|---|
-| P1-01 | o repositório na `main` | se procura uma regra do processo (portões, onde fica cada decisão, formato de spec e design) | ela está só em `docs/processo.md`; `CLAUDE.md`, `docs/specs/README.md`, convenções §6 e os comandos apontam para lá sem repetir | — |
-| P1-02 | ADR 0011 | se lê o ADR | o status é "Substituído pelo ADR 0013" e o texto não muda | este PR |
-| P1-03 | marco novo | `/spec <marco>` | cria a pasta com `spec.md` (só o quê) a partir de `docs/specs/_template/spec.md` e a linha no README | — |
-| P1-04 | spec em rascunho | `/design <marco>` | cria `design.md` a partir de `docs/specs/_template/design.md` com decisões D (opções e recomendação), impacto, divisão em PRs e registro | — |
-| P1-05 | decisão D que outro marco terá de seguir | o design é escrito | a D aponta para um ADR ou convenção criado no mesmo PR | — |
-| P1-06 | pasta de marco P1 ou posterior sem `design.md` | a CI roda | o job falha dizendo qual pasta | — |
-| P1-07 | spec com Id de cenário repetido ou fora do padrão `<marco>-NN` | a CI roda | o job falha com o Id | — |
-| P1-08 | spec com status `Concluída` e cenário com Teste `—` | a CI roda | o job falha com o cenário | — |
-| P1-09 | branch pronta | `/pr` | a descrição segue `docs/convencoes-pr-acordu.md` (título, O que entrega, Decisões não óbvias, Checklist, rodapé) e o PR é aberto contra a `main` sem perguntar | — |
-| P1-10 | qualquer PR mesclado | se abre `docs/estado.md` | ele diz o que está em revisão, o marco em andamento e os próximos passos, atualizado pelo próprio PR | — |
+| P1-01 | o repositório na `main` | se procura uma regra do processo (portões, onde fica cada decisão, formato de spec e design) | ela está só em `docs/processo.md`; `CLAUDE.md`, `docs/specs/README.md`, convenções §6 e os comandos apontam para a seção (§N) e só dizem o passo a passo do próprio comando | conferido no P1a: `grep -rnE "dado / quando|G1 .*G2|Domain → |F8–F13|2 devoluções" CLAUDE.md .claude/commands docs/specs/README.md docs/convencoes-codigo-acordu.md` não devolve nada |
+| P1-02 | ADR 0011 | se lê o ADR | o status é "Substituído pelo ADR 0013" e o texto não muda | PR #175 (status do ADR 0011) |
+| P1-03 | marco novo | `/spec <marco>` | cria a pasta com `spec.md` (só o quê) a partir de `docs/specs/_template/spec.md` e a linha no README | manual: `/spec` no próximo marco (F14) |
+| P1-04 | spec em rascunho | `/design <marco>` | cria `design.md` a partir de `docs/specs/_template/design.md` com decisões D (opções e recomendação), impacto, divisão em PRs e registro | manual: `/design` no próximo marco (F14) |
+| P1-05 | decisão D que outro marco terá de seguir | o design é escrito | a D aponta para um ADR ou convenção criado no mesmo PR | manual: `/plano` no próximo marco (item 6 do comando) |
+| P1-06 | pasta de marco P1 ou posterior sem `design.md` | a CI roda | o job falha dizendo qual pasta | `scripts/conferir-specs.test.mjs › P1-06: marco novo sem design.md falha com a pasta`; `… marco legado sem design.md passa` |
+| P1-07 | spec com Id de cenário repetido ou fora do padrão `<marco>-NN` | a CI roda | o job falha com o Id | `scripts/conferir-specs.test.mjs › P1-07: id repetido falha`; `… id de outro marco ou sem dois dígitos falha`; `… id com letra, minúscula, travessão ou sublinhado falha` |
+| P1-08 | spec com status `Concluída` e cenário com Teste `—` | a CI roda | o job falha com o cenário | `scripts/conferir-specs.test.mjs › P1-08: spec Concluída com cenário sem Teste falha`; `… spec em implementação com cenário sem Teste passa` |
+| P1-09 | branch pronta | `/pr` | a descrição segue `docs/convencoes-pr-acordu.md` (título, O que entrega, Decisões não óbvias, Checklist, rodapé) e o PR é aberto contra a `main` sem perguntar | manual: a descrição deste PR segue a convenção; o `/pr` é conferido no primeiro PR aberto por ele |
+| P1-10 | qualquer PR mesclado | se abre `docs/estado.md` | ele diz o que está em revisão, o marco em andamento e os próximos passos, atualizado pelo próprio PR | este PR (`docs/estado.md` nasce com o P1a em revisão) |
 
 ### Orquestrador e subagentes (P1b)
 

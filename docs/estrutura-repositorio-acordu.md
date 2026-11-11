@@ -24,9 +24,9 @@
 
 ```
 acordu/
-├─ CLAUDE.md                          # regras do projeto para o Claude Code (ADR 0011)
+├─ CLAUDE.md                          # regras do projeto para o Claude Code (ADR 0013)
 ├─ .claude/
-│  ├─ commands/                        # /spec, /plano, /tarefas
+│  ├─ commands/                        # /spec, /design, /plano, /tarefas, /pr
 │  └─ agents/                          # revisor-spec
 ├─ .github/
 │  └─ workflows/
@@ -48,8 +48,13 @@ acordu/
 │  │  ├─ 0008-trilha-de-auditoria.md
 │  │  ├─ 0009-tempo-real-por-sse.md
 │  │  ├─ 0010-hospedagem-serverless-produto-unico.md
-│  │  └─ 0011-desenvolvimento-guiado-por-spec.md
-│  ├─ specs/                       # uma spec por marco a partir do F8 (ADR 0011) + _template.md
+│  │  ├─ 0011-desenvolvimento-guiado-por-spec.md   # substituído pelo 0013
+│  │  ├─ 0012-avisos-de-operacao-pelo-discord.md
+│  │  └─ 0013-fabrica-agentica-semi-autonoma.md
+│  ├─ specs/                       # spec.md + design.md por marco (processo.md) + _template/
+│  ├─ processo.md                  # como o Acordu é construído (ADR 0013)
+│  ├─ estado.md                    # em revisão, marco atual, próximos passos
+│  ├─ convencoes-pr-acordu.md
 │  ├─ estrategia-produto-acordu.md
 │  ├─ modelo-de-dominio-acordu.md
 │  ├─ contrato-api-acordu-v1.md
@@ -130,6 +135,8 @@ acordu/
 │  └─ cloudflare/
 │     ├─ api-borda/                    # Worker de api.acordu.app.br: proxy para o Cloud Run + token de origem
 │     └─ vigia/                        # Worker da vigia: health a cada 5 min, queda e volta em #alertas (ADR 0012)
+├─ scripts/
+│  └─ conferir-specs.mjs               # estrutura das specs na CI (processo.md)
 ├─ docker-compose.dev.yml              # dev local: Postgres 17 na porta 5434 (object storage local entra no marco de anexos)
 ├─ Acordu.sln
 ├─ Directory.Build.props
