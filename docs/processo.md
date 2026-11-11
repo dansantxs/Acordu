@@ -4,7 +4,7 @@ Fonte única de **como** o Acordu é construído. O **porquê** está no ADR 001
 
 Um **orquestrador** conduz o trabalho e aciona **subagentes**, um por papel e um de cada vez. O Daniel decide nos **portões**. Entre um portão e outro, o orquestrador segue sem perguntar.
 
-> Itens marcados com (P1a), (P1b) ou (P1c) entram nesses PRs do marco P1. Até lá vale o fluxo atual: `/spec`, `/plano`, `/tarefas` e `revisor-spec`.
+> Itens marcados com (P1b) ou (P1c) entram nesses PRs do marco P1. Até lá vale o fluxo com comandos: `/spec`, `/design`, `/plano`, `/tarefas`, `/pr` e `revisor-spec`.
 
 ## 1. Onde fica cada coisa
 
@@ -20,9 +20,9 @@ Cada informação tem um lugar só. Na dúvida, siga esta tabela.
 | Anotações de trabalho dos agentes | `docs/specs/<marco>/notas/` (P1b) | durante o marco; nunca na raiz |
 | Decisão de arquitetura que vale **além** do marco | `docs/adr/NNNN-*.md` | o design promove uma D a ADR |
 | Regra de código que vale para todo o repositório | `docs/convencoes-codigo-acordu.md` | um PR cria a regra |
-| Formato de commit e de PR | `docs/convencoes-commit-acordu.md`, `docs/convencoes-pr-acordu.md` (P1a) | raramente |
+| Formato de commit e de PR | `docs/convencoes-commit-acordu.md`, `docs/convencoes-pr-acordu.md` | raramente |
 | Interface da API | contrato + `openapi/*.json` | a API muda |
-| Visão geral: em revisão, marco atual, próximos passos | `docs/estado.md` (P1a) | a cada PR |
+| Visão geral: em revisão, marco atual, próximos passos | `docs/estado.md` | a cada PR |
 | Histórico do que já foi feito | git, PRs e o registro dos designs | sozinho |
 
 Regra de promoção: uma decisão D que só faz sentido dentro do marco fica no `design.md`. Se outro marco vai ter de segui-la, ela vira ADR ou convenção no mesmo PR, e o design só aponta para ela.
@@ -42,7 +42,7 @@ Specs dos marcos F8 a F13 continuam num arquivo só (`spec.md` com tudo): o form
 
 Subagentes nunca acionam outros subagentes e nunca fazem commit, push, merge, branch nem usam o `gh`. Só o orquestrador fala com o Daniel.
 
-Comandos fora do fluxo de um marco: `/roadmap` (etapa 1), `/deploy` (etapa 6) e `/triagem` (etapa 7), todos no P1c; `/pr` (P1a), que o orquestrador usa e que também serve para trabalho avulso.
+Comandos fora do fluxo de um marco: `/roadmap` (etapa 1), `/deploy` (etapa 6) e `/triagem` (etapa 7), todos no P1c; `/pr`, que o orquestrador usa e que também serve para trabalho avulso.
 
 ## 3. Etapas
 
@@ -63,10 +63,10 @@ Depois do G3, o orquestrador segue para o próximo PR da divisão (volta à etap
 `/roadmap` lê as issues abertas, o `docs/estado.md` e `docs/estrategia-produto-acordu.md` e propõe até três candidatos, com tamanho em PRs, dependências e riscos. Não cria nada: o Daniel escolhe, e o comando abre ou rotula a issue do marco.
 
 ### 3.2 Requisitos
-Template `docs/specs/_template/spec.md` (P1a). Cenários **dado / quando / então**, numerados `<marco>-NN`, um comportamento por cenário, com permissão, isolamento entre tenants e clientes e erro sempre que se aplicam. Requisito que falta na ERS entra na ERS no mesmo PR. Dúvida de requisito volta ao Daniel (NEEDS_CLARIFICATION); o analista não inventa.
+Template `docs/specs/_template/spec.md`. Cenários **dado / quando / então**, numerados `<marco>-NN`, em tabelas com a coluna Id; o título de cada tabela pode nomear o PR da divisão que a entrega (é só rótulo: a divisão fica no design). Um comportamento por cenário, com permissão, isolamento entre tenants e clientes e erro sempre que se aplicam. Requisito que falta na ERS entra na ERS no mesmo PR. Dúvida de requisito volta ao Daniel (NEEDS_CLARIFICATION); o analista não inventa.
 
 ### 3.3 Design
-Template `docs/specs/_template/design.md` (P1a). Decisões D com opções e recomendação justificada, impacto em cada documento ("nenhum" também é resposta), divisão em PRs pequenos e independentes com os cenários de cada um, e o registro. Spec e design vão no mesmo PR; o G2 aprova os dois e as escolhas das D.
+Template `docs/specs/_template/design.md`. Decisões D com opções e recomendação justificada, impacto em cada documento ("nenhum" também é resposta), divisão em PRs pequenos e independentes com os cenários de cada um, e o registro. Spec e design vão no mesmo PR; o G2 aprova os dois e as escolhas das D.
 
 ### 3.4 Desenvolvimento
 Um PR da divisão por vez, numa branch a partir da `main`: Domain → Application → Infrastructure → Api → web, testes de cada cenário, documentos afetados no mesmo PR. Dúvida técnica o desenvolvedor decide e registra como premissa no `notas/`; cenário que se mostra errado volta como NEEDS_CLARIFICATION e reabre o G2 só para aquela mudança.

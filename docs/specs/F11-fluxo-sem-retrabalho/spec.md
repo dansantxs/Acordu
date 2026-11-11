@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| **Status** | Em implementação |
+| **Status** | Concluída |
 | **Data** | 06/11/2026 |
 | **Requisitos** | RF-SOL-03, RF-SOL-06, RF-SOL-07, RF-SOL-08, RF-SOL-10, RF-SOL-13 (novo), RF-TAR-01, RF-TAR-02, RF-PRJ-01, RF-POR-05 (ERS) |
 | **ADRs** | 0011 |
