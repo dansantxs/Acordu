@@ -25,10 +25,11 @@ O Acordu é escrito do zero. **Nada do ASMTasks** (sistema da empregadora do Dan
 | API | `docs/contrato-api-acordu-v1.md` + `openapi/*.json` |
 | Consultas | `docs/read-side-acordu-v1.md` |
 | Segurança | `docs/seguranca-modelo-acesso-acordu-v1.md` |
-| Arquitetura | `docs/adr/` (0001–0012) |
+| Arquitetura | `docs/adr/` (0001–0013) |
 | Código e estrutura | `docs/convencoes-codigo-acordu.md`, `docs/estrutura-repositorio-acordu.md` |
 | Deploy e infra | `docs/deploy-ci-acordu-v1.md`, `docs/setup-infra-acordu.md` (ADR 0010) |
 | Specs dos marcos | `docs/specs/` |
+| Processo (etapas, portões, onde fica cada coisa) | `docs/processo.md` (ADR 0013) |
 
 Se uma tarefa exigir mudar um desses documentos, diga qual e por quê, e mude no mesmo PR.
 
