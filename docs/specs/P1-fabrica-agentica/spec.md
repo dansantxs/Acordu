@@ -10,7 +10,7 @@
 
 ## 1. Objetivo
 
-O Daniel conduz o Acordu pelo Claude Code local decidindo só nos portões: um documento diz como trabalhar, cada etapa do ciclo tem um comando ou agente, o que chega da produção vira issue, e o estado do projeto está no repositório.
+O Daniel conduz o Acordu pelo Claude Code local decidindo só nos portões: um documento diz como trabalhar, um orquestrador leva cada marco da spec ao PR com subagentes por papel e confere tudo no disco, o que chega da produção vira issue, e o estado do projeto está no repositório.
 
 ## 2. Cenários de aceite
 
@@ -31,22 +31,38 @@ A maior parte do marco é texto de processo e comandos do Claude Code: a verific
 | P1-09 | branch pronta | `/pr` | a descrição segue `docs/convencoes-pr-acordu.md` (título, O que entrega, Decisões não óbvias, Checklist, rodapé) e o PR é aberto contra a `main` sem perguntar | — |
 | P1-10 | qualquer PR mesclado | se abre `docs/estado.md` | ele diz o que está em revisão, o marco em andamento e os próximos passos, atualizado pelo próprio PR | — |
 
-### Agentes e comandos das etapas (P1b)
+### Orquestrador e subagentes (P1b)
 
 | Id | Dado | Quando | Então | Teste |
 |---|---|---|---|---|
-| P1-11 | issues abertas e `docs/estado.md` | `/roadmap` | propõe até três marcos com tamanho, dependências e riscos; não cria nada até o Daniel escolher | — |
-| P1-12 | o Daniel escolheu um marco | `/roadmap` continua | a issue do marco existe com rótulo `marco` | — |
-| P1-13 | design em rascunho | agente `arquiteto` | lista as D que contradizem ADR ou que deveriam virar ADR, citando o trecho | — |
-| P1-14 | branch com cenário sem teste do "então" | agente `testador` | escreve o teste que falta e preenche a coluna Teste; não muda código de produção | — |
-| P1-15 | `main` com `CI ok` | `/deploy` | mostra os commits desde o último deploy e só dispara o `deploy.yml` depois do "pode" do Daniel | — |
-| P1-16 | `main` sem `CI ok` | `/deploy` | recusa e diz o que falhou | — |
-| P1-17 | aviso de erro colado do #alertas | `/triagem` | procura issue igual; se não houver, cria issue `bug` + `producao` com o cenário de regressão | — |
-| P1-18 | o mesmo aviso de novo | `/triagem` | comenta na issue existente em vez de criar outra | — |
-| P1-19 | sugestão colada do #sugestoes | `/triagem` | cria issue `sugestao` (ou `marco`, se for do tamanho de um marco) sem dado pessoal | — |
-| P1-20 | marco com design aprovado | `/marco <id>` | encadeia `/tarefas` → `testador` → `revisor-spec` → `/pr`, para no merge (G4) e, depois dele, segue para o próximo PR da divisão | — |
-| P1-21 | qualquer comando | encontra algo irreversível ou não previsto no design | para e pergunta (processo §3) | — |
-| P1-22 | repositório no GitHub | script de rótulos | os rótulos do processo §5 existem; rodar de novo não duplica | — |
+| P1-11 | marco com spec e design aprovados (G2) | `/marco <id>` | aciona desenvolvedor → testador → revisor, um de cada vez, com o handoff do processo §5, e abre o PR pelo `/pr` | — |
+| P1-12 | um subagente devolve `DONE` com um arquivo em `ARTEFATOS` que não mudou | o orquestrador confere | a etapa não avança e conta como devolução | — |
+| P1-13 | o desenvolvedor diz que os testes passaram | o orquestrador confere | ele mesmo roda os comandos de `TESTES`; código de saída ≠ 0 devolve ao desenvolvedor | — |
+| P1-14 | o revisor dá `reprovado` ou o testador acha defeito | a etapa termina | o trabalho volta ao desenvolvedor e passa de novo pelo testador e pelo revisor | — |
+| P1-15 | terceira devolução na mesma etapa, ou sexta rodada no PR | acontece | `estado.json` fica `BLOCKED` e o orquestrador para explicando ao Daniel | — |
+| P1-16 | `aprovado com ressalvas` | o PR é aberto | as ressalvas estão na descrição do PR | — |
+| P1-17 | branch atual diferente da do PR | o orquestrador vai acionar um subagente | troca para a branch e confere com `git branch --show-current` antes; trabalho na `main` reprova a etapa | — |
+| P1-18 | sessão nova com `estado.json` em `IMPLEMENTANDO` | `/marco <id>` | continua da etapa pendente, sem refazer as anteriores | — |
+| P1-19 | `estado.json` em `AGUARDANDO_MERGE` | `/marco <id>` | confere com `gh pr view`; mesclado → próximo PR da divisão; não mesclado → para | — |
+| P1-20 | qualquer agente | tenta `gh pr merge`, `git push --force`, `git reset --hard`, `git rebase` ou push na `main` | a permissão do `.claude/settings.json` nega | — |
+| P1-21 | um subagente | tenta `git commit`, `git push` ou `gh` | não tem a ferramenta ou a permissão nega | — |
+| P1-22 | revisor e testador | são acionados | usam um modelo diferente do desenvolvedor (`model:` no agente) | — |
+| P1-23 | dúvida de requisito durante a implementação | o subagente devolve `NEEDS_CLARIFICATION` | o orquestrador para e leva ao Daniel; a mudança volta ao G2 | — |
+| P1-24 | qualquer etapa | encontra algo irreversível ou não previsto no design | para e pergunta (processo §4) | — |
+| P1-25 | marco novo | `/marco <id>` sem spec | aciona o analista e depois o arquiteto, roda o `/plano`, abre o PR de spec e design e para no G2 | — |
+
+### Comandos fora do marco (P1c)
+
+| Id | Dado | Quando | Então | Teste |
+|---|---|---|---|---|
+| P1-26 | issues abertas e `docs/estado.md` | `/roadmap` | propõe até três marcos com tamanho, dependências e riscos; não cria nada até o Daniel escolher | — |
+| P1-27 | o Daniel escolheu um marco | `/roadmap` continua | a issue do marco existe com rótulo `marco` | — |
+| P1-28 | `main` com `CI ok` | `/deploy` | mostra os commits desde o último deploy e só dispara o `deploy.yml` depois do "pode" do Daniel | — |
+| P1-29 | `main` sem `CI ok` | `/deploy` | recusa e diz o que falhou | — |
+| P1-30 | aviso de erro colado do #alertas | `/triagem` | procura issue igual; se não houver, cria issue `bug` + `producao` com o cenário de regressão | — |
+| P1-31 | o mesmo aviso de novo | `/triagem` | comenta na issue existente em vez de criar outra | — |
+| P1-32 | sugestão colada do #sugestoes | `/triagem` | cria issue `sugestao` (ou `marco`, se for do tamanho de um marco) sem dado pessoal | — |
+| P1-33 | repositório no GitHub | script de rótulos | os rótulos do processo §7 existem; rodar de novo não duplica | — |
 
 ## 3. Fora de escopo
 
