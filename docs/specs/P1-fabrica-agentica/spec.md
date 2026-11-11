@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| **Status** | Em implementação |
+| **Status** | Concluída |
 | **Data** | 11/11/2026 |
 | **Requisitos** | Nenhum RF/RNF do produto (marco de processo) |
 | **ADRs** | 0013 (novo; substitui o 0011) |
@@ -55,14 +55,14 @@ A maior parte do marco é texto de processo e comandos do Claude Code: a verific
 
 | Id | Dado | Quando | Então | Teste |
 |---|---|---|---|---|
-| P1-26 | issues abertas e `docs/estado.md` | `/roadmap` | propõe até três marcos com tamanho, dependências e riscos; não cria nada até o Daniel escolher | — |
-| P1-27 | o Daniel escolheu um marco | `/roadmap` continua | a issue do marco existe com rótulo `marco` | — |
-| P1-28 | `main` com `CI ok` | `/deploy` | mostra os commits desde o último deploy e só dispara o `deploy.yml` depois do "pode" do Daniel | — |
-| P1-29 | `main` sem `CI ok` | `/deploy` | recusa e diz o que falhou | — |
-| P1-30 | aviso de erro colado do #alertas | `/triagem` | procura issue igual; se não houver, cria issue `bug` + `producao` com o cenário de regressão | — |
-| P1-31 | o mesmo aviso de novo | `/triagem` | comenta na issue existente em vez de criar outra | — |
-| P1-32 | sugestão colada do #sugestoes | `/triagem` | cria issue `sugestao` (ou `marco`, se for do tamanho de um marco) sem dado pessoal | — |
-| P1-33 | repositório no GitHub | script de rótulos | os rótulos do processo §7 existem; rodar de novo não duplica | — |
+| P1-26 | issues abertas e `docs/estado.md` | `/roadmap` | propõe até três marcos com tamanho, dependências e riscos; não cria nada até o Daniel escolher | manual: no primeiro uso do comando (antes do F14) |
+| P1-27 | o Daniel escolheu um marco | `/roadmap` continua | a issue do marco existe com rótulo `marco` | manual: no primeiro uso do comando (antes do F14) |
+| P1-28 | `main` com `CI ok` | `/deploy` | mostra os commits desde o último deploy e só dispara o `deploy.yml` depois do "pode" do Daniel | manual: no primeiro uso do comando (primeiro deploy) |
+| P1-29 | `main` sem `CI ok` | `/deploy` | recusa e diz o que falhou | manual: no primeiro uso do comando (primeiro deploy) |
+| P1-30 | aviso de erro colado do #alertas | `/triagem` | procura issue igual; se não houver, cria issue `bug` + `producao` com o cenário de regressão | manual: no primeiro uso do comando com um aviso de #alertas |
+| P1-31 | o mesmo aviso de novo | `/triagem` | comenta na issue existente em vez de criar outra | manual: no primeiro uso do comando com o mesmo aviso repetido |
+| P1-32 | sugestão colada do #sugestoes | `/triagem` | cria issue `sugestao` (ou `marco`, se for do tamanho de um marco) sem dado pessoal | manual: no primeiro uso do comando com uma sugestão de #sugestoes |
+| P1-33 | repositório no GitHub | script de rótulos | os rótulos do processo §7 existem; rodar de novo não duplica | `scripts/rotulos.test.sh` (CI, job `Specs`: os seis rótulos com as descrições do processo §7, `--force`, repositório; a idempotência é do `--force` do `gh`); rótulos criados no repositório em 11/11 |
 
 ## 3. Fora de escopo
 

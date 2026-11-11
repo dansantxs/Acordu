@@ -26,7 +26,7 @@
 acordu/
 ├─ CLAUDE.md                          # regras do projeto para o Claude Code (ADR 0013)
 ├─ .claude/
-│  ├─ commands/                        # /marco (orquestrador), /spec, /design, /plano, /tarefas, /pr
+│  ├─ commands/                        # /roadmap, /marco (orquestrador), /spec, /design, /plano, /tarefas, /pr, /deploy, /triagem
 │  ├─ agents/                          # analista, arquiteto, desenvolvedor, testador, revisor-spec
 │  └─ settings.json                    # negações da fábrica (processo.md §8)
 ├─ .github/
@@ -137,8 +137,9 @@ acordu/
 │     ├─ api-borda/                    # Worker de api.acordu.app.br: proxy para o Cloud Run + token de origem
 │     └─ vigia/                        # Worker da vigia: health a cada 5 min, queda e volta em #alertas (ADR 0012)
 ├─ scripts/
-│  ├─ conferir-specs.mjs               # estrutura das specs na CI (processo.md)
-│  └─ conferir-fabrica.test.mjs        # regras do .claude/settings.json e modelos dos agentes
+│  ├─ conferir-specs.mjs               # estrutura das specs na CI (processo.md), com conferir-specs.test.mjs
+│  ├─ conferir-fabrica.test.mjs        # regras do .claude/settings.json e modelos dos agentes
+│  └─ rotulos.sh                       # rótulos do backlog (processo.md §7), com rotulos.test.sh
 ├─ docker-compose.dev.yml              # dev local: Postgres 17 na porta 5434 (object storage local entra no marco de anexos)
 ├─ Acordu.sln
 ├─ Directory.Build.props

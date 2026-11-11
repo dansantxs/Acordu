@@ -11,7 +11,7 @@ O Acordu é escrito do zero. **Nada do ASMTasks** (sistema da empregadora do Dan
 O processo inteiro (etapas, papéis, portões, onde fica cada coisa, formato de spec e design) está em **`docs/processo.md`** (ADR 0013). Leia antes de começar qualquer marco. O essencial:
 
 - O Claude implementa; o Daniel decide nos portões (processo §4).
-- Comandos: `/marco` (orquestrador: conduz o marco com os subagentes), e para uma etapa à mão `/spec`, `/design`, `/plano`, `/tarefas`, `/pr`; formato de commit e PR em `docs/convencoes-commit-acordu.md` e `docs/convencoes-pr-acordu.md`.
+- Comandos: `/roadmap` (escolher o marco), `/marco` (orquestrador: conduz o marco com os subagentes), `/deploy`, `/triagem` (produção e sugestões → issue), e para uma etapa à mão `/spec`, `/design`, `/plano`, `/tarefas`, `/pr`; formato de commit e PR em `docs/convencoes-commit-acordu.md` e `docs/convencoes-pr-acordu.md`.
 - Comece pelo `docs/estado.md`: o que está em revisão e os próximos passos.
 
 ## Onde está cada decisão
