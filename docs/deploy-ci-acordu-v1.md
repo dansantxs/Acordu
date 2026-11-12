@@ -102,7 +102,7 @@ Com `Proxy__TokenOrigem` definido, a API responde 404 a requisição sem o token
 
 
 0. **CI verde:** sem o check `CI ok` verde no commit da `main`, o deploy não começa (o disparo manual não espera a CI).
-1. **Autenticação** no Google por WIF (`google-github-actions/auth`), restrita a `dansantxs/acordu` na `main`, impersonando `acordu-deployer@acordu-prod`.
+1. **Autenticação** no Google por WIF (`google-github-actions/auth`), restrita a este repositório na `main` (condição do provider por `repository_id`, não pelo nome; setup A4), impersonando `acordu-deployer@acordu-prod`.
 2. **Build e push** para `us-east4-docker.pkg.dev/acordu-prod/acordu/acordu-api`, tag = SHA do commit.
 3. **Migrations:** migration bundle do EF Core (`scripts/bundle-migrations.sh`, que a CI também roda num checkout limpo) no **endpoint direto** do Neon, com `acordu_migrator`. Falhou → para aqui; a revisão em produção continua a anterior.
 4. **Nova revisão** no Cloud Run (`gcloud run deploy --image ...:<sha>`) com as variáveis do §7, num arquivo (`--env-vars-file`) que substitui todas as da revisão anterior; depois, `update-traffic --to-latest`, que desfaz um rollback anterior.
