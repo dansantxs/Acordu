@@ -69,8 +69,8 @@
 
 ### 4. Workload Identity Federation
 1. Pool **`github`** com provider OIDC **`acordu-repo`** (`https://token.actions.githubusercontent.com`).
-2. Condição: `assertion.repository == 'dansantxs/acordu' && assertion.ref == 'refs/heads/main'`.
-3. `roles/iam.workloadIdentityUser` em `acordu-deployer` para o principal do provider.
+2. Condição: `assertion.repository_id == '<id do repositório>' && assertion.ref == 'refs/heads/main'` (o id numérico: `gh api repos/dansantxs/acordu --jq .id`). Pelo id e não pelo nome: o nome no token vem com a caixa do GitHub (`dansantxs/Acordu`), a comparação diferencia maiúsculas e o primeiro deploy foi recusado por isso.
+3. `roles/iam.workloadIdentityUser` em `acordu-deployer` para `principalSet://iam.googleapis.com/projects/<número do projeto>/locations/global/workloadIdentityPools/github/*`; quem restringe ao repositório e à `main` é a condição do provider.
 4. No repositório: variáveis `GCP_WIF_PROVIDER` e `GCP_PROJECT_ID` (ver "Segredos do GitHub").
 
 ### 5. Cloud Run
