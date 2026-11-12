@@ -1,19 +1,19 @@
 # Acordu — Estado
 
-Visão geral curta, atualizada por cada PR (`docs/processo.md` §1). O histórico está no git, nos PRs e no registro dos designs. Atualizado em 11/11/2026 (P1c).
+Visão geral curta, atualizada por cada PR (`docs/processo.md` §1). O histórico está no git, nos PRs e no registro dos designs. Atualizado em 12/11/2026 (#180).
 
 ## Em revisão
 
-- **P1c** — `/roadmap`, `/deploy`, `/triagem` e rótulos do backlog; fecha o P1.
+- **Correção do #180** — o bundle das migrations falhava no deploy sem `dotnet restore`; script único para deploy e CI.
 
 ## Marco em andamento
 
-- Nenhum depois do P1c. **P1 — fábrica agêntica** ([spec](specs/P1-fabrica-agentica/spec.md), [design](specs/P1-fabrica-agentica/design.md)) termina com o P1c (#175–#178 na `main`). Próximo marco pelo `/roadmap`.
+- Nenhum. **P1 — fábrica agêntica** ([spec](specs/P1-fabrica-agentica/spec.md), [design](specs/P1-fabrica-agentica/design.md)) concluído com o P1c (#179). Próximo marco pelo `/roadmap`.
 
 ## Onde o produto está
 
 - Backend do v1 completo; frontend F1–F7 e marcos F8–F13 na `main` (F13 concluído com o #174).
-- **Deploy (F8):** código na `main`; provisionamento pausado no passo 4 (Cloudflare: domínio, R2, tokens). Feito: projeto `acordu-prod`, faturamento, Artifact Registry com limpeza, SAs, WIF, Neon PG17 com roles e secrets.
+- **Deploy (F8):** provisionado até os secrets: `acordu-prod`, WIF, Neon, domínio `acordu.app.br` no Cloudflare (SSL estrito), R2 com os dois tokens, Resend verificado, Turnstile, token do Cloudflare e os três webhooks do Discord. Primeiro deploy (12/11) parou duas vezes: na autenticação (condição do WIF com o nome do repo em minúsculas, corrigida no console para `repository_id`) e nas migrations (#180). A produção ainda não tem revisão.
 
 ## Próximos passos
 

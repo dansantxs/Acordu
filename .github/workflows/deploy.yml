@@ -80,9 +80,7 @@ jobs:
           ACORDU_CONNECTION: ${{ secrets.NEON_MIGRATOR }}
         run: |
           if [[ -z "$ACORDU_CONNECTION" ]]; then echo "::error::Falta o secret NEON_MIGRATOR."; exit 1; fi
-          dotnet tool restore
-          dotnet ef migrations bundle --project src/Acordu.Infrastructure --startup-project src/Acordu.Api \
-            --configuration Release --output "$RUNNER_TEMP/efbundle" --force
+          bash scripts/bundle-migrations.sh "$RUNNER_TEMP/efbundle"
           "$RUNNER_TEMP/efbundle"
 
       - name: Revisão em produção antes do deploy
