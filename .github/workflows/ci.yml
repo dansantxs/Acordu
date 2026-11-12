@@ -54,6 +54,7 @@ jobs:
               - .config/**
               # O ContratoOpenApiTests confere a API contra openapi/*.json.
               - openapi/**
+              - scripts/bundle-migrations.sh
             web:
               - *pipeline
               - apps/web/**
@@ -135,6 +136,10 @@ jobs:
       - uses: actions/setup-dotnet@v4
         with:
           global-json-file: global.json
+
+      # Antes do restore, no checkout limpo como o do deploy: o bundle tem que se virar sozinho (#180).
+      - name: Bundle das migrations (o mesmo do deploy)
+        run: bash scripts/bundle-migrations.sh "$RUNNER_TEMP/efbundle"
 
       - name: Restore
         run: |
