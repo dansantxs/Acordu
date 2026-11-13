@@ -1,10 +1,10 @@
 # Acordu — Estado
 
-Visão geral curta, atualizada por cada PR (`docs/processo.md` §1). O histórico está no git, nos PRs e no registro dos designs. Atualizado em 13/11/2026 (F14c).
+Visão geral curta, atualizada por cada PR (`docs/processo.md` §1). O histórico está no git, nos PRs e no registro dos designs. Atualizado em 13/11/2026 (F14d).
 
 ## Em revisão
 
-- **F14c** — só leitura no portal: `422 portal-indisponivel` com mensagem neutra, `/portal/eu` com `envioDisponivel`, convites e link antigos barrados. **Não fazer deploy antes do F14d:** a outbox ainda envia os e-mails pendentes de empresa só leitura (F14b já na `main` com o #188).
+- **F14d** — empresa só leitura: outbox descartada, jobs e recorrências sem efeito, sem retroativo na volta (`GravavelDesde`), SLA sem pausa. Com ele na `main`, o só leitura está completo na API (F14a a F14c com os #187 a #189) e o deploy volta a ser seguro.
 
 ## Marco em andamento
 
@@ -17,7 +17,7 @@ Visão geral curta, atualizada por cada PR (`docs/processo.md` §1). O históric
 
 ## Próximos passos
 
-1. Merge do F14c; depois o `/marco F14 182` segue pelo F14d. Próximo deploy só com o F14d na `main`. Redirecionamento de `contato@acordu.app.br` no Cloudflare (Email Routing) antes do F14g.
+1. Merge do F14d; depois o `/marco F14 182` segue pelo F14e (front da situação e do só leitura). Deploy liberado depois do F14d (`/deploy`, P1-28 e P1-29). Redirecionamento de `contato@acordu.app.br` no Cloudflare (Email Routing) antes do F14g.
 2. Conferências que faltam da produção:
    - deploy: F8-27 e F8-28 (rollback por migration e por health), F8-29 (jobs do Scheduler), hostname do Turnstile;
    - backup: F8-30 e F13-32 na primeira madrugada com o `BACKUP_ATIVO`; F8-31 (restore) antes do primeiro cliente;

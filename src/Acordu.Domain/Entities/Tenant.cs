@@ -92,6 +92,13 @@ public sealed class Tenant
     /// <summary>Quando a empresa foi cancelada (pela Nebrys, ou pela migration do F14 nas anteriores a ele).</summary>
     public DateTimeOffset? CanceladaEm { get; private set; }
 
+    /// <summary>
+    /// Instante da última saída do só leitura (ativação, prorrogação ou reativação, que chegam no F14l); nulo se a empresa
+    /// nunca voltou do só leitura. As recorrências não geram as datas anteriores ao dia dele (F14-24): o que passou
+    /// enquanto ela estava só leitura não é gerado de forma retroativa.
+    /// </summary>
+    public DateTimeOffset? GravavelDesde { get; private set; }
+
     /// <summary>VENCIDA ou CANCELADA: a empresa lê e não grava (RF-EMP-02).</summary>
     public bool SomenteLeitura => Situacao.SomenteLeitura();
 

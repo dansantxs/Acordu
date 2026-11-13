@@ -2,17 +2,17 @@
   "marco": "F14",
   "issue": 182,
   "etapa": "AGUARDANDO_MERGE",
-  "branch": "feat/F14c-portal",
-  "pr": { "id": "F14c", "numero": null },
-  "feitos": [{ "id": "F14a", "pr": 187 }, { "id": "F14b", "pr": 188 }],
+  "branch": "feat/F14d-jobs",
+  "pr": { "id": "F14d", "numero": null },
+  "feitos": [{ "id": "F14a", "pr": 187 }, { "id": "F14b", "pr": 188 }, { "id": "F14c", "pr": 189 }],
   "contadores": { "devolucoesNaEtapa": 0, "rodadasNoPr": 0 },
   "verificacao": ["node scripts/conferir-specs.mjs", "dotnet build", "dotnet test"],
   "portoes": {
     "G1": "vamos seguir com o candidato 1, agora que o deploy já foi feito, quero começar a mostrar para as pessoas",
     "G2": "PR #186 mesclado (13/11/2026); respostas da §4 coladas no chat (prazo do expurgo 30 dias; empresas existentes apagadas) e \"aceito as recomendações\" (CANCELADA na migration e expurgo pelo F14i; contato@acordu.app.br)",
-    "G3": ["PR #187 mesclado (F14a; F14-113 mantido)", "PR #188 mesclado (F14b; filtro dos jobs adiantado mantido)"]
+    "G3": ["PR #187 mesclado (F14a; F14-113 mantido)", "PR #188 mesclado (F14b; filtro dos jobs adiantado mantido)", "PR #189 mesclado (F14c)"]
   },
-  "ressalvas": ["Rota futura do contato fora de /portal voltaria ao tipo da equipe sem teste avisar; prefixo /api/v1 fixo em texto", "Lockout da conferência de senha de conta existente persiste mesmo com a recusa do aceite"],
+  "ressalvas": ["Descarte da outbox leva o evento inteiro (feed e sino) e não volta", "F14l precisa gravar GravavelDesde em Ativar, Prorrogar e Reativar, com teste"],
   "bloqueios": [],
   "atualizadoEm": "2026-11-13"
 }

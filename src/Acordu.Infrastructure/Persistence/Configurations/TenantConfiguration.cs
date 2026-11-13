@@ -31,6 +31,8 @@ internal sealed class TenantConfiguration : IEntityTypeConfiguration<Tenant>
         builder.Property(t => t.FimDoTeste);
         builder.Property(t => t.SomenteLeituraDesde);
         builder.Property(t => t.CanceladaEm);
+        // Última saída do só leitura (F14d lê nas recorrências; F14l grava nas ações da área da Nebrys).
+        builder.Property(t => t.GravavelDesde);
         builder.Ignore(t => t.SomenteLeitura);
         builder.Property<uint>(ConfiguracaoRaiz.Versao)
             .IsRowVersion()

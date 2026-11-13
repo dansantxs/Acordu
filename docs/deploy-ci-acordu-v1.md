@@ -116,7 +116,7 @@ Com `Proxy__TokenOrigem` definido, a API responde 404 a requisição sem o token
 
 ## 5. Jobs agendados
 
-Cada job é um endpoint interno (`POST /internal/jobs/<nome>`): `X-Job-Token` comparado em tempo constante, 404 sem token válido, fora do OpenAPI, idempotente, todos os tenants por chamada. Jobs por tenant rodam cada tenant num escopo próprio; a falha de um é logada, não para os demais e entra em `falhas`. Desde o F14b, só nas empresas graváveis: VENCIDA e CANCELADA ficam de fora (RF-EMP-02, ADR 0015, item 4).
+Cada job é um endpoint interno (`POST /internal/jobs/<nome>`): `X-Job-Token` comparado em tempo constante, 404 sem token válido, fora do OpenAPI, idempotente, todos os tenants por chamada. Jobs por tenant rodam cada tenant num escopo próprio; a falha de um é logada, não para os demais e entra em `falhas`. Desde o F14b, só nas empresas graváveis: VENCIDA e CANCELADA ficam de fora (RF-EMP-02, ADR 0015, item 4), sem contar falha. Desde o F14d, a outbox também não entrega mensagem de empresa só leitura: ela sai da fila como descartada (conta em `outboxProcessadas`, com a quantidade no log), sem nova tentativa. Na tabela `outbox_mensagens`, falha é `falhou_em` preenchido (com `tentativas`), e descarte é `processada_em` com `erro` começando por `descartada:`; consulta que conte falhas usa `falhou_em`, nunca `erro IS NOT NULL`; e, na volta de uma empresa ao gravável (`Tenant.GravavelDesde`), as recorrências não geram as datas que passaram no só leitura. Os alertas de SLA da volta saem pela situação do momento: o prazo não pausou (F14-111).
 
 | Job do Scheduler | Agenda (`America/Sao_Paulo`) | Endpoint | Faz |
 |---|---|---|---|

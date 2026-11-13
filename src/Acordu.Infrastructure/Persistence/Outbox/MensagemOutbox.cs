@@ -54,6 +54,17 @@ public sealed class MensagemOutbox
         Erro = null;
     }
 
+    /// <summary>
+    /// Sai da fila sem entregar, com o motivo em <see cref="Erro"/> (empresa só leitura, ADR 0015, item 5): não é falha e
+    /// não é adiada, porque não há envio retroativo.
+    /// </summary>
+    public void Descartar(string motivo, DateTimeOffset agora)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(motivo);
+        ProcessadaEm = agora;
+        Erro = motivo;
+    }
+
     /// <summary>Agenda nova tentativa com espera crescente (1, 2, 4, 8 min) ou marca falha definitiva.</summary>
     public void RegistrarFalha(string erro, DateTimeOffset agora)
     {
