@@ -1175,6 +1175,10 @@ namespace Acordu.Infrastructure.Persistence.Migrations
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("fim_do_teste");
 
+                    b.Property<DateTimeOffset?>("GravavelDesde")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("gravavel_desde");
+
                     b.Property<string>("LogoChave")
                         .HasMaxLength(512)
                         .HasColumnType("character varying(512)")

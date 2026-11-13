@@ -1,9 +1,11 @@
 using System.Reflection;
 using Acordu.Application.Abstractions.Eventos;
 using Acordu.Domain.Common;
+using Acordu.Domain.Enums;
 using Acordu.Infrastructure.MultiTenancy;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 
 namespace Acordu.Infrastructure.Persistence.Outbox;
 
@@ -13,21 +15,28 @@ namespace Acordu.Infrastructure.Persistence.Outbox;
 /// as tentativas, a mensagem sai da fila com o erro guardado. Chamado no fim da requisição (só as mensagens dela) e pelo
 /// job <c>tick</c> (o que sobrou). As mensagens do lote ficam travadas (<c>FOR UPDATE SKIP LOCKED</c>) até o fim dele:
 /// dois processamentos ao mesmo tempo (o fim de uma requisição e o tick, ou duas instâncias) nunca pegam a mesma.
+/// Mensagem de empresa só leitura é descartada sem entregar, com contagem no log (ADR 0015, item 5; F14-22).
 /// </summary>
-public sealed class ProcessadorOutbox
+public sealed partial class ProcessadorOutbox
 {
+    /// <summary>Motivo gravado em <see cref="MensagemOutbox.Erro"/> da mensagem descartada.</summary>
+    public const string MotivoSomenteLeitura = "descartada: empresa só leitura";
+
     private static readonly MethodInfo Entregar = typeof(ProcessadorOutbox)
         .GetMethod(nameof(EntregarAsync), BindingFlags.NonPublic | BindingFlags.Static)!;
 
     private readonly IServiceScopeFactory _escopos;
     private readonly TimeProvider _relogio;
+    private readonly ILogger<ProcessadorOutbox> _logger;
 
-    public ProcessadorOutbox(IServiceScopeFactory escopos, TimeProvider relogio)
+    public ProcessadorOutbox(IServiceScopeFactory escopos, TimeProvider relogio, ILogger<ProcessadorOutbox> logger)
     {
         ArgumentNullException.ThrowIfNull(escopos);
         ArgumentNullException.ThrowIfNull(relogio);
+        ArgumentNullException.ThrowIfNull(logger);
         _escopos = escopos;
         _relogio = relogio;
+        _logger = logger;
     }
 
     /// <summary>Processa até <paramref name="tamanhoLote"/> mensagens vencidas, das mais antigas; devolve quantas tratou.</summary>
@@ -74,8 +83,26 @@ public sealed class ProcessadorOutbox
                 """)
             .ToListAsync(cancellationToken);
 
+        var tenants = mensagens.Select(m => m.TenantId).Distinct().ToArray();
+        // Ponto revisado de IgnoreQueryFilters: a fila não tem tenant no contexto (ADR 0015, item 5).
+        var soLeitura = (await db.Tenants.IgnoreQueryFilters([FiltrosGlobais.Tenant])
+            .Where(t => tenants.Contains(t.Id) && SituacaoEmpresaExtensions.SituacoesSomenteLeitura.Contains(t.Situacao))
+            .Select(t => t.Id)
+            .ToListAsync(cancellationToken)).ToHashSet();
+        var descartadas = 0;
+
         foreach (var mensagem in mensagens)
         {
+            if (soLeitura.Contains(mensagem.TenantId))
+            {
+                // Só eventos de domínio do tenant passam pela outbox; e-mails da conta e avisos de situação aos Donos
+                // saem fora dela e não são tocados aqui.
+                mensagem.Descartar(MotivoSomenteLeitura, _relogio.GetUtcNow());
+                descartadas++;
+                await db.SaveChangesAsync(cancellationToken);
+                continue;
+            }
+
             try
             {
                 await EntregarNoTenantAsync(mensagem, cancellationToken);
@@ -90,8 +117,13 @@ public sealed class ProcessadorOutbox
         }
 
         await transacao.CommitAsync(cancellationToken);
+        if (descartadas > 0)
+            MensagensDescartadas(_logger, descartadas);
         return mensagens.Count;
     }
+
+    [LoggerMessage(EventId = 300, Level = LogLevel.Information, Message = "Outbox: {Quantidade} mensagem(ns) de empresa só leitura descartada(s).")]
+    private static partial void MensagensDescartadas(ILogger logger, int quantidade);
 
     private async Task EntregarNoTenantAsync(MensagemOutbox mensagem, CancellationToken cancellationToken)
     {
