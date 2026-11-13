@@ -1,7 +1,7 @@
 {
   "marco": "F14",
   "issue": 182,
-  "etapa": "IMPLEMENTANDO",
+  "etapa": "AGUARDANDO_MERGE",
   "branch": "feat/F14a-situacao",
   "pr": { "id": "F14a", "numero": null },
   "feitos": [],
@@ -11,7 +11,11 @@
     "G1": "vamos seguir com o candidato 1, agora que o deploy já foi feito, quero começar a mostrar para as pessoas",
     "G2": "PR #186 mesclado (13/11/2026); respostas da §4 coladas no chat (prazo do expurgo 30 dias; empresas existentes apagadas) e \"aceito as recomendações\" (CANCELADA na migration e expurgo pelo F14i; contato@acordu.app.br)"
   },
-  "ressalvas": [],
+  "ressalvas": [
+    "F14-113 criado pelo analista sem pedido do Daniel (F14j); não toca o F14a",
+    "Janela da migration: cadastro pela revisão antiga entre a migration e a troca de revisão ficaria com situacao vazia",
+    "Validação dos dias em dois lugares (OpcoesEmpresas e ComposicaoApi)"
+  ],
   "bloqueios": [],
   "atualizadoEm": "2026-11-13"
 }

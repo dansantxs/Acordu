@@ -463,8 +463,30 @@ Regras:
 - `Tenant.LogoChave` (opcional, ≤ 512): chave do logotipo no object storage (RF-POR-09). `DefinirLogo(chave?)`; a Application valida a imagem, envia antes e apaga a anterior depois do commit.
 
 ### 4.11.2 Criador e liberação do envio (RF-AUT-06, F9)
-- `Tenant.CriadoPorUsuarioId`: quem registrou a empresa (`Criar(id, nome, agora, criadoPor)`). Sem FK: a identidade fica fora do domínio. Nulo só em empresa anterior ao F9 sem Dono.
+- `Tenant.CriadoPorUsuarioId`: quem registrou a empresa (`Criar(id, nome, agora, criadoPor, duracaoDoTeste)`, §4.11.3). Sem FK: a identidade fica fora do domínio. Nulo só em empresa anterior ao F9 sem Dono.
 - `Tenant.EnvioLiberadoEm` (e `EnvioLiberado`): a primeira vez que o e-mail do criador ficou confirmado, pelo link de confirmação ou pela redefinição de senha. Gravada só na primeira vez (a Infrastructure atualiza com `EnvioLiberadoEm IS NULL`, fora do rastreamento: a confirmação é rota pública); nunca volta a nulo, nem se o criador sair ou mudar de papel. Sem ela, convites e links são recusados (`EnvioATerceiros` na Application).
+
+### 4.11.3 Situação da empresa (RF-EMP-01 a RF-EMP-03, F14)
+- `Tenant.Situacao` (`SituacaoEmpresa`: TESTE, ATIVA, VENCIDA, CANCELADA). VENCIDA e CANCELADA são **só leitura** (`SomenteLeitura`, RF-EMP-02). É configuração por tenant, como §4.11.1 e §4.11.2: não pede agregado; o histórico fica na trilha (design do F14, D1 e D14).
+- Datas, todas instantes UTC:
+  - `FimDoTeste`: `Criar(..., duracaoDoTeste)` põe o instante do cadastro mais a duração (da configuração, `Empresas__DiasDeTeste`, padrão 30). Fica como estava quando a empresa vence; nulo nas empresas anteriores ao F14;
+  - `SomenteLeituraDesde`: início do só leitura atual (vencimento ou cancelamento); nulo enquanto a empresa grava;
+  - `CanceladaEm`: quando foi cancelada.
+- **Data prevista do expurgo** (RF-EMP-03): calculada, não gravada. `ExpurgoPrevistoEm(prazo)` = `SomenteLeituraDesde` + prazo (`Empresas__DiasAteExpurgo`, padrão 30); nula fora do só leitura.
+- **Transições** (o domínio recebe o instante; não lê o relógio):
+
+| De \ Para | ATIVA | VENCIDA | CANCELADA | TESTE |
+|---|---|---|---|---|
+| TESTE | `Ativar` | `Vencer(agora)` | `Cancelar` | `Prorrogar` |
+| VENCIDA | `Ativar` | — | `Cancelar` | `Prorrogar` |
+| ATIVA | — | — | `Cancelar` | — |
+| CANCELADA | `Reativar` | — | — | — |
+
+  - `Vencer(agora)` (F14a): só em TESTE e com `agora ≥ FimDoTeste`; grava `SomenteLeituraDesde = agora`, que é a data do vencimento. Quem chama é o passo `vencimento-testes` do job diário (deploy-ci §5), que não toca a empresa fora dessa condição: rodar de novo não muda nada.
+  - `Ativar`, `Prorrogar`, `Cancelar` e `Reativar` entram com as ações da área da Nebrys (F14l). Prorrogar até o dia D grava o início de D+1 no fuso do tenant; VENCIDA → CANCELADA mantém `SomenteLeituraDesde` e grava `CanceladaEm`.
+  - Qualquer transição fora da tabela lança `TransicaoInvalidaException`.
+- **Empresas anteriores ao F14** (decisão 13 do G2): a migration as põe em CANCELADA, com `CanceladaEm` e `SomenteLeituraDesde` em `2026-01-01T00:00:00Z` (já fora do prazo do expurgo) e sem `FimDoTeste`.
+- **Demonstração** (F14s): ATIVA com uma marca própria, fora das transições; por ser ATIVA, nunca vence nem é expurgada.
 
 ### 4.12 Categoria
 - Nome obrigatório (≤ 100); `Renomear`, `Inativar`, `Reativar`. Inativa some da escolha em novas solicitações, mas continua nas antigas.

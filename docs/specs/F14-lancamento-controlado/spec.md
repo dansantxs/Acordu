@@ -30,15 +30,15 @@ Termos usados nos cenários:
 
 | Id | Dado | Quando | Então | Teste |
 |---|---|---|---|---|
-| F14-01 | um registro que passa em todas as conferências do cadastro | `POST /auth/registro` | a empresa nasce em TESTE, com fim do teste = data do cadastro + a duração do teste (pergunta 1) | — |
-| F14-02 | empresa em TESTE | qualquer pessoa dela lê `GET /auth/eu` | a resposta traz a situação e o fim do teste | — |
-| F14-03 | empresa em TESTE com o fim do teste já passado no instante do diário | roda o diário | ela passa a VENCIDA, com a data do vencimento gravada, e a resposta do diário conta as empresas vencidas | — |
-| F14-04 | empresa em TESTE com o fim do teste ainda por vir | roda o diário | continua em TESTE | — |
-| F14-05 | empresa que o diário já venceu | o diário roda de novo | nada muda nela e ela não é contada outra vez (idempotente) | — |
-| F14-06 | empresa ATIVA ou de demonstração, de qualquer idade | roda o diário | nunca vence | — |
-| F14-07 | empresa em TESTE com 30 pessoas na equipe | alguém com `usuario.convidar` convida mais uma | o convite sai normalmente: não há limite de pessoas no teste (decisão de 10/11) | — |
-| F14-08 | empresas que já existiam antes do F14 (só de teste; decisão 13) | a migration roda | ficam CANCELADA, com a data do cancelamento (início do só leitura) antiga o bastante para o prazo do expurgo já ter passado; até o expurgo (F14-112) ficam só leitura | — |
-| F14-09 | uma empresa em TESTE vence no diário | o diário termina | as outras empresas não mudam de situação (isolamento entre tenants) | — |
+| F14-01 | um registro que passa em todas as conferências do cadastro | `POST /auth/registro` | a empresa nasce em TESTE, com fim do teste = data do cadastro + a duração do teste (pergunta 1) | Acordu.Api.FunctionalTests/SituacaoEmpresaTests › Registro_EmpresaNasceEmTesteComFimNoCadastroMaisTrintaDias; Acordu.Api.FunctionalTests/SituacaoEmpresaTests › Configuracao_DiasInvalidos_ApiNaoSobe |
+| F14-02 | empresa em TESTE | qualquer pessoa dela lê `GET /auth/eu` | a resposta traz a situação e o fim do teste | Acordu.Api.FunctionalTests/SituacaoEmpresaTests › Eu_EmpresaEmTeste_TrazSituacaoEFimDoTesteParaQualquerPessoa |
+| F14-03 | empresa em TESTE com o fim do teste já passado no instante do diário | roda o diário | ela passa a VENCIDA, com a data do vencimento gravada, e a resposta do diário conta as empresas vencidas | Acordu.Api.FunctionalTests/SituacaoEmpresaTests › Diario_FimDoTestePassado_VenceGravaADataEConta; Acordu.Api.FunctionalTests/SituacaoEmpresaTests › Diario_FimDoTesteExatamenteNoInstanteDoDiario_Vence; Acordu.Application.UnitTests/Empresas/VencimentoTestesTests › Executar_FimDoTestePassado_VenceSalvaEConta |
+| F14-04 | empresa em TESTE com o fim do teste ainda por vir | roda o diário | continua em TESTE | Acordu.Api.FunctionalTests/SituacaoEmpresaTests › Diario_FimDoTesteAindaPorVir_ContinuaEmTeste |
+| F14-05 | empresa que o diário já venceu | o diário roda de novo | nada muda nela e ela não é contada outra vez (idempotente) | Acordu.Api.FunctionalTests/SituacaoEmpresaTests › Diario_RodadoDeNovo_NaoMudaANemContaOutraVez |
+| F14-06 | empresa ATIVA ou de demonstração, de qualquer idade | roda o diário | nunca vence | Acordu.Api.FunctionalTests/SituacaoEmpresaTests › Diario_EmpresaForaDoTeste_NuncaVence |
+| F14-07 | empresa em TESTE com 30 pessoas na equipe | alguém com `usuario.convidar` convida mais uma | o convite sai normalmente: não há limite de pessoas no teste (decisão de 10/11) | Acordu.Api.FunctionalTests/SituacaoEmpresaTests › Convidar_EmpresaEmTesteComTrintaPessoas_ConviteSai |
+| F14-08 | empresas que já existiam antes do F14 (só de teste; decisão 13) | a migration roda | ficam CANCELADA, com a data do cancelamento (início do só leitura) antiga o bastante para o prazo do expurgo já ter passado; até o expurgo (F14-112) ficam só leitura | Acordu.Infrastructure.IntegrationTests/MigrationsTests › PreenchimentoDoF14_EmpresaAnterior_FicaCanceladaComDataAntigaESoLeitura |
+| F14-09 | uma empresa em TESTE vence no diário | o diário termina | as outras empresas não mudam de situação (isolamento entre tenants) | Acordu.Api.FunctionalTests/SituacaoEmpresaTests › Diario_UmaEmpresaVence_AsOutrasNaoMudamDeSituacao; Acordu.Api.FunctionalTests/SituacaoEmpresaTests › Eu_UmaEmpresaVenceu_AsOutrasContinuamComASituacaoDelas |
 | F14-10 | empresa em TESTE com o fim do teste dentro da janela de aviso (pergunta 3) | qualquer tela interna abre | a casca mostra quantos dias faltam e como ativar (canal da pergunta 14) | — |
 | F14-11 | empresa ATIVA, ou em TESTE fora da janela de aviso | qualquer tela interna abre | nenhuma faixa de situação aparece | — |
 | F14-12 | empresa em qualquer situação | um Dono abre Configurações › Empresa | vê a situação e, em TESTE, o fim do teste; a tela não oferece trocar a situação | — |

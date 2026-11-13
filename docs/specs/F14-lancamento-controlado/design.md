@@ -282,6 +282,7 @@ Ordem e dependências:
 
 Uma linha por PR: o que entrou e as decisões não óbvias que surgiram na implementação.
 
+- 13/11 — F14a: `SituacaoEmpresa` e `Tenant.Vencer(agora)` (só a transição de vencimento; as demais no F14l), `OpcoesEmpresas` (`Empresas__DiasDeTeste` e `Empresas__DiasAteExpurgo`, padrão 30, valor inválido não sobe), passo `vencimento-testes` primeiro no diário (`empresasVencidas`), situação no `/auth/eu`, migration `SituacaoDaEmpresa` com as existentes em CANCELADA em 2026-01-01T00:00:00Z. `SomenteLeituraDesde` do vencimento é o instante do diário, não o fim do teste. `GravavelDesde`, marcas de aviso e demonstração ficam para os PRs que as gravam. Nos testes, ATIVA e CANCELADA são gravadas direto no banco (as ações chegam no F14l). Premissas em `notas/desenvolvedor-F14a.md`.
 - 13/11 — G2: PR #186 mesclado; decisões registradas; ADRs 0014 e 0015 aceitos. Design alinhado:
   - empresas anteriores em CANCELADA pela migration, com data fixa antiga (D1);
   - F14-112 no F14i e F14-113 no F14j;
