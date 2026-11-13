@@ -1,3 +1,4 @@
+using Acordu.Domain.Enums;
 using Acordu.Infrastructure.MultiTenancy;
 using Acordu.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
@@ -7,8 +8,9 @@ using Microsoft.Extensions.Logging;
 namespace Acordu.Infrastructure.Agendamento;
 
 /// <summary>
-/// Roda um job em cada tenant, num escopo próprio com o contexto fixado nele (o sistema agindo, sem usuário). Falha num
-/// tenant é registrada e não impede os demais; a próxima execução tenta de novo (jobs idempotentes).
+/// Roda um job em cada tenant gravável (fora do só leitura, RF-EMP-02), num escopo próprio com o contexto fixado nele (o
+/// sistema agindo, sem usuário). Falha num tenant é registrada e não impede os demais; a próxima execução tenta de novo
+/// (jobs idempotentes).
 /// </summary>
 public sealed partial class ExecutorPorTenant
 {
@@ -32,9 +34,11 @@ public sealed partial class ExecutorPorTenant
         List<Guid> tenants;
         await using (var escopo = _escopos.CreateAsyncScope())
         {
-            // Só os Ids, de todos os tenants: ponto revisado de IgnoreQueryFilters (sem tenant no contexto).
+            // Só os Ids, de todos os tenants graváveis: ponto revisado de IgnoreQueryFilters (sem tenant no contexto). A
+            // empresa só leitura fica de fora (ADR 0015, item 4): a guarda recusaria a gravação e o job contaria falha.
             tenants = await escopo.ServiceProvider.GetRequiredService<AcorduDbContext>().Tenants
                 .IgnoreQueryFilters([FiltrosGlobais.Tenant])
+                .Where(t => !SituacaoEmpresaExtensions.SituacoesSomenteLeitura.Contains(t.Situacao))
                 .OrderBy(t => t.Id)
                 .Select(t => t.Id)
                 .ToListAsync(cancellationToken);
