@@ -1,6 +1,6 @@
 # ADR 0014 — Área da Nebrys: sessão de operação sem tenant
 
-- **Status:** Proposto (design do F14, D5; aceito ou recusado no G2 do F14)
+- **Status:** Aceito (G2 do F14, PR #186, 13/11/2026; design do F14, D4)
 - **Data:** 13/11/2026
 - **Contexto do projeto:** Acordu (marco F14, RF-NEB-01, RF-NEB-02)
 - **Complementa, sem mudar o texto:** ADR 0001 (identidade e multiusuário), ADR 0002 (isolamento), ADR 0008 (trilha de auditoria) e ADR 0012 (tabelas globais).

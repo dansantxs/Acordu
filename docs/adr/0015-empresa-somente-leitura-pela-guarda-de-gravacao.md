@@ -1,6 +1,6 @@
 # ADR 0015 — Empresa só leitura pela guarda de gravação
 
-- **Status:** Proposto (design do F14, D2; aceito ou recusado no G2 do F14)
+- **Status:** Aceito (G2 do F14, PR #186, 13/11/2026; design do F14, D2)
 - **Data:** 13/11/2026
 - **Contexto do projeto:** Acordu (marco F14, RF-EMP-01, RF-EMP-02)
 - **Complementa, sem mudar o texto:** ADR 0001 (guarda de gravação por tenant) e ADR 0008 (trilha na mesma transação).
