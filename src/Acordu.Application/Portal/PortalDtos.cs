@@ -8,7 +8,8 @@ namespace Acordu.Application.Portal;
 
 /// <summary>
 /// <c>GET /portal/eu</c>: contato, cliente, prestador e o que o escopo libera. <see cref="SolicitacaoId"/> só na sessão
-/// de link (a única solicitação que ela abre).
+/// de link (a única solicitação que ela abre). <see cref="EnvioDisponivel"/>: falso com a empresa só leitura (RF-EMP-02,
+/// F14c), para a tela desabilitar abrir, responder e aprovar sem dizer o motivo.
 /// </summary>
 public sealed record PortalEuDto(
     ContatoPortalDto Contato,
@@ -16,7 +17,8 @@ public sealed record PortalEuDto(
     PrestadorPortalDto Prestador,
     EscopoPortal EscopoPortal,
     bool VeContratos,
-    Guid? SolicitacaoId);
+    Guid? SolicitacaoId,
+    bool EnvioDisponivel);
 
 public sealed record ContatoPortalDto(Guid Id, string Nome, string Email);
 
