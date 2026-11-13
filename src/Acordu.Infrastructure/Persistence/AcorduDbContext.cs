@@ -32,8 +32,11 @@ public sealed class AcorduDbContext : IdentityUserContext<Usuario, Guid>
 
     private readonly ITenantContext _contexto;
 
-    /// <summary>Situação lida do banco uma vez por escopo (ADR 0015, item 1): verdadeiro = só leitura.</summary>
-    private readonly Dictionary<Guid, bool> _somenteLeitura = [];
+    /// <summary>
+    /// Situação lida do banco uma vez por escopo (ADR 0015, item 1): o nome do prestador quando o tenant está só leitura
+    /// (vai na recusa, para a mensagem neutra do portal), nulo quando grava.
+    /// </summary>
+    private readonly Dictionary<Guid, string?> _somenteLeitura = [];
 
     public AcorduDbContext(DbContextOptions<AcorduDbContext> options, ITenantContext contexto)
         : base(options)
@@ -85,9 +88,9 @@ public sealed class AcorduDbContext : IdentityUserContext<Usuario, Guid>
         GarantirIsolamento();
         foreach (var tenant in TenantsComGravacaoDaEmpresa())
         {
-            if (!_somenteLeitura.TryGetValue(tenant, out var somenteLeitura))
-                _somenteLeitura[tenant] = somenteLeitura = ConsultaSomenteLeitura(tenant).SingleOrDefault();
-            GarantirGravavel(somenteLeitura);
+            if (!_somenteLeitura.TryGetValue(tenant, out var prestador))
+                _somenteLeitura[tenant] = prestador = ConsultaSomenteLeitura(tenant).SingleOrDefault();
+            GarantirGravavel(prestador);
         }
 
         return base.SaveChanges(acceptAllChangesOnSuccess);
@@ -98,9 +101,9 @@ public sealed class AcorduDbContext : IdentityUserContext<Usuario, Guid>
         GarantirIsolamento();
         foreach (var tenant in TenantsComGravacaoDaEmpresa())
         {
-            if (!_somenteLeitura.TryGetValue(tenant, out var somenteLeitura))
-                _somenteLeitura[tenant] = somenteLeitura = await ConsultaSomenteLeitura(tenant).SingleOrDefaultAsync(cancellationToken);
-            GarantirGravavel(somenteLeitura);
+            if (!_somenteLeitura.TryGetValue(tenant, out var prestador))
+                _somenteLeitura[tenant] = prestador = await ConsultaSomenteLeitura(tenant).SingleOrDefaultAsync(cancellationToken);
+            GarantirGravavel(prestador);
         }
 
         return await base.SaveChangesAsync(acceptAllChangesOnSuccess, cancellationToken);
@@ -348,18 +351,21 @@ public sealed class AcorduDbContext : IdentityUserContext<Usuario, Guid>
 
     /// <summary>
     /// Se o tenant está só leitura (VENCIDA ou CANCELADA), lido do banco e não do token, para a mudança valer na requisição
-    /// seguinte. Ignora o filtro de tenant porque a guarda olha o tenant da entidade gravada (ADR 0015, item 7): ponto
-    /// revisado de IgnoreQueryFilters (convenções §1). Tenant inexistente → falso.
+    /// seguinte. Devolve o nome do prestador (o do portal, se houver) quando só leitura e nulo quando grava. Ignora o
+    /// filtro de tenant porque a guarda olha o tenant da entidade gravada (ADR 0015, item 7): ponto revisado de
+    /// IgnoreQueryFilters (convenções §1). Tenant inexistente → nulo.
     /// </summary>
-    private IQueryable<bool> ConsultaSomenteLeitura(Guid tenant) =>
+    private IQueryable<string?> ConsultaSomenteLeitura(Guid tenant) =>
         Tenants.IgnoreQueryFilters(FiltroTenant).AsNoTracking()
             .Where(t => t.Id == tenant)
-            .Select(t => Domain.Enums.SituacaoEmpresaExtensions.SituacoesSomenteLeitura.Contains(t.Situacao));
+            .Select(t => Domain.Enums.SituacaoEmpresaExtensions.SituacoesSomenteLeitura.Contains(t.Situacao)
+                ? t.NomePortal ?? t.Nome
+                : null);
 
-    private static void GarantirGravavel(bool somenteLeitura)
+    private static void GarantirGravavel(string? prestadorSomenteLeitura)
     {
-        if (somenteLeitura)
-            throw new EmpresaSomenteLeituraException();
+        if (prestadorSomenteLeitura is not null)
+            throw new EmpresaSomenteLeituraException { NomePrestador = prestadorSomenteLeitura };
     }
 
     private static Guid? ClienteDe(EntidadeBase entidade) => entidade switch

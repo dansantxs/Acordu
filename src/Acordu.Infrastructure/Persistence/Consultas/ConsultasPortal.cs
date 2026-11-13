@@ -53,7 +53,8 @@ public sealed class ConsultasPortal : IConsultasPortal
             new PrestadorPortalDto(tenant.NomePortal ?? tenant.Nome),
             contato.Escopo,
             contato.VeContratos,
-            contato.SolicitacaoPermitida);
+            contato.SolicitacaoPermitida,
+            !tenant.Situacao.SomenteLeitura());
     }
 
     public async Task<ResultadoPaginado<SolicitacaoPortalResumoDto>> ListarSolicitacoesAsync(
