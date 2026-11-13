@@ -11,6 +11,7 @@ using Acordu.Application.Abstractions;
 using Acordu.Application.Abstractions.Operacao;
 using Acordu.Application.Operacao;
 using Acordu.Application.Autenticacao;
+using Acordu.Application.Empresas;
 using Acordu.Infrastructure;
 using Acordu.Infrastructure.Armazenamento;
 using Acordu.Infrastructure.Email;
@@ -29,7 +30,7 @@ namespace Acordu.Api.Composicao;
 /// endpoints de teste nos grupos). Configuração só por variáveis de ambiente (ADR 0010 §10): <c>ConnectionStrings__Acordu</c>,
 /// <c>Jwt__ChaveAssinatura</c>, <c>Jobs__Token</c>, <c>Cors__Origem</c>, <c>App__UrlPublica</c> (links dos e-mails),
 /// <c>App__UrlApi</c> (feed ICS, quando a API tem host próprio), <c>Proxy__*</c> (borda, ver <see cref="Seguranca.TokenDeOrigem"/>),
-/// <c>TempoReal__Sse</c> (padrão ligado; ADR 0010 §4) e
+/// <c>TempoReal__Sse</c> (padrão ligado; ADR 0010 §4), <c>Empresas__DiasDeTeste</c> e <c>Empresas__DiasAteExpurgo</c> (padrão 30; F14) e
 /// <c>Email__ResendChave</c>, <c>Email__Remetente</c>, <c>Email__NomeRemetente</c> e <c>Email__Smtp__Host</c>/<c>Email__Smtp__Porta</c> (Mailpit, só em desenvolvimento), <c>Email__RegistrarConteudo</c> (só em
 /// desenvolvimento).
 /// </summary>
@@ -66,6 +67,9 @@ internal static class ComposicaoApi
         services.AddSingleton(new EnderecosPublicos(
             new Uri(configuracao["App:UrlPublica"] ?? UrlPublicaPadrao),
             string.IsNullOrEmpty(urlApi) ? null : new Uri(urlApi)));
+        services.AddSingleton(new OpcoesEmpresas(
+            DiasPositivos(configuracao, "Empresas:DiasDeTeste", OpcoesEmpresas.DiasDeTestePadrao),
+            DiasPositivos(configuracao, "Empresas:DiasAteExpurgo", OpcoesEmpresas.DiasAteExpurgoPadrao)));
         AdicionarEmail(services, configuracao);
         AdicionarArmazenamento(services, configuracao);
         AdicionarVerificacaoHumana(services, configuracao);
@@ -102,6 +106,20 @@ internal static class ComposicaoApi
             opcoes.AddDocumentTransformer(Identificar("Acordu — portal"));
         });
         return services;
+    }
+
+    /// <summary>
+    /// Número de dias da configuração (<c>Empresas__DiasDeTeste</c>, <c>Empresas__DiasAteExpurgo</c>): ausente usa o padrão;
+    /// presente e inválido (não inteiro ou menor que 1) impede a subida, para um prazo errado não valer em silêncio.
+    /// </summary>
+    private static int DiasPositivos(IConfiguration configuracao, string chave, int padrao)
+    {
+        var texto = configuracao[chave];
+        if (string.IsNullOrWhiteSpace(texto))
+            return padrao;
+        return int.TryParse(texto, NumberStyles.Integer, CultureInfo.InvariantCulture, out var dias) && dias > 0
+            ? dias
+            : throw new InvalidOperationException($"{chave.Replace(":", "__", StringComparison.Ordinal)} precisa ser um número inteiro de dias maior que zero.");
     }
 
     /// <summary>Nome do HttpClient do Discord (os testes trocam o handler por ele).</summary>
