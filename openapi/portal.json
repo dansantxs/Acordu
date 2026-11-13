@@ -688,7 +688,8 @@
           "prestador",
           "escopoPortal",
           "veContratos",
-          "solicitacaoId"
+          "solicitacaoId",
+          "envioDisponivel"
         ],
         "type": "object",
         "properties": {
@@ -713,6 +714,9 @@
               "string"
             ],
             "format": "uuid"
+          },
+          "envioDisponivel": {
+            "type": "boolean"
           }
         }
       },
