@@ -17,11 +17,13 @@ internal sealed class Equipe
 
     private readonly ApiFixture _api;
 
-    private Equipe(ApiFixture api, Guid tenantId, string tokenDono)
+    private Equipe(ApiFixture api, Guid tenantId, string tokenDono, string emailDono, string refreshDono)
     {
         _api = api;
         TenantId = tenantId;
         Dono = tokenDono;
+        EmailDono = emailDono;
+        RefreshDono = refreshDono;
     }
 
     public Guid TenantId { get; }
@@ -29,12 +31,18 @@ internal sealed class Equipe
     /// <summary>Token de quem registrou o tenant (papel Dono).</summary>
     public string Dono { get; }
 
+    /// <summary>E-mail de quem registrou o tenant (senha <see cref="Senha"/>).</summary>
+    public string EmailDono { get; }
+
+    /// <summary>Refresh token (valor do cookie) da sessão aberta no registro.</summary>
+    public string RefreshDono { get; }
+
     /// <param name="confirmar">
     /// Confirma o e-mail de quem registrou, liberando o envio a terceiros (RF-AUT-06). Falso só nos testes do bloqueio.
     /// </param>
     public static async Task<Equipe> CriarAsync(ApiFixture api, bool confirmar = true)
     {
-        var (token, _, email) = await RegistrarAsync(api, "Estúdio Traço");
+        var (token, refresh, email) = await RegistrarAsync(api, "Estúdio Traço");
         if (confirmar)
         {
             using var confirmacao = await EnviarAsync(
@@ -44,7 +52,7 @@ internal sealed class Equipe
 
         using var eu = await GetAsync(api, "/api/v1/auth/eu", token);
         var tenant = (await JsonAsync(eu)).GetProperty("tenant").GetProperty("id").GetGuid();
-        return new Equipe(api, tenant, token);
+        return new Equipe(api, tenant, token, email, refresh);
     }
 
     /// <summary>Uma pessoa nova com o papel padrão no tenant (o convite chega depois; aqui o vínculo é gravado direto).</summary>
