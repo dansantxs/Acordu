@@ -24,7 +24,9 @@ internal static partial class ManipuladorExcecoes
     {
         ArgumentNullException.ThrowIfNull(http);
         var excecao = http.Features.Get<IExceptionHandlerFeature>()?.Error;
-        var problema = Classificar(excecao);
+        var problema = excecao is EmpresaSomenteLeituraException leitura && DoPortal(http)
+            ? PortalIndisponivel(leitura)
+            : Classificar(excecao);
         if (problema.Status == StatusCodes.Status500InternalServerError)
         {
             var logger = http.RequestServices.GetRequiredService<ILoggerFactory>().CreateLogger(typeof(ManipuladorExcecoes));
@@ -115,6 +117,27 @@ internal static partial class ManipuladorExcecoes
         ArgumentException e => Validacao(e),
         _ => Problema(500, "erro-interno", "Erro interno", null),
     };
+
+    /// <summary>
+    /// Superfície do contato (design do F14, D3): as rotas do portal e as de convite e link do portal em <c>/auth</c>. A
+    /// escolha é pela rota, não pelo contexto: o aceite de convite é rota pública.
+    /// </summary>
+    internal static bool DoPortal(HttpContext http)
+    {
+        var caminho = http.Features.Get<IExceptionHandlerPathFeature>()?.Path is { Length: > 0 } original
+            ? new PathString(original)
+            : http.Request.Path;
+        return caminho.StartsWithSegments("/api/v1/portal", StringComparison.OrdinalIgnoreCase)
+            || caminho.StartsWithSegments("/api/v1/auth/portal", StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// Só leitura na superfície do contato: <c>422 portal-indisponivel</c> com a mensagem neutra (decisão 10 do G2 do
+    /// F14), que não revela a situação comercial do prestador ao cliente dele (ADR 0015, item 6).
+    /// </summary>
+    internal static ProblemDetails PortalIndisponivel(EmpresaSomenteLeituraException excecao) => Problema(
+        422, "portal-indisponivel", "Envio indisponível",
+        $"No momento não é possível enviar por aqui; fale com {excecao.NomePrestador ?? "o prestador do serviço"}.");
 
     private static ProblemDetails Problema(int status, string tipo, string titulo, string? detalhe) =>
         new() { Status = status, Type = BaseTipos + tipo, Title = titulo, Detail = detalhe };

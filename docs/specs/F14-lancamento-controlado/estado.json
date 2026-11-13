@@ -2,21 +2,17 @@
   "marco": "F14",
   "issue": 182,
   "etapa": "AGUARDANDO_MERGE",
-  "branch": "feat/F14b-guarda",
-  "pr": { "id": "F14b", "numero": null },
-  "feitos": [{ "id": "F14a", "pr": 187 }],
-  "contadores": { "devolucoesNaEtapa": 0, "rodadasNoPr": 1 },
+  "branch": "feat/F14c-portal",
+  "pr": { "id": "F14c", "numero": null },
+  "feitos": [{ "id": "F14a", "pr": 187 }, { "id": "F14b", "pr": 188 }],
+  "contadores": { "devolucoesNaEtapa": 0, "rodadasNoPr": 0 },
   "verificacao": ["node scripts/conferir-specs.mjs", "dotnet build", "dotnet test"],
   "portoes": {
     "G1": "vamos seguir com o candidato 1, agora que o deploy já foi feito, quero começar a mostrar para as pessoas",
     "G2": "PR #186 mesclado (13/11/2026); respostas da §4 coladas no chat (prazo do expurgo 30 dias; empresas existentes apagadas) e \"aceito as recomendações\" (CANCELADA na migration e expurgo pelo F14i; contato@acordu.app.br)",
-    "G3": ["PR #187 mesclado (F14a; F14-113 mantido)"]
+    "G3": ["PR #187 mesclado (F14a; F14-113 mantido)", "PR #188 mesclado (F14b; filtro dos jobs adiantado mantido)"]
   },
-  "ressalvas": [
-    "Desvio: jobs só em empresas graváveis adiantado do F14d (ExecutorPorTenant)",
-    "Não fazer deploy só com o F14b (portal até o F14c; outbox até o F14d)",
-    "Contador e MarcadorAviso por SQL direto dentro da transação do UnitOfWork: o rollback os devolve"
-  ],
+  "ressalvas": ["Rota futura do contato fora de /portal voltaria ao tipo da equipe sem teste avisar; prefixo /api/v1 fixo em texto", "Lockout da conferência de senha de conta existente persiste mesmo com a recusa do aceite"],
   "bloqueios": [],
   "atualizadoEm": "2026-11-13"
 }

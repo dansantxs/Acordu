@@ -11,6 +11,12 @@ public sealed class EmpresaSomenteLeituraException : Exception
         "A empresa está só leitura (o teste venceu ou a conta foi cancelada): dá para consultar tudo, mas não gravar. "
         + "Para voltar a usar, fale com a Nebrys.";
 
+    /// <summary>
+    /// Nome do prestador (o do portal, se houver), para a mensagem neutra das rotas do portal (decisão 10 do G2 do F14):
+    /// "No momento não é possível enviar por aqui; fale com {prestador}". Nulo quando quem lança não o conhece.
+    /// </summary>
+    public string? NomePrestador { get; init; }
+
     public EmpresaSomenteLeituraException()
         : base(Mensagem)
     {
