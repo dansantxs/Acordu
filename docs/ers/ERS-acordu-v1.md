@@ -4,7 +4,7 @@
 | | |
 |---|---|
 | **Versão** | 0.1 (rascunho para revisão) |
-| **Data** | 04/11/2026 |
+| **Data** | 13/11/2026 |
 | **Produto** | Acordu |
 | **Norma de referência** | ABNT NBR ISO/IEC/IEEE 29148:2018 (estrutura de SRS), forma condensada |
 | **Documento de origem** | `estrategia-produto-acordu.md` (visão, público, posicionamento) |
@@ -37,6 +37,7 @@ Aplicação web (SPA) apoiada por uma API REST, **multi-tenant** desde o início
 | **Atendente/Executor** (papel Membro) | Equipe do prestador | Solicitações, tarefas, projetos, apontamentos, clientes. |
 | **Leitor** | Estagiário, sócio passivo | Somente leitura interna. |
 | **Contato do cliente** (papel Cliente) | Pessoa da empresa atendida | Apenas o portal, restrito ao **seu** cliente. |
+| **Operação da Nebrys** (F14) | Quem opera o Acordu na Nebrys | Apenas a área da Nebrys (RF-NEB-01): situação das empresas, convites e lista de espera; nunca os dados de negócio dos prestadores. |
 
 **1.3.4 Limitações.** Planos gratuitos de serviços gerenciados (Cloud Run, Neon, Cloudflare; ADR 0010, com plano de escala). Cold start depois de ociosidade, atualização da agenda e do quadro por consulta a cada 30 s no nível 0 e alertas de SLA com até 15 min de atraso. Disponibilidade *best-effort* no v1.
 
@@ -116,10 +117,29 @@ Convenções: **RF** = requisito funcional, **RNF** = não funcional. Verificaç
 | RF-AUT-05 | Usuário com vínculos em vários tenants troca o tenant ativo, com reemissão do token. | T |
 | RF-AUT-06 | **Envio a terceiros exige e-mail confirmado** (04/11): enquanto quem criou a empresa não confirmar o e-mail, a empresa não envia e-mail a ninguém além dele. Convites da equipe e do portal e link do portal são recusados com erro próprio; avisos automáticos por e-mail a contatos e à equipe não saem, exceto os do próprio criador (decisão 8 da spec do F9, 04/11); o sino interno não muda. O login e o uso do sistema continuam liberados (decisão de 09/10). | T |
 | RF-AUT-07 | **Expurgo de cadastro abandonado** (04/11): empresa cujo criador não confirmou o e-mail em 7 dias e que não tem nenhum dado cadastrado além do que o registro cria é apagada, com o usuário, se ele não tiver vínculo com outra empresa. Roda no job diário. | T |
+| RF-AUT-08 | **Cadastro controlado** (F14, 13/11): o cadastro funciona em um de dois modos, escolhido pela Nebrys. **Por convite:** só cria empresa quem tem um convite de empresa válido emitido pela Nebrys (uso único, com validade, revogável); sem convite, a tela de cadastro oferece a **lista de espera**, que a Nebrys transforma em convite. **Aberto:** como no RF-AUT-01. Nos dois valem o Turnstile e o limite por IP (RNF-SEG-10). Validade do convite, e-mail fixo, campos da lista de espera e como ela vira convite: spec do F14 §4. | T |
+| RF-AUT-09 | **Um teste por CPF/CNPJ** (F14, 13/11): o cadastro pede o CPF ou o CNPJ da empresa (dígitos validados, CNPJ alfanumérico aceito); um documento que já teve teste, em qualquer empresa e mesmo depois do expurgo, não abre outro, salvo liberação da Nebrys. O que se guarda do documento depois do expurgo: spec do F14 §4. | T |
+| RF-AUT-10 | **E-mail descartável bloqueado** (F14, 13/11): o cadastro e a lista de espera recusam e-mail de domínio descartável, por uma lista de domínios mantida no Acordu. | T |
+| RF-AUT-11 | **Termos de uso e política de privacidade** (F14, 13/11): páginas públicas, com versão e data de vigência, com link no cadastro, no aceite de convite, no login, no portal e na lista de espera. O cadastro e o aceite de convite da equipe exigem o aceite, registrado por pessoa com a versão de cada texto e a data. Nova versão: spec do F14 §4. | T |
 | RF-USR-01 | Convidar usuário interno por e-mail com um papel; aceitar cria conta ou adiciona vínculo. | T |
 | RF-USR-02 | Remover usuário e alterar papel; garantir **≥ 1 Dono** por tenant. | T |
 | RF-USR-03 | Autorizar cada ação por permissão (RBAC granular); sem permissão → 403. | T |
 | RF-USR-04 | Semear os papéis padrão Dono, Membro, Leitor e **Cliente**. | D |
+
+**Situação da empresa** (F14, 13/11)
+| ID | Requisito | Verif. |
+|---|---|---|
+| RF-EMP-01 | Toda empresa tem uma **situação**: TESTE (nasce assim no cadastro, com data de fim do teste), ATIVA, VENCIDA ou CANCELADA. TESTE vira VENCIDA sozinha no job diário quando o fim do teste passa; ativar, prorrogar o teste, cancelar e reativar só pela Nebrys (RF-NEB-01), sem cobrança no v1. Sem limite de pessoas na equipe durante o teste (10/11). Duração do teste: spec do F14 §4. | T |
+| RF-EMP-02 | **Só leitura** em VENCIDA e CANCELADA: a equipe e o portal continuam lendo o que já podiam, mas nada da empresa é gravado (erro próprio, depois da checagem de permissão), nenhum e-mail sai e os jobs (recorrências, alertas, fechamento automático) não agem nela. O que é só da pessoa segue (conta, sino, preferências de aviso, link da agenda, seguir itens); aceitar convite da equipe ou do portal não. Voltar a ATIVA restaura tudo, sem gerar retroativamente. A situação de uma empresa nunca afeta outra, mesmo para quem tem vínculo nas duas. | T |
+| RF-EMP-03 | **Expurgo da empresa vencida ou cancelada:** passado o prazo desde o vencimento ou o cancelamento, o job diário apaga a empresa inteira (dados, anexos, vínculos, sessões), com as contas que não tiverem vínculo com outra empresa, como no RF-AUT-07. Prazo: spec do F14 §4. | T |
+| RF-EMP-04 | **Avisos da situação:** a equipe vê na tela quanto falta para o fim do teste e, na empresa só leitura, desde quando e até quando os dados ficam; os Donos recebem e-mail antes do vencimento, no vencimento e antes do expurgo. Momentos dos avisos: spec do F14 §4. | T |
+| RF-EMP-05 | **Dados de exemplo:** uma empresa em teste ainda sem dados pode carregar um conjunto fictício (clientes, contratos, solicitações, tarefas, horas) e apagá-lo depois, sem e-mail a ninguém. | T |
+
+**Área da Nebrys** (F14, 13/11)
+| ID | Requisito | Verif. |
+|---|---|---|
+| RF-NEB-01 | Área restrita à operação da Nebrys, inalcançável por usuários de empresas e contatos (404): lista as empresas com a situação e as datas; ativa, prorroga o teste, cancela e reativa; emite, reenvia e revoga convites de empresa; trata a lista de espera; libera um CPF/CNPJ para novo teste. Mostra só dados da relação com a Nebrys (nome, documento, situação, datas, criador, tamanho da equipe), nunca dados de negócio dos prestadores (RNF-PRIV-01). Toda ação fica registrada com quem e quando. | T |
+| RF-NEB-02 | **Empresa de demonstração**, criada e restaurada pela área da Nebrys com dados fictícios, para mostrar o produto: nunca vence nem é expurgada e não envia e-mail para fora. Forma de acesso: spec do F14 §4. | T |
 
 **Clientes e contatos**
 | ID | Requisito | Verif. |
@@ -277,6 +297,7 @@ Convenções: **RF** = requisito funcional, **RNF** = não funcional. Verificaç
 |---|---|---|
 | RNF-PRIV-01 | O prestador é o **controlador** dos dados de seus clientes; o Acordu é **operador**. Exportação e exclusão dos dados do tenant sob solicitação. | A |
 | RNF-PRIV-02 | Dados de um tenant nunca são usados em funcionalidades de outro tenant (incluindo sugestões e, futuramente, IA). | A |
+| RNF-PRIV-03 | A política de privacidade (RF-AUT-11) informa os papéis de controlador e operador, a hospedagem nos EUA e a transferência internacional de dados (LGPD), a retenção (expurgos e backups) e o canal do titular; o texto é revisado pelo Daniel antes de valer (F14, 13/11). | I |
 
 **Desempenho** (envelope compartilhado de 2 OCPU / 12 GB)
 | ID | Requisito | Verif. |
@@ -625,6 +646,8 @@ Pirâmide de testes (xUnit + AwesomeAssertions, Testcontainers, WebApplicationFa
 - **RNF-SEG-02:** contato do cliente A não lê, lista, comenta nem baixa anexo do cliente B do mesmo tenant; contato com escopo PROPRIAS não vê solicitações de colegas.
 - **RNF-SEG-03:** nenhuma resposta do portal contém interação, tarefa ou apontamento INTERNO.
 - **RNF-SEG-06:** link de acesso expirado, revogado ou de outra solicitação → negado.
+- **RF-EMP-02:** empresa vencida ou cancelada não grava nem envia nada, na equipe, no portal e nos jobs; a mesma pessoa grava normalmente em outra empresa onde tem vínculo.
+- **RF-NEB-01:** usuário de empresa (inclusive Dono) e contato do portal nunca alcançam a área da Nebrys (404); a área não expõe dado de negócio dos prestadores.
 - **RF-AUT-06:** empresa com criador sem e-mail confirmado não consegue convidar, emitir link do portal nem disparar aviso a terceiros; depois da confirmação, consegue.
 
 ### 6.3 Rastreabilidade
