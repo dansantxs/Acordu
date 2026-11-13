@@ -1,12 +1,12 @@
 # Design — F14: situação da empresa e cadastro controlado
 
-Spec: [spec.md](spec.md). Processo: `docs/processo.md` §3.3. ADRs: 0001, 0002, 0007, 0008, 0010, 0012; propostos aqui: [0014](../../adr/0014-area-da-nebrys-sessao-de-operacao.md) e [0015](../../adr/0015-empresa-somente-leitura-pela-guarda-de-gravacao.md).
+Spec: [spec.md](spec.md). Processo: `docs/processo.md` §3.3. ADRs: 0001, 0002, 0007, 0008, 0010, 0012; criados por este design e aceitos no G2: [0014](../../adr/0014-area-da-nebrys-sessao-de-operacao.md) e [0015](../../adr/0015-empresa-somente-leitura-pela-guarda-de-gravacao.md).
 
-Ficam na spec, para o G2, as perguntas 1 a 19 da §4 (valores, regras e comportamentos). O design traz só o **como**. Cada D vale com a recomendação da pergunta a que se liga. Os valores numéricos ficam em configuração com os padrões recomendados, então outra escolha no G2 não muda o design. Os comportamentos estão nos cenários; as decisões abaixo dizem onde e como cada um é implementado.
+Os valores, as regras e os comportamentos estão nas decisões 1 a 19 do G2 (spec §4, PR #186, 13/11), e o design traz só o **como**. Os valores numéricos ficam em configuração, com os padrões decididos: teste de 30 dias, expurgo 30 dias depois do vencimento ou do cancelamento, e avisos aos 7 e 1 dia antes do fim, no vencimento e 7 dias antes do expurgo. Os comportamentos estão nos cenários; as decisões abaixo dizem onde e como cada um é implementado.
 
 ## 1. Decisões
 
-O G2 (merge deste PR) registra a escolha de cada D. Quem decidiu e quando: a preencher no G2.
+O G2 (PR #186, mesclado em 13/11 pelo Daniel) aprovou o design com a recomendação de cada D. ADRs 0014 e 0015 aceitos.
 
 1. **D1 — Como modelar a situação.**
    - (a) **Recomendado.** Enum `SituacaoEmpresa` (`Teste`, `Ativa`, `Vencida`, `Cancelada`) no próprio `Tenant`, com `FimDoTeste` (instante UTC), `SomenteLeituraDesde`, `CanceladaEm`, `GravavelDesde` (última saída do só leitura) e as marcas de aviso (D7). As transições ficam em métodos de domínio (`Vencer`, `Ativar`, `Prorrogar`, `Cancelar`, `Reativar`), com a tabela de transições no modelo de domínio e `TransicaoInvalidaException` para o resto. A data do expurgo é calculada (`SomenteLeituraDesde` + prazo da configuração), não gravada. Por quê: é configuração por tenant, como o fechamento automático e a liberação do envio (modelo §4.11.1 e §4.11.2), e não pede agregado. O histórico fica na trilha (D14).
@@ -14,6 +14,11 @@ O G2 (merge deste PR) registra a escolha de cada D. Quem decidiu e quando: a pre
    - **Demonstração:**
      - (a1) **Recomendado.** Flag `Tenant.Demonstracao` com situação ATIVA, e o domínio recusa as transições. Por quê: ATIVA já fica fora do vencimento e do expurgo, o ciclo fica com os quatro valores da ERS, e só o bloqueio de envio olha a flag.
      - (a2) Um quinto valor no enum: a API mostraria uma situação que a ERS não tem.
+   - **Empresas anteriores ao F14** (decisão 13 do G2, F14-08):
+     - o preenchimento da migration (`ScriptsDeDados`) as põe em CANCELADA, com `CanceladaEm` e `SomenteLeituraDesde` numa data fixa antiga, `2026-01-01T00:00:00Z`;
+     - a data é anterior a qualquer empresa do Acordu e já passou do prazo de expurgo (30 dias, e de qualquer valor razoável), sem depender da configuração, que a migration não lê;
+     - entre o deploy do F14a e o do F14i elas ficam só leitura (com o F14b na `main`), sem aviso (F14-113, D7);
+     - o primeiro diário com o passo `expurgo-empresas` as apaga pelo caminho normal (F14-112, D6).
    - Conferência: sem conflito com ADR aceito.
 
 2. **D2 — Como aplicar o só leitura.**
@@ -22,16 +27,16 @@ O G2 (merge deste PR) registra a escolha de cada D. Quem decidiu e quando: a pre
      - cobre equipe, portal, aceite de convite, jobs e manipuladores num ponto só;
      - entidade nova nasce bloqueada.
 
-     Vale além do marco: **[ADR 0015](../../adr/0015-empresa-somente-leitura-pela-guarda-de-gravacao.md)** (Proposto).
+     Vale além do marco: **[ADR 0015](../../adr/0015-empresa-somente-leitura-pela-guarda-de-gravacao.md)** (Aceito no G2).
    - (b) Filtro de rota por método HTTP, com as rotas isentas marcadas: roda antes das permissões da Application (trocaria 403 por só leitura) e não cobre jobs nem outbox.
    - (c) Checagem em cada comando, como o `EnvioATerceiros.GarantirLiberadoAsync` do F9: dezenas de pontos, e um esquecido grava.
    - (d) Situação como claim do token: só mudaria no refresh (até 60 min, ADR 0007), contra o F14-65.
-   - **Classificação "da pessoa"** (pergunta 10, F14-18, F14-100): sino, preferências de aviso, assinatura da agenda, seguidores, refresh tokens, trilha de auditoria e aceites. As gravações fora do change tracker (`RegistroSeguidores`, `ConsultasNotificacoes`) já são desse grupo, e ponto novo fora do tracker declara a classificação (ADR 0015, item 3).
+   - **Classificação "da pessoa"** (decisão 10 do G2, F14-18, F14-100): sino, preferências de aviso, assinatura da agenda, seguidores, refresh tokens, trilha de auditoria e aceites. As gravações fora do change tracker (`RegistroSeguidores`, `ConsultasNotificacoes`) já são desse grupo, e ponto novo fora do tracker declara a classificação (ADR 0015, item 3).
    - **Convites antigos** (F14-97, F14-98): o aceite cria um `Vinculo`, que é "da empresa". A guarda recusa, e a transação inteira volta, então o convite não é consumido. A sessão de link (F14-99) só grava rastro (auditoria da troca), que passa.
    - Conferência: ADR 0001 (filtro e guarda são a barreira do multi-tenant; a guarda nova fica no mesmo lugar) e ADR 0002 (erro neutro no portal). Sem conflito.
 
 3. **D3 — Tipo do erro de só leitura.**
-   - (a) **Recomendado.** `422 empresa-somente-leitura` nas rotas da equipe e no aceite de convite da equipe; `422 portal-indisponivel` com a mensagem neutra da pergunta 10 nas rotas `/portal/*` e `/auth/portal/*`. O `ManipuladorExcecoes` escolhe pela superfície da rota, não pelo contexto: o aceite de convite é rota pública. Por quê: segue o precedente do F9 (`422 email-nao-confirmado`), e um `type` próprio no portal não deixa o contato ler "somente-leitura" na resposta.
+   - (a) **Recomendado.** `422 empresa-somente-leitura` nas rotas da equipe e no aceite de convite da equipe; `422 portal-indisponivel` com a mensagem neutra da decisão 10 do G2 nas rotas `/portal/*` e `/auth/portal/*`. O `ManipuladorExcecoes` escolhe pela superfície da rota, não pelo contexto: o aceite de convite é rota pública. Por quê: segue o precedente do F9 (`422 email-nao-confirmado`), e um `type` próprio no portal não deixa o contato ler "somente-leitura" na resposta.
    - (b) `403`: mistura com "sem permissão", que o F14-16 precisa distinguir.
    - (c) `423 Locked`: status a mais, sem uso no contrato.
 
@@ -43,16 +48,16 @@ O G2 (merge deste PR) registra a escolha de cada D. Quem decidiu e quando: a pre
      - `Acordu.Application.Nebrys` com DTOs próprios e teste de arquitetura contra tipos de negócio.
      - `openapi/nebrys.json` e área própria no SPA (`src/nebrys`, sob demanda).
 
-     Por quê: com o contexto de tenant vazio, os filtros dos ADRs 0001 e 0002 não devolvem dado de negócio nem com defeito na área (F14-62 por construção). É o modelo do portal aplicado à operação. Vale além do marco: **[ADR 0014](../../adr/0014-area-da-nebrys-sessao-de-operacao.md)** (Proposto).
+     Por quê: com o contexto de tenant vazio, os filtros dos ADRs 0001 e 0002 não devolvem dado de negócio nem com defeito na área (F14-62 por construção). É o modelo do portal aplicado à operação. Vale além do marco: **[ADR 0014](../../adr/0014-area-da-nebrys-sessao-de-operacao.md)** (Aceito no G2).
    - (b) Lista de operadores em tabela ou claim do Identity: concede sem deploy, mas cria um papel e uma tela para uma pessoa só.
    - (c) "Tenant da Nebrys" que vê os outros: exceção nos filtros do ADR 0002. Rejeitado.
    - (d) Cloudflare Access na frente da rota: prende a autenticação ao provedor (ADR 0010). Rejeitado no nível 0.
    - **Tabelas globais e o ADR 0012:** o ADR 0012 e o modelo §4.14 dizem que nenhuma rota lê as tabelas globais deles (ocorrências, marcas, sugestões), e testes de arquitetura (`OperacaoTests`) garantem isso. Esses testes ficam como estão. Cada tabela global nova do F14 ganha um teste no mesmo molde, que libera o tipo **só** para `Acordu.Application.Nebrys`, as consultas da área e a feature que grava (ADR 0014, item 7). O teste da `Sugestao` hoje libera o `ExpurgoCadastros` pelo nome; passa a liberar o `ApagadorDeEmpresa` (D6).
-   - Conferência: a sessão de operação é um tipo novo, fora dos tenants, como a de link no ADR 0002, e não muda o que vale para equipe e contato (ADR 0001). Sem contradição. O ADR 0014 complementa os aceitos e precisa do aceite no G2.
+   - Conferência: a sessão de operação é um tipo novo, fora dos tenants, como a de link no ADR 0002, e não muda o que vale para equipe e contato (ADR 0001). Sem contradição. O ADR 0014 complementa os anteriores e foi aceito no G2.
 
-5. **D5 — Concorrência das ações da Nebrys** (pergunta 15, F14-107).
+5. **D5 — Concorrência das ações da Nebrys** (decisão 15 do G2, F14-107).
    - (a) **Recomendado.** As ações sobre a empresa (ativar, prorrogar, cancelar, reativar) recebem `If-Match` com a `versao` do `Tenant` (`xmin`, `IControleVersao`, convenções §1 e §5), devolvida no detalhe da área. Divergência → `409 conflito-versao`. Sem o cabeçalho, não há checagem, como no resto da API (convenções §5); o SPA da área manda sempre. O vencimento do diário grava pelo change tracker, o que muda o `xmin`. Por quê: é o mecanismo do contrato §1, sem tabela nem campo novo. Entra no ADR 0014, item 5.
-   - (b) A última grava, com `422 transicao-invalida` só quando a transição não vale no estado novo (opção da pergunta 15).
+   - (b) A última grava, com `422 transicao-invalida` só quando a transição não vale no estado novo (opção que ficou de fora na decisão 15).
 
 6. **D6 — Expurgo da empresa vencida ou cancelada.**
    - (a) **Recomendado.** Extrair do `ExpurgoCadastros` (F9d) um `ApagadorDeEmpresa` (Infrastructure), usado pelo expurgo do F9, pelo passo novo `expurgo-empresas` e pela restauração da demonstração (D13). Ele:
@@ -68,19 +73,21 @@ O G2 (merge deste PR) registra a escolha de cada D. Quem decidiu e quando: a pre
      - os refresh tokens têm `TenantId` e saem com a empresa, então o `POST /auth/refresh` não acha o token e responde `401`;
      - o `GET /auth/eu` carrega o vínculo do `sub` no `tenant_id` do token e responde `401` quando ele não existe mais;
      - nas outras rotas, o access token de até 60 min não enxerga nada (os filtros não têm linhas daquele tenant), e o SPA cai no `401` da próxima renovação.
-   - **Registro do documento** (D8): não tem referência à empresa e sobrevive ao expurgo sem passo extra (F14-37). Se a pergunta 16 for aceita (F14-104), o expurgo do RF-AUT-07 apaga também a linha do documento da empresa, achada pelo HMAC do documento guardado no `Tenant`.
+   - **Empresas canceladas pela migration** (F14-112): têm `SomenteLeituraDesde` na data fixa do D1, e o primeiro diário com o passo as apaga como qualquer outra. Não há passo próprio.
+   - **Registro do documento** (D8): não tem referência à empresa e sobrevive ao expurgo da empresa vencida ou cancelada sem passo extra (F14-37). Pela decisão 16 do G2 (F14-104), o expurgo do RF-AUT-07 apaga também a linha do documento da empresa, achada pelo HMAC do documento guardado no `Tenant`.
 
 7. **D7 — Vencimento e avisos no diário.**
    - Ordem dos passos (deploy-ci §5): `vencimento-testes` primeiro, para as recém-vencidas já ficarem fora do fechamento automático; depois `avisos-situacao`, os passos que já existem, e `expurgo-empresas` ao lado de `expurgo-cadastros`. A resposta ganha `empresasVencidas`, `avisosSituacao` e `empresasExpurgadas`.
    - **Marcas dos avisos:**
      - (a) **Recomendado.** Lista de textos no `Tenant` (`AvisosSituacao`), cada um `tipo:data-de-referência` (o fim do teste ou a data do expurgo). O passo calcula, para cada empresa, o aviso devido no instante do diário a partir das datas de referência e das marcas, e grava a marca no mesmo commit em que decide enviar. A data de referência na chave é o que implementa o reenvio depois de prorrogar (F14-101). A comparação "devido e ainda sem marca" implementa o aviso atrasado e o mais próximo do fim (F14-102, F14-103), e as marcas dos avisos dispensados são gravadas junto.
+     - Data de referência já passada (F14-113, como as empresas canceladas pela migration): o aviso de antes do expurgo não é devido, e o cálculo só considera avisos cuja data de referência ainda está à frente do instante do diário. O mesmo vale para os avisos de antes do fim do teste.
      - (b) `marcas_operacao` (ADR 0012): global e retida por 7 dias, curta para os avisos de antes do expurgo.
      - (c) Tabela própria de avisos: mais uma tabela para o mesmo efeito.
    - **Como o e-mail sai:**
      - (a) **Recomendado.** O passo envia logo depois do commit, como os e-mails da conta (segurança §4). A falha é logada, conta em `falhas` e remove a marca, para o próximo diário tentar. Os destinatários seguem a regra do `EnvioATerceiros` (criador antes da liberação).
      - (b) Pela outbox do tenant: a outbox descarta as mensagens de empresa só leitura (D2), e os avisos de vencimento e de expurgo são para elas.
 
-8. **D8 — Registro do documento** (pergunta 8).
+8. **D8 — Registro do documento** (decisão 8 do G2).
    - (a) **Recomendado.** HMAC-SHA256 do documento normalizado, com chave em `Documentos__ChaveHmac`, numa tabela global `documentos_teste` (`hash` único, `primeiro_teste_em`, `liberado_em`, `liberacao_usada_em`), **sem referência à empresa nem à pessoa**. Gravada na mesma transação do cadastro. A liberação (F14-71, F14-108) calcula o HMAC do documento digitado e não o guarda. O documento em claro fica só no `Tenant`, enquanto ele existe (F14-61). Por quê: SHA-256 puro de um CPF se desfaz por força bruta (10⁹ combinações). Com a chave fora do banco, o hash não identifica ninguém sozinho.
    - (b) SHA-256 puro: cumpre a letra, mas não protege o CPF.
    - (c) Em claro.
@@ -118,7 +125,7 @@ O G2 (merge deste PR) registra a escolha de cada D. Quem decidiu e quando: a pre
       O e-mail do convite sai na requisição, depois do commit, como os da conta: não há tenant para a outbox. A falha volta na resposta. A consulta pública do convite (`POST /auth/registro/convite/consulta`) segue o padrão dos outros convites (401 sem distinguir). A lista de espera é `POST /api/v1/lista-espera`, com Turnstile (ação `lista-espera`, o verificador ganha a ação como parâmetro) e limite `RateLimit__ListaEspera__PorHora` (3). O índice único implementa o "não duplica" do F14-53, e o caso de uso responde igual nos dois caminhos.
     - (b) Convite como `ConviteEquipe` de um tenant que ainda não existe: força um tenant falso. Rejeitado.
 
-13. **D13 — Demonstração e dados de exemplo** (pergunta 11; pergunta 17 para as pessoas indicadas).
+13. **D13 — Demonstração e dados de exemplo** (decisão 11 do G2; decisão 17 para as pessoas indicadas: só conta existente, F14-110).
     - (a) **Recomendado.**
       - **Um conjunto de dados fictícios só:** JSON versionado em `src/Acordu.Application/Exemplos/demonstracao.json`, com datas relativas ao dia. A API lê o arquivo, e o bot do manual (`apps/web/ajuda/demonstracao.ts`) o importa e continua criando pela API.
       - **Dados de exemplo:** só itens ligados a cliente, marcados por `Cliente.Exemplo`. Apagar é por `ClienteId` em todos os tipos com cliente, o que reaproveita o `ClienteId` desnormalizado (ADR 0002). Anexos saem depois do commit. "Sem dado" é a regra da `ClassificacaoDoExpurgo`, sem contar os clientes de exemplo.
@@ -134,13 +141,21 @@ O G2 (merge deste PR) registra a escolha de cada D. Quem decidiu e quando: a pre
     - (b) Tabela própria: duplica a trilha.
     - Conferência: complementa o item 4 do ADR 0008 sem mudar o texto (ADR 0014, item 6).
 
-15. **D15 — Canal da Nebrys** (pergunta 14). A variável `CONTATO_NEBRYS` do GitHub alimenta `Nebrys__Contato` na API e `VITE_CONTATO_NEBRYS` no build do SPA.
+15. **D15 — Canal da Nebrys** (decisão 14 do G2: `contato@acordu.app.br`). A variável `CONTATO_NEBRYS` do GitHub, com esse endereço, alimenta `Nebrys__Contato` na API e `VITE_CONTATO_NEBRYS` no build do SPA.
     - (a) **Recomendado.** Por quê: uma fonte no deploy, sem chamada extra. Cada lado nasce no primeiro PR que o usa: na API, o F14g (recusa do documento, F14-57; depois os e-mails do F14j); no SPA, o F14e (faixas).
     - (b) A API devolve o canal em `/auth/eu`: não serve às páginas públicas.
 
-### 1.1 Para o Daniel decidir
+### 1.1 Decisões do G2 que tocam o design
 
-Os achados do design viraram as perguntas 15 a 19 da spec §4 e os cenários dependentes delas (F14-104, F14-105, F14-107, F14-108, F14-110, F14-111). O design implementa a recomendação de cada uma: a pergunta 15 no D5, a 16 no D6, a 17 no D13, a 18 sem mudança no cadastro, e a 19 sem pausa no relógio (ADR 0003 intacto). Se o G2 escolher outra opção, sai o cenário dependente, e o D correspondente muda no mesmo PR.
+As decisões 15 a 19 do G2 (spec §4) vieram dos achados do design:
+
+- a decisão 15 está no D5;
+- a 16, no D6;
+- a 17, no D13;
+- a 18 não muda o cadastro: o e-mail em uso é recusado como hoje (F14-105);
+- a 19 não pausa o relógio do SLA, e o ADR 0003 fica intacto (F14-111).
+
+A decisão 13 (apagar as empresas anteriores) está no D1, no D6 e no D7. A decisão 2 (30 dias até o expurgo) é só o padrão da configuração.
 
 ### 1.2 Decisões de implementação (sem portão)
 
@@ -156,7 +171,7 @@ Os achados do design viraram as perguntas 15 a 19 da spec §4 e os cenários dep
 
   Prorrogar até o dia D grava o início de D+1 no fuso do tenant. VENCIDA → CANCELADA mantém `SomenteLeituraDesde` e grava `CanceladaEm`.
 - **Recorrências sem retroativo:** a geração trata as datas antes de `GravavelDesde` como já trata as de cliente inativo.
-- **Migration:** colunas aditivas; o preenchimento põe as empresas existentes em ATIVA (`ScriptsDeDados`); o documento fica anulável no `Tenant`, e a Application o exige no cadastro.
+- **Migration:** colunas aditivas; o preenchimento põe as empresas existentes em CANCELADA com a data fixa antiga (D1, decisão 13 do G2); o documento fica anulável no `Tenant`, e a Application o exige no cadastro.
 - **Cadastro:** o corpo ganha `documento`, `convite`, `versaoTermos` e `versaoPrivacidade`. As validações ficam no caso de uso de registro, numa sequência única: primeiro o que não consulta o banco, depois convite e documento. O registro do documento e o consumo do convite entram na mesma transação da empresa. As recusas são erro de campo (`400`), como o cadastro já faz; nenhum tipo novo.
 - **Área no SPA:**
   - `/nebrys` sem sessão de operação mostra a entrada da área, com a aparência do `/entrar`;
@@ -164,7 +179,7 @@ Os achados do design viraram as perguntas 15 a 19 da spec §4 e os cenários dep
   - a sessão de operação fica só em memória (`shared/sessao/sessaoOperacao.ts`), como a de link;
   - as ações mandam o `If-Match` (D5) e, no `409`, recarregam o detalhe.
 - **Configuração nova:**
-  - `Empresas__DiasDeTeste` (30), `Empresas__DiasAteExpurgo` (60), `Empresas__AvisosAntesDoFim` (`7,1`), `Empresas__AvisoAntesDoExpurgo` (7), `Empresas__DiasFaixaTeste` (7);
+  - `Empresas__DiasDeTeste` (30), `Empresas__DiasAteExpurgo` (30), `Empresas__AvisosAntesDoFim` (`7,1`), `Empresas__AvisoAntesDoExpurgo` (7), `Empresas__DiasFaixaTeste` (7);
   - `Cadastro__Modo` (obrigatória em produção), `Cadastro__DiasConvite` (7);
   - `Documentos__ChaveHmac`, `Nebrys__Operadores` e `Nebrys__Contato`;
   - `RateLimit__ListaEspera__PorHora` (3).
@@ -178,7 +193,7 @@ Os achados do design viraram as perguntas 15 a 19 da spec §4 e os cenários dep
 
 Cada documento muda no PR que muda o comportamento.
 
-- **ERS:** nenhum além do que a spec já trouxe. Se a pergunta 16 for aceita, a RF-AUT-09 ganha a exceção do cadastro abandonado no F14i.
+- **ERS:** nenhum além do que a spec e o G2 já trouxeram (a RF-AUT-09 já tem a exceção do cadastro abandonado, decisão 16).
 - **Modelo de domínio:**
   - §4.11.3 novo, Situação da empresa: campos, tabela de transições, demonstração e marcas de aviso. Entra no F14a e resolve a contradição do §4.11;
   - §4.14 ganha as entidades globais: registro de documento (F14g), aceite (F14h), `ConviteEmpresa` (F14n) e `EntradaListaEspera` (F14o);
@@ -206,7 +221,7 @@ Cada documento muda no PR que muda o comportamento.
   - §10: o item da política aponta para a página (F14f).
 - **Setup da infra:** em "Segredos do GitHub", `CONTATO_NEBRYS` (F14e), `API_DOCUMENTOS_CHAVE` (F14g), `API_NEBRYS_OPERADORES` (F14k) e `CADASTRO_MODO` (F14n). O widget do Turnstile (C5) serve à lista de espera sem mudança.
 - **ADRs:**
-  - 0014 e 0015 nascem Propostos. No G2, o orquestrador muda o status e o intervalo "0001–0013" do `CLAUDE.md`;
+  - 0014 e 0015 aceitos no G2 (PR #186), com o `CLAUDE.md` citando 0001–0015;
   - nenhum ADR aceito muda de texto: os testes do ADR 0012 ficam, e as tabelas novas ganham os seus (D4);
   - a spec do F9 não é editada (ADR 0013, item 9).
 - **Convenções:**
@@ -231,7 +246,7 @@ Cada PR contra a `main`, a partir dela, um aberto por vez, com testes e CI verde
 
 | PR | Entrega | Cenários |
 |---|---|---|
-| F14a | API: situação no `Tenant` (D1), migration com as existentes em ATIVA, cadastro em TESTE, `/auth/eu`, passo `vencimento-testes` | F14-01 a F14-09 |
+| F14a | API: situação no `Tenant` (D1), migration com as existentes em CANCELADA (data fixa antiga), cadastro em TESTE, `/auth/eu`, passo `vencimento-testes` | F14-01 a F14-09 |
 | F14b | API: guarda de só leitura e classificação (D2, ADR 0015), `422 empresa-somente-leitura`, o que é da pessoa segue | F14-13 a F14-19, F14-23, F14-100 |
 | F14c | API: só leitura no portal e nos convites: `portal-indisponivel` (D3), `/portal/eu` com `envioDisponivel`, aceite de convite antigo recusado, link antigo só lê | F14-20, F14-21, F14-97 a F14-99 |
 | F14d | API: jobs só nas graváveis, outbox descartada, `PodeAvisarAsync`, recorrências sem retroativo, SLA na volta | F14-22, F14-24, F14-111 |
@@ -239,8 +254,8 @@ Cada PR contra a `main`, a partir dela, um aberto por vez, com testes e CI verde
 | F14f | Front: páginas `/termos` e `/privacidade`, links no entrar e no portal, texto da política e dos termos (revisão do Daniel antes do merge) | F14-78, F14-84 a F14-86 |
 | F14g | API: documento obrigatório, HMAC (D8), recusa e liberação consumida; campo no formulário | F14-56 a F14-59 |
 | F14h | API e front: aceite no cadastro e no convite da equipe (D10), "ciente" de versão nova | F14-79 a F14-83 |
-| F14i | API: `ApagadorDeEmpresa` e `expurgo-empresas` (D6) | F14-29 a F14-38, F14-104 |
-| F14j | API: `avisos-situacao` com marcas no `Tenant` e e-mails aos Donos (D7) | F14-39 a F14-43, F14-101 a F14-103 |
+| F14i | API: `ApagadorDeEmpresa` e `expurgo-empresas` (D6) | F14-29 a F14-38, F14-104, F14-112 |
+| F14j | API: `avisos-situacao` com marcas no `Tenant` e e-mails aos Donos (D7) | F14-39 a F14-43, F14-101 a F14-103, F14-113 |
 | F14k | API: sessão de operação, filtro 404, lista e detalhe das empresas (ADR 0014), `openapi/nebrys.json` | F14-61 a F14-63 |
 | F14l | API: ações de situação com `If-Match` (D5), liberação de documento, trilha `nebrys.*` | F14-65 a F14-69, F14-71, F14-106 a F14-108 |
 | F14m | Front: área da Nebrys (entrada, lista, detalhe, ações, liberação) | F14-64 |
@@ -267,6 +282,12 @@ Ordem e dependências:
 
 Uma linha por PR: o que entrou e as decisões não óbvias que surgiram na implementação.
 
+- 13/11 — G2: PR #186 mesclado; decisões registradas; ADRs 0014 e 0015 aceitos. Design alinhado:
+  - empresas anteriores em CANCELADA pela migration, com data fixa antiga (D1);
+  - F14-112 no F14i e F14-113 no F14j;
+  - expurgo em 30 dias;
+  - canal `contato@acordu.app.br`;
+  - referências às decisões do G2 no lugar das perguntas.
 - 13/11 — devolução do `/plano` (1ª da etapa), corrigida:
   - ADR 0014: sem `EmpresaId` nas tabelas novas, e `documentos_teste` sem referência a empresa ou pessoa;
   - a divisão passou a 19 PRs, com F14-97 a F14-111;

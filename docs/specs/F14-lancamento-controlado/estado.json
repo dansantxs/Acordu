@@ -1,24 +1,17 @@
 {
   "marco": "F14",
   "issue": 182,
-  "etapa": "AGUARDANDO_G2",
-  "branch": "docs/F14-spec",
-  "pr": { "id": null, "numero": null },
+  "etapa": "IMPLEMENTANDO",
+  "branch": "feat/F14a-situacao",
+  "pr": { "id": "F14a", "numero": null },
   "feitos": [],
   "contadores": { "devolucoesNaEtapa": 0, "rodadasNoPr": 0 },
   "verificacao": ["node scripts/conferir-specs.mjs"],
   "portoes": {
     "G1": "vamos seguir com o candidato 1, agora que o deploy já foi feito, quero começar a mostrar para as pessoas",
-    "G2": null
+    "G2": "PR #186 mesclado (13/11/2026); respostas da §4 coladas no chat (prazo do expurgo 30 dias; empresas existentes apagadas) e \"aceito as recomendações\" (CANCELADA na migration e expurgo pelo F14i; contato@acordu.app.br)"
   },
-  "ressalvas": [
-    "N1: caminho crítico serial F14g → F14h → F14n → F14p (registro e OpenAPI); o prazo do marco é o da cadeia",
-    "N2: F14-97 — o teste do F14c confere que a transação inteira volta (sem conta nova nem vínculo)",
-    "N3: F14-24 e F14-111 no F14d preparam o estado direto (ativar e prorrogar só chegam no F14l)",
-    "N4: F14-108 depende da pergunta 8 (sem registro do documento, o cenário não existe)",
-    "N5: avisos F14-101 a F14-103 não dizem se o aviso de 7 dias antes do expurgo segue a mesma regra",
-    "N6: F14-82 deveria citar os links dos textos junto da caixa de aceite do convite da equipe"
-  ],
+  "ressalvas": [],
   "bloqueios": [],
   "atualizadoEm": "2026-11-13"
 }
