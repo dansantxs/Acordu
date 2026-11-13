@@ -93,7 +93,7 @@ public sealed class Tenant
     public DateTimeOffset? CanceladaEm { get; private set; }
 
     /// <summary>VENCIDA ou CANCELADA: a empresa lê e não grava (RF-EMP-02).</summary>
-    public bool SomenteLeitura => Situacao is SituacaoEmpresa.Vencida or SituacaoEmpresa.Cancelada;
+    public bool SomenteLeitura => Situacao.SomenteLeitura();
 
     /// <summary>
     /// A empresa nasce em TESTE, com o fim do teste no instante do cadastro mais a duração (RF-EMP-01; a duração vem da
