@@ -1,4 +1,6 @@
 using Acordu.Domain.Common;
+using Acordu.Domain.Enums;
+using Acordu.Domain.Exceptions;
 using Acordu.Domain.ValueObjects;
 
 namespace Acordu.Domain.Entities;
@@ -13,13 +15,15 @@ public sealed class Tenant
     public const int DiasFechamentoMinimo = 1;
     public const int DiasFechamentoMaximo = 60;
 
-    private Tenant(Guid id, string nome, DateTimeOffset criadoEm, Guid criadoPorUsuarioId)
+    private Tenant(Guid id, string nome, DateTimeOffset criadoEm, Guid criadoPorUsuarioId, DateTimeOffset fimDoTeste)
     {
         Id = id;
         Nome = nome;
         CriadoEm = criadoEm;
         CriadoPorUsuarioId = criadoPorUsuarioId;
         DiasFechamentoAutomatico = DiasFechamentoPadrao;
+        Situacao = SituacaoEmpresa.Teste;
+        FimDoTeste = fimDoTeste;
     }
 
     /// <summary>Usado só pela materialização do EF Core.</summary>
@@ -73,12 +77,62 @@ public sealed class Tenant
     /// <summary>A política que o cadastro de contrato sugere: a da empresa ou a do sistema.</summary>
     public PoliticaSla SlaSugerido => SlaPadrao ?? PoliticaSla.Sugerida;
 
-    public static Tenant Criar(Guid id, string nome, DateTimeOffset agora, Guid criadoPorUsuarioId) =>
-        new(
+    /// <summary>Situação comercial (RF-EMP-01, modelo §4.11.3). Muda só pelas transições de domínio.</summary>
+    public SituacaoEmpresa Situacao { get; private set; }
+
+    /// <summary>Instante em que o teste acaba; nulo em empresa que nunca esteve em teste (as anteriores ao F14).</summary>
+    public DateTimeOffset? FimDoTeste { get; private set; }
+
+    /// <summary>
+    /// Início do só leitura atual (vencimento ou cancelamento); nulo enquanto a empresa grava. A data prevista do expurgo
+    /// é calculada a partir dele (<see cref="ExpurgoPrevistoEm"/>), não gravada.
+    /// </summary>
+    public DateTimeOffset? SomenteLeituraDesde { get; private set; }
+
+    /// <summary>Quando a empresa foi cancelada (pela Nebrys, ou pela migration do F14 nas anteriores a ele).</summary>
+    public DateTimeOffset? CanceladaEm { get; private set; }
+
+    /// <summary>VENCIDA ou CANCELADA: a empresa lê e não grava (RF-EMP-02).</summary>
+    public bool SomenteLeitura => Situacao is SituacaoEmpresa.Vencida or SituacaoEmpresa.Cancelada;
+
+    /// <summary>
+    /// A empresa nasce em TESTE, com o fim do teste no instante do cadastro mais a duração (RF-EMP-01; a duração vem da
+    /// configuração, padrão de 30 dias pela decisão 1 do G2 do F14).
+    /// </summary>
+    public static Tenant Criar(Guid id, string nome, DateTimeOffset agora, Guid criadoPorUsuarioId, TimeSpan duracaoDoTeste)
+    {
+        if (duracaoDoTeste <= TimeSpan.Zero)
+            throw new ArgumentOutOfRangeException(nameof(duracaoDoTeste), duracaoDoTeste, "A duração do teste precisa ser positiva.");
+
+        var criadoEm = agora.ToUniversalTime();
+        return new(
             Ids.Obrigatorio(id, nameof(id)),
             Texto.Obrigatorio(nome, LimitesTexto.Nome, nameof(nome)),
-            agora.ToUniversalTime(),
-            Ids.Obrigatorio(criadoPorUsuarioId, nameof(criadoPorUsuarioId)));
+            criadoEm,
+            Ids.Obrigatorio(criadoPorUsuarioId, nameof(criadoPorUsuarioId)),
+            criadoEm + duracaoDoTeste);
+    }
+
+    /// <summary>
+    /// TESTE → VENCIDA (job diário, F14-03), só com o fim do teste já alcançado em <paramref name="agora"/>. O só leitura
+    /// começa no instante do vencimento, que fica gravado como a data do vencimento. O fim do teste fica como estava.
+    /// </summary>
+    public void Vencer(DateTimeOffset agora)
+    {
+        if (Situacao != SituacaoEmpresa.Teste)
+            throw new TransicaoInvalidaException("Só uma empresa em teste vence.");
+        if (FimDoTeste is not { } fim || agora < fim)
+            throw new TransicaoInvalidaException("O teste desta empresa ainda não acabou.");
+
+        Situacao = SituacaoEmpresa.Vencida;
+        SomenteLeituraDesde = agora.ToUniversalTime();
+    }
+
+    /// <summary>
+    /// Data prevista do expurgo (RF-EMP-03): início do só leitura mais o prazo da configuração; nulo quando a empresa grava.
+    /// </summary>
+    public DateTimeOffset? ExpurgoPrevistoEm(TimeSpan prazoAteExpurgo) =>
+        SomenteLeitura && SomenteLeituraDesde is { } desde ? desde + prazoAteExpurgo : null;
 
     public void Renomear(string nome) => Nome = Texto.Obrigatorio(nome, LimitesTexto.Nome, nameof(nome));
 
