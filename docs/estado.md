@@ -1,10 +1,10 @@
 # Acordu — Estado
 
-Visão geral curta, atualizada por cada PR (`docs/processo.md` §1). O histórico está no git, nos PRs e no registro dos designs. Atualizado em 13/11/2026 (F14a).
+Visão geral curta, atualizada por cada PR (`docs/processo.md` §1). O histórico está no git, nos PRs e no registro dos designs. Atualizado em 13/11/2026 (F14b).
 
 ## Em revisão
 
-- **F14a** — situação da empresa no `Tenant`, vencimento do teste no diário, situação no `/auth/eu`; a migration põe as empresas existentes em CANCELADA (decisão 13 do G2), apagadas depois pelo expurgo do F14i.
+- **F14b** — guarda de só leitura: empresa VENCIDA ou CANCELADA recebe `422 empresa-somente-leitura` em toda gravação da empresa; o que é da pessoa segue. **Não fazer deploy só com o F14b:** o portal ainda recebe o tipo da equipe (F14c) e a outbox ainda envia os e-mails pendentes dessas empresas (F14d).
 
 ## Marco em andamento
 
@@ -17,7 +17,7 @@ Visão geral curta, atualizada por cada PR (`docs/processo.md` §1). O históric
 
 ## Próximos passos
 
-1. Merge do F14a; depois o `/marco F14 182` segue pelo F14b. Redirecionamento de `contato@acordu.app.br` no Cloudflare (Email Routing) antes do F14g.
+1. Merge do F14b (F14a na `main` com o #187); depois o `/marco F14 182` segue pelo F14c. Próximo deploy só com F14b, F14c e F14d juntos. Redirecionamento de `contato@acordu.app.br` no Cloudflare (Email Routing) antes do F14g.
 2. Conferências que faltam da produção:
    - deploy: F8-27 e F8-28 (rollback por migration e por health), F8-29 (jobs do Scheduler), hostname do Turnstile;
    - backup: F8-30 e F13-32 na primeira madrugada com o `BACKUP_ATIVO`; F8-31 (restore) antes do primeiro cliente;
