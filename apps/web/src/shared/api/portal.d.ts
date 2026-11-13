@@ -481,6 +481,7 @@ export interface components {
             veContratos: boolean
             /** Format: uuid */
             solicitacaoId: null | string
+            envioDisponivel: boolean
         }
         PrestadorPortalDto: {
             nome: string
