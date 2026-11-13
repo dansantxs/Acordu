@@ -26,7 +26,7 @@ public sealed class EnvioATerceirosTests
     [Fact]
     public async Task PodeAvisar_NaoLiberadaParaOCriador_Permite()
     {
-        var (envio, _) = Montar(Tenant.Criar(Guid.NewGuid(), "Estúdio", Criacao, Criador), ocorridoEm: null);
+        var (envio, _) = Montar(Tenant.Criar(Guid.NewGuid(), "Estúdio", Criacao, Criador, TimeSpan.FromDays(30)), ocorridoEm: null);
 
         (await envio.PodeAvisarAsync("aviso-consumo", Criador)).Should().BeTrue();
     }
@@ -34,7 +34,7 @@ public sealed class EnvioATerceirosTests
     [Fact]
     public async Task PodeAvisar_NaoLiberadaParaOutraPessoaOuContato_DescartaERegistra()
     {
-        var (envio, bloqueados) = Montar(Tenant.Criar(Guid.NewGuid(), "Estúdio", Criacao, Criador), ocorridoEm: null);
+        var (envio, bloqueados) = Montar(Tenant.Criar(Guid.NewGuid(), "Estúdio", Criacao, Criador, TimeSpan.FromDays(30)), ocorridoEm: null);
 
         (await envio.PodeAvisarAsync("aviso-consumo", Guid.NewGuid())).Should().BeFalse();
         (await envio.PodeAvisarAsync("aviso-recebida", null)).Should().BeFalse();
@@ -54,7 +54,7 @@ public sealed class EnvioATerceirosTests
     [Fact]
     public async Task PodeAvisar_EmpresaAnteriorAoF9SemCriador_SoComLiberacao()
     {
-        var antiga = Tenant.Criar(Guid.NewGuid(), "Antiga", Criacao, Criador);
+        var antiga = Tenant.Criar(Guid.NewGuid(), "Antiga", Criacao, Criador, TimeSpan.FromDays(30));
         typeof(Tenant).GetProperty(nameof(Tenant.CriadoPorUsuarioId))!.SetValue(antiga, null);
         var (envio, _) = Montar(antiga, ocorridoEm: null);
 
@@ -64,7 +64,7 @@ public sealed class EnvioATerceirosTests
     [Fact]
     public async Task GarantirLiberado_NaoLiberada_Recusa()
     {
-        var (envio, _) = Montar(Tenant.Criar(Guid.NewGuid(), "Estúdio", Criacao, Criador), ocorridoEm: null);
+        var (envio, _) = Montar(Tenant.Criar(Guid.NewGuid(), "Estúdio", Criacao, Criador, TimeSpan.FromDays(30)), ocorridoEm: null);
 
         await envio.Invoking(e => e.GarantirLiberadoAsync()).Should().ThrowAsync<EmailNaoConfirmadoException>();
     }
@@ -72,7 +72,7 @@ public sealed class EnvioATerceirosTests
     /// <summary>A liberação é gravada pela Infrastructure (não há método no domínio); aqui, direto na propriedade.</summary>
     private static Tenant Liberada(DateTimeOffset em)
     {
-        var tenant = Tenant.Criar(Guid.NewGuid(), "Estúdio", Criacao, Criador);
+        var tenant = Tenant.Criar(Guid.NewGuid(), "Estúdio", Criacao, Criador, TimeSpan.FromDays(30));
         typeof(Tenant).GetProperty(nameof(Tenant.EnvioLiberadoEm))!.SetValue(tenant, (DateTimeOffset?)em);
         return tenant;
     }
