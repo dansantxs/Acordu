@@ -473,6 +473,7 @@ Regras:
   - `FimDoTeste`: `Criar(..., duracaoDoTeste)` põe o instante do cadastro mais a duração (da configuração, `Empresas__DiasDeTeste`, padrão 30). Fica como estava quando a empresa vence; nulo nas empresas anteriores ao F14;
   - `SomenteLeituraDesde`: início do só leitura atual (vencimento ou cancelamento); nulo enquanto a empresa grava;
   - `CanceladaEm`: quando foi cancelada.
+  - `GravavelDesde`: instante da última saída do só leitura (ativação, prorrogação ou reativação, gravado pelas ações do F14l); nulo se a empresa nunca voltou do só leitura. A geração de recorrências não cria as ocorrências com data anterior ao dia dele no fuso do tenant: o que passou no só leitura passa sem gerar, como no cliente inativo (F14-24). O SLA não usa: os prazos correm durante o só leitura (decisão 19 do G2, F14-111).
 - **Data prevista do expurgo** (RF-EMP-03): calculada, não gravada. `ExpurgoPrevistoEm(prazo)` = `SomenteLeituraDesde` + prazo (`Empresas__DiasAteExpurgo`, padrão 30); nula fora do só leitura.
 - **Transições** (o domínio recebe o instante; não lê o relógio):
 
@@ -564,7 +565,7 @@ Despacho **dentro da mesma transação** para efeitos de estado (primeira respos
 **Como funciona (Infrastructure, `UnitOfWork`):**
 1. `SalvarAsync` recolhe os eventos das raízes rastreadas e chama os `IManipuladorEvento<T>` (Application). Eventos gerados por eles são despachados na rodada seguinte; mais de 5 rodadas é tratado como ciclo e aborta.
 2. Todos os eventos despachados vão para `outbox_mensagens` (JSON + tipo + tenant da raiz) na mesma transação; salva e faz commit. Qualquer falha desfaz tudo, inclusive a outbox.
-3. O `ProcessadorOutbox` entrega cada mensagem aos `IManipuladorPosCommit<T>` num escopo com o contexto fixado no tenant dela, na ordem de gravação. Entrega "pelo menos uma vez" (manipuladores idempotentes); falha reagenda com espera de 1, 2, 4, 8 min e, na 5ª, tira da fila com o erro guardado.
+3. O `ProcessadorOutbox` entrega cada mensagem aos `IManipuladorPosCommit<T>` num escopo com o contexto fixado no tenant dela, na ordem de gravação. Entrega "pelo menos uma vez" (manipuladores idempotentes); falha reagenda com espera de 1, 2, 4, 8 min e, na 5ª, tira da fila com o erro guardado. Mensagem de empresa só leitura (VENCIDA ou CANCELADA) não é entregue: sai da fila marcada como descartada (`erro` com o motivo), sem nova tentativa, e a quantidade vai ao log (F14d, ADR 0015, item 5). O descarte tira da fila o evento inteiro, inclusive o feed e o sino que ele ainda não gerou: perde-se o que foi gravado entre o commit e o vencimento e ainda não tinha sido entregue, e o descartado não volta se a empresa voltar a gravar. Só eventos de domínio do tenant passam por aqui; os e-mails da conta e os avisos de situação aos Donos saem fora da outbox e não são descartados.
 
 ---
 
