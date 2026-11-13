@@ -9394,6 +9394,14 @@
           "ATIVO"
         ]
       },
+      "SituacaoEmpresa": {
+        "enum": [
+          "TESTE",
+          "ATIVA",
+          "VENCIDA",
+          "CANCELADA"
+        ]
+      },
       "SituacaoItemAgenda": {
         "enum": [
           "NO_PRAZO",
@@ -10230,7 +10238,11 @@
           "id",
           "nome",
           "fusoHorario",
-          "envioLiberado"
+          "envioLiberado",
+          "situacao",
+          "fimDoTeste",
+          "somenteLeituraDesde",
+          "expurgoPrevistoEm"
         ],
         "type": "object",
         "properties": {
@@ -10246,6 +10258,30 @@
           },
           "envioLiberado": {
             "type": "boolean"
+          },
+          "situacao": {
+            "$ref": "#/components/schemas/SituacaoEmpresa"
+          },
+          "fimDoTeste": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "somenteLeituraDesde": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "expurgoPrevistoEm": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
           }
         }
       },

@@ -1,14 +1,14 @@
 # Acordu — Estado
 
-Visão geral curta, atualizada por cada PR (`docs/processo.md` §1). O histórico está no git, nos PRs e no registro dos designs. Atualizado em 13/11/2026 (spec do F14).
+Visão geral curta, atualizada por cada PR (`docs/processo.md` §1). O histórico está no git, nos PRs e no registro dos designs. Atualizado em 13/11/2026 (F14a).
 
 ## Em revisão
 
-- **Spec e design do F14** — aguardando o G2: perguntas 1 a 19 da §4 da spec, decisões D1 a D15 do design e aceite dos ADRs 0014 e 0015 (propostos).
+- **F14a** — situação da empresa no `Tenant`, vencimento do teste no diário, situação no `/auth/eu`; a migration põe as empresas existentes em CANCELADA (decisão 13 do G2), apagadas depois pelo expurgo do F14i.
 
 ## Marco em andamento
 
-- **F14 — situação da empresa e cadastro controlado** (#182; [spec](specs/F14-lancamento-controlado/spec.md), [design](specs/F14-lancamento-controlado/design.md)): 111 cenários em 19 PRs (F14a a F14s). Para abrir o cadastro por convite bastam F14a a F14q; dados de exemplo e demonstração por último. Primeiro marco conduzido pelo `/marco`.
+- **F14 — situação da empresa e cadastro controlado** (#182; [spec](specs/F14-lancamento-controlado/spec.md), [design](specs/F14-lancamento-controlado/design.md)): G2 com o PR #186; ADRs 0014 e 0015 aceitos. 113 cenários em 19 PRs (F14a a F14s). Para abrir o cadastro por convite bastam F14a a F14q; dados de exemplo e demonstração por último. Primeiro marco conduzido pelo `/marco`.
 
 ## Onde o produto está
 
@@ -17,7 +17,7 @@ Visão geral curta, atualizada por cada PR (`docs/processo.md` §1). O históric
 
 ## Próximos passos
 
-1. G2 do F14; depois o `/marco F14 182` segue pelo F14a.
+1. Merge do F14a; depois o `/marco F14 182` segue pelo F14b. Redirecionamento de `contato@acordu.app.br` no Cloudflare (Email Routing) antes do F14g.
 2. Conferências que faltam da produção:
    - deploy: F8-27 e F8-28 (rollback por migration e por health), F8-29 (jobs do Scheduler), hostname do Turnstile;
    - backup: F8-30 e F13-32 na primeira madrugada com o `BACKUP_ATIVO`; F8-31 (restore) antes do primeiro cliente;

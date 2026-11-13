@@ -4,6 +4,7 @@ using System.Text;
 using Acordu.Application.Abstractions;
 using Acordu.Application.Auditoria;
 using Acordu.Application.Autenticacao;
+using Acordu.Application.Empresas;
 using Acordu.Domain.Common;
 using Acordu.Domain.Entities;
 using Acordu.Domain.Enums;
@@ -38,6 +39,7 @@ public sealed partial class ServicoAutenticacao : IServicoAutenticacao
     private readonly EnderecosPublicos _enderecos;
     private readonly ILogger<ServicoAutenticacao> _logger;
     private readonly IOrigemRequisicao _origem;
+    private readonly OpcoesEmpresas _empresas;
 
     public ServicoAutenticacao(
         AcorduDbContext db,
@@ -47,8 +49,11 @@ public sealed partial class ServicoAutenticacao : IServicoAutenticacao
         IEnviadorEmail email,
         EnderecosPublicos enderecos,
         ILogger<ServicoAutenticacao> logger,
-        IOrigemRequisicao origem)
+        IOrigemRequisicao origem,
+        OpcoesEmpresas empresas)
     {
+        ArgumentNullException.ThrowIfNull(empresas);
+        _empresas = empresas;
         ArgumentNullException.ThrowIfNull(db);
         ArgumentNullException.ThrowIfNull(usuarios);
         ArgumentNullException.ThrowIfNull(contexto);
@@ -100,7 +105,8 @@ public sealed partial class ServicoAutenticacao : IServicoAutenticacao
         var papeis = Papel.Padroes(tenantId);
         var dono = papeis.Single(p => p.Nome == Papel.NomeDono);
         var vinculo = Vinculo.Criar(Guid.CreateVersion7(), usuario.Id, dono);
-        _db.Add(Tenant.Criar(tenantId, empresaValida, agora, usuario.Id));
+        // Nasce em TESTE, com o fim do teste no cadastro mais a duração da configuração (F14-01).
+        _db.Add(Tenant.Criar(tenantId, empresaValida, agora, usuario.Id, _empresas.DuracaoDoTeste));
         _db.AddRange(papeis);
         _db.Add(vinculo);
         _db.Add(CalendarioUtil.Padrao(tenantId));
@@ -469,7 +475,15 @@ public sealed partial class ServicoAutenticacao : IServicoAutenticacao
             usuario.Nome,
             usuario.Email ?? string.Empty,
             usuario.EmailConfirmed,
-            new TenantAtivo(tenant.Id, tenant.Nome, fuso, tenant.EnvioLiberado),
+            new TenantAtivo(
+                tenant.Id,
+                tenant.Nome,
+                fuso,
+                tenant.EnvioLiberado,
+                tenant.Situacao,
+                tenant.FimDoTeste,
+                tenant.SomenteLeitura ? tenant.SomenteLeituraDesde : null,
+                tenant.ExpurgoPrevistoEm(_empresas.PrazoAteExpurgo)),
             papel.Nome,
             [.. papel.Permissoes],
             ativo.ClienteId,

@@ -21,8 +21,18 @@ public sealed record PerfilUsuario(
 /// <summary>
 /// Tenant ativo, com o fuso em que a UI exibe instantes (convenções §4). <see cref="EnvioLiberado"/> falso: a empresa
 /// ainda não envia convites nem links a terceiros (RF-AUT-06), e a SPA explica e desabilita esses botões.
+/// <see cref="Situacao"/> e as datas (F14-02): <see cref="FimDoTeste"/> em TESTE (e o que era, depois de vencer);
+/// <see cref="SomenteLeituraDesde"/> e <see cref="ExpurgoPrevistoEm"/> só em VENCIDA ou CANCELADA.
 /// </summary>
-public sealed record TenantAtivo(Guid Id, string Nome, string FusoHorario, bool EnvioLiberado);
+public sealed record TenantAtivo(
+    Guid Id,
+    string Nome,
+    string FusoHorario,
+    bool EnvioLiberado,
+    SituacaoEmpresa Situacao,
+    DateTimeOffset? FimDoTeste,
+    DateTimeOffset? SomenteLeituraDesde,
+    DateTimeOffset? ExpurgoPrevistoEm);
 
 /// <summary>Um tenant em que o usuário tem vínculo, para a troca de tenant.</summary>
 public sealed record TenantDoUsuario(Guid Id, string Nome, string Papel);

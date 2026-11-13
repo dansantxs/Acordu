@@ -91,6 +91,7 @@ acordu/
 │  │  ├─ Dashboard/
 │  │  ├─ Notificacoes/
 │  │  ├─ Configuracoes/
+│  │  ├─ Empresas/                     # situação da empresa: prazos e vencimento do teste (F14)
 │  │  ├─ Portal/                       # casos de uso e DTOs EXCLUSIVOS do portal (ADR 0002)
 │  │  │  ├─ Solicitacoes/
 │  │  │  └─ Extrato/

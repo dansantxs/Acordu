@@ -12,6 +12,7 @@ using Acordu.Application.Common;
 using Acordu.Application.Configuracoes;
 using Acordu.Application.Contratos;
 using Acordu.Application.Dashboard;
+using Acordu.Application.Empresas;
 using Acordu.Application.Equipe;
 using Acordu.Application.Notificacoes;
 using Acordu.Application.Papeis;
@@ -66,6 +67,7 @@ internal static class CasosDeUso
         services.AddScoped<LeituraCapacidade>();
         services.AddScoped<ComandosPapel>();
         services.AddScoped<FechamentoAutomatico>();
+        services.AddScoped<VencimentoTestes>();
         services.AddScoped<ComandosPortal>();
         services.AddScoped<TarefasAbertas>();
         services.AddScoped<LeituraPortal>();

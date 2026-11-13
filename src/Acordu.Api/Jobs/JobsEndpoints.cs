@@ -1,5 +1,6 @@
 using System.Security.Cryptography;
 using System.Text;
+using Acordu.Application.Empresas;
 using Acordu.Application.Notificacoes;
 using Acordu.Application.Operacao;
 using Acordu.Application.Recorrencias;
@@ -118,8 +119,10 @@ internal static partial class JobsEndpoints
     }
 
     /// <summary>
-    /// O disparo diário do Scheduler (ADR 0010 §5; o plano gratuito tem 3 jobs): fechamento automático, expurgo da
-    /// auditoria, expurgo das notificações e do feed, expurgo dos cadastros abandonados (RF-AUT-07), das ocorrências de erro e das marcas de operação (ADR 0012), em sequência; no fim, os avisos do F13c. Um passo que falha é logado, entra em <c>falhas</c>
+    /// O disparo diário do Scheduler (ADR 0010 §5; o plano gratuito tem 3 jobs): vencimento dos testes (F14a; primeiro,
+    /// para a recém-vencida já ficar fora dos passos seguintes), fechamento automático, expurgo da auditoria, expurgo das
+    /// notificações e do feed, expurgo dos cadastros abandonados (RF-AUT-07), das ocorrências de erro e das marcas de
+    /// operação (ADR 0012), em sequência; no fim, os avisos do F13c. Um passo que falha é logado, entra em <c>falhas</c>
     /// e não impede os seguintes; os endpoints individuais continuam para disparo manual.
     /// </summary>
     private static void MapDiario(RouteGroupBuilder jobs) =>
@@ -135,10 +138,21 @@ internal static partial class JobsEndpoints
             ILoggerFactory logs,
             CancellationToken cancellationToken) =>
         {
+            var falhasVencimento = 0;
             var falhasFechamento = 0;
             var falhasCadastros = 0;
             var resultado = await PassosDiario.ExecutarAsync(
                 [
+                    // Cada empresa no próprio escopo e contexto (F14-09): a falha de uma conta e não para as outras.
+                    new("vencimento-testes", async ct =>
+                    {
+                        var vencimento = await executor.ExecutarAsync(
+                            "vencimento-testes",
+                            (servicos, c) => servicos.GetRequiredService<VencimentoTestes>().ExecutarAsync(c),
+                            ct);
+                        falhasVencimento = vencimento.Falhas;
+                        return vencimento.Tratados;
+                    }),
                     new("fechamento-automatico", async ct =>
                     {
                         var fechamento = await executor.ExecutarAsync(
@@ -164,27 +178,31 @@ internal static partial class JobsEndpoints
                 cancellationToken);
             var falhas = AvisosDosJobs.PorPasso(
                 resultado.PassosFalhos,
-                [new("fechamento-automatico", falhasFechamento), new("expurgo-cadastros", falhasCadastros)]);
+                [
+                    new("vencimento-testes", falhasVencimento), new("fechamento-automatico", falhasFechamento),
+                    new("expurgo-cadastros", falhasCadastros),
+                ]);
             await avisos.DiarioAsync(
                 falhas,
                 [
-                    ("fechadas", resultado.Contagens[0]), ("auditoria", resultado.Contagens[1]),
-                    ("notificações", resultado.Contagens[2]), ("atividades", resultado.Contagens[3]),
-                    ("cadastros", resultado.Contagens[4]), ("ocorrências de erro", resultado.Contagens[5]),
-                    ("marcas", resultado.Contagens[6]),
+                    ("vencidas", resultado.Contagens[0]), ("fechadas", resultado.Contagens[1]),
+                    ("auditoria", resultado.Contagens[2]), ("notificações", resultado.Contagens[3]),
+                    ("atividades", resultado.Contagens[4]), ("cadastros", resultado.Contagens[5]),
+                    ("ocorrências de erro", resultado.Contagens[6]), ("marcas", resultado.Contagens[7]),
                 ],
                 cancellationToken);
 
             return Results.Ok(new
             {
-                fechadas = resultado.Contagens[0],
-                auditoriaRemovida = resultado.Contagens[1],
-                notificacoesRemovidas = resultado.Contagens[2],
-                atividadesRemovidas = resultado.Contagens[3],
-                cadastrosRemovidos = resultado.Contagens[4],
-                ocorrenciasErroRemovidas = resultado.Contagens[5],
-                marcasOperacaoRemovidas = resultado.Contagens[6],
-                falhas = resultado.Falhas + falhasFechamento + falhasCadastros,
+                empresasVencidas = resultado.Contagens[0],
+                fechadas = resultado.Contagens[1],
+                auditoriaRemovida = resultado.Contagens[2],
+                notificacoesRemovidas = resultado.Contagens[3],
+                atividadesRemovidas = resultado.Contagens[4],
+                cadastrosRemovidos = resultado.Contagens[5],
+                ocorrenciasErroRemovidas = resultado.Contagens[6],
+                marcasOperacaoRemovidas = resultado.Contagens[7],
+                falhas = resultado.Falhas + falhasVencimento + falhasFechamento + falhasCadastros,
             });
         });
 

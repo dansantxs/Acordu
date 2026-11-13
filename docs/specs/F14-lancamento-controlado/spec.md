@@ -23,23 +23,22 @@ Termos usados nos cenários:
 - **Só leitura**: a empresa está VENCIDA ou CANCELADA (RF-EMP-02).
 - **Gravação da empresa**: qualquer ação que cria, muda ou apaga dado do tenant (cliente, contrato, solicitação, interação, tarefa, apontamento, cronômetro, recorrência, projeto, configuração, equipe, convite, acesso ao portal). Não são gravação da empresa: entrar, renovar a sessão, trocar de empresa, sair, mudar a própria senha e o próprio perfil, ler e marcar o sino, as próprias preferências de aviso, emitir e revogar o próprio link da agenda, seguir e deixar de seguir um item, marcar "ciente" de uma versão nova dos textos (F14-83) e "Sugerir melhoria" (vai à Nebrys). Aceitar um convite (equipe ou portal) cria vínculo na empresa: é gravação da empresa.
 - **Nebrys**: a pessoa da operação da Nebrys na área restrita (RF-NEB-01).
-- **Dependente da pergunta N**: o cenário só vale se o Daniel aceitar a recomendação da pergunta N da §4; se não, sai da spec no G2.
 - **Diário**: o `POST /internal/jobs/diario` que já existe (deploy-ci §5); **tick**: o `POST /internal/jobs/tick`.
-- Valores entre "pergunta N" (duração do teste, prazos, avisos e afins) seguem a recomendação da §4 e mudam se o Daniel decidir outra coisa no G2. O tipo de erro de cada recusa, os nomes de campo e as rotas ficam para o design.
+- "Pergunta N" aponta para a decisão N do G2 (§4, 13/11), que fixa o valor ou a regra (duração do teste, prazos, avisos e afins). O tipo de erro de cada recusa, os nomes de campo e as rotas ficam para o design.
 
 ### Situação da empresa e vencimento (F14a; F14-10 a F14-12 no F14e)
 
 | Id | Dado | Quando | Então | Teste |
 |---|---|---|---|---|
-| F14-01 | um registro que passa em todas as conferências do cadastro | `POST /auth/registro` | a empresa nasce em TESTE, com fim do teste = data do cadastro + a duração do teste (pergunta 1) | — |
-| F14-02 | empresa em TESTE | qualquer pessoa dela lê `GET /auth/eu` | a resposta traz a situação e o fim do teste | — |
-| F14-03 | empresa em TESTE com o fim do teste já passado no instante do diário | roda o diário | ela passa a VENCIDA, com a data do vencimento gravada, e a resposta do diário conta as empresas vencidas | — |
-| F14-04 | empresa em TESTE com o fim do teste ainda por vir | roda o diário | continua em TESTE | — |
-| F14-05 | empresa que o diário já venceu | o diário roda de novo | nada muda nela e ela não é contada outra vez (idempotente) | — |
-| F14-06 | empresa ATIVA ou de demonstração, de qualquer idade | roda o diário | nunca vence | — |
-| F14-07 | empresa em TESTE com 30 pessoas na equipe | alguém com `usuario.convidar` convida mais uma | o convite sai normalmente: não há limite de pessoas no teste (decisão de 10/11) | — |
-| F14-08 | empresas que já existiam antes do F14 | a migration roda | ficam ATIVA, sem fim de teste | — |
-| F14-09 | uma empresa em TESTE vence no diário | o diário termina | as outras empresas não mudam de situação (isolamento entre tenants) | — |
+| F14-01 | um registro que passa em todas as conferências do cadastro | `POST /auth/registro` | a empresa nasce em TESTE, com fim do teste = data do cadastro + a duração do teste (pergunta 1) | Acordu.Api.FunctionalTests/SituacaoEmpresaTests › Registro_EmpresaNasceEmTesteComFimNoCadastroMaisTrintaDias; Acordu.Api.FunctionalTests/SituacaoEmpresaTests › Configuracao_DiasInvalidos_ApiNaoSobe |
+| F14-02 | empresa em TESTE | qualquer pessoa dela lê `GET /auth/eu` | a resposta traz a situação e o fim do teste | Acordu.Api.FunctionalTests/SituacaoEmpresaTests › Eu_EmpresaEmTeste_TrazSituacaoEFimDoTesteParaQualquerPessoa |
+| F14-03 | empresa em TESTE com o fim do teste já passado no instante do diário | roda o diário | ela passa a VENCIDA, com a data do vencimento gravada, e a resposta do diário conta as empresas vencidas | Acordu.Api.FunctionalTests/SituacaoEmpresaTests › Diario_FimDoTestePassado_VenceGravaADataEConta; Acordu.Api.FunctionalTests/SituacaoEmpresaTests › Diario_FimDoTesteExatamenteNoInstanteDoDiario_Vence; Acordu.Application.UnitTests/Empresas/VencimentoTestesTests › Executar_FimDoTestePassado_VenceSalvaEConta |
+| F14-04 | empresa em TESTE com o fim do teste ainda por vir | roda o diário | continua em TESTE | Acordu.Api.FunctionalTests/SituacaoEmpresaTests › Diario_FimDoTesteAindaPorVir_ContinuaEmTeste |
+| F14-05 | empresa que o diário já venceu | o diário roda de novo | nada muda nela e ela não é contada outra vez (idempotente) | Acordu.Api.FunctionalTests/SituacaoEmpresaTests › Diario_RodadoDeNovo_NaoMudaANemContaOutraVez |
+| F14-06 | empresa ATIVA ou de demonstração, de qualquer idade | roda o diário | nunca vence | Acordu.Api.FunctionalTests/SituacaoEmpresaTests › Diario_EmpresaForaDoTeste_NuncaVence |
+| F14-07 | empresa em TESTE com 30 pessoas na equipe | alguém com `usuario.convidar` convida mais uma | o convite sai normalmente: não há limite de pessoas no teste (decisão de 10/11) | Acordu.Api.FunctionalTests/SituacaoEmpresaTests › Convidar_EmpresaEmTesteComTrintaPessoas_ConviteSai |
+| F14-08 | empresas que já existiam antes do F14 (só de teste; decisão 13) | a migration roda | ficam CANCELADA, com a data do cancelamento (início do só leitura) antiga o bastante para o prazo do expurgo já ter passado; até o expurgo (F14-112) ficam só leitura | Acordu.Infrastructure.IntegrationTests/MigrationsTests › PreenchimentoDoF14_EmpresaAnterior_FicaCanceladaComDataAntigaESoLeitura |
+| F14-09 | uma empresa em TESTE vence no diário | o diário termina | as outras empresas não mudam de situação (isolamento entre tenants) | Acordu.Api.FunctionalTests/SituacaoEmpresaTests › Diario_UmaEmpresaVence_AsOutrasNaoMudamDeSituacao; Acordu.Api.FunctionalTests/SituacaoEmpresaTests › Eu_UmaEmpresaVenceu_AsOutrasContinuamComASituacaoDelas |
 | F14-10 | empresa em TESTE com o fim do teste dentro da janela de aviso (pergunta 3) | qualquer tela interna abre | a casca mostra quantos dias faltam e como ativar (canal da pergunta 14) | — |
 | F14-11 | empresa ATIVA, ou em TESTE fora da janela de aviso | qualquer tela interna abre | nenhuma faixa de situação aparece | — |
 | F14-12 | empresa em qualquer situação | um Dono abre Configurações › Empresa | vê a situação e, em TESTE, o fim do teste; a tela não oferece trocar a situação | — |
@@ -60,7 +59,7 @@ Termos usados nos cenários:
 | F14-22 | empresa só leitura (VENCIDA ou CANCELADA) com recorrência devida, solicitação com SLA em risco, solicitação RESOLVIDA no prazo de fechamento e mensagem na outbox | rodam o tick e o diário | nada é gerado, fechado nem enviado para ela; as mesmas situações nas outras empresas seguem normalmente | — |
 | F14-23 | pessoa com vínculo na empresa A (VENCIDA) e na B (em TESTE ou ATIVA) | troca para B e grava | grava normalmente; a situação de A não vale em B (isolamento entre tenants) | — |
 | F14-24 | empresa que ficou só leitura por um período e voltou a poder gravar (ATIVA, ou TESTE com novo fim, seja por ativação, reativação ou prorrogação) | a equipe grava e o tick roda | tudo volta a funcionar; recorrências não geram as ocorrências cujas datas passaram enquanto ela estava só leitura | — |
-| F14-111 | empresa que voltou a poder gravar, com solicitações abertas cujo prazo de SLA passou enquanto ela estava só leitura (dependente da pergunta 19) | roda o primeiro tick depois da volta | as solicitações aparecem violadas e os alertas de SLA saem: o relógio não pausou no só leitura | — |
+| F14-111 | empresa que voltou a poder gravar, com solicitações abertas cujo prazo de SLA passou enquanto ela estava só leitura (pergunta 19) | roda o primeiro tick depois da volta | as solicitações aparecem violadas e os alertas de SLA saem: o relógio não pausou no só leitura | — |
 | F14-25 | empresa só leitura | qualquer tela interna abre | a casca explica que a empresa está só leitura desde a data, até quando os dados ficam (data do expurgo) e como ativar | — |
 | F14-26 | empresa só leitura | as telas com ações de gravar abrem (ex.: nova solicitação, apontar, cronômetro, convidar) | as ações aparecem indisponíveis, com a explicação ligada a elas | — |
 | F14-27 | empresa só leitura e uma recusa de só leitura chega mesmo assim (ex.: a situação mudou com a tela aberta) | a resposta chega | a mensagem da API aparece, sem quebrar a tela | — |
@@ -70,7 +69,7 @@ Termos usados nos cenários:
 | F14-99 | link de acesso emitido antes de a empresa ficar só leitura, ainda válido | o contato abre o link | entra e lê a solicitação como no F14-20; as gravações são recusadas como no F14-21 | — |
 | F14-100 | empresa só leitura | uma pessoa da equipe muda as próprias preferências de aviso, emite ou revoga o próprio link da agenda, ou segue ou deixa de seguir uma solicitação ou tarefa | segue funcionando (é da pessoa, não gravação da empresa) | — |
 
-### Expurgo e avisos (F14i; F14-39 a F14-43 e F14-101 a F14-103 no F14j)
+### Expurgo e avisos (F14i; F14-39 a F14-43, F14-101 a F14-103 e F14-113 no F14j)
 
 | Id | Dado | Quando | Então | Teste |
 |---|---|---|---|---|
@@ -84,6 +83,7 @@ Termos usados nos cenários:
 | F14-36 | o expurgo de uma empresa falha | roda o diário | a falha é logada e conta em `falhas`; as demais empresas e os outros passos do diário seguem | — |
 | F14-37 | empresa expurgada que tinha CPF/CNPJ | o expurgo termina | fica só o registro de que aquele documento já teve teste (pergunta 8), sem nome, e-mail nem outro dado da empresa | — |
 | F14-38 | sugestões enviadas por pessoas da empresa expurgada | o expurgo roda | as sugestões perdem a referência à empresa e à pessoa, como no expurgo do F9 | — |
+| F14-112 | empresas canceladas pela migration do F14-08 | roda o primeiro diário que tem o expurgo de empresas | são apagadas pelo mesmo expurgo do F14-29: dados, anexos e logotipos no storage, e as contas que só tinham vínculo nelas | — |
 | F14-39 | empresa em TESTE no dia de um aviso antes do vencimento (pergunta 3) | roda o diário | cada Dono recebe um e-mail com o fim do teste e como ativar | — |
 | F14-40 | o aviso do F14-39 já saiu | o diário roda de novo no mesmo dia ou no seguinte | o mesmo aviso não sai de novo | — |
 | F14-41 | empresa que venceu no diário | o diário termina | cada Dono recebe um e-mail dizendo que a empresa ficou só leitura, a data do expurgo e como ativar | — |
@@ -92,7 +92,8 @@ Termos usados nos cenários:
 | F14-101 | empresa em TESTE que já recebeu um aviso antes do vencimento e teve o teste prorrogado | o diário chega ao momento do mesmo aviso para o novo fim | o aviso sai de novo, com a nova data | — |
 | F14-102 | empresa em TESTE cujo momento do aviso de 7 dias passou sem ele sair (prorrogada para menos de 7 dias à frente, ou diário que não rodou) | roda o diário | sai um aviso só, com os dias que de fato faltam; nenhum e-mail diz "faltam 7 dias" fora de hora | — |
 | F14-103 | empresa em TESTE com dois avisos devidos no mesmo diário (ex.: prorrogada para o dia seguinte) | roda o diário | sai só o aviso mais próximo do fim (o de 1 dia); o outro não sai depois | — |
-| F14-104 | empresa expurgada como cadastro abandonado (RF-AUT-07, sem confirmação em 7 dias) que tinha CPF/CNPJ (dependente da pergunta 16) | um registro novo chega com o mesmo documento | `201`: o registro do documento saiu no expurgo, porque o teste nunca foi usado | — |
+| F14-113 | empresa VENCIDA ou CANCELADA cuja data do expurgo já passou (ex.: as do F14-08) | roda o diário | nenhum aviso antes do expurgo sai para ela | — |
+| F14-104 | empresa expurgada como cadastro abandonado (RF-AUT-07, sem confirmação em 7 dias) que tinha CPF/CNPJ (pergunta 16) | um registro novo chega com o mesmo documento | `201`: o registro do documento saiu no expurgo, porque o teste nunca foi usado | — |
 
 ### Cadastro controlado: convite e lista de espera (F14n; F14-52 a F14-55 no F14o; F14-50 no F14p; F14-44 e F14-46 no F14q)
 
@@ -110,7 +111,7 @@ Termos usados nos cenários:
 | F14-53 | e-mail que já está na lista de espera | alguém envia de novo com ele | não duplica a entrada; a resposta é igual à do F14-52 (não revela quem está na lista) | — |
 | F14-54 | um IP que passou do limite de envios da lista de espera, ou um envio sem Turnstile aprovado | envia | recusado como no cadastro (RNF-SEG-08, RNF-SEG-10) | — |
 | F14-55 | lista de espera | um campo obrigatório falta ou o e-mail é inválido | `400` com o campo; nada gravado | — |
-| F14-105 | convite de empresa válido para um e-mail que já tem conta no Acordu (dependente da pergunta 18) | o registro chega com o convite e esse e-mail | `400` no e-mail, como o cadastro já faz com e-mail em uso; o convite continua válido | — |
+| F14-105 | convite de empresa válido para um e-mail que já tem conta no Acordu (pergunta 18) | o registro chega com o convite e esse e-mail | `400` no e-mail, como o cadastro já faz com e-mail em uso; o convite continua válido | — |
 
 ### Documento e e-mail no cadastro (F14g; F14-60 no F14p)
 
@@ -144,8 +145,8 @@ Termos usados nos cenários:
 | F14-76 | entrada da lista de espera aguardando | a Nebrys convida a partir dela (pergunta 5) | um convite de empresa sai para o e-mail da entrada, que fica marcada como convidada | — |
 | F14-77 | entrada da lista de espera | a Nebrys descarta | a entrada é apagada (não fica guardada sem motivo) | — |
 | F14-106 | empresa que já foi expurgada | a Nebrys tenta abrir ou agir sobre ela (ativar, prorrogar, cancelar, reativar) | `404`; nada muda | — |
-| F14-107 | a Nebrys leu a empresa numa situação e, antes de agir, o diário ou outra ação a mudou (dependente da pergunta 15) | a Nebrys ativa, prorroga, cancela ou reativa com a versão que leu | `409` de versão divergente; nada muda e a área recarrega a empresa | — |
-| F14-108 | documento de uma empresa já expurgada, do qual só ficou o registro de que teve teste (dependente da pergunta 8) | a Nebrys digita o documento na área e libera | a liberação vale como no F14-71, sem que a área guarde o documento em claro | — |
+| F14-107 | a Nebrys leu a empresa numa situação e, antes de agir, o diário ou outra ação a mudou (pergunta 15) | a Nebrys ativa, prorroga, cancela ou reativa com a versão que leu | `409` de versão divergente; nada muda e a área recarrega a empresa | — |
+| F14-108 | documento de uma empresa já expurgada, do qual só ficou o registro de que teve teste (pergunta 8) | a Nebrys digita o documento na área e libera | a liberação vale como no F14-71, sem que a área guarde o documento em claro | — |
 
 ### Termos de uso e política de privacidade (F14f; F14-79 a F14-83 no F14h; F14-109 no F14q)
 
@@ -170,7 +171,7 @@ Termos usados nos cenários:
 | F14-88 | empresa de demonstração usada (dados mudados) | a Nebrys restaura | os dados voltam ao estado inicial; nenhuma outra empresa é tocada | — |
 | F14-89 | empresa de demonstração | uma ação que mandaria e-mail a contato, convite ou aviso | nada sai para fora do Acordu | — |
 | F14-90 | pessoa que a Nebrys indicou para a demonstração (pergunta 11) | entra no Acordu | vê a empresa de demonstração como Dona; quem não foi indicado não a vê | — |
-| F14-110 | a Nebrys indica para a demonstração um e-mail sem conta no Acordu (dependente da pergunta 17) | confirma a indicação | recusada com a explicação; nada é criado e nenhum e-mail sai | — |
+| F14-110 | a Nebrys indica para a demonstração um e-mail sem conta no Acordu (pergunta 17) | confirma a indicação | recusada com a explicação; nada é criado e nenhum e-mail sai | — |
 | F14-91 | empresa em TESTE sem nenhum dado | um Dono abre a tela Hoje | é oferecido carregar os dados de exemplo | — |
 | F14-92 | a mesma empresa | o Dono carrega os dados de exemplo | clientes, contatos, contratos, solicitações, tarefas e horas fictícios aparecem, marcados como exemplo; nenhum e-mail sai | — |
 | F14-93 | empresa com dados próprios | um Dono abre a tela Hoje ou pede direto para carregar os exemplos | a opção não aparece; o pedido direto é recusado com `422` e a explicação, sem carregar nada | — |
@@ -188,31 +189,50 @@ Termos usados nos cenários:
 - Aviso à Nebrys (Discord) a cada entrada nova na lista de espera: a Nebrys vê na área. Pode virar melhoria.
 - Mudanças no expurgo de cadastro abandonado (RF-AUT-07): continua como está, ao lado do novo.
 - Tela da Nebrys para sugestões e erros (fora desde o F13).
-- Indicação de empresas por clientes do Acordu, se a pergunta 4 ficar na recomendação.
-- Demonstração aberta a qualquer visitante sem conta, se a pergunta 11 ficar na recomendação.
+- Indicação de empresas por clientes do Acordu (decisão 4).
+- Demonstração aberta a qualquer visitante sem conta (decisão 11).
 
-## 4. Perguntas em aberto (o Daniel decide no G2)
+## 4. Decisões do G2
 
-Valores e regras de negócio que a ERS deixa para cá. Os cenários seguem a recomendação.
+Valores e regras de negócio que a ERS deixa para cá. O Daniel respondeu em 13/11, no G2 do PR #186; cada item guarda a pergunta, a recomendação e as opções que ficaram de fora. Os cenários seguem a decisão.
 
 1. **Duração do teste.** Recomendo **30 dias** corridos a partir do cadastro: o prestador atravessa um fechamento de mês, que é quando o contrato mensal e o extrato mostram valor. 14 dias é o comum em SaaS, mas curto para quem só sente o produto no fim do mês.
+    - **Decidido (13/11):** 30 dias, como recomendado.
 2. **Prazo entre vencimento (ou cancelamento) e expurgo.** Recomendo **60 dias**: dá tempo de a empresa voltar sem perder nada e mantém pouco dado guardado sem uso (LGPD, minimização). Opções: 30 dias (mais enxuto) ou 90 dias.
+    - **Decidido (13/11):** **30 dias**, a opção mais enxuta (não os 60 recomendados).
 3. **Avisos.** Recomendo: faixa na casca nos **últimos 7 dias** do teste; e-mail aos Donos **7 dias e 1 dia antes** do fim do teste, **no vencimento** e **7 dias antes do expurgo**. Opção mais enxuta: só o e-mail de 7 dias antes e o do vencimento.
+    - **Decidido (13/11):** como recomendado: faixa nos últimos 7 dias; e-mail 7 e 1 dia antes do fim do teste, no vencimento e 7 dias antes do expurgo.
 4. **Quem cria convite de empresa.** Recomendo **só a Nebrys**, pela área: é o controle de quem entra. Opção: Donos de empresas ATIVA também indicam (convite de indicação), que fica para depois.
+    - **Decidido (13/11):** só a Nebrys, "agora no começo, depois não vai mais precisar de convite". O futuro é o modo aberto do cadastro (RF-AUT-08, decisão 6), não o convite de indicação.
 5. **Lista de espera: campos e como vira convite.** Recomendo os campos **nome, e-mail, nome da empresa e uma mensagem opcional** ("o que você quer resolver"), e a conversão **manual**: a Nebrys escolhe a entrada e convida (F14-76). Opção: convidar automaticamente os N primeiros por semana, que tira o controle que o marco quer dar.
+    - **Decidido (13/11):** como recomendado.
 6. **Modo do cadastro no lançamento.** Recomendo começar **por convite** (com a lista de espera) e abrir depois por configuração, sem mudar código. Opção: começar aberto, com as demais travas (documento, e-mail, Turnstile).
+    - **Decidido (13/11):** como recomendado: começa por convite.
 7. **Convite de empresa.** Recomendo **validade de 7 dias**, como os convites da equipe e do portal, e **e-mail do cadastro igual ao do convite** (F14-46, F14-49): o link não passa adiante. Opções: validade maior (14 ou 30 dias, para quem demora a responder); e-mail livre no cadastro.
+    - **Decidido (13/11):** como recomendado: 7 dias e e-mail fixo.
 8. **Documento depois do expurgo** (F14-37, F14-108). Para valer "um teste por documento" mesmo depois do expurgo, algo do documento precisa ficar. Recomendo guardar **só um hash do documento normalizado**, fora dos tenants, com a data do teste (F14-37): não identifica ninguém sozinho e cumpre a regra. Opções: guardar o documento em claro (mais simples de consultar na área, mas é CPF de pessoa física guardado depois do fim da relação); não guardar nada (a regra só vale entre empresas que ainda existem). A exceção é a liberação pela Nebrys (F14-71).
+    - **Decidido (13/11):** como recomendado: só um hash, fora dos tenants.
 9. **Cancelamento.** Recomendo que **só a Nebrys** cancele no F14 (o Dono pede pelo canal da pergunta 14), e que CANCELADA siga as mesmas regras de VENCIDA (só leitura e o mesmo prazo de expurgo). Opção: botão "encerrar conta" para o Dono, com confirmação, que fica para um marco próprio.
+    - **Decidido (13/11):** como recomendado: só a Nebrys cancela.
 10. **O que segue numa empresa só leitura.** Recomendo: leitura total para equipe e portal; o que é da pessoa segue (conta, sino, preferências de aviso, link da agenda, seguir, "ciente" dos textos, "Sugerir melhoria"; F14-18, F14-19, F14-100), e aceitar convite antigo não (F14-97, F14-98); nenhum e-mail sai; jobs param; ao reativar, sem geração retroativa (F14-13 a F14-24). No portal, mensagem **neutra** ("No momento não é possível enviar por aqui; fale com {nome do prestador}"), para não expor a situação comercial do prestador ao cliente dele. Opção: o portal fica fora do ar inteiro para a empresa só leitura.
+    - **Decidido (13/11):** como recomendado.
 11. **Demonstração e dados de exemplo.** Recomendo as duas coisas, nesta forma:
+    - **Decidido (13/11):** como recomendado: as duas coisas, nessa forma.
     - **Empresa de demonstração** criada e restaurada pela Nebrys com os mesmos dados fictícios das capturas do manual, em que **entra quem a Nebrys indicar** (o Daniel, para mostrar a pessoas), como Dono (F14-90). Opções: acesso aberto a qualquer visitante, só leitura, por um botão "ver demonstração" (mais alcance, mais superfície de abuso); ou uma empresa de demonstração descartável por visitante (mais convincente, mais custo e conflita com as travas do cadastro).
     - **Dados de exemplo** opcionais na empresa em teste vazia, apagáveis depois. Ao apagar, saem também os registros que a equipe criou dentro de um dado de exemplo (ex.: tarefa num cliente de exemplo), para não sobrar órfão. Opção: só permitir apagar enquanto não houver nada da equipe ligado aos exemplos.
 12. **Aceite dos textos.** Recomendo: aceite obrigatório no cadastro e no aceite de convite da equipe; nova versão pede "ciente" no próximo acesso, **sem bloquear** o uso (F14-83); contatos do portal e lista de espera só com o link (a relação do contato é com o prestador, que é o controlador). Opção: nova versão bloqueia até o aceite (mais forte juridicamente, mais atrito; caberia em mudança relevante, a critério do advogado).
+    - **Decidido (13/11):** como recomendado: "ciente" sem bloquear.
 13. **Empresas anteriores ao F14.** Recomendo que fiquem ATIVA (F14-08): hoje são só as de teste do Daniel, e a produção ainda não tem cliente.
-14. **Canal para falar com a Nebrys** (ativar, cancelar, liberar documento, direitos do titular). Recomendo **um e-mail único** do domínio (ex.: `contato@acordu.app.br`, redirecionado para o Daniel), citado nas faixas, nos e-mails de aviso, na recusa do documento e na política. O endereço exato é do Daniel.
+    - **Decidido (13/11):** **apagar todas** (são de teste). Forma aceita: a migration do F14a as marca CANCELADA com a data do cancelamento antiga, já fora do prazo do expurgo (F14-08); o primeiro diário com o expurgo de empresas as apaga pelo mesmo expurgo (F14-112). Até lá ficam só leitura. A recomendação (ficar ATIVA) ficou de fora.
+14. **Canal para falar com a Nebrys** (ativar, cancelar, liberar documento, direitos do titular). Recomendei **um e-mail único** do domínio, redirecionado para o Daniel, citado nas faixas, nos e-mails de aviso, na recusa do documento e na política.
+    - **Decidido (13/11):** `contato@acordu.app.br`.
 15. **Ações da Nebrys concorrentes com o diário** (F14-107). A Nebrys pode agir sobre uma situação que o diário, ou outra ação, acabou de mudar: por exemplo, prorrogar uma empresa que venceu no meio-tempo. Recomendo **`If-Match` com a versão da empresa e `409` em divergência**, como o contrato já faz nas transições (§1, concorrência otimista): a Nebrys vê o estado novo e decide de novo. Opção: "a última grava", com `422` de transição inválida só quando a transição não vale no estado novo; mais simples, mas uma prorrogação pensada para uma empresa em TESTE passa sem aviso numa que já venceu.
+    - **Decidido (13/11):** como recomendado: `If-Match` e `409`.
 16. **Documento do cadastro abandonado** (F14-104). A RF-AUT-09 diz "mesmo depois do expurgo", sem exceção: quem errou o e-mail, não confirmou e foi expurgado em 7 dias (RF-AUT-07) fica sem teste até falar com a Nebrys. Recomendo que o expurgo do RF-AUT-07 **apague** o registro do documento, porque o teste nunca foi usado; aceito, a RF-AUT-09 ganha essa exceção. Opção: deixar como está.
+    - **Decidido (13/11):** como recomendado: o expurgo do RF-AUT-07 apaga o registro do documento; a RF-AUT-09 ganhou a exceção na ERS.
 17. **Pessoa indicada para a demonstração sem conta** (F14-110). A demonstração não envia e-mail (F14-89), então não há convite. Recomendo aceitar só e-mail de conta existente no F14. Opção: a área cria a conta e mostra uma senha provisória à Nebrys.
+    - **Decidido (13/11):** como recomendado: só conta existente.
 18. **Convite de empresa para e-mail que já tem conta** (F14-105). Hoje o cadastro recusa e-mail em uso, e não há "criar empresa com a conta que já existe". Recomendo deixar assim no F14 (a Nebrys convida outro e-mail) e abrir uma melhoria. Opção: o cadastro com convite aceita a conta existente conferindo a senha, como o aceite de convite da equipe, com cenários próprios.
+    - **Decidido (13/11):** como recomendado: recusa no F14 e melhoria depois.
 19. **SLA durante o só leitura** (F14-111). Os prazos continuam correndo; na volta, solicitações abertas podem aparecer violadas de uma vez. Recomendo aceitar: o prazo mostra o que aconteceu, e pausar mudaria a regra do SLA (ADR 0003). Opção: pausar o relógio das solicitações abertas enquanto a empresa está só leitura.
+    - **Decidido (13/11):** como recomendado: o SLA não pausa.

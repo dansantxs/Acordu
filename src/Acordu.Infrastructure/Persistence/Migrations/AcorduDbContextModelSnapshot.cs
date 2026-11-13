@@ -1151,6 +1151,10 @@ namespace Acordu.Infrastructure.Persistence.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("id");
 
+                    b.Property<DateTimeOffset?>("CanceladaEm")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("cancelada_em");
+
                     b.Property<DateTimeOffset>("CriadoEm")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("criado_em");
@@ -1166,6 +1170,10 @@ namespace Acordu.Infrastructure.Persistence.Migrations
                     b.Property<DateTimeOffset?>("EnvioLiberadoEm")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("envio_liberado_em");
+
+                    b.Property<DateTimeOffset?>("FimDoTeste")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("fim_do_teste");
 
                     b.Property<string>("LogoChave")
                         .HasMaxLength(512)
@@ -1188,9 +1196,19 @@ namespace Acordu.Infrastructure.Persistence.Migrations
                         .HasColumnType("character varying(254)")
                         .HasColumnName("responder_para");
 
+                    b.Property<string>("Situacao")
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .HasColumnType("character varying(40)")
+                        .HasColumnName("situacao");
+
                     b.Property<string>("SlaPadrao")
                         .HasColumnType("jsonb")
                         .HasColumnName("sla_padrao");
+
+                    b.Property<DateTimeOffset?>("SomenteLeituraDesde")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("somente_leitura_desde");
 
                     b.Property<uint>("Versao")
                         .IsConcurrencyToken()

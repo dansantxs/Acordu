@@ -21,7 +21,7 @@ public sealed class IdentidadeTests(BancoFixture banco)
         var contato = Vinculo.Criar(Guid.NewGuid(), Guid.NewGuid(), papeis[3], cliente, EscopoPortal.Proprias);
 
         await using var db = banco.DaEquipe(tenant);
-        db.Add(Tenant.Criar(tenant, "Estúdio Traço", Dados.Agora, dono.UsuarioId));
+        db.Add(Tenant.Criar(tenant, "Estúdio Traço", Dados.Agora, dono.UsuarioId, TimeSpan.FromDays(30)));
         db.AddRange(papeis);
         db.AddRange(dono, contato);
         await db.SaveChangesAsync();
@@ -79,7 +79,7 @@ public sealed class IdentidadeTests(BancoFixture banco)
     public async Task GravarTenant_DeOutroContexto_Recusa()
     {
         await using var db = banco.DaEquipe(_tenant);
-        db.Add(Tenant.Criar(Guid.NewGuid(), "Intruso", Dados.Agora, Guid.NewGuid()));
+        db.Add(Tenant.Criar(Guid.NewGuid(), "Intruso", Dados.Agora, Guid.NewGuid(), TimeSpan.FromDays(30)));
 
         var acao = () => db.SaveChangesAsync();
 

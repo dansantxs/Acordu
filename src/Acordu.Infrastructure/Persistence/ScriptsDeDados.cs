@@ -22,4 +22,22 @@ public static class ScriptsDeDados
         WHERE t.criado_por_usuario_id IS NULL;
         UPDATE tenants SET envio_liberado_em = now() WHERE envio_liberado_em IS NULL;
         """;
+
+    /// <summary>Data do cancelamento das empresas anteriores ao F14 (design do F14, D1).</summary>
+    public static readonly DateTimeOffset CanceladasAntesDoF14Em = new(2026, 1, 1, 0, 0, 0, TimeSpan.Zero);
+
+    /// <summary>
+    /// F14 (F14-08, decisão 13 do G2): as empresas anteriores ao F14 (só de teste) ficam CANCELADA, com o cancelamento e
+    /// o início do só leitura numa data fixa antiga (<see cref="CanceladasAntesDoF14Em"/>), já fora do prazo do expurgo
+    /// sem depender da configuração; o primeiro diário com o expurgo de empresas as apaga (F14-112). Sem fim de teste:
+    /// nunca estiveram em teste. A condição pega só as linhas que a coluna nova acabou de receber vazias.
+    /// </summary>
+    public const string CancelarEmpresasAnterioresAoF14 = """
+        UPDATE tenants
+        SET situacao = 'CANCELADA',
+            cancelada_em = TIMESTAMPTZ '2026-01-01 00:00:00+00',
+            somente_leitura_desde = TIMESTAMPTZ '2026-01-01 00:00:00+00',
+            fim_do_teste = NULL
+        WHERE situacao = '';
+        """;
 }

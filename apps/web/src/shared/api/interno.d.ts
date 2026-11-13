@@ -6111,6 +6111,8 @@ export interface components {
         /** @enum {unknown} */
         SituacaoAcessoPortal: 'CONVIDADO' | 'ATIVO'
         /** @enum {unknown} */
+        SituacaoEmpresa: 'TESTE' | 'ATIVA' | 'VENCIDA' | 'CANCELADA'
+        /** @enum {unknown} */
         SituacaoItemAgenda: 'NO_PRAZO' | 'EM_RISCO' | 'VIOLADO' | 'PAUSADO' | 'VENCIDO' | 'CONCLUIDO' | 'PREVISTO'
         /** @enum {unknown} */
         SituacaoSla: 'SEM_SLA' | 'NO_PRAZO' | 'EM_RISCO' | 'VIOLADO' | 'CUMPRIDO'
@@ -6314,6 +6316,13 @@ export interface components {
             nome: string
             fusoHorario: string
             envioLiberado: boolean
+            situacao: components['schemas']['SituacaoEmpresa']
+            /** Format: date-time */
+            fimDoTeste: null | string
+            /** Format: date-time */
+            somenteLeituraDesde: null | string
+            /** Format: date-time */
+            expurgoPrevistoEm: null | string
         }
         TenantDoUsuario: {
             /** Format: uuid */
