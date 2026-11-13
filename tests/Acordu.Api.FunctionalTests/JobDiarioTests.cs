@@ -3,6 +3,7 @@ using System.Net.Http.Json;
 using System.Text.Json;
 using Acordu.Api.FunctionalTests.Apoio;
 using Acordu.Api.Jobs;
+using Microsoft.EntityFrameworkCore;
 
 namespace Acordu.Api.FunctionalTests;
 
@@ -18,6 +19,10 @@ public sealed class JobDiarioTests(ApiFixture api)
         var solicitacao = await Cenarios.SolicitacaoAsync(equipe, await Cenarios.ClienteAsync(equipe));
         await equipe.EsperarAsync(HttpStatusCode.OK, HttpMethod.Post, $"/api/v1/solicitacoes/{solicitacao}/resolucao",
             new { solucao = new { texto = "Feito" } });
+        // Em 91 dias a empresa em TESTE venceria no próprio diário e ficaria só leitura, fora do fechamento (F14): ativa,
+        // gravada direto (as ações da área da Nebrys são do F14l).
+        await using (var db = api.DaEquipe(equipe.TenantId))
+            await db.Database.ExecuteSqlAsync($"UPDATE tenants SET situacao = 'ATIVA', fim_do_teste = NULL WHERE id = {equipe.TenantId}");
 
         // 91 dias depois: a solicitação passou do fechamento (2 dias) e a atividade da abertura passou da retenção do
         // feed (90 dias), então o fechamento e o expurgo precisam ter rodado.

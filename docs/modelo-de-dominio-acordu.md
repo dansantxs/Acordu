@@ -468,6 +468,7 @@ Regras:
 
 ### 4.11.3 Situação da empresa (RF-EMP-01 a RF-EMP-03, F14)
 - `Tenant.Situacao` (`SituacaoEmpresa`: TESTE, ATIVA, VENCIDA, CANCELADA). VENCIDA e CANCELADA são **só leitura** (`SomenteLeitura`, RF-EMP-02). É configuração por tenant, como §4.11.1 e §4.11.2: não pede agregado; o histórico fica na trilha (design do F14, D1 e D14).
+- **Só leitura não é regra dos agregados** (F14b, ADR 0015): nenhum método de domínio olha a situação. A guarda de gravação do contexto (Infrastructure) recusa, no fim do caso de uso, incluir, alterar ou remover o que é da empresa num tenant só leitura (`EmpresaSomenteLeituraException`, `422 empresa-somente-leitura`), e deixa passar o que é da pessoa ou rastro (sino, preferências de aviso, link da agenda, seguidores, sessões, trilha, feed, outbox). A classificação de cada entidade com `TenantId` fica em `ClassificacaoSomenteLeitura`, conferida por teste; o próprio `Tenant` é da empresa.
 - Datas, todas instantes UTC:
   - `FimDoTeste`: `Criar(..., duracaoDoTeste)` põe o instante do cadastro mais a duração (da configuração, `Empresas__DiasDeTeste`, padrão 30). Fica como estava quando a empresa vence; nulo nas empresas anteriores ao F14;
   - `SomenteLeituraDesde`: início do só leitura atual (vencimento ou cancelamento); nulo enquanto a empresa grava;

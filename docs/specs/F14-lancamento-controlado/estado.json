@@ -2,19 +2,20 @@
   "marco": "F14",
   "issue": 182,
   "etapa": "AGUARDANDO_MERGE",
-  "branch": "feat/F14a-situacao",
-  "pr": { "id": "F14a", "numero": null },
-  "feitos": [],
-  "contadores": { "devolucoesNaEtapa": 0, "rodadasNoPr": 0 },
-  "verificacao": ["node scripts/conferir-specs.mjs"],
+  "branch": "feat/F14b-guarda",
+  "pr": { "id": "F14b", "numero": null },
+  "feitos": [{ "id": "F14a", "pr": 187 }],
+  "contadores": { "devolucoesNaEtapa": 0, "rodadasNoPr": 1 },
+  "verificacao": ["node scripts/conferir-specs.mjs", "dotnet build", "dotnet test"],
   "portoes": {
     "G1": "vamos seguir com o candidato 1, agora que o deploy já foi feito, quero começar a mostrar para as pessoas",
-    "G2": "PR #186 mesclado (13/11/2026); respostas da §4 coladas no chat (prazo do expurgo 30 dias; empresas existentes apagadas) e \"aceito as recomendações\" (CANCELADA na migration e expurgo pelo F14i; contato@acordu.app.br)"
+    "G2": "PR #186 mesclado (13/11/2026); respostas da §4 coladas no chat (prazo do expurgo 30 dias; empresas existentes apagadas) e \"aceito as recomendações\" (CANCELADA na migration e expurgo pelo F14i; contato@acordu.app.br)",
+    "G3": ["PR #187 mesclado (F14a; F14-113 mantido)"]
   },
   "ressalvas": [
-    "F14-113 criado pelo analista sem pedido do Daniel (F14j); não toca o F14a",
-    "Janela da migration: cadastro pela revisão antiga entre a migration e a troca de revisão ficaria com situacao vazia",
-    "Validação dos dias em dois lugares (OpcoesEmpresas e ComposicaoApi)"
+    "Desvio: jobs só em empresas graváveis adiantado do F14d (ExecutorPorTenant)",
+    "Não fazer deploy só com o F14b (portal até o F14c; outbox até o F14d)",
+    "Contador e MarcadorAviso por SQL direto dentro da transação do UnitOfWork: o rollback os devolve"
   ],
   "bloqueios": [],
   "atualizadoEm": "2026-11-13"

@@ -12,8 +12,9 @@ namespace Acordu.Api.Erros;
 
 /// <summary>
 /// Converte exceções em Problem Details (RFC 9457, contrato da API §13). Regra de negócio → 422; entrada malformada →
-/// 400 <c>validacao</c> com <c>errors</c> por campo; versão divergente → 409. Qualquer outra (inclusive violação de
-/// isolamento, que é bug) → 500 sem detalhes.
+/// 400 <c>validacao</c> com <c>errors</c> por campo; versão divergente → 409; gravação em empresa só leitura → 422
+/// <c>empresa-somente-leitura</c> (ADR 0015). Qualquer outra (inclusive violação de isolamento, que é bug) → 500 sem
+/// detalhes.
 /// </summary>
 internal static partial class ManipuladorExcecoes
 {
@@ -104,6 +105,7 @@ internal static partial class ManipuladorExcecoes
         NaoEncontradoException e => Problema(404, "nao-encontrado", "Não encontrado", e.Message),
         AcessoNegadoException e => Problema(403, "sem-permissao", "Sem permissão", e.Message),
         EmailNaoConfirmadoException e => Problema(422, "email-nao-confirmado", "E-mail não confirmado", e.Message),
+        EmpresaSomenteLeituraException e => Problema(422, "empresa-somente-leitura", "Empresa só leitura", e.Message),
         CronometroAtivoException e => Problema(409, "cronometro-ativo", "Cronômetro já ativo", e.Message),
         LimiteExcedidoException e => Problema(429, "limite-requisicoes", "Muitas requisições", e.Message),
         ListaDesatualizadaException e => Problema(409, "conflito-versao", "Versão divergente", e.Message),

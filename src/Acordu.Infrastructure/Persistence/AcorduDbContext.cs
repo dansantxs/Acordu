@@ -1,4 +1,5 @@
 using Acordu.Application.Abstractions;
+using Acordu.Application.Common;
 using Acordu.Domain.Common;
 using Acordu.Domain.Entities;
 using Acordu.Infrastructure.MultiTenancy;
@@ -14,17 +15,25 @@ using Acordu.Infrastructure.Persistence.Protocolo;
 using Acordu.Infrastructure.Seguranca;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.ChangeTracking;
+using Microsoft.EntityFrameworkCore.Metadata;
 
 namespace Acordu.Infrastructure.Persistence;
 
 /// <summary>
 /// Contexto único do Acordu. Aplica os dois isolamentos do ADR 0002 como filtros globais nomeados e recusa gravar fora do
-/// tenant/cliente do contexto (<see cref="IsolamentoVioladoException"/>). Também guarda as tabelas do Identity (globais,
-/// sem tenant), para o registro gravar usuário e tenant na mesma transação.
+/// tenant/cliente do contexto (<see cref="IsolamentoVioladoException"/>) ou dado da empresa num tenant só leitura
+/// (<see cref="EmpresaSomenteLeituraException"/>, ADR 0015). Também guarda as tabelas do Identity (globais, sem tenant),
+/// para o registro gravar usuário e tenant na mesma transação.
 /// </summary>
 public sealed class AcorduDbContext : IdentityUserContext<Usuario, Guid>
 {
+    private static readonly string[] FiltroTenant = [FiltrosGlobais.Tenant];
+
     private readonly ITenantContext _contexto;
+
+    /// <summary>Situação lida do banco uma vez por escopo (ADR 0015, item 1): verdadeiro = só leitura.</summary>
+    private readonly Dictionary<Guid, bool> _somenteLeitura = [];
 
     public AcorduDbContext(DbContextOptions<AcorduDbContext> options, ITenantContext contexto)
         : base(options)
@@ -74,13 +83,27 @@ public sealed class AcorduDbContext : IdentityUserContext<Usuario, Guid>
     public override int SaveChanges(bool acceptAllChangesOnSuccess)
     {
         GarantirIsolamento();
+        foreach (var tenant in TenantsComGravacaoDaEmpresa())
+        {
+            if (!_somenteLeitura.TryGetValue(tenant, out var somenteLeitura))
+                _somenteLeitura[tenant] = somenteLeitura = ConsultaSomenteLeitura(tenant).SingleOrDefault();
+            GarantirGravavel(somenteLeitura);
+        }
+
         return base.SaveChanges(acceptAllChangesOnSuccess);
     }
 
-    public override Task<int> SaveChangesAsync(bool acceptAllChangesOnSuccess, CancellationToken cancellationToken = default)
+    public override async Task<int> SaveChangesAsync(bool acceptAllChangesOnSuccess, CancellationToken cancellationToken = default)
     {
         GarantirIsolamento();
-        return base.SaveChangesAsync(acceptAllChangesOnSuccess, cancellationToken);
+        foreach (var tenant in TenantsComGravacaoDaEmpresa())
+        {
+            if (!_somenteLeitura.TryGetValue(tenant, out var somenteLeitura))
+                _somenteLeitura[tenant] = somenteLeitura = await ConsultaSomenteLeitura(tenant).SingleOrDefaultAsync(cancellationToken);
+            GarantirGravavel(somenteLeitura);
+        }
+
+        return await base.SaveChangesAsync(acceptAllChangesOnSuccess, cancellationToken);
     }
 
     protected override void ConfigureConventions(ModelConfigurationBuilder configurationBuilder)
@@ -264,6 +287,79 @@ public sealed class AcorduDbContext : IdentityUserContext<Usuario, Guid>
             if (_contexto.TenantId != entrada.Entity.Id || _contexto.EhCliente)
                 throw new IsolamentoVioladoException("Gravação de Tenant fora do tenant do contexto.");
         }
+    }
+
+    /// <summary>
+    /// Tenants em que esta gravação inclui, altera ou remove dado da empresa (<see cref="ClassificacaoSomenteLeitura"/>;
+    /// tipo sem classificação conta como da empresa). Vale o tenant da entidade gravada, não o da pessoa (ADR 0015, item
+    /// 7); a filha (owned) vale pela raiz. Tenant incluído agora (registro) ainda não existe no banco e grava.
+    /// </summary>
+    private HashSet<Guid> TenantsComGravacaoDaEmpresa()
+    {
+        var entradas = ChangeTracker.Entries().ToList();
+        var tenants = new HashSet<Guid>();
+        var novos = new HashSet<Guid>();
+        foreach (var entrada in entradas)
+        {
+            if (entrada.State is not (EntityState.Added or EntityState.Modified or EntityState.Deleted))
+                continue;
+            if (entrada is { Entity: Tenant novo, State: EntityState.Added })
+            {
+                novos.Add(novo.Id);
+                continue;
+            }
+
+            if (ClassificacaoSomenteLeitura.DaPessoaOuRastro.Contains(Raiz(entrada.Metadata).ClrType))
+                continue;
+            if (TenantDe(entrada, entradas) is { } tenant)
+                tenants.Add(tenant);
+        }
+
+        tenants.ExceptWith(novos);
+        return tenants;
+    }
+
+    private static IReadOnlyEntityType Raiz(IReadOnlyEntityType tipo)
+    {
+        while (tipo.FindOwnership() is { } dono)
+            tipo = dono.PrincipalEntityType;
+        return tipo;
+    }
+
+    /// <summary>
+    /// Tenant da entrada: o próprio Id no <see cref="Tenant"/>, a coluna <c>TenantId</c> nas demais e, na filha (owned), o
+    /// da raiz rastreada (sem ela, o do contexto, pelo qual a raiz foi lida). Tipo sem tenant (Identity, globais) → nulo.
+    /// </summary>
+    private Guid? TenantDe(EntityEntry entrada, List<EntityEntry> entradas)
+    {
+        if (entrada.Entity is Tenant tenant)
+            return tenant.Id;
+        if (entrada.Metadata.FindProperty(nameof(EntidadeBase.TenantId)) is { } propriedade)
+            return entrada.Property(propriedade.Name).CurrentValue as Guid?;
+        if (entrada.Metadata.FindOwnership() is not { } dono)
+            return null;
+
+        var chave = dono.Properties.Select(p => entrada.Property(p.Name).CurrentValue).ToArray();
+        var raiz = entradas.FirstOrDefault(e =>
+            e.Metadata == dono.PrincipalEntityType
+            && dono.PrincipalKey.Properties.Select(p => e.Property(p.Name).CurrentValue).SequenceEqual(chave));
+        return raiz is null ? _contexto.TenantId : TenantDe(raiz, entradas);
+    }
+
+    /// <summary>
+    /// Se o tenant está só leitura (VENCIDA ou CANCELADA), lido do banco e não do token, para a mudança valer na requisição
+    /// seguinte. Ignora o filtro de tenant porque a guarda olha o tenant da entidade gravada (ADR 0015, item 7): ponto
+    /// revisado de IgnoreQueryFilters (convenções §1). Tenant inexistente → falso.
+    /// </summary>
+    private IQueryable<bool> ConsultaSomenteLeitura(Guid tenant) =>
+        Tenants.IgnoreQueryFilters(FiltroTenant).AsNoTracking()
+            .Where(t => t.Id == tenant)
+            .Select(t => Domain.Enums.SituacaoEmpresaExtensions.SituacoesSomenteLeitura.Contains(t.Situacao));
+
+    private static void GarantirGravavel(bool somenteLeitura)
+    {
+        if (somenteLeitura)
+            throw new EmpresaSomenteLeituraException();
     }
 
     private static Guid? ClienteDe(EntidadeBase entidade) => entidade switch
