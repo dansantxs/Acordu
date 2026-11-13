@@ -1,0 +1,12 @@
+# Notas do analista (F14, etapa 2)
+
+Para o arquiteto, sem decisão tomada aqui.
+
+- O que já existe e a spec reaproveita: `Tenant` (sem situação nem documento), `ExpurgoCadastros` no diário (F9d, classificação das entidades, transação serializável, contas com rastro em outra empresa), Turnstile e limite por IP no registro (F9c), `Documento` no Domain (CPF/CNPJ com CNPJ alfanumérico, usado no Cliente), convites da equipe e do portal (token só em hash, 7 dias, uso único), empresa de demonstração do bot das capturas (`apps/web/ajuda/demonstracao.ts`, cria pela API).
+- Não existe: área de operação da Nebrys nem conta de operador (o F13 deixou a tela da Nebrys fora), landing pública, páginas de termos e privacidade, lista de espera.
+- Documentos que hoje contradizem o F14 e vão precisar mudar no PR de cada parte: segurança §4 ("Fora, por ora: lista de domínios descartáveis e período de teste atrelado a CNPJ"), segurança §6 (a política de privacidade já é citada para a transferência internacional), F9 §3 (fora de escopo do mesmo tema), contrato §2 (corpo do registro), deploy-ci §5 (passos novos do diário), modelo de domínio §4.11 (Tenant).
+- Retenção dos backups (14 dias, deploy-ci §8) entra no texto da política (F14-85): a empresa expurgada continua nos backups até 14 dias.
+- RF-AUT-07 e o expurgo novo (RF-EMP-03) convivem: empresa em TESTE não liberada e sem dados continua caindo no do F9 em 7 dias.
+- Devolução do /plano (13/11): cenários F14-97 a F14-111 acrescentados sem renumerar. Os dependentes de pergunta (F14-104, F14-105, F14-107, F14-108, F14-110, F14-111) saem no G2 se a recomendação não for aceita. As perguntas 16 a 19 da spec são os itens 1 a 4 do design §1.1, trazidos para a spec por serem de requisito; a pergunta 15 é a concorrência das ações da Nebrys. Se a pergunta 16 for aceita, a RF-AUT-09 da ERS ganha a exceção do cadastro abandonado (não mudei antes do G2).
+- Sugestão ao arquiteto: o design §1.1 pode passar a apontar para as perguntas 16 a 19 da spec, e a §3 precisa incluir F14-97 a F14-100 (F14b), F14-111 (F14c), F14-101 a F14-103 (F14i), F14-104 (F14h), F14-105 (F14l), F14-106 a F14-108 (F14j), F14-109 (F14n), F14-110 (F14p).
+- Permissão para dados de exemplo (F14-95) ficou `configuracao.gerenciar` por ser a do Dono para a empresa; ajustar se o design preferir outra.

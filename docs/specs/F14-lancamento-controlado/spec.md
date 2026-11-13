@@ -1,0 +1,218 @@
+# Spec — F14: situação da empresa e cadastro controlado
+
+O **quê** o marco entrega. O **como** fica em [design.md](design.md). Processo: `docs/processo.md` §3.2.
+
+| | |
+|---|---|
+| **Status** | Aprovada |
+| **Data** | 13/11/2026 |
+| **Requisitos** | RF-EMP-01 a RF-EMP-05, RF-AUT-08 a RF-AUT-11, RF-NEB-01, RF-NEB-02, RNF-PRIV-03 (novos, 13/11); RF-AUT-01, RF-AUT-06, RF-AUT-07, RNF-SEG-08, RNF-SEG-10, RNF-PRIV-01 (já existentes, tocados) |
+| **ADRs** | 0001, 0002, 0007, 0008, 0010, 0012; 0014 e 0015 (propostos no design) |
+| **Issue** | #182 |
+| **Design** | [design.md](design.md) |
+
+## 1. Objetivo
+
+Receber as primeiras empresas de verdade com controle: a Nebrys decide quem entra (convite ou lista de espera), cada empresa nasce num teste com prazo, e o fim do teste tem consequência clara (só leitura, avisos e expurgo), com termos de uso e política de privacidade aceitos no cadastro e uma empresa de demonstração para mostrar o produto.
+
+## 2. Cenários de aceite
+
+Termos usados nos cenários:
+
+- **Situação**: TESTE, ATIVA, VENCIDA ou CANCELADA (RF-EMP-01). A empresa de demonstração (RF-NEB-02) não entra nesse ciclo.
+- **Só leitura**: a empresa está VENCIDA ou CANCELADA (RF-EMP-02).
+- **Gravação da empresa**: qualquer ação que cria, muda ou apaga dado do tenant (cliente, contrato, solicitação, interação, tarefa, apontamento, cronômetro, recorrência, projeto, configuração, equipe, convite, acesso ao portal). Não são gravação da empresa: entrar, renovar a sessão, trocar de empresa, sair, mudar a própria senha e o próprio perfil, ler e marcar o sino, as próprias preferências de aviso, emitir e revogar o próprio link da agenda, seguir e deixar de seguir um item, marcar "ciente" de uma versão nova dos textos (F14-83) e "Sugerir melhoria" (vai à Nebrys). Aceitar um convite (equipe ou portal) cria vínculo na empresa: é gravação da empresa.
+- **Nebrys**: a pessoa da operação da Nebrys na área restrita (RF-NEB-01).
+- **Dependente da pergunta N**: o cenário só vale se o Daniel aceitar a recomendação da pergunta N da §4; se não, sai da spec no G2.
+- **Diário**: o `POST /internal/jobs/diario` que já existe (deploy-ci §5); **tick**: o `POST /internal/jobs/tick`.
+- Valores entre "pergunta N" (duração do teste, prazos, avisos e afins) seguem a recomendação da §4 e mudam se o Daniel decidir outra coisa no G2. O tipo de erro de cada recusa, os nomes de campo e as rotas ficam para o design.
+
+### Situação da empresa e vencimento (F14a; F14-10 a F14-12 no F14e)
+
+| Id | Dado | Quando | Então | Teste |
+|---|---|---|---|---|
+| F14-01 | um registro que passa em todas as conferências do cadastro | `POST /auth/registro` | a empresa nasce em TESTE, com fim do teste = data do cadastro + a duração do teste (pergunta 1) | — |
+| F14-02 | empresa em TESTE | qualquer pessoa dela lê `GET /auth/eu` | a resposta traz a situação e o fim do teste | — |
+| F14-03 | empresa em TESTE com o fim do teste já passado no instante do diário | roda o diário | ela passa a VENCIDA, com a data do vencimento gravada, e a resposta do diário conta as empresas vencidas | — |
+| F14-04 | empresa em TESTE com o fim do teste ainda por vir | roda o diário | continua em TESTE | — |
+| F14-05 | empresa que o diário já venceu | o diário roda de novo | nada muda nela e ela não é contada outra vez (idempotente) | — |
+| F14-06 | empresa ATIVA ou de demonstração, de qualquer idade | roda o diário | nunca vence | — |
+| F14-07 | empresa em TESTE com 30 pessoas na equipe | alguém com `usuario.convidar` convida mais uma | o convite sai normalmente: não há limite de pessoas no teste (decisão de 10/11) | — |
+| F14-08 | empresas que já existiam antes do F14 | a migration roda | ficam ATIVA, sem fim de teste | — |
+| F14-09 | uma empresa em TESTE vence no diário | o diário termina | as outras empresas não mudam de situação (isolamento entre tenants) | — |
+| F14-10 | empresa em TESTE com o fim do teste dentro da janela de aviso (pergunta 3) | qualquer tela interna abre | a casca mostra quantos dias faltam e como ativar (canal da pergunta 14) | — |
+| F14-11 | empresa ATIVA, ou em TESTE fora da janela de aviso | qualquer tela interna abre | nenhuma faixa de situação aparece | — |
+| F14-12 | empresa em qualquer situação | um Dono abre Configurações › Empresa | vê a situação e, em TESTE, o fim do teste; a tela não oferece trocar a situação | — |
+
+### Só leitura (F14b; F14-20, F14-21 e F14-97 a F14-99 no F14c; F14-22, F14-24 e F14-111 no F14d; F14-25 a F14-28 no F14e)
+
+| Id | Dado | Quando | Então | Teste |
+|---|---|---|---|---|
+| F14-13 | empresa VENCIDA | uma pessoa da equipe usa qualquer rota de leitura que o papel dela permite (listas, detalhes, extrato, agenda, panorama, auditoria, download de anexo) | responde como antes do vencimento | — |
+| F14-14 | empresa VENCIDA | uma pessoa com a permissão tenta uma gravação da empresa (ex.: criar solicitação, apontar horas, editar cliente) | recusada com erro próprio de empresa só leitura; nada é gravado | — |
+| F14-15 | empresa CANCELADA | uma pessoa com a permissão tenta uma gravação da empresa | a mesma recusa do F14-14 | — |
+| F14-16 | empresa VENCIDA | uma pessoa **sem** a permissão tenta a gravação | `403 sem-permissao`: a permissão é conferida antes da situação | — |
+| F14-17 | empresa VENCIDA | uma pessoa com `usuario.convidar` ou `portal.gerenciar_acessos` convida alguém ou emite link de acesso | recusado como gravação da empresa; nenhum e-mail sai | — |
+| F14-18 | empresa VENCIDA | uma pessoa da equipe entra, renova a sessão, troca de empresa, sai, muda a própria senha ou marca um aviso do sino como lido | segue funcionando (não é gravação da empresa) | — |
+| F14-19 | empresa VENCIDA | uma pessoa da equipe envia "Sugerir melhoria" | a sugestão é aceita e avisada à Nebrys como hoje (pergunta 10) | — |
+| F14-20 | empresa VENCIDA | um contato com conta no portal, ou com link de acesso, lê as solicitações e o extrato a que tem direito | responde como antes, só com o cliente dele (isolamento por cliente segue) | — |
+| F14-21 | empresa VENCIDA | um contato (conta ou link) tenta abrir solicitação, responder, anexar, aprovar ou reprovar | recusado sem gravar; a mensagem é neutra e não diz que a empresa venceu (pergunta 10) | — |
+| F14-22 | empresa só leitura (VENCIDA ou CANCELADA) com recorrência devida, solicitação com SLA em risco, solicitação RESOLVIDA no prazo de fechamento e mensagem na outbox | rodam o tick e o diário | nada é gerado, fechado nem enviado para ela; as mesmas situações nas outras empresas seguem normalmente | — |
+| F14-23 | pessoa com vínculo na empresa A (VENCIDA) e na B (em TESTE ou ATIVA) | troca para B e grava | grava normalmente; a situação de A não vale em B (isolamento entre tenants) | — |
+| F14-24 | empresa que ficou só leitura por um período e voltou a poder gravar (ATIVA, ou TESTE com novo fim, seja por ativação, reativação ou prorrogação) | a equipe grava e o tick roda | tudo volta a funcionar; recorrências não geram as ocorrências cujas datas passaram enquanto ela estava só leitura | — |
+| F14-111 | empresa que voltou a poder gravar, com solicitações abertas cujo prazo de SLA passou enquanto ela estava só leitura (dependente da pergunta 19) | roda o primeiro tick depois da volta | as solicitações aparecem violadas e os alertas de SLA saem: o relógio não pausou no só leitura | — |
+| F14-25 | empresa só leitura | qualquer tela interna abre | a casca explica que a empresa está só leitura desde a data, até quando os dados ficam (data do expurgo) e como ativar | — |
+| F14-26 | empresa só leitura | as telas com ações de gravar abrem (ex.: nova solicitação, apontar, cronômetro, convidar) | as ações aparecem indisponíveis, com a explicação ligada a elas | — |
+| F14-27 | empresa só leitura e uma recusa de só leitura chega mesmo assim (ex.: a situação mudou com a tela aberta) | a resposta chega | a mensagem da API aparece, sem quebrar a tela | — |
+| F14-28 | portal de empresa só leitura | o contato abre a lista e o detalhe | vê o que já via; nova solicitação, responder e aprovar aparecem indisponíveis com a mensagem neutra do F14-21 | — |
+| F14-97 | convite da equipe emitido antes de a empresa ficar só leitura, ainda válido | a pessoa abre o link e aceita | recusado com a explicação de empresa só leitura; nenhum vínculo é criado e o convite continua pendente até a validade dele | — |
+| F14-98 | convite do portal emitido antes de a empresa ficar só leitura, ainda válido | o contato abre o link e aceita | recusado com a mensagem neutra do F14-21; nenhum vínculo é criado e o convite continua pendente até a validade dele | — |
+| F14-99 | link de acesso emitido antes de a empresa ficar só leitura, ainda válido | o contato abre o link | entra e lê a solicitação como no F14-20; as gravações são recusadas como no F14-21 | — |
+| F14-100 | empresa só leitura | uma pessoa da equipe muda as próprias preferências de aviso, emite ou revoga o próprio link da agenda, ou segue ou deixa de seguir uma solicitação ou tarefa | segue funcionando (é da pessoa, não gravação da empresa) | — |
+
+### Expurgo e avisos (F14i; F14-39 a F14-43 e F14-101 a F14-103 no F14j)
+
+| Id | Dado | Quando | Então | Teste |
+|---|---|---|---|---|
+| F14-29 | empresa VENCIDA ou CANCELADA há o prazo do expurgo (pergunta 2) ou mais no instante do diário | roda o diário | a empresa e tudo dela são apagados (dados, anexos e logotipo no storage, vínculos, sessões, convites, acessos ao portal), com as contas que só tinham vínculo nela; a resposta do diário conta as empresas expurgadas | — |
+| F14-30 | empresa VENCIDA ou CANCELADA com menos que o prazo | roda o diário | nada é apagado | — |
+| F14-31 | empresa em TESTE, ATIVA ou de demonstração, de qualquer idade | roda o diário | este passo nunca a apaga (o expurgo de cadastro abandonado do RF-AUT-07 segue como está) | — |
+| F14-32 | pessoa da empresa expurgada com vínculo, sessão ou contato em outra empresa | o expurgo roda | a conta e o vínculo na outra empresa ficam; saem só os desta | — |
+| F14-33 | sessão aberta na empresa expurgada | o navegador renova a sessão ou chama `GET /auth/eu` com o access token ainda válido | `401` | — |
+| F14-34 | uma empresa expurgável e outras com dados | roda o diário | só a expurgável muda; dados, auditoria, anexos e usuários das outras ficam intactos (isolamento) | — |
+| F14-35 | o diário já expurgou | roda de novo | nada mais é apagado (idempotente) | — |
+| F14-36 | o expurgo de uma empresa falha | roda o diário | a falha é logada e conta em `falhas`; as demais empresas e os outros passos do diário seguem | — |
+| F14-37 | empresa expurgada que tinha CPF/CNPJ | o expurgo termina | fica só o registro de que aquele documento já teve teste (pergunta 8), sem nome, e-mail nem outro dado da empresa | — |
+| F14-38 | sugestões enviadas por pessoas da empresa expurgada | o expurgo roda | as sugestões perdem a referência à empresa e à pessoa, como no expurgo do F9 | — |
+| F14-39 | empresa em TESTE no dia de um aviso antes do vencimento (pergunta 3) | roda o diário | cada Dono recebe um e-mail com o fim do teste e como ativar | — |
+| F14-40 | o aviso do F14-39 já saiu | o diário roda de novo no mesmo dia ou no seguinte | o mesmo aviso não sai de novo | — |
+| F14-41 | empresa que venceu no diário | o diário termina | cada Dono recebe um e-mail dizendo que a empresa ficou só leitura, a data do expurgo e como ativar | — |
+| F14-42 | empresa VENCIDA ou CANCELADA no dia do aviso antes do expurgo (pergunta 3) | roda o diário | cada Dono recebe um e-mail com a data do expurgo | — |
+| F14-43 | empresa em TESTE ainda não liberada (criador sem e-mail confirmado, RF-AUT-06) | um aviso dos F14-39 a F14-42 sai | só o criador recebe (é o único Dono possível) | — |
+| F14-101 | empresa em TESTE que já recebeu um aviso antes do vencimento e teve o teste prorrogado | o diário chega ao momento do mesmo aviso para o novo fim | o aviso sai de novo, com a nova data | — |
+| F14-102 | empresa em TESTE cujo momento do aviso de 7 dias passou sem ele sair (prorrogada para menos de 7 dias à frente, ou diário que não rodou) | roda o diário | sai um aviso só, com os dias que de fato faltam; nenhum e-mail diz "faltam 7 dias" fora de hora | — |
+| F14-103 | empresa em TESTE com dois avisos devidos no mesmo diário (ex.: prorrogada para o dia seguinte) | roda o diário | sai só o aviso mais próximo do fim (o de 1 dia); o outro não sai depois | — |
+| F14-104 | empresa expurgada como cadastro abandonado (RF-AUT-07, sem confirmação em 7 dias) que tinha CPF/CNPJ (dependente da pergunta 16) | um registro novo chega com o mesmo documento | `201`: o registro do documento saiu no expurgo, porque o teste nunca foi usado | — |
+
+### Cadastro controlado: convite e lista de espera (F14n; F14-52 a F14-55 no F14o; F14-50 no F14p; F14-44 e F14-46 no F14q)
+
+| Id | Dado | Quando | Então | Teste |
+|---|---|---|---|---|
+| F14-44 | cadastro no modo convite (pergunta 6) | alguém abre a tela de cadastro sem convite | vê o formulário da lista de espera no lugar do cadastro, com o motivo | — |
+| F14-45 | modo convite | `POST /auth/registro` sem convite, ou com convite inexistente, vencido, já usado ou revogado | recusado sem criar nada | — |
+| F14-46 | modo convite, convite válido para um e-mail | a pessoa abre o link do convite | a tela de cadastro abre com o e-mail do convite, sem poder trocá-lo (pergunta 7) | — |
+| F14-47 | convite válido | o registro chega com o convite e o e-mail dele | `201`; a empresa nasce em TESTE e o convite fica usado | — |
+| F14-48 | convite já usado no F14-47 | outro registro chega com ele | recusado sem criar nada | — |
+| F14-49 | convite válido | o registro chega com outro e-mail (pergunta 7) | recusado sem criar nada; o convite continua válido | — |
+| F14-50 | cadastro no modo aberto | o registro chega sem convite | `201`, como hoje, com as regras do F14 (documento, e-mail, aceite) | — |
+| F14-51 | qualquer modo | o registro chega (com ou sem convite) | o Turnstile e o limite de cadastros por IP continuam valendo (RNF-SEG-10) | — |
+| F14-52 | lista de espera aberta | alguém envia os campos da lista (pergunta 5) com o Turnstile aprovado | a entrada é gravada fora dos tenants, com a data, e a tela confirma | — |
+| F14-53 | e-mail que já está na lista de espera | alguém envia de novo com ele | não duplica a entrada; a resposta é igual à do F14-52 (não revela quem está na lista) | — |
+| F14-54 | um IP que passou do limite de envios da lista de espera, ou um envio sem Turnstile aprovado | envia | recusado como no cadastro (RNF-SEG-08, RNF-SEG-10) | — |
+| F14-55 | lista de espera | um campo obrigatório falta ou o e-mail é inválido | `400` com o campo; nada gravado | — |
+| F14-105 | convite de empresa válido para um e-mail que já tem conta no Acordu (dependente da pergunta 18) | o registro chega com o convite e esse e-mail | `400` no e-mail, como o cadastro já faz com e-mail em uso; o convite continua válido | — |
+
+### Documento e e-mail no cadastro (F14g; F14-60 no F14p)
+
+| Id | Dado | Quando | Então | Teste |
+|---|---|---|---|---|
+| F14-56 | cadastro | o registro chega sem CPF/CNPJ, ou com dígitos verificadores errados | `400` no campo do documento; nada criado | — |
+| F14-57 | um CPF/CNPJ que já teve teste em outra empresa, existente ou expurgada | o registro chega com ele | recusado com a orientação de falar com a Nebrys (pergunta 14); nada criado | — |
+| F14-58 | o mesmo documento escrito de jeitos diferentes (com e sem pontuação, CNPJ alfanumérico em minúsculas) | o segundo registro chega | é recusado como no F14-57: a comparação é pelo documento normalizado | — |
+| F14-59 | documento que já teve teste e tem uma liberação para novo teste ainda não usada | o registro chega com ele | `201`; a liberação fica usada e vale para um cadastro só | — |
+| F14-60 | e-mail de domínio descartável | chega no registro ou na lista de espera | `400` no campo do e-mail; nada gravado | — |
+
+### Área da Nebrys (F14k; F14-65 a F14-69, F14-71 e F14-106 a F14-108 no F14l; F14-64 no F14m; F14-72 a F14-74 no F14n; F14-75 a F14-77 no F14o; F14-70 no F14p)
+
+| Id | Dado | Quando | Então | Teste |
+|---|---|---|---|---|
+| F14-61 | a Nebrys na área | abre a lista de empresas | vê nome, CPF/CNPJ, situação, criada em, fim do teste ou data do vencimento ou cancelamento, data prevista do expurgo, criador (nome e e-mail) e número de pessoas da equipe; filtra por situação | — |
+| F14-62 | a Nebrys na área | abre uma empresa | não vê nem consegue pedir clientes, contatos, solicitações, tarefas, horas, contratos ou anexos dela (RNF-PRIV-01) | — |
+| F14-63 | usuário de qualquer empresa (inclusive Dono), contato do portal, sessão de link ou ninguém logado | chama qualquer rota da área da Nebrys | `404`, sem revelar que a rota existe | — |
+| F14-64 | usuário de empresa | abre o endereço da área no SPA | não vê a área (cai na tela de "não encontrado" ou na entrada) | — |
+| F14-65 | empresa em TESTE ou VENCIDA | a Nebrys ativa | fica ATIVA, sem fim de teste; as gravações voltam na requisição seguinte | — |
+| F14-66 | empresa em TESTE ou VENCIDA | a Nebrys prorroga o teste para uma data futura | fica (ou volta a ficar) em TESTE com o novo fim | — |
+| F14-67 | empresa em qualquer situação, exceto já CANCELADA | a Nebrys cancela | fica CANCELADA (só leitura), com a data do cancelamento e o expurgo previsto | — |
+| F14-68 | empresa CANCELADA ainda não expurgada | a Nebrys reativa | fica ATIVA | — |
+| F14-69 | transição que não vale para a situação atual (prorrogar para data passada, ativar empresa já ATIVA, cancelar empresa já CANCELADA, qualquer transição na empresa de demonstração) | a Nebrys tenta | `422` de transição inválida, com a explicação; nada muda | — |
+| F14-70 | qualquer ação da Nebrys (situação, convite, lista de espera, liberação de documento) | é feita | fica registrada com quem, quando, a empresa ou o e-mail afetado e o antes e depois | — |
+| F14-71 | um CPF/CNPJ que já teve teste | a Nebrys libera o documento | um novo cadastro com ele passa (F14-59); a liberação fica registrada | — |
+| F14-72 | a Nebrys na área (pergunta 4) | emite um convite de empresa para um e-mail | o e-mail sai com o link de cadastro; o convite fica pendente, com validade (pergunta 7) | — |
+| F14-73 | convite de empresa pendente | a Nebrys reenvia | sai um link novo e o anterior para de valer | — |
+| F14-74 | convite de empresa pendente | a Nebrys revoga | o link para de valer (F14-45) | — |
+| F14-75 | a Nebrys na área | abre a lista de espera | vê as entradas por ordem de chegada, com a situação de cada uma (aguardando, convidada) | — |
+| F14-76 | entrada da lista de espera aguardando | a Nebrys convida a partir dela (pergunta 5) | um convite de empresa sai para o e-mail da entrada, que fica marcada como convidada | — |
+| F14-77 | entrada da lista de espera | a Nebrys descarta | a entrada é apagada (não fica guardada sem motivo) | — |
+| F14-106 | empresa que já foi expurgada | a Nebrys tenta abrir ou agir sobre ela (ativar, prorrogar, cancelar, reativar) | `404`; nada muda | — |
+| F14-107 | a Nebrys leu a empresa numa situação e, antes de agir, o diário ou outra ação a mudou (dependente da pergunta 15) | a Nebrys ativa, prorroga, cancela ou reativa com a versão que leu | `409` de versão divergente; nada muda e a área recarrega a empresa | — |
+| F14-108 | documento de uma empresa já expurgada, do qual só ficou o registro de que teve teste (dependente da pergunta 8) | a Nebrys digita o documento na área e libera | a liberação vale como no F14-71, sem que a área guarde o documento em claro | — |
+
+### Termos de uso e política de privacidade (F14f; F14-79 a F14-83 no F14h; F14-109 no F14q)
+
+| Id | Dado | Quando | Então | Teste |
+|---|---|---|---|---|
+| F14-78 | ninguém logado | abre a página da política de privacidade ou a dos termos de uso | a página abre, com a versão e a data de vigência | — |
+| F14-79 | tela de cadastro (com convite ou aberto) | abre | tem os links para as duas páginas e a caixa de aceite, desmarcada, obrigatória para enviar | — |
+| F14-80 | cadastro | o registro chega sem o aceite | `400` no campo do aceite; nada criado | — |
+| F14-81 | cadastro | o registro chega com o aceite | a conta guarda a versão de cada texto aceito e a data | — |
+| F14-82 | pessoa que aceita convite da equipe (conta nova, ou existente que não aceitou a versão vigente) | abre a tela do aceite e aceita | a tela tem os links para as duas páginas junto da caixa de aceite, obrigatória; o aceite é registrado como no F14-81 (pergunta 12) | — |
+| F14-83 | nova versão de um dos textos publicada | uma pessoa da equipe que aceitou a anterior entra | vê um aviso com o link até marcar "ciente", que registra a versão nova e a data; o uso não é bloqueado (pergunta 12) | — |
+| F14-84 | telas de entrar, de aceite de convite do portal e do portal | abrem | têm o link para a política de privacidade (e, onde cabe, para os termos), sem pedir aceite | — |
+| F14-109 | tela da lista de espera | abre | tem o link para a política de privacidade, sem pedir aceite | — |
+| F14-85 | texto da política de privacidade | é revisado | informa o Acordu como operador e o prestador como controlador dos dados dos clientes dele, a Nebrys como controladora dos dados de cadastro, a hospedagem nos EUA e a transferência internacional (LGPD), a retenção (expurgos do F9 e do F14 e backups de 14 dias), os direitos do titular e o canal (pergunta 14) | manual: revisão do Daniel, de preferência com advogado, antes do merge do PR que publica o texto |
+| F14-86 | texto dos termos de uso | é revisado | descreve o teste, a situação só leitura, o expurgo e seus prazos, o cancelamento, a disponibilidade sem garantia (*best-effort*, ERS 1.3.4) e as responsabilidades de cada parte | manual: revisão do Daniel, de preferência com advogado, antes do merge do PR que publica o texto |
+
+### Empresa de demonstração e dados de exemplo (F14s; F14-91 a F14-96 no F14r)
+
+| Id | Dado | Quando | Então | Teste |
+|---|---|---|---|---|
+| F14-87 | a Nebrys na área | cria a empresa de demonstração | ela nasce com os dados fictícios de demonstração (os mesmos do manual) e fora do ciclo de situação | — |
+| F14-88 | empresa de demonstração usada (dados mudados) | a Nebrys restaura | os dados voltam ao estado inicial; nenhuma outra empresa é tocada | — |
+| F14-89 | empresa de demonstração | uma ação que mandaria e-mail a contato, convite ou aviso | nada sai para fora do Acordu | — |
+| F14-90 | pessoa que a Nebrys indicou para a demonstração (pergunta 11) | entra no Acordu | vê a empresa de demonstração como Dona; quem não foi indicado não a vê | — |
+| F14-110 | a Nebrys indica para a demonstração um e-mail sem conta no Acordu (dependente da pergunta 17) | confirma a indicação | recusada com a explicação; nada é criado e nenhum e-mail sai | — |
+| F14-91 | empresa em TESTE sem nenhum dado | um Dono abre a tela Hoje | é oferecido carregar os dados de exemplo | — |
+| F14-92 | a mesma empresa | o Dono carrega os dados de exemplo | clientes, contatos, contratos, solicitações, tarefas e horas fictícios aparecem, marcados como exemplo; nenhum e-mail sai | — |
+| F14-93 | empresa com dados próprios | um Dono abre a tela Hoje ou pede direto para carregar os exemplos | a opção não aparece; o pedido direto é recusado com `422` e a explicação, sem carregar nada | — |
+| F14-94 | empresa com dados de exemplo | um Dono apaga os dados de exemplo | saem os dados de exemplo e o que a equipe criou dentro deles (pergunta 11); o resto fica | — |
+| F14-95 | pessoa sem `configuracao.gerenciar` (ou contato) | pede para carregar ou apagar os dados de exemplo | `403` | — |
+| F14-96 | dados de exemplo na empresa A | a equipe da empresa B usa o sistema | nada dos exemplos de A aparece em B (isolamento entre tenants) | — |
+
+## 3. Fora de escopo
+
+- Cobrança, planos, preço e pagamento (estratégia §9 ainda é hipótese; faturamento é v3 na ERS). A ativação é manual, pela área da Nebrys (F14-65).
+- Limite de pessoas, clientes ou uso durante o teste (decisão de 10/11: sem limite de pessoas).
+- Encerramento da conta pelo próprio Dono e exportação dos dados por ele (RNF-PRIV-01 continua "sob solicitação", atendida à mão; a empresa só leitura consulta tudo). Ver pergunta 9.
+- Segundo fator de autenticação na área da Nebrys. A área não mostra dado de negócio e toda ação é registrada (F14-62, F14-70); o tema volta com mais gente na operação.
+- Página inicial de divulgação (site do produto). O F14 cobre só as páginas públicas de termos e privacidade e o formulário da lista de espera.
+- Aviso à Nebrys (Discord) a cada entrada nova na lista de espera: a Nebrys vê na área. Pode virar melhoria.
+- Mudanças no expurgo de cadastro abandonado (RF-AUT-07): continua como está, ao lado do novo.
+- Tela da Nebrys para sugestões e erros (fora desde o F13).
+- Indicação de empresas por clientes do Acordu, se a pergunta 4 ficar na recomendação.
+- Demonstração aberta a qualquer visitante sem conta, se a pergunta 11 ficar na recomendação.
+
+## 4. Perguntas em aberto (o Daniel decide no G2)
+
+Valores e regras de negócio que a ERS deixa para cá. Os cenários seguem a recomendação.
+
+1. **Duração do teste.** Recomendo **30 dias** corridos a partir do cadastro: o prestador atravessa um fechamento de mês, que é quando o contrato mensal e o extrato mostram valor. 14 dias é o comum em SaaS, mas curto para quem só sente o produto no fim do mês.
+2. **Prazo entre vencimento (ou cancelamento) e expurgo.** Recomendo **60 dias**: dá tempo de a empresa voltar sem perder nada e mantém pouco dado guardado sem uso (LGPD, minimização). Opções: 30 dias (mais enxuto) ou 90 dias.
+3. **Avisos.** Recomendo: faixa na casca nos **últimos 7 dias** do teste; e-mail aos Donos **7 dias e 1 dia antes** do fim do teste, **no vencimento** e **7 dias antes do expurgo**. Opção mais enxuta: só o e-mail de 7 dias antes e o do vencimento.
+4. **Quem cria convite de empresa.** Recomendo **só a Nebrys**, pela área: é o controle de quem entra. Opção: Donos de empresas ATIVA também indicam (convite de indicação), que fica para depois.
+5. **Lista de espera: campos e como vira convite.** Recomendo os campos **nome, e-mail, nome da empresa e uma mensagem opcional** ("o que você quer resolver"), e a conversão **manual**: a Nebrys escolhe a entrada e convida (F14-76). Opção: convidar automaticamente os N primeiros por semana, que tira o controle que o marco quer dar.
+6. **Modo do cadastro no lançamento.** Recomendo começar **por convite** (com a lista de espera) e abrir depois por configuração, sem mudar código. Opção: começar aberto, com as demais travas (documento, e-mail, Turnstile).
+7. **Convite de empresa.** Recomendo **validade de 7 dias**, como os convites da equipe e do portal, e **e-mail do cadastro igual ao do convite** (F14-46, F14-49): o link não passa adiante. Opções: validade maior (14 ou 30 dias, para quem demora a responder); e-mail livre no cadastro.
+8. **Documento depois do expurgo** (F14-37, F14-108). Para valer "um teste por documento" mesmo depois do expurgo, algo do documento precisa ficar. Recomendo guardar **só um hash do documento normalizado**, fora dos tenants, com a data do teste (F14-37): não identifica ninguém sozinho e cumpre a regra. Opções: guardar o documento em claro (mais simples de consultar na área, mas é CPF de pessoa física guardado depois do fim da relação); não guardar nada (a regra só vale entre empresas que ainda existem). A exceção é a liberação pela Nebrys (F14-71).
+9. **Cancelamento.** Recomendo que **só a Nebrys** cancele no F14 (o Dono pede pelo canal da pergunta 14), e que CANCELADA siga as mesmas regras de VENCIDA (só leitura e o mesmo prazo de expurgo). Opção: botão "encerrar conta" para o Dono, com confirmação, que fica para um marco próprio.
+10. **O que segue numa empresa só leitura.** Recomendo: leitura total para equipe e portal; o que é da pessoa segue (conta, sino, preferências de aviso, link da agenda, seguir, "ciente" dos textos, "Sugerir melhoria"; F14-18, F14-19, F14-100), e aceitar convite antigo não (F14-97, F14-98); nenhum e-mail sai; jobs param; ao reativar, sem geração retroativa (F14-13 a F14-24). No portal, mensagem **neutra** ("No momento não é possível enviar por aqui; fale com {nome do prestador}"), para não expor a situação comercial do prestador ao cliente dele. Opção: o portal fica fora do ar inteiro para a empresa só leitura.
+11. **Demonstração e dados de exemplo.** Recomendo as duas coisas, nesta forma:
+    - **Empresa de demonstração** criada e restaurada pela Nebrys com os mesmos dados fictícios das capturas do manual, em que **entra quem a Nebrys indicar** (o Daniel, para mostrar a pessoas), como Dono (F14-90). Opções: acesso aberto a qualquer visitante, só leitura, por um botão "ver demonstração" (mais alcance, mais superfície de abuso); ou uma empresa de demonstração descartável por visitante (mais convincente, mais custo e conflita com as travas do cadastro).
+    - **Dados de exemplo** opcionais na empresa em teste vazia, apagáveis depois. Ao apagar, saem também os registros que a equipe criou dentro de um dado de exemplo (ex.: tarefa num cliente de exemplo), para não sobrar órfão. Opção: só permitir apagar enquanto não houver nada da equipe ligado aos exemplos.
+12. **Aceite dos textos.** Recomendo: aceite obrigatório no cadastro e no aceite de convite da equipe; nova versão pede "ciente" no próximo acesso, **sem bloquear** o uso (F14-83); contatos do portal e lista de espera só com o link (a relação do contato é com o prestador, que é o controlador). Opção: nova versão bloqueia até o aceite (mais forte juridicamente, mais atrito; caberia em mudança relevante, a critério do advogado).
+13. **Empresas anteriores ao F14.** Recomendo que fiquem ATIVA (F14-08): hoje são só as de teste do Daniel, e a produção ainda não tem cliente.
+14. **Canal para falar com a Nebrys** (ativar, cancelar, liberar documento, direitos do titular). Recomendo **um e-mail único** do domínio (ex.: `contato@acordu.app.br`, redirecionado para o Daniel), citado nas faixas, nos e-mails de aviso, na recusa do documento e na política. O endereço exato é do Daniel.
+15. **Ações da Nebrys concorrentes com o diário** (F14-107). A Nebrys pode agir sobre uma situação que o diário, ou outra ação, acabou de mudar: por exemplo, prorrogar uma empresa que venceu no meio-tempo. Recomendo **`If-Match` com a versão da empresa e `409` em divergência**, como o contrato já faz nas transições (§1, concorrência otimista): a Nebrys vê o estado novo e decide de novo. Opção: "a última grava", com `422` de transição inválida só quando a transição não vale no estado novo; mais simples, mas uma prorrogação pensada para uma empresa em TESTE passa sem aviso numa que já venceu.
+16. **Documento do cadastro abandonado** (F14-104). A RF-AUT-09 diz "mesmo depois do expurgo", sem exceção: quem errou o e-mail, não confirmou e foi expurgado em 7 dias (RF-AUT-07) fica sem teste até falar com a Nebrys. Recomendo que o expurgo do RF-AUT-07 **apague** o registro do documento, porque o teste nunca foi usado; aceito, a RF-AUT-09 ganha essa exceção. Opção: deixar como está.
+17. **Pessoa indicada para a demonstração sem conta** (F14-110). A demonstração não envia e-mail (F14-89), então não há convite. Recomendo aceitar só e-mail de conta existente no F14. Opção: a área cria a conta e mostra uma senha provisória à Nebrys.
+18. **Convite de empresa para e-mail que já tem conta** (F14-105). Hoje o cadastro recusa e-mail em uso, e não há "criar empresa com a conta que já existe". Recomendo deixar assim no F14 (a Nebrys convida outro e-mail) e abrir uma melhoria. Opção: o cadastro com convite aceita a conta existente conferindo a senha, como o aceite de convite da equipe, com cenários próprios.
+19. **SLA durante o só leitura** (F14-111). Os prazos continuam correndo; na volta, solicitações abertas podem aparecer violadas de uma vez. Recomendo aceitar: o prazo mostra o que aconteceu, e pausar mudaria a regra do SLA (ADR 0003). Opção: pausar o relógio das solicitações abertas enquanto a empresa está só leitura.
