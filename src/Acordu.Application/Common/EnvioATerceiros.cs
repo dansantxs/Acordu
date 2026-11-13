@@ -5,7 +5,8 @@ using Acordu.Domain.Entities;
 namespace Acordu.Application.Common;
 
 /// <summary>
-/// Barreira do envio a terceiros (RF-AUT-06, F9): convites e links só saem de empresa liberada. A permissão de quem age
+/// Barreira do envio a terceiros (RF-AUT-06, F9): convites e links só saem de empresa liberada; avisos automáticos, só
+/// de empresa liberada e fora do só leitura (RF-EMP-02, F14d). A permissão de quem age
 /// é conferida antes (sem ela, 403); nos casos de uso, esta checagem vem depois da carga do alvo (inexistente, 404) e
 /// antes das regras de negócio.
 /// </summary>
@@ -43,6 +44,13 @@ public sealed class EnvioATerceiros
     public async Task<bool> PodeAvisarAsync(string categoria, Guid? usuarioId, CancellationToken cancellationToken = default)
     {
         var tenant = await TenantAsync(cancellationToken);
+        // Empresa só leitura não envia nada (RF-EMP-02, ADR 0015, item 5): vale o estado atual, sem envio retroativo.
+        if (tenant.SomenteLeitura)
+        {
+            _bloqueados.Registrar(categoria);
+            return false;
+        }
+
         // Fora da outbox (jobs que avaliam no momento) não há instante do evento: vale o estado atual.
         var liberadaNoEvento = tenant.EnvioLiberadoEm is { } liberadaEm
             && (_origem.OcorridoEm is not { } ocorridoEm || ocorridoEm >= liberadaEm);

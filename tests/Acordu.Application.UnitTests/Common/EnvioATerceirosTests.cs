@@ -61,6 +61,32 @@ public sealed class EnvioATerceirosTests
         (await envio.PodeAvisarAsync("aviso-consumo", Criador)).Should().BeFalse();
     }
 
+    [Theory]
+    [InlineData("Vencida")]
+    [InlineData("Cancelada")]
+    public async Task PodeAvisar_EmpresaSoLeitura_DescartaERegistraMesmoParaOCriador(string situacao) // F14-22
+    {
+        var tenant = Liberada(Criacao);
+        typeof(Tenant).GetProperty(nameof(Tenant.Situacao))!.SetValue(tenant, Enum.Parse<Domain.Enums.SituacaoEmpresa>(situacao));
+        var (envio, bloqueados) = Montar(tenant, ocorridoEm: Criacao.AddHours(1));
+
+        (await envio.PodeAvisarAsync("aviso-recebida", null)).Should().BeFalse();
+        (await envio.PodeAvisarAsync("aviso-consumo", Criador)).Should().BeFalse();
+        bloqueados.Categorias.Should().Equal("aviso-recebida", "aviso-consumo");
+    }
+
+    [Theory]
+    [InlineData("Teste")]
+    [InlineData("Ativa")]
+    public async Task PodeAvisar_EmpresaGravavelLiberada_Permite(string situacao) // F14-22 (as outras seguem)
+    {
+        var tenant = Liberada(Criacao);
+        typeof(Tenant).GetProperty(nameof(Tenant.Situacao))!.SetValue(tenant, Enum.Parse<Domain.Enums.SituacaoEmpresa>(situacao));
+        var (envio, _) = Montar(tenant, ocorridoEm: Criacao.AddHours(1));
+
+        (await envio.PodeAvisarAsync("aviso-recebida", null)).Should().BeTrue();
+    }
+
     [Fact]
     public async Task GarantirLiberado_NaoLiberada_Recusa()
     {

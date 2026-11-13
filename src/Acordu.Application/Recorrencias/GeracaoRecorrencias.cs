@@ -19,6 +19,7 @@ public sealed class GeracaoRecorrencias
     private readonly IMembrosDaEquipe _equipe;
     private readonly RelogioDoTenant _relogio;
     private readonly IUnitOfWork _unidade;
+    private readonly ITenantAtual _tenant;
 
     public GeracaoRecorrencias(
         IConsultasRecorrencia consultas,
@@ -27,8 +28,11 @@ public sealed class GeracaoRecorrencias
         IRepositorio<Cliente> clientes,
         IMembrosDaEquipe equipe,
         RelogioDoTenant relogio,
-        IUnitOfWork unidade)
+        IUnitOfWork unidade,
+        ITenantAtual tenant)
     {
+        ArgumentNullException.ThrowIfNull(tenant);
+        _tenant = tenant;
         ArgumentNullException.ThrowIfNull(consultas);
         ArgumentNullException.ThrowIfNull(recorrencias);
         ArgumentNullException.ThrowIfNull(tarefas);
@@ -51,6 +55,10 @@ public sealed class GeracaoRecorrencias
         var hoje = await _relogio.HojeAsync(cancellationToken);
         var clientesAtivos = new Dictionary<Guid, bool>();
         var geradas = 0;
+        // Volta do só leitura (F14-24): as datas anteriores ao dia da volta passam sem gerar, como as de cliente inativo.
+        DateOnly? gravavelDesde = (await _tenant.ObterAsync(cancellationToken)).GravavelDesde is { } volta
+            ? await _relogio.DiaAsync(volta, cancellationToken)
+            : null;
 
         foreach (var id in await _consultas.DevidasAsync(hoje, cancellationToken))
         {
@@ -60,6 +68,8 @@ public sealed class GeracaoRecorrencias
             var datas = recorrencia.GerarDevidas(hoje);
             if (datas.Count == 0)
                 continue;
+            if (gravavelDesde is { } desde)
+                datas = [.. datas.Where(d => d >= desde)];
 
             // Cliente inativo: as datas passam sem gerar e sem acumular (reativar não traz tarefas atrasadas).
             if (await ClienteAtivoAsync(recorrencia.ClienteId, clientesAtivos, cancellationToken))
