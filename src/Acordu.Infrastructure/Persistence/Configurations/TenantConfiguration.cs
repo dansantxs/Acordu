@@ -26,6 +26,12 @@ internal sealed class TenantConfiguration : IEntityTypeConfiguration<Tenant>
         // Sem FK para o usuário: a identidade fica fora do domínio, e o expurgo (F9d) apaga os dois juntos.
         builder.Property(t => t.CriadoPorUsuarioId);
         builder.Property(t => t.EnvioLiberadoEm);
+        // Situação da empresa (F14a, modelo §4.11.3). A data do expurgo é calculada, não gravada.
+        builder.Property(t => t.Situacao).IsRequired();
+        builder.Property(t => t.FimDoTeste);
+        builder.Property(t => t.SomenteLeituraDesde);
+        builder.Property(t => t.CanceladaEm);
+        builder.Ignore(t => t.SomenteLeitura);
         builder.Property<uint>(ConfiguracaoRaiz.Versao)
             .IsRowVersion()
             .HasColumnName("xmin")
