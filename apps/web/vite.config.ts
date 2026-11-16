@@ -22,7 +22,8 @@ export default defineConfig({
         setupFiles: ['./src/testes/preparar.ts'],
         css: false,
         // O canal da Nebrys do build de produção (D15 do F14), para os testes conferirem as faixas com ele.
-        env: { VITE_CONTATO_NEBRYS: 'contato@acordu.app.br' },
+        // Os textos legais publicados (F14f), para os testes de F14-78 e F14-84; escondidos, em legalEscondido.test.tsx.
+        env: { VITE_CONTATO_NEBRYS: 'contato@acordu.app.br', VITE_TEXTOS_LEGAIS_PUBLICADOS: 'true' },
         // Acima do tempo de espera do Testing Library (5 s, testes/preparar.ts), para a falha mostrar o que faltou.
         testTimeout: 15_000,
     },
