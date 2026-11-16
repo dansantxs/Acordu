@@ -48,3 +48,12 @@ export function versaoDoBuild(valor: string | undefined): string | undefined {
 }
 
 export const VERSAO = versaoDoBuild(import.meta.env.VITE_VERSAO)
+
+/**
+ * Canal da Nebrys para ativar, cancelar e falar sobre a conta (`VITE_CONTATO_NEBRYS`; decisão 14 do G2 e D15 do F14):
+ * em produção, a variável `CONTATO_NEBRYS` do GitHub. Sem ela (desenvolvimento, E2E, bot do manual), as faixas dizem só
+ * "fale com a Nebrys", sem endereço.
+ */
+export const contatoNebrys = (valor: string | undefined): string | undefined => valor?.trim() || undefined
+
+export const CONTATO_NEBRYS = contatoNebrys(import.meta.env.VITE_CONTATO_NEBRYS)

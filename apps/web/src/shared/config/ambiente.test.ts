@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { baseDaApi, intervaloDePolling, modoTempoReal, versaoDoBuild } from './ambiente'
+import { baseDaApi, contatoNebrys, intervaloDePolling, modoTempoReal, versaoDoBuild } from './ambiente'
 
 describe('ambiente do SPA (spec do F8)', () => {
     it('F8-17: com VITE_URL_API a base é a da API; sem ela, a origem do SPA', () => {
@@ -22,5 +22,11 @@ describe('ambiente do SPA (spec do F8)', () => {
         expect(versaoDoBuild('  ')).toBeUndefined()
         expect(versaoDoBuild('a62cfef1234567890abcdef1234567890abcdef1')).toBe('a62cfef')
         expect(versaoDoBuild('1.2.3')).toBe('1.2.3')
+    })
+
+    it('ContatoNebrys_ComESemAVariavel_EnderecoAparadoOuNenhum (F14, D15)', () => {
+        expect(contatoNebrys(' contato@acordu.app.br ')).toBe('contato@acordu.app.br')
+        expect(contatoNebrys(undefined)).toBeUndefined()
+        expect(contatoNebrys('  ')).toBeUndefined()
     })
 })
