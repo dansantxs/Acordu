@@ -271,7 +271,7 @@ Tamanho: o antigo F14b virou F14b, F14c e F14d (guarda; portal e convites; jobs)
 Ordem e dependências:
 
 - **Só leitura:** F14a → F14b → F14c → F14d → F14e. O F14e precisa dos tipos do F14b e do F14c.
-- **Corpo do registro** (`/auth/registro` e o OpenAPI): F14g → F14h → F14n → F14p, nessa ordem, cada um a partir da `main` com o anterior já mesclado, para nenhum PR carregar conflito no mesmo caso de uso e no `interno.json`. O F14h depende também do F14f (as páginas).
+- **Corpo do registro** (`/auth/registro` e o OpenAPI): F14g → F14h → F14n → F14p, nessa ordem, cada um a partir da `main` com o anterior já mesclado, para nenhum PR carregar conflito no mesmo caso de uso e no `interno.json`. O F14h depende também do F14f (as páginas). As páginas e os links ficam escondidos até a variável `TEXTOS_LEGAIS_PUBLICADOS` ser ligada, depois da #194: o F14h só vai a produção com ela ligada, ou põe o aceite atrás da mesma configuração (decidir no F14h; `notas/desenvolvedor-F14f-esconder.md`).
 - **Independentes do resto:** F14f (abrir cedo, porque a revisão do texto é o caminho mais longo) e o F14g.
 - **Expurgo e avisos:** F14i depende de F14a, F14b (guarda e classificação; o apagador passa fora delas) e F14g (F14-37, F14-104). F14j depende de F14a e do F14g (`Nebrys__Contato`).
 - **Área:** F14k depende de F14a; F14l de F14k e F14g; F14m de F14k e F14l; F14n de F14l e F14h; F14o de F14n; F14p de F14o; F14q de F14m, F14n, F14o e F14p.
