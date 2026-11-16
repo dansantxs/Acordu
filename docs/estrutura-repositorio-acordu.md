@@ -122,7 +122,8 @@ acordu/
 │     └─ src/
 │        ├─ app/                       # rotas, providers
 │        ├─ features/                  # app interno: solicitacoes, tarefas, projetos, apontamentos,
-│        │                             # contratos, clientes, recorrencias, dashboard, configuracoes
+│        │                             # contratos, clientes, recorrencias, dashboard, configuracoes;
+│        │                             # legal: termos e privacidade (textos/*.md versionados, F14f)
 │        ├─ portal/                    # portal do cliente: layout, rotas e telas próprias
 │        └─ shared/                    # api client, tipos gerados, formatadores, componentes
 ├─ tests/
@@ -202,6 +203,7 @@ Testes obrigatórios nos níveis de integração **e** API: cross-tenant (RNF-SE
 - `apps/web`: uma SPA com **duas áreas**: app interno (`features/`) e portal (`portal/`, rota `/portal`, layout mobile-first).
 - Tipos gerados do OpenAPI em `shared/api/interno.d.ts` e `shared/api/portal.d.ts`, a partir de `openapi/*.json` na raiz (contrato versionado, convenções §4); o portal consome só os tipos das rotas `/portal`.
 - **(F1)** pnpm, `pnpm dev` (proxy de `/api` para a API em `http://localhost:5080`), `pnpm test`, `pnpm build`. Rotas por arquivo em `src/routes`.
+- **(F14f)** `features/legal`: os textos legais em Markdown (`textos/termos.md`, `textos/privacidade.md`) com a versão na constante `versoes.ts` (convenções §4), e as páginas públicas `/termos` e `/privacidade` (rotas `src/routes/termos.tsx` e `privacidade.tsx`, fora das guardas de sessão).
 - Separar em dois apps só se o bundle do portal ficar pesado para o cliente final — medir antes.
 
 ---

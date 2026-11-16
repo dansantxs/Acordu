@@ -2,9 +2,9 @@
   "marco": "F14",
   "issue": 182,
   "etapa": "AGUARDANDO_MERGE",
-  "branch": "feat/F14e-front-situacao",
+  "branch": "feat/F14f-paginas-legais",
   "pr": {
-    "id": "F14e",
+    "id": "F14f",
     "numero": null
   },
   "feitos": [
@@ -23,6 +23,10 @@
     {
       "id": "F14d",
       "pr": 190
+    },
+    {
+      "id": "F14e",
+      "pr": 192
     }
   ],
   "contadores": {
@@ -40,12 +44,15 @@
       "PR #187 mesclado (F14a; F14-113 mantido)",
       "PR #188 mesclado (F14b; filtro dos jobs adiantado mantido)",
       "PR #189 mesclado (F14c)",
-      "PR #190 mesclado (F14d)"
+      "PR #190 mesclado (F14d)",
+      "PR #192 mesclado (F14e; DiasFaixaTeste na API e #191 por decisão de 16/11)"
     ]
   },
   "ressalvas": [
-    "Controles que não são Botao (menus ⋯, campos que salvam ao mudar, links de texto, arrastar no quadro) seguem habilitados e dependem da recusa da API (F14-27): issue #191, decisão do Daniel em 16/11",
-    "diasRestantesDoTeste: diasFaixaTeste ausente (sessão antiga em cache) daria NaN; improvável, API e SPA sobem juntas"
+    "Marcadores [a preencher pelo Daniel] e [a confirmar pelo Daniel, com o advogado] visíveis; precisam sumir antes do merge (F14-85, F14-86)",
+    "Vigência provisória 2026-11-16, no arquivo e na constante",
+    "Textos citam partes futuras do F14: deploy só com o F14 até o F14q",
+    "termos.md: 'e a Nebrys escolhe quem convidar' sem marcador (cláusula nova)"
   ],
   "bloqueios": [],
   "atualizadoEm": "2026-11-16"
