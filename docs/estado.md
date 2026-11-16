@@ -1,10 +1,10 @@
 # Acordu — Estado
 
-Visão geral curta, atualizada por cada PR (`docs/processo.md` §1). O histórico está no git, nos PRs e no registro dos designs. Atualizado em 16/11/2026 (F14f).
+Visão geral curta, atualizada por cada PR (`docs/processo.md` §1). O histórico está no git, nos PRs e no registro dos designs. Atualizado em 16/11/2026 (F14g).
 
 ## Em revisão
 
-- **F14f** — páginas públicas `/termos` e `/privacidade` com versão e vigência, links no acesso e no portal, rascunho dos textos. **Antes do merge:** revisão do Daniel (de preferência com advogado), marcadores `[a preencher…]` e `[a confirmar…]` resolvidos e vigência ajustada. Os textos descrevem o F14 inteiro: deploy só com o F14 até o F14q.
+- **F14g** — CPF ou CNPJ obrigatório no cadastro; registro global só com o HMAC do documento; documento já usado recusado com o canal da Nebrys; liberação de uso único (criada pela área no F14l). Secret `API_DOCUMENTOS_CHAVE` criado pelo Daniel em 16/11.
 
 ## Marco em andamento
 
@@ -17,13 +17,13 @@ Visão geral curta, atualizada por cada PR (`docs/processo.md` §1). O históric
 
 ## Próximos passos
 
-1. Revisão dos textos e merge do F14f; o `/marco F14 182` segue pelo F14g (documento obrigatório). Email Routing de `contato@acordu.app.br` ativo e testado pelo Daniel em 16/11. Deploy liberado (`/deploy`, P1-28 e P1-29), sem as páginas legais enquanto o F14 não estiver completo.
+1. Merge do F14g; em seguida, PR avulso que esconde `/termos`, `/privacidade` e os links atrás de configuração até a #194 (pedido do Daniel em 16/11); **sem deploy até ele entrar**. Depois o `/marco F14 182` segue pelo F14h (aceite; depende das páginas publicadas) ou F14i (expurgo). Email Routing de `contato@acordu.app.br` ativo e testado pelo Daniel em 16/11.
 2. Conferências que faltam da produção:
    - deploy: F8-27 e F8-28 (rollback por migration e por health), F8-29 (jobs do Scheduler), hostname do Turnstile;
    - backup: F8-30 e F13-32 na primeira madrugada com o `BACKUP_ATIVO`; F8-31 (restore) antes do primeiro cliente;
    - monitoramento: F13-02 (Error Reporting), trace do F13a, pilhas do Firefox e do Safari (F13d), vigia e KV (F13h);
    - riscos (deploy-ci §10): `max-instances`, limpeza do Artifact Registry e lifecycle do bucket, `acordu_app` sem DDL e autoscaling do Neon.
-3. Política de privacidade e termos de uso: rascunho no F14f, à espera da revisão do Daniel.
+3. Política de privacidade e termos de uso: rascunho na `main` (F14f, #193); marcadores para depois do registro da Nebrys (#194).
 
 ## Para o Daniel confirmar
 
