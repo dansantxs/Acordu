@@ -2,17 +2,51 @@
   "marco": "F14",
   "issue": 182,
   "etapa": "AGUARDANDO_MERGE",
-  "branch": "feat/F14d-jobs",
-  "pr": { "id": "F14d", "numero": null },
-  "feitos": [{ "id": "F14a", "pr": 187 }, { "id": "F14b", "pr": 188 }, { "id": "F14c", "pr": 189 }],
-  "contadores": { "devolucoesNaEtapa": 0, "rodadasNoPr": 0 },
-  "verificacao": ["node scripts/conferir-specs.mjs", "dotnet build", "dotnet test"],
+  "branch": "feat/F14e-front-situacao",
+  "pr": {
+    "id": "F14e",
+    "numero": null
+  },
+  "feitos": [
+    {
+      "id": "F14a",
+      "pr": 187
+    },
+    {
+      "id": "F14b",
+      "pr": 188
+    },
+    {
+      "id": "F14c",
+      "pr": 189
+    },
+    {
+      "id": "F14d",
+      "pr": 190
+    }
+  ],
+  "contadores": {
+    "devolucoesNaEtapa": 0,
+    "rodadasNoPr": 1
+  },
+  "verificacao": [
+    "node scripts/conferir-specs.mjs",
+    "cd apps/web && pnpm test && pnpm lint && pnpm build"
+  ],
   "portoes": {
     "G1": "vamos seguir com o candidato 1, agora que o deploy já foi feito, quero começar a mostrar para as pessoas",
     "G2": "PR #186 mesclado (13/11/2026); respostas da §4 coladas no chat (prazo do expurgo 30 dias; empresas existentes apagadas) e \"aceito as recomendações\" (CANCELADA na migration e expurgo pelo F14i; contato@acordu.app.br)",
-    "G3": ["PR #187 mesclado (F14a; F14-113 mantido)", "PR #188 mesclado (F14b; filtro dos jobs adiantado mantido)", "PR #189 mesclado (F14c)"]
+    "G3": [
+      "PR #187 mesclado (F14a; F14-113 mantido)",
+      "PR #188 mesclado (F14b; filtro dos jobs adiantado mantido)",
+      "PR #189 mesclado (F14c)",
+      "PR #190 mesclado (F14d)"
+    ]
   },
-  "ressalvas": ["Descarte da outbox leva o evento inteiro (feed e sino) e não volta", "F14l precisa gravar GravavelDesde em Ativar, Prorrogar e Reativar, com teste"],
+  "ressalvas": [
+    "Controles que não são Botao (menus ⋯, campos que salvam ao mudar, links de texto, arrastar no quadro) seguem habilitados e dependem da recusa da API (F14-27): issue #191, decisão do Daniel em 16/11",
+    "diasRestantesDoTeste: diasFaixaTeste ausente (sessão antiga em cache) daria NaN; improvável, API e SPA sobem juntas"
+  ],
   "bloqueios": [],
-  "atualizadoEm": "2026-11-13"
+  "atualizadoEm": "2026-11-16"
 }

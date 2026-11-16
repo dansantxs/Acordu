@@ -154,6 +154,11 @@ O Acordu envia e-mail para os **clientes dos clientes**: reputação de domínio
 1. Adicionar `send.acordu.app.br` no Resend; criar no Cloudflare os registros indicados (SPF, DKIM, MX de retorno).
 2. **DMARC:** `TXT _dmarc.acordu.app.br "v=DMARC1; p=none; rua=mailto:<seu-email>"` (subir para `quarantine` após algumas semanas).
 3. Remetente `nao-responda@send.acordu.app.br`; chave de API exclusiva do Acordu → secret `API_RESEND_CHAVE`.
+4. **Caixa de entrada `contato@acordu.app.br`** (o canal da Nebrys, variável `CONTATO_NEBRYS`): o Acordu só envia pelo Resend, e quem recebe é o **Cloudflare Email Routing**, que encaminha para uma caixa pessoal.
+   - No Cloudflare, zona `acordu.app.br` › **Email › Email Routing** › ativar. Aceitar os registros que ele propõe **no domínio raiz** (`acordu.app.br`): MX `route1.mx.cloudflare.net`, `route2.mx.cloudflare.net` e `route3.mx.cloudflare.net`; SPF `TXT "v=spf1 include:_spf.mx.cloudflare.net ~all"`; e o DKIM (o `TXT` em `<seletor>._domainkey` com o nome e o valor que ele mostra).
+   - **Endereços de destino:** cadastrar a caixa pessoal e confirmar pelo link que chega nela (só endereço verificado recebe encaminhamento).
+   - **Regras de roteamento:** endereço personalizado `contato` → ação "Enviar para um e-mail" → a caixa verificada. Testar mandando um e-mail de fora para `contato@acordu.app.br`.
+   - Sem conflito com o Resend: ele usa o subdomínio `send.acordu.app.br` (SPF, DKIM e MX de retorno próprios), e o Email Routing fica no raiz. O DMARC do passo 2 (`_dmarc.acordu.app.br`) segue como está e vale para os dois.
 
 ---
 
@@ -180,6 +185,7 @@ Repositório → Settings → Secrets and variables → Actions. Só os nomes fi
 | Variável | `GCP_PROJECT_ID` | `acordu-prod` |
 | Variável | `BORDA_ATIVA` | `true` depois de C4; o health do deploy passa a ir pela borda |
 | Variável | `TURNSTILE_CHAVE_SITE` | Chave do site do widget `acordu-cadastro` (C5); vai para o build do SPA |
+| Variável | `CONTATO_NEBRYS` | `contato@acordu.app.br` (decisão 14 do G2 do F14): o canal da Nebrys nas faixas da situação da empresa. Vai para o build do SPA (`VITE_CONTATO_NEBRYS`) e, a partir do F14g, para a API (`Nebrys__Contato`); obrigatória no `deploy.yml`. Criada; o endereço recebe pelo Cloudflare Email Routing (Parte D, passo 4) |
 | Variável | `BACKUP_ATIVO` | `true` quando Neon e R2 estiverem prontos; liga o agendamento do `backup.yml` |
 | Secret | `NEON_MIGRATOR` | String direta, `acordu_migrator` (B4) |
 | Secret | `API_CONNECTION_STRING` | String pooled, `acordu_app` (B4) |
@@ -229,7 +235,7 @@ A4. WIF (pool github, provider acordu-repo)
 B.  Neon: projeto, banco, roles → secrets do GitHub
 C1. Domínios → Cloudflare
 C2. R2: buckets + tokens → secrets do GitHub
-D.  Resend (SPF/DKIM/DMARC)
+D.  Resend (SPF/DKIM/DMARC) + Email Routing de contato@acordu.app.br
 C3. Token do Cloudflare
 C5. Widget do Turnstile → TURNSTILE_CHAVE_SITE e API_TURNSTILE_SEGREDO
 → Segredos do GitHub: todos os da tabela (gerar API_JWT_CHAVE, API_JOBS_TOKEN e API_TOKEN_ORIGEM), menos BORDA_ATIVA e BACKUP_ATIVO
@@ -257,6 +263,7 @@ E.  Discord (três webhooks; a vigia sobe com o deploy)
 - [ ] Login e refresh funcionando de `acordu.app.br` para `api.acordu.app.br`.
 - [ ] `acordu-tick` e `acordu-diario` no Scheduler, com alerta de falha.
 - [ ] Resend verificado + DMARC.
+- [ ] Email Routing: `contato@acordu.app.br` encaminhando para a caixa verificada (teste de fora recebido); MX, SPF e DKIM no raiz.
 - [ ] Webhooks do Discord: #deploy recebendo deploy e backup; #alertas recebendo a vigia (teste: parar o serviço por 10 min) e os erros; #sugestoes recebendo uma sugestão de teste.
 - [ ] Turnstile no cadastro: conta de teste criada; sem o token, cadastro recusado.
 - [ ] Backup diário rodando e restore testado.

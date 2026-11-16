@@ -1,10 +1,10 @@
 # Acordu — Estado
 
-Visão geral curta, atualizada por cada PR (`docs/processo.md` §1). O histórico está no git, nos PRs e no registro dos designs. Atualizado em 13/11/2026 (F14d).
+Visão geral curta, atualizada por cada PR (`docs/processo.md` §1). O histórico está no git, nos PRs e no registro dos designs. Atualizado em 16/11/2026 (F14e).
 
 ## Em revisão
 
-- **F14d** — empresa só leitura: outbox descartada, jobs e recorrências sem efeito, sem retroativo na volta (`GravavelDesde`), SLA sem pausa. Com ele na `main`, o só leitura está completo na API (F14a a F14c com os #187 a #189) e o deploy volta a ser seguro.
+- **F14e** — front da situação: faixas da casca (fim do teste e só leitura), situação em Configurações › Empresa, ações de gravar indisponíveis por `podeGravar`, recusa tratada com a tela aberta, portal com a mensagem neutra; `Empresas__DiasFaixaTeste` (7) no `/auth/eu`. Com ele, o só leitura fica completo (F14a a F14d com os #187 a #190). Controles que não são botão ficam para a #191.
 
 ## Marco em andamento
 
@@ -17,7 +17,7 @@ Visão geral curta, atualizada por cada PR (`docs/processo.md` §1). O históric
 
 ## Próximos passos
 
-1. Merge do F14d; depois o `/marco F14 182` segue pelo F14e (front da situação e do só leitura). Deploy liberado depois do F14d (`/deploy`, P1-28 e P1-29). Redirecionamento de `contato@acordu.app.br` no Cloudflare (Email Routing) antes do F14g.
+1. Merge do F14e; depois o `/marco F14 182` segue pelo F14f (páginas legais; abrir cedo pela revisão do texto) e o F14g. Deploy liberado (`/deploy`, P1-28 e P1-29); a variável `CONTATO_NEBRYS` já existe. Redirecionamento de `contato@acordu.app.br` no Cloudflare (Email Routing, setup da infra Parte D) antes do F14g.
 2. Conferências que faltam da produção:
    - deploy: F8-27 e F8-28 (rollback por migration e por health), F8-29 (jobs do Scheduler), hostname do Turnstile;
    - backup: F8-30 e F13-32 na primeira madrugada com o `BACKUP_ATIVO`; F8-31 (restore) antes do primeiro cliente;
