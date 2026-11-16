@@ -4,10 +4,13 @@ import { useId, useState } from 'react'
 import { Form } from 'react-aria-components'
 import { errosDeCampo, mensagemDeErro } from '@/shared/api/mensagens'
 import { ErroApi } from '@/shared/api/problema'
-import { CHAVE_TURNSTILE } from '@/shared/config/ambiente'
+import { CHAVE_TURNSTILE, CONTATO_NEBRYS } from '@/shared/config/ambiente'
+import { documentoValido } from '@/shared/format/documento'
+import { caracteresDoDocumento, formatarDocumento } from '@/shared/format/mascaras'
 import { cadastrar } from '@/shared/sessao/acoes'
 import { Alerta } from '@/shared/ui/Alerta'
 import { Botao } from '@/shared/ui/Botao'
+import { CampoMascarado } from '@/shared/ui/CampoMascarado'
 import { CampoSenha } from '@/shared/ui/CampoSenha'
 import { CampoTexto } from '@/shared/ui/CampoTexto'
 import { DesafioTurnstile } from './DesafioTurnstile'
@@ -18,6 +21,20 @@ export const SENHA_MINIMA = 10
 export function validarSenha(valor: string): string | null {
     return valor.length < SENHA_MINIMA ? `Use pelo menos ${SENHA_MINIMA} caracteres.` : null
 }
+
+/**
+ * CPF ou CNPJ do cadastro (RF-AUT-09, spec do F14, F14-56): obrigatório e com os dígitos verificadores certos. A API
+ * confere de novo e recusa o documento que já teve teste (F14-57), com a mensagem no campo.
+ */
+export function validarDocumentoCadastro(valor: string): string | null {
+    if (valor.trim() === '') return 'Informe o CPF ou CNPJ.'
+    return documentoValido(valor) ? null : 'CPF ou CNPJ inválido.'
+}
+
+/** Um teste por documento (RF-AUT-09); o canal da Nebrys (`VITE_CONTATO_NEBRYS`) para quem precisa de um novo. */
+export const DESCRICAO_DOCUMENTO = CONTATO_NEBRYS
+    ? `Cada CPF ou CNPJ tem um período de teste. Para um novo teste, fale com a Nebrys: ${CONTATO_NEBRYS}.`
+    : 'Cada CPF ou CNPJ tem um período de teste. Para um novo teste, fale com a Nebrys.'
 
 /** O limite do cadastro é por hora (RNF-SEG-10), não o "aguarde um minuto" das demais rotas. */
 const MUITOS_CADASTROS = 'Muitos cadastros a partir desta rede em pouco tempo. Tente de novo mais tarde.'
@@ -62,6 +79,7 @@ export function FormularioCadastro({ chaveTurnstile = CHAVE_TURNSTILE }: { chave
                     email: String(dados.get('email')),
                     senha: String(dados.get('senha')),
                     nomeEmpresa: String(dados.get('nomeEmpresa')),
+                    documento: String(dados.get('documento')),
                     ...(chaveTurnstile ? { tokenTurnstile: token } : {}),
                 })
             }}
@@ -82,6 +100,16 @@ export function FormularioCadastro({ chaveTurnstile = CHAVE_TURNSTILE }: { chave
                 rotulo="Nome da empresa"
                 descricao="Como seus clientes conhecem você. Dá para mudar depois."
                 autoComplete="organization"
+                isRequired
+            />
+            <CampoMascarado
+                name="documento"
+                rotulo="CPF ou CNPJ"
+                mascara={formatarDocumento}
+                caracteres={caracteresDoDocumento}
+                teclado="text"
+                validate={validarDocumentoCadastro}
+                descricao={DESCRICAO_DOCUMENTO}
                 isRequired
             />
             {chaveTurnstile && <DesafioTurnstile chave={chaveTurnstile} versao={versaoDesafio} aoMudar={setToken} />}

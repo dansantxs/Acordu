@@ -174,7 +174,7 @@ public sealed class ProtecaoCadastroTests(ApiFixture api)
 
         for (var i = 0; i < 3; i++)
         {
-            (await EnviarAsync(http, Ip, "/api/v1/auth/registro", new { nome = "Ana", email = NovoEmail(), senha = "curta", nomeEmpresa = "X" }))
+            (await EnviarAsync(http, Ip, "/api/v1/auth/registro", new { nome = "Ana", email = NovoEmail(), senha = "curta", nomeEmpresa = "X", documento = Apoio.DocumentosDeTeste.Novo() }))
                 .Should().Be(HttpStatusCode.BadRequest);
         }
 
@@ -230,7 +230,7 @@ public sealed class ProtecaoCadastroTests(ApiFixture api)
     private static string NovoEmail() => $"cadastro-{Guid.NewGuid():N}@exemplo.com";
 
     private static object Corpo(string email, string? token) =>
-        new { nome = "Ana Souza", email, senha = "senha-bem-comprida", nomeEmpresa = "Estúdio Traço", tokenTurnstile = token };
+        new { nome = "Ana Souza", email, senha = "senha-bem-comprida", nomeEmpresa = "Estúdio Traço", documento = Apoio.DocumentosDeTeste.Novo(), tokenTurnstile = token };
 
     private static async Task<HttpResponseMessage> RegistrarAsync(WebApplication app, string? token, string? email = null, string? ip = null)
     {

@@ -130,6 +130,7 @@ public static class DependencyInjection
         ArgumentNullException.ThrowIfNull(services);
         services.AddIdentityCore<Usuario>(OpcoesIdentidade.Configurar)
             .AddEntityFrameworkStores<AcorduDbContext>();
+        services.AddScoped<Persistence.Documentos.RegistroDocumentos>();
         services.AddScoped<IServicoAutenticacao, ServicoAutenticacao>();
         return services;
     }

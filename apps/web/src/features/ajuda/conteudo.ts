@@ -482,6 +482,7 @@ export const SECOES_AJUDA: SecaoAjuda[] = [
             'Os dados ficam guardados por 30 dias depois do início do só leitura; depois disso, são apagados. Ativar a conta antes disso devolve tudo como estava.',
             'Nesse tempo, nada sai para os clientes: sem avisos por e-mail, sem recorrências geradas. O portal continua mostrando o que eles já viam, mas não aceita envios.',
             'A situação aparece em Configurações › Empresa. Para ativar ou cancelar, fale com a Nebrys pelo endereço da faixa.',
+            'O cadastro de uma empresa pede o CPF ou CNPJ de quem contrata, e cada documento tem um período de teste só, mesmo depois que a empresa do primeiro teste é apagada. Para testar de novo com o mesmo documento, fale com a Nebrys.',
         ],
     },
     {

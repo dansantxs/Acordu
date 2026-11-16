@@ -5,6 +5,8 @@
  * que mostrar em qualquer semana.
  */
 
+import { cnpjNovo } from '../e2e/documentoDeTeste'
+
 const API = process.env.ACORDU_API ?? 'http://localhost:5080'
 const MAILPIT = process.env.ACORDU_MAILPIT ?? 'http://localhost:8025'
 const SENHA = 'demonstracao-do-manual'
@@ -118,6 +120,7 @@ export async function criarDemonstracao(): Promise<Demonstracao> {
         email,
         senha: SENHA,
         nomeEmpresa: 'Estúdio Aurora',
+        documento: cnpjNovo(),
     })
     await chamar(null, 'POST', '/auth/confirmacao-email', {
         token: await tokenDoEmail(email, 'conta/confirmacao'),

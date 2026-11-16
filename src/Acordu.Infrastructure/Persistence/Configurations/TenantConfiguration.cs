@@ -33,6 +33,8 @@ internal sealed class TenantConfiguration : IEntityTypeConfiguration<Tenant>
         builder.Property(t => t.CanceladaEm);
         // Última saída do só leitura (F14d lê nas recorrências; F14l grava nas ações da área da Nebrys).
         builder.Property(t => t.GravavelDesde);
+        // CPF ou CNPJ normalizado (F14g); anulável pelas empresas anteriores. O registro global guarda só o HMAC (D8).
+        builder.Property(t => t.Documento).HasMaxLength(Tenant.TamanhoDocumento);
         builder.Ignore(t => t.SomenteLeitura);
         builder.Property<uint>(ConfiguracaoRaiz.Versao)
             .IsRowVersion()

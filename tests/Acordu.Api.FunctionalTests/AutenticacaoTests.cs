@@ -58,7 +58,7 @@ public sealed class AutenticacaoTests(ApiFixture api)
     private async Task<Sessao> RegistrarAsync(string email, string empresa = "Estúdio Traço")
     {
         using var resposta = await PostAsync(
-            "/api/v1/auth/registro", new { nome = "Ana Souza", email, senha = Senha, nomeEmpresa = empresa });
+            "/api/v1/auth/registro", new { nome = "Ana Souza", email, senha = Senha, nomeEmpresa = empresa, documento = Apoio.DocumentosDeTeste.Novo() });
         resposta.StatusCode.Should().Be(HttpStatusCode.Created);
         return new Sessao((await JsonAsync(resposta)).GetProperty("accessToken").GetString()!, CookieRefresh(resposta));
     }
@@ -95,7 +95,7 @@ public sealed class AutenticacaoTests(ApiFixture api)
     {
         var email = NovoEmail();
         using var resposta = await PostAsync(
-            "/api/v1/auth/registro", new { nome = "Ana Souza", email, senha = Senha, nomeEmpresa = "Estúdio Traço" });
+            "/api/v1/auth/registro", new { nome = "Ana Souza", email, senha = Senha, nomeEmpresa = "Estúdio Traço", documento = Apoio.DocumentosDeTeste.Novo() });
 
         resposta.StatusCode.Should().Be(HttpStatusCode.Created);
         var cookie = resposta.Headers.GetValues("Set-Cookie").Single(c => c.StartsWith("acordu_refresh=", StringComparison.Ordinal));
@@ -119,9 +119,9 @@ public sealed class AutenticacaoTests(ApiFixture api)
         await RegistrarAsync(email);
 
         using var repetido = await PostAsync(
-            "/api/v1/auth/registro", new { nome = "Ana", email, senha = Senha, nomeEmpresa = "Outro" });
+            "/api/v1/auth/registro", new { nome = "Ana", email, senha = Senha, nomeEmpresa = "Outro", documento = Apoio.DocumentosDeTeste.Novo() });
         using var curta = await PostAsync(
-            "/api/v1/auth/registro", new { nome = "Ana", email = NovoEmail(), senha = "curta", nomeEmpresa = "Outro" });
+            "/api/v1/auth/registro", new { nome = "Ana", email = NovoEmail(), senha = "curta", nomeEmpresa = "Outro", documento = Apoio.DocumentosDeTeste.Novo() });
 
         repetido.StatusCode.Should().Be(HttpStatusCode.BadRequest);
         (await JsonAsync(repetido)).GetProperty("errors").TryGetProperty("email", out _).Should().BeTrue();
@@ -135,7 +135,7 @@ public sealed class AutenticacaoTests(ApiFixture api)
         // O e-mail de confirmação não chegaria (SMTPUTF8): recusado como nos contatos e convites.
         using var resposta = await PostAsync(
             "/api/v1/auth/registro",
-            new { nome = "Sérgio", email = $"sérgio-{Guid.NewGuid():N}@exemplo.com", senha = Senha, nomeEmpresa = "Padaria" });
+            new { nome = "Sérgio", email = $"sérgio-{Guid.NewGuid():N}@exemplo.com", senha = Senha, nomeEmpresa = "Padaria", documento = Apoio.DocumentosDeTeste.Novo() });
 
         resposta.StatusCode.Should().Be(HttpStatusCode.BadRequest);
         (await JsonAsync(resposta)).GetProperty("errors").GetProperty("email")[0].GetString().Should().Contain("sem acento");
