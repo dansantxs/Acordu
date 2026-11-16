@@ -1,17 +1,21 @@
 import type { ReactNode } from 'react'
+import { LinksLegais } from '@/features/legal/LinksLegais'
 import { SeletorTema } from '@/shared/tema/SeletorTema'
 
 /**
  * Moldura das telas de acesso: uma agenda aberta, com a capa de couro à esquerda e a página à direita. Em tela
- * estreita a capa vira uma faixa no topo.
+ * estreita a capa vira uma faixa no topo. No pé, os links dos textos legais (F14-84); `soPrivacidade` nas telas do
+ * contato do portal, em que os termos não cabem.
  */
 export function CapaAcesso({
     titulo,
     subtitulo,
+    soPrivacidade = false,
     children,
 }: {
     titulo: string
     subtitulo?: string
+    soPrivacidade?: boolean
     children: ReactNode
 }) {
     return (
@@ -37,6 +41,7 @@ export function CapaAcesso({
                         {subtitulo && <p className="mt-1 text-sm text-suave">{subtitulo}</p>}
                     </header>
                     {children}
+                    <LinksLegais soPrivacidade={soPrivacidade} className="mt-auto" />
                 </main>
             </div>
         </div>

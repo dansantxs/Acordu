@@ -485,6 +485,19 @@ export const SECOES_AJUDA: SecaoAjuda[] = [
         ],
     },
     {
+        id: 'textos-legais',
+        titulo: 'Termos de uso e política de privacidade',
+        grupo: 'conceitos',
+        permissoes: [],
+        resumo: 'As regras de uso do Acordu e como os dados são tratados ficam em duas páginas públicas, abertas a qualquer pessoa.',
+        dicas: [
+            'Os links ficam no pé da tela de entrar e das demais telas de acesso; o portal dos seus clientes mostra o link da política de privacidade.',
+            'Cada texto mostra no topo a versão e a data em que passou a valer.',
+            'Pela LGPD, a sua empresa é a controladora dos dados dos seus clientes, e o Acordu é o operador: pedidos dos seus clientes sobre os dados deles são respondidos pela sua empresa.',
+            'Dúvidas sobre os textos ou sobre os seus dados: fale com a Nebrys pelo endereço que aparece neles.',
+        ],
+    },
+    {
         id: 'papeis',
         titulo: 'Papéis e permissões',
         grupo: 'conceitos',

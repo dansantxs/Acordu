@@ -15,6 +15,20 @@ export const NOTAS: NotaVersao[] = [
     {
         data: '2026-11-16',
         publico: 'equipe',
+        titulo: 'Termos de uso e política de privacidade',
+        itens: [
+            'Os termos de uso e a política de privacidade do Acordu agora têm páginas próprias, com a versão e a data de vigência, e links no pé da tela de entrar.',
+        ],
+    },
+    {
+        data: '2026-11-16',
+        publico: 'cliente',
+        titulo: 'Política de privacidade',
+        itens: ['O pé do portal tem o link para a política de privacidade do Acordu.'],
+    },
+    {
+        data: '2026-11-16',
+        publico: 'equipe',
         titulo: 'Período de teste e conta só leitura',
         itens: [
             'Configurações › Empresa mostra a situação da conta: em teste (com a data do fim), ativa ou só leitura.',

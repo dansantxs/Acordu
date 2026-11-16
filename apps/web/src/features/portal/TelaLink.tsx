@@ -44,7 +44,7 @@ export function TelaLink() {
     if (!atual) {
         const { titulo, texto } = SEM_LINK[motivoSemLink()]
         return (
-            <CapaAcesso titulo={titulo}>
+            <CapaAcesso titulo={titulo} soPrivacidade>
                 <p className="text-sm">{texto}</p>
                 <p className="text-sm text-suave">
                     Tem conta no portal?{' '}
