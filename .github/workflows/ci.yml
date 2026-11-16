@@ -326,6 +326,7 @@ jobs:
           docker run -d --name api -p 8080:8080 \
             -e ConnectionStrings__Acordu="Host=localhost;Database=acordu;Username=fumaca;Password=fumaca" \
             -e Jwt__ChaveAssinatura="chave-da-fumaca-da-imagem-com-mais-de-32-bytes" \
+            -e Documentos__ChaveHmac="chave-hmac-da-fumaca-da-imagem-com-mais-de-32-bytes" \
             acordu-api:ci
           for i in $(seq 1 30); do
             curl -fsS http://localhost:8080/api/health && exit 0
