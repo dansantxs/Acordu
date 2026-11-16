@@ -113,6 +113,8 @@ jobs:
           Turnstile__Segredo: ${{ secrets.API_TURNSTILE_SEGREDO }}
           # Só conferida aqui (vai para o build do SPA, não para a API): falta dela barra o deploy antes de publicar.
           TURNSTILE_CHAVE_SITE: ${{ vars.TURNSTILE_CHAVE_SITE }}
+          # O canal da Nebrys nas faixas do SPA (F14, D15): também só conferido aqui, por enquanto.
+          CONTATO_NEBRYS: ${{ vars.CONTATO_NEBRYS }}
           Armazenamento__Endpoint: ${{ secrets.R2_ENDPOINT }}
           Armazenamento__ChaveAcesso: ${{ secrets.API_R2_CHAVE_ACESSO }}
           Armazenamento__ChaveSecreta: ${{ secrets.API_R2_CHAVE_SECRETA }}
@@ -150,6 +152,8 @@ jobs:
           faltam = [n for n in obrigatorias if not os.environ.get(n, "").strip()]
           if not os.environ.get("TURNSTILE_CHAVE_SITE", "").strip():
               faltam.append("TURNSTILE_CHAVE_SITE (variável, runbook C5)")
+          if not os.environ.get("CONTATO_NEBRYS", "").strip():
+              faltam.append("CONTATO_NEBRYS (variável, runbook \"Segredos do GitHub\")")
           if os.environ.get("Armazenamento__Endpoint"):
               faltam += [n for n in opcionais[1:] if not os.environ.get(n)]
           # A API não sobe com webhook fora de https (OpcoesDiscord): melhor barrar aqui, antes de publicar.
@@ -239,6 +243,8 @@ jobs:
           VITE_TEMPO_REAL: polling
           # Chave do site do Turnstile (pública), conferida no passo "Variáveis da API", antes de publicar.
           VITE_TURNSTILE_CHAVE: ${{ vars.TURNSTILE_CHAVE_SITE }}
+          # Canal da Nebrys nas faixas da situação da empresa (F14, D15), conferido no passo "Variáveis da API".
+          VITE_CONTATO_NEBRYS: ${{ vars.CONTATO_NEBRYS }}
           # Vai junto dos relatos de erro do app (F13d); sem ela o app não relata.
           VITE_VERSAO: ${{ github.sha }}
         run: |
