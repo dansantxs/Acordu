@@ -84,7 +84,7 @@ export function FilaSolicitacoes({ perfil, filtros }: { perfil: Perfil; filtros:
             titulo="Solicitações"
             acoes={
                 pode(perfil, 'solicitacao.criar') && (
-                    <Botao onPress={() => mudarNova(true)}>
+                    <Botao grava onPress={() => mudarNova(true)}>
                         <Icone nome="mais" />
                         Nova solicitação
                     </Botao>

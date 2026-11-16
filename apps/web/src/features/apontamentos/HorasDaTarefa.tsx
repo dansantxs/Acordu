@@ -30,7 +30,7 @@ export function HorasDaTarefa({
             <h3 id="horas-tarefa" className="flex items-baseline justify-between text-sm font-semibold">
                 Horas
                 {podeCriar && aceitaLancamento && (
-                    <Botao variante="discreto" onPress={() => setLancando(true)} className="!p-0">
+                    <Botao grava variante="discreto" onPress={() => setLancando(true)} className="!p-0">
                         Lançar horas
                     </Botao>
                 )}

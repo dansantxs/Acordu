@@ -45,7 +45,7 @@ export function TelaProjetos({ perfil, filtros }: { perfil: Perfil; filtros: Fil
             titulo="Projetos"
             acoes={
                 pode(perfil, 'projeto.gerenciar') && (
-                    <Botao onPress={() => mudarNovo(true)}>
+                    <Botao grava onPress={() => mudarNovo(true)}>
                         <Icone nome="mais" />
                         Novo projeto
                     </Botao>

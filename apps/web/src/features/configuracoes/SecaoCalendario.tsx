@@ -200,6 +200,7 @@ function Formulario({ calendario }: { calendario: Calendario }) {
                         />
                     </div>
                     <Botao
+                        grava
                         variante="secundario"
                         isDisabled={!novoFeriado}
                         onPress={() => {
@@ -211,7 +212,7 @@ function Formulario({ calendario }: { calendario: Calendario }) {
                     </Botao>
                     <span className="ml-auto flex flex-wrap gap-2">
                         {[ano, ano + 1].map((a) => (
-                            <Botao key={a} variante="discreto" onPress={() => sugerir(a)}>
+                            <Botao grava key={a} variante="discreto" onPress={() => sugerir(a)}>
                                 Sugerir feriados nacionais de {a}
                             </Botao>
                         ))}
@@ -248,7 +249,7 @@ function Formulario({ calendario }: { calendario: Calendario }) {
             </fieldset>
 
             <div>
-                <Botao type="submit" isPending={envio.isPending}>
+                <Botao grava type="submit" isPending={envio.isPending}>
                     Salvar calendário
                 </Botao>
             </div>

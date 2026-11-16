@@ -58,7 +58,12 @@ export function JanelaContrato({
                 <Botao variante="secundario" onPress={() => aoMudar(false)} isDisabled={troca.isPending}>
                     Voltar
                 </Botao>
-                <Botao onPress={() => troca.mutate()} isPending={troca.isPending} isDisabled={escolha === s.contratoId}>
+                <Botao
+                    grava
+                    onPress={() => troca.mutate()}
+                    isPending={troca.isPending}
+                    isDisabled={escolha === s.contratoId}
+                >
                     Trocar contrato
                 </Botao>
             </div>

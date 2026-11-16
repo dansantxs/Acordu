@@ -96,10 +96,11 @@ function Detalhe({ contrato: c, perfil, mes }: { contrato: Contrato; perfil: Per
                 gerencia &&
                 !encerrado && (
                     <div className="flex flex-wrap gap-2">
-                        <Botao variante="secundario" onPress={() => setEditando(true)}>
+                        <Botao grava variante="secundario" onPress={() => setEditando(true)}>
                             Editar
                         </Botao>
                         <Botao
+                            grava
                             variante="secundario"
                             isPending={transicao.isPending && !encerrando}
                             onPress={() =>
@@ -109,6 +110,7 @@ function Detalhe({ contrato: c, perfil, mes }: { contrato: Contrato; perfil: Per
                             {c.status === 'ATIVO' ? 'Suspender' : 'Reativar'}
                         </Botao>
                         <Botao
+                            grava
                             variante="secundario"
                             onPress={() => {
                                 transicao.reset()
@@ -385,12 +387,12 @@ function ConsumoDoMes({
                             </span>
                         )}
                         {podeFechar && (
-                            <Botao variante="secundario" onPress={() => setFechando(true)}>
+                            <Botao grava variante="secundario" onPress={() => setFechando(true)}>
                                 Fechar o mês
                             </Botao>
                         )}
                         {aoAjustar && (
-                            <Botao variante="secundario" onPress={aoAjustar}>
+                            <Botao grava variante="secundario" onPress={aoAjustar}>
                                 Ajustar saldo
                             </Botao>
                         )}
@@ -561,7 +563,7 @@ function JanelaAjuste({
                     <Botao variante="secundario" onPress={() => aoMudar(false)} isDisabled={envio.isPending}>
                         Cancelar
                     </Botao>
-                    <Botao type="submit" isPending={envio.isPending}>
+                    <Botao grava type="submit" isPending={envio.isPending}>
                         {sentido === 'adicionar' ? 'Adicionar' : 'Descontar'}
                     </Botao>
                 </div>

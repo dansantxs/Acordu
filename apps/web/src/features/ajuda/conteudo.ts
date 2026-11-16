@@ -370,7 +370,7 @@ export const SECOES_AJUDA: SecaoAjuda[] = [
         tela: '/configuracoes',
         resumo: 'O que vale para a empresa toda. Cada seção aparece para quem tem a permissão dela.',
         passos: [
-            'Empresa: nome, "Responder para" (onde chegam as respostas dos clientes) e SLA padrão dos contratos novos.',
+            'Empresa: a situação da conta (em teste, com o fim do teste; ativa; ou só leitura), nome, "Responder para" (onde chegam as respostas dos clientes) e SLA padrão dos contratos novos.',
             'Calendário: fuso, expediente de cada dia e feriados ("Sugerir feriados nacionais" preenche o ano).',
             'Portal: logotipo, nome que o cliente vê e dias para a solicitação resolvida fechar sozinha.',
             'Categorias: para organizar e filtrar as solicitações.',
@@ -378,7 +378,10 @@ export const SECOES_AJUDA: SecaoAjuda[] = [
             'Papéis: os padrões e os sob medida, com as permissões por área.',
             'Auditoria: quem fez o quê, com filtros e o histórico de cada item.',
         ],
-        dicas: ['Mudar o calendário vale para as solicitações novas; as abertas mantêm o prazo que tinham.'],
+        dicas: [
+            'Mudar o calendário vale para as solicitações novas; as abertas mantêm o prazo que tinham.',
+            'A situação da conta só aparece para ler: para ativar ou cancelar, fale com a Nebrys (veja "Teste, conta ativa e só leitura").',
+        ],
         imagens: [{ captura: 'configuracoes', legenda: 'Configurações da empresa, com o menu das seções ao lado.' }],
     },
     {
@@ -464,6 +467,21 @@ export const SECOES_AJUDA: SecaoAjuda[] = [
             'Banco de horas: horas compradas que vão sendo usadas; o saldo passa de um mês para o outro.',
             'Avulso: sem franquia, as horas são registradas e cobradas à parte.',
             'Fechar o mês trava os apontamentos daquele mês (ajustes de saldo continuam possíveis, com motivo): é o momento de faturar.',
+        ],
+    },
+    {
+        id: 'situacao',
+        titulo: 'Teste, conta ativa e só leitura',
+        grupo: 'conceitos',
+        permissoes: [],
+        resumo: 'Toda empresa começa com 30 dias de teste. Para continuar depois disso, a conta precisa ser ativada pela Nebrys.',
+        dicas: [
+            'Nos últimos 7 dias do teste, uma faixa no topo de todas as telas mostra quantos dias faltam e com quem falar para ativar.',
+            'Quando o teste acaba sem ativação (ou a conta é cancelada), a empresa fica só leitura: dá para consultar tudo, inclusive os relatórios e os anexos, mas não criar nem mudar nada. Os botões de gravar aparecem indisponíveis, e a faixa explica desde quando e até quando os dados ficam guardados.',
+            'No só leitura continuam valendo entrar, sair, trocar de empresa, a sua senha, o sino, as suas preferências de aviso, o link da agenda, seguir itens e "Sugerir melhoria".',
+            'Os dados ficam guardados por 30 dias depois do início do só leitura; depois disso, são apagados. Ativar a conta antes disso devolve tudo como estava.',
+            'Nesse tempo, nada sai para os clientes: sem avisos por e-mail, sem recorrências geradas. O portal continua mostrando o que eles já viam, mas não aceita envios.',
+            'A situação aparece em Configurações › Empresa. Para ativar ou cancelar, fale com a Nebrys pelo endereço da faixa.',
         ],
     },
     {

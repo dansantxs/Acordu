@@ -13,6 +13,16 @@ export interface NotaVersao {
 
 export const NOTAS: NotaVersao[] = [
     {
+        data: '2026-11-16',
+        publico: 'equipe',
+        titulo: 'Período de teste e conta só leitura',
+        itens: [
+            'Configurações › Empresa mostra a situação da conta: em teste (com a data do fim), ativa ou só leitura.',
+            'Nos últimos 7 dias do teste, uma faixa no topo das telas mostra quantos dias faltam e com quem falar para ativar a conta.',
+            'Se o teste acabar sem ativação, a empresa fica só leitura: tudo continua visível, mas os botões de criar e mudar ficam indisponíveis, e a faixa diz até quando os dados ficam guardados.',
+        ],
+    },
+    {
         data: '2026-11-10',
         publico: 'equipe',
         titulo: 'Sugerir melhoria',

@@ -6,6 +6,8 @@ import { lerTextosSla, TabelaSla, textosSla } from '@/features/contratos/TabelaS
 import { errosDeCampo, mensagemDeErro } from '@/shared/api/mensagens'
 import { ErroApi } from '@/shared/api/problema'
 import { avisar } from '@/shared/avisos/avisos'
+import { CONTATO_NEBRYS } from '@/shared/config/ambiente'
+import { dataNoFuso, ROTULO_SITUACAO, ultimoDiaDoTeste, type Tenant } from '@/shared/sessao/gravacao'
 import { Alerta } from '@/shared/ui/Alerta'
 import { Botao } from '@/shared/ui/Botao'
 import { CampoTexto } from '@/shared/ui/CampoTexto'
@@ -13,14 +15,18 @@ import { LegendaObrigatorios } from '@/shared/ui/Rotulo'
 import { consultaEmpresa, salvarEmpresa, type Empresa } from './consultas'
 import { CabecalhoSecao } from './TelaConfiguracoes'
 
-/** Empresa (F5b): nome, para onde vão as respostas dos clientes e o SLA que os contratos novos sugerem. */
-export function SecaoEmpresa() {
+/**
+ * Empresa (F5b): a situação da conta (F14-12), o nome, para onde vão as respostas dos clientes e o SLA que os contratos
+ * novos sugerem.
+ */
+export function SecaoEmpresa({ tenant }: { tenant: Tenant }) {
     const empresa = useQuery(consultaEmpresa)
     return (
         <>
             <CabecalhoSecao titulo="Empresa">
                 O nome aparece para a equipe e, se o portal não tiver um nome próprio, para os clientes.
             </CabecalhoSecao>
+            <SituacaoDaEmpresa tenant={tenant} />
             {empresa.isPending ? (
                 <p className="text-sm text-suave">Carregando…</p>
             ) : empresa.isError ? (
@@ -29,6 +35,48 @@ export function SecaoEmpresa() {
                 <Formulario empresa={empresa.data} />
             )}
         </>
+    )
+}
+
+/**
+ * Situação da conta, só para ler (F14-12): quem a muda é a Nebrys (ativar, prorrogar, cancelar; F14-65 a F14-68), pelo
+ * canal da decisão 14 do G2. Vem do perfil (`/auth/eu`), sem consulta a mais.
+ */
+function SituacaoDaEmpresa({ tenant }: { tenant: Tenant }) {
+    const fuso = tenant.fusoHorario
+    return (
+        <section aria-labelledby="situacao-empresa" className="mb-6 flex max-w-2xl flex-col gap-2">
+            <h3 id="situacao-empresa" className="text-sm font-semibold">
+                Situação da conta
+            </h3>
+            <dl className="grid gap-x-6 gap-y-1 text-sm sm:grid-cols-[auto_1fr]">
+                <dt className="text-suave">Situação</dt>
+                <dd>{ROTULO_SITUACAO[tenant.situacao]}</dd>
+                {tenant.situacao === 'TESTE' && tenant.fimDoTeste && (
+                    <>
+                        <dt className="text-suave">Fim do teste</dt>
+                        <dd>{ultimoDiaDoTeste(tenant.fimDoTeste, fuso)}</dd>
+                    </>
+                )}
+                {tenant.somenteLeituraDesde && (
+                    <>
+                        <dt className="text-suave">Só leitura desde</dt>
+                        <dd>{dataNoFuso(tenant.somenteLeituraDesde, fuso)}</dd>
+                    </>
+                )}
+                {tenant.expurgoPrevistoEm && (
+                    <>
+                        <dt className="text-suave">Dados guardados até</dt>
+                        <dd>{dataNoFuso(tenant.expurgoPrevistoEm, fuso)}</dd>
+                    </>
+                )}
+            </dl>
+            <p className="text-xs text-suave">
+                {CONTATO_NEBRYS
+                    ? `Para ativar ou cancelar a conta, fale com a Nebrys: ${CONTATO_NEBRYS}.`
+                    : 'Para ativar ou cancelar a conta, fale com a Nebrys.'}
+            </p>
+        </section>
     )
 }
 
@@ -88,7 +136,7 @@ function Formulario({ empresa }: { empresa: Empresa }) {
                 <TabelaSla valores={sla} aoMudar={setSla} invalidos={invalidos} />
             </fieldset>
             <div>
-                <Botao type="submit" isPending={envio.isPending}>
+                <Botao grava type="submit" isPending={envio.isPending}>
                     Salvar
                 </Botao>
             </div>

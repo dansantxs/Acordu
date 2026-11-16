@@ -196,7 +196,7 @@ function Detalhe({
                         {p.nome}
                     </h2>
                     {gerencia && emAndamento && (
-                        <Botao variante="discreto" onPress={() => setEditando(true)} className="!px-0">
+                        <Botao grava variante="discreto" onPress={() => setEditando(true)} className="!px-0">
                             Editar
                         </Botao>
                     )}
@@ -214,8 +214,11 @@ function Detalhe({
 
             {gerencia && emAndamento && (
                 <div className="flex flex-wrap items-center gap-2">
-                    <Botao onPress={() => abrirEncerramento('conclusao')}>Concluir projeto</Botao>
+                    <Botao grava onPress={() => abrirEncerramento('conclusao')}>
+                        Concluir projeto
+                    </Botao>
                     <Botao
+                        grava
                         variante="discreto"
                         onPress={() => abrirEncerramento('cancelamento')}
                         className="ml-auto !text-suave hover:!text-vermelho"
@@ -276,7 +279,7 @@ function Detalhe({
                 <h3 id="tarefas-projeto" className="flex items-baseline justify-between text-sm font-semibold">
                     Tarefas
                     {emAndamento && pode(perfil, 'tarefa.criar') && (
-                        <Botao variante="discreto" onPress={() => setNovaTarefa(true)} className="!p-0">
+                        <Botao grava variante="discreto" onPress={() => setNovaTarefa(true)} className="!p-0">
                             Nova tarefa
                         </Botao>
                     )}

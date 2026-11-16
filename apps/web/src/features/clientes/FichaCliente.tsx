@@ -169,10 +169,10 @@ function Ficha({
             acoes={
                 editavel && (
                     <div className="flex gap-2">
-                        <Botao variante="secundario" onPress={() => setEditando(true)}>
+                        <Botao grava variante="secundario" onPress={() => setEditando(true)}>
                             Editar
                         </Botao>
-                        <Botao variante="secundario" onPress={() => setInativando(true)}>
+                        <Botao grava variante="secundario" onPress={() => setInativando(true)}>
                             Inativar
                         </Botao>
                     </div>
@@ -185,6 +185,7 @@ function Ficha({
                         <span>Cliente inativo: não recebe solicitações novas e os contatos não acessam o portal.</span>
                         {podeGerenciar && (
                             <Botao
+                                grava
                                 variante="secundario"
                                 isPending={reativacao.isPending}
                                 onPress={() => reativacao.mutate()}
@@ -258,7 +259,7 @@ function Ficha({
                                 Contatos
                             </h2>
                             {editavel && (
-                                <Botao variante="secundario" onPress={() => setContatoEmEdicao('novo')}>
+                                <Botao grava variante="secundario" onPress={() => setContatoEmEdicao('novo')}>
                                     <Icone nome="mais" />
                                     Novo contato
                                 </Botao>

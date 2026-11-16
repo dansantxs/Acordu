@@ -94,6 +94,7 @@ export function SecaoEquipe({ perfil }: { perfil: Perfil }) {
                 {podeConvidar && (
                     <div className="flex flex-col items-end gap-1">
                         <Botao
+                            grava
                             onPress={() => setConvidando(true)}
                             isDisabled={!perfil.tenant.envioLiberado}
                             aria-describedby={perfil.tenant.envioLiberado ? undefined : motivoConvite}
@@ -283,7 +284,7 @@ function JanelaConvite({ papeis, aoFechar }: { papeis: Papel[]; aoFechar: () => 
                     <Botao variante="secundario" onPress={aoFechar} isDisabled={envio.isPending}>
                         Cancelar
                     </Botao>
-                    <Botao type="submit" isPending={envio.isPending} isDisabled={!papel}>
+                    <Botao grava type="submit" isPending={envio.isPending} isDisabled={!papel}>
                         Enviar convite
                     </Botao>
                 </div>
@@ -330,7 +331,7 @@ function JanelaPapel({ pessoa, papeis, aoFechar }: { pessoa: Pessoa; papeis: Pap
                     <Botao variante="secundario" onPress={aoFechar} isDisabled={envio.isPending}>
                         Cancelar
                     </Botao>
-                    <Botao type="submit" isPending={envio.isPending}>
+                    <Botao grava type="submit" isPending={envio.isPending}>
                         Salvar
                     </Botao>
                 </div>
@@ -390,7 +391,7 @@ function JanelaCapacidade({ pessoa, aoFechar }: { pessoa: Pessoa; aoFechar: () =
                     <Botao variante="secundario" onPress={aoFechar} isDisabled={envio.isPending}>
                         Cancelar
                     </Botao>
-                    <Botao type="submit" isPending={envio.isPending}>
+                    <Botao grava type="submit" isPending={envio.isPending}>
                         Salvar
                     </Botao>
                 </div>

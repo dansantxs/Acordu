@@ -471,7 +471,7 @@ function JanelaClienteAberta({
                     <Botao variante="secundario" onPress={() => aoMudar(false)} isDisabled={envio.isPending}>
                         Cancelar
                     </Botao>
-                    <Botao type="submit" isPending={envio.isPending}>
+                    <Botao grava type="submit" isPending={envio.isPending}>
                         {cliente ? 'Salvar' : 'Criar cliente'}
                     </Botao>
                 </div>

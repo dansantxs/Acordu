@@ -72,7 +72,7 @@ export function JanelaEdicao({
                     <Botao variante="secundario" onPress={() => aoMudar(false)} isDisabled={envio.isPending}>
                         Voltar
                     </Botao>
-                    <Botao type="submit" isPending={envio.isPending}>
+                    <Botao grava type="submit" isPending={envio.isPending}>
                         Salvar
                     </Botao>
                 </div>
@@ -143,7 +143,7 @@ export function JanelaResolucao({
                     <Botao variante="secundario" onPress={() => aoMudar(false)} isDisabled={ocupada}>
                         Voltar
                     </Botao>
-                    <Botao type="submit" isPending={ocupada}>
+                    <Botao grava type="submit" isPending={ocupada}>
                         Resolver
                     </Botao>
                 </div>
@@ -212,6 +212,7 @@ export function JanelaMotivo({
                         Voltar
                     </Botao>
                     <Botao
+                        grava
                         type="submit"
                         isPending={ocupada}
                         className={perigosa ? '!bg-vermelho !text-botao-tinta' : undefined}

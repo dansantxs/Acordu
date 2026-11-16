@@ -105,7 +105,7 @@ export function BotaoCronometro({ tarefaId, fuso }: { tarefaId: string; fuso: st
     if (c && c.tarefa.id === tarefaId)
         return (
             <>
-                <Botao variante="secundario" onPress={() => setParando(true)}>
+                <Botao grava variante="secundario" onPress={() => setParando(true)}>
                     <span aria-hidden="true" className="size-2 animate-pulse rounded-full bg-vermelho" />
                     Parar cronômetro · {formatarDuracao(decorridoMinutos(c, agora))}
                 </Botao>
@@ -121,6 +121,7 @@ export function BotaoCronometro({ tarefaId, fuso }: { tarefaId: string; fuso: st
     return (
         <div className="flex flex-wrap items-center gap-3">
             <Botao
+                grava
                 variante="secundario"
                 onPress={() => inicio.mutate(undefined)}
                 isPending={inicio.isPending && !antes}
@@ -128,6 +129,7 @@ export function BotaoCronometro({ tarefaId, fuso }: { tarefaId: string; fuso: st
                 Iniciar cronômetro
             </Botao>
             <Botao
+                grava
                 variante="discreto"
                 onPress={() => {
                     inicio.reset()
@@ -208,7 +210,7 @@ function FormularioInicioAntes({
                 <Botao variante="secundario" onPress={aoFechar} isDisabled={ocupado}>
                     Cancelar
                 </Botao>
-                <Botao type="submit" isPending={ocupado}>
+                <Botao grava type="submit" isPending={ocupado}>
                     Iniciar cronômetro
                 </Botao>
             </div>
@@ -358,7 +360,7 @@ function FormularioParada({ cronometro: c, aoFechar }: { cronometro: Cronometro;
                 <Botao variante="secundario" onPress={aoFechar} isDisabled={parada.isPending}>
                     Continuar contando
                 </Botao>
-                <Botao type="submit" isPending={parada.isPending}>
+                <Botao grava type="submit" isPending={parada.isPending}>
                     Parar e apontar
                 </Botao>
             </div>

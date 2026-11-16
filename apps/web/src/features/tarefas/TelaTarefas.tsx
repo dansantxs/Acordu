@@ -69,7 +69,7 @@ export function TelaTarefas({ perfil, filtros }: { perfil: Perfil; filtros: Filt
             acoes={
                 <div className="flex flex-wrap items-center gap-3">
                     {pode(perfil, 'tarefa.criar') && (
-                        <Botao onPress={() => mudarNova(true)}>
+                        <Botao grava onPress={() => mudarNova(true)}>
                             <Icone nome="mais" />
                             Nova tarefa
                         </Botao>

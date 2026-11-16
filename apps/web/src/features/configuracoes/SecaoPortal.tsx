@@ -86,12 +86,17 @@ function Logotipo({ portal }: { portal: ConfiguracaoPortal }) {
                                 envio.mutate(arquivo)
                             }}
                         >
-                            <Botao variante="secundario" isPending={envio.isPending}>
+                            <Botao grava variante="secundario" isPending={envio.isPending}>
                                 {portal.logoUrl ? 'Trocar logotipo' : 'Enviar logotipo'}
                             </Botao>
                         </FileTrigger>
                         {portal.logoUrl && (
-                            <Botao variante="discreto" isPending={remocao.isPending} onPress={() => remocao.mutate()}>
+                            <Botao
+                                grava
+                                variante="discreto"
+                                isPending={remocao.isPending}
+                                onPress={() => remocao.mutate()}
+                            >
                                 Remover
                             </Botao>
                         )}
@@ -165,7 +170,7 @@ function Formulario({ portal }: { portal: ConfiguracaoPortal }) {
                 </p>
             </div>
             <div>
-                <Botao type="submit" isPending={envio.isPending}>
+                <Botao grava type="submit" isPending={envio.isPending}>
                     Salvar
                 </Botao>
             </div>

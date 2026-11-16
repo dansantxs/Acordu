@@ -206,7 +206,7 @@ function Formulario({
                 <Botao variante="secundario" onPress={aoFechar} isDisabled={envio.isPending}>
                     Cancelar
                 </Botao>
-                <Botao type="submit" isPending={envio.isPending}>
+                <Botao grava type="submit" isPending={envio.isPending}>
                     {a ? 'Salvar' : 'Lançar'}
                 </Botao>
             </div>

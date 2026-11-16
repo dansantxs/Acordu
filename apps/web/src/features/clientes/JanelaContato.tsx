@@ -83,7 +83,7 @@ export function JanelaContato({
                     <Botao variante="secundario" onPress={() => mudar(false)} isDisabled={envio.isPending}>
                         Cancelar
                     </Botao>
-                    <Botao type="submit" isPending={envio.isPending}>
+                    <Botao grava type="submit" isPending={envio.isPending}>
                         {contato ? 'Salvar' : 'Adicionar contato'}
                     </Botao>
                 </div>
