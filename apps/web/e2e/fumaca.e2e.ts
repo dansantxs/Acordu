@@ -1,4 +1,5 @@
 import { expect, test, type Page } from '@playwright/test'
+import { cnpjNovo } from './documentoDeTeste'
 
 // Cada execução cria a própria conta: o banco da CI é novo, mas localmente o teste pode rodar várias vezes.
 const sufixo = `${Date.now()}`
@@ -7,6 +8,7 @@ const conta = {
     email: `ana.${sufixo}@exemplo.com`,
     senha: 'senha-de-teste-1',
     empresa: `Estúdio ${sufixo}`,
+    documento: cnpjNovo(),
 }
 
 const saudacao = (pagina: Page) => pagina.getByRole('heading', { level: 1, name: /, Ana$/ })
@@ -19,6 +21,7 @@ test('cria a conta, mantém a sessão, navega e sai', async ({ page }) => {
     await page.getByLabel('E-mail').fill(conta.email)
     await page.getByLabel('Senha', { exact: true }).fill(conta.senha)
     await page.getByLabel('Nome da empresa').fill(conta.empresa)
+    await page.getByLabel('CPF ou CNPJ').fill(conta.documento)
     // O tempo real abre assim que a casca aparece: confere que o SSE passa pelo proxy com o Bearer.
     const eventos = page.waitForResponse((r) => r.url().endsWith('/api/v1/eventos') && r.status() === 200)
     await page.getByRole('button', { name: 'Criar conta' }).click()

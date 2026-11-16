@@ -12,6 +12,7 @@ export async function cadastrar(corpo: {
     email: string
     senha: string
     nomeEmpresa: string
+    documento: string
     tokenTurnstile?: string | null
 }) {
     const { data } = await api.POST('/api/v1/auth/registro', { body: corpo })
