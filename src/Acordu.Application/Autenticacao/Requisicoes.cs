@@ -1,10 +1,12 @@
 namespace Acordu.Application.Autenticacao;
 
 /// <summary>
-/// Corpo do <c>POST /auth/registro</c>. <see cref="TokenTurnstile"/>: o do desafio do Cloudflare (RNF-SEG-10), exigido só
-/// com o Turnstile ligado no servidor.
+/// Corpo do <c>POST /auth/registro</c>. <see cref="Documento"/>: CPF ou CNPJ (com ou sem pontuação; o CNPJ alfanumérico
+/// em qualquer caixa), obrigatório, um teste por documento (RF-AUT-09, F14g). <see cref="TokenTurnstile"/>: o do desafio
+/// do Cloudflare (RNF-SEG-10), exigido só com o Turnstile ligado no servidor.
 /// </summary>
-public sealed record RegistroRequest(string Nome, string Email, string Senha, string NomeEmpresa, string? TokenTurnstile = null);
+public sealed record RegistroRequest(
+    string Nome, string Email, string Senha, string NomeEmpresa, string Documento, string? TokenTurnstile = null);
 
 /// <summary>Corpo do <c>POST /auth/login</c>.</summary>
 public sealed record LoginRequest(string Email, string Senha);
