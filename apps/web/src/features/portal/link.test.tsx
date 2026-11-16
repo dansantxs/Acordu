@@ -23,6 +23,7 @@ const eu = {
     prestador: { nome: 'Prado Consultoria', logoUrl: null },
     escopoPortal: 'PROPRIAS',
     veContratos: false,
+    envioDisponivel: true,
     solicitacaoId: 's1',
 }
 const semConta = (rotas: Rotas) => servidor({ '/api/v1/auth/refresh': () => json({ status: 401 }, 401), ...rotas })
