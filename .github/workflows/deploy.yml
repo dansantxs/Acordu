@@ -254,6 +254,9 @@ jobs:
           VITE_TURNSTILE_CHAVE: ${{ vars.TURNSTILE_CHAVE_SITE }}
           # Canal da Nebrys nas faixas da situação da empresa (F14, D15), conferido no passo "Variáveis da API".
           VITE_CONTATO_NEBRYS: ${{ vars.CONTATO_NEBRYS }}
+          # Opcional (F14f, #194): só com `true` as páginas /termos e /privacidade e os links delas aparecem. Sem ela,
+          # escondidos; ligar depois de resolver os marcadores do texto com o registro da empresa.
+          VITE_TEXTOS_LEGAIS_PUBLICADOS: ${{ vars.TEXTOS_LEGAIS_PUBLICADOS }}
           # Vai junto dos relatos de erro do app (F13d); sem ela o app não relata.
           VITE_VERSAO: ${{ github.sha }}
         run: |

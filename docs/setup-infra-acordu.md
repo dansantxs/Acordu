@@ -187,6 +187,7 @@ Repositório → Settings → Secrets and variables → Actions. Só os nomes fi
 | Variável | `BORDA_ATIVA` | `true` depois de C4; o health do deploy passa a ir pela borda |
 | Variável | `TURNSTILE_CHAVE_SITE` | Chave do site do widget `acordu-cadastro` (C5); vai para o build do SPA |
 | Variável | `CONTATO_NEBRYS` | `contato@acordu.app.br` (decisão 14 do G2 do F14): o canal da Nebrys nas faixas da situação da empresa. Vai para o build do SPA (`VITE_CONTATO_NEBRYS`) e para a API (`Nebrys__Contato`, F14g: recusa do documento no cadastro); obrigatória no `deploy.yml`. Criada; o endereço recebe pelo Cloudflare Email Routing (Parte D, passo 4) |
+| Variável | `TEXTOS_LEGAIS_PUBLICADOS` | Opcional (F14f). `true` publica no SPA as páginas `/termos` e `/privacidade` e os links delas nas telas de acesso e do portal (`VITE_TEXTOS_LEGAIS_PUBLICADOS`); sem ela, ficam escondidos. **Criar só depois da issue #194** (registro da empresa e marcadores do texto resolvidos) |
 | Variável | `BACKUP_ATIVO` | `true` quando Neon e R2 estiverem prontos; liga o agendamento do `backup.yml` |
 | Secret | `NEON_MIGRATOR` | String direta, `acordu_migrator` (B4) |
 | Secret | `API_CONNECTION_STRING` | String pooled, `acordu_app` (B4) |

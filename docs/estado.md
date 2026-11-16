@@ -4,7 +4,7 @@ Visão geral curta, atualizada por cada PR (`docs/processo.md` §1). O históric
 
 ## Em revisão
 
-- **F14g** — CPF ou CNPJ obrigatório no cadastro; registro global só com o HMAC do documento; documento já usado recusado com o canal da Nebrys; liberação de uso único (criada pela área no F14l). Secret `API_DOCUMENTOS_CHAVE` criado pelo Daniel em 16/11.
+- **Textos legais escondidos** (#196, ligado ao F14f e à #194): `/termos`, `/privacidade` e os links só aparecem com a variável `TEXTOS_LEGAIS_PUBLICADOS=true` no GitHub, que só deve ser criada depois da #194. Com ele na `main`, o deploy volta a ser seguro.
 
 ## Marco em andamento
 
@@ -17,7 +17,7 @@ Visão geral curta, atualizada por cada PR (`docs/processo.md` §1). O históric
 
 ## Próximos passos
 
-1. Merge do F14g; em seguida, PR avulso que esconde `/termos`, `/privacidade` e os links atrás de configuração até a #194 (pedido do Daniel em 16/11); **sem deploy até ele entrar**. Depois o `/marco F14 182` segue pelo F14h (aceite; depende das páginas publicadas) ou F14i (expurgo). Email Routing de `contato@acordu.app.br` ativo e testado pelo Daniel em 16/11.
+1. Merge do #196 (textos legais escondidos); **sem deploy até ele entrar**. O F14g (#195) já está na `main`, com o secret `API_DOCUMENTOS_CHAVE` criado. Depois o `/marco F14 182` segue pelo F14h (aceite; depende das páginas publicadas, ver design §3) ou pelo F14i (expurgo). Email Routing de `contato@acordu.app.br` ativo e testado pelo Daniel em 16/11.
 2. Conferências que faltam da produção:
    - deploy: F8-27 e F8-28 (rollback por migration e por health), F8-29 (jobs do Scheduler), hostname do Turnstile;
    - backup: F8-30 e F13-32 na primeira madrugada com o `BACKUP_ATIVO`; F8-31 (restore) antes do primeiro cliente;

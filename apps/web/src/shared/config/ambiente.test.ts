@@ -1,5 +1,12 @@
 import { describe, expect, it } from 'vitest'
-import { baseDaApi, contatoNebrys, intervaloDePolling, modoTempoReal, versaoDoBuild } from './ambiente'
+import {
+    baseDaApi,
+    contatoNebrys,
+    intervaloDePolling,
+    modoTempoReal,
+    textosLegaisPublicados,
+    versaoDoBuild,
+} from './ambiente'
 
 describe('ambiente do SPA (spec do F8)', () => {
     it('F8-17: com VITE_URL_API a base é a da API; sem ela, a origem do SPA', () => {
@@ -28,5 +35,14 @@ describe('ambiente do SPA (spec do F8)', () => {
         expect(contatoNebrys(' contato@acordu.app.br ')).toBe('contato@acordu.app.br')
         expect(contatoNebrys(undefined)).toBeUndefined()
         expect(contatoNebrys('  ')).toBeUndefined()
+    })
+
+    it('TextosLegaisPublicados_ComESemAVariavel_SoTrueLiga (F14f, #194)', () => {
+        expect(textosLegaisPublicados('true')).toBe(true)
+        expect(textosLegaisPublicados(' TRUE ')).toBe(true)
+        expect(textosLegaisPublicados(undefined)).toBe(false)
+        expect(textosLegaisPublicados('')).toBe(false)
+        expect(textosLegaisPublicados('false')).toBe(false)
+        expect(textosLegaisPublicados('1')).toBe(false)
     })
 })

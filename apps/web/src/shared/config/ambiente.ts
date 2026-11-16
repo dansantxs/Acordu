@@ -57,3 +57,13 @@ export const VERSAO = versaoDoBuild(import.meta.env.VITE_VERSAO)
 export const contatoNebrys = (valor: string | undefined): string | undefined => valor?.trim() || undefined
 
 export const CONTATO_NEBRYS = contatoNebrys(import.meta.env.VITE_CONTATO_NEBRYS)
+
+/**
+ * Se os textos legais estão publicados (`VITE_TEXTOS_LEGAIS_PUBLICADOS`; F14f, issue #194): só com `true` as páginas
+ * `/termos` e `/privacidade` abrem e os links das telas de acesso e do portal aparecem. Sem ela (padrão), ficam
+ * escondidos até o Daniel resolver os marcadores do texto com o registro da empresa. Em produção, a variável
+ * `TEXTOS_LEGAIS_PUBLICADOS` do GitHub, opcional.
+ */
+export const textosLegaisPublicados = (valor: string | undefined): boolean => valor?.trim().toLowerCase() === 'true'
+
+export const TEXTOS_LEGAIS_PUBLICADOS = textosLegaisPublicados(import.meta.env.VITE_TEXTOS_LEGAIS_PUBLICADOS)
