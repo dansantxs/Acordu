@@ -11,6 +11,7 @@ using Acordu.Application.Abstractions;
 using Acordu.Application.Abstractions.Operacao;
 using Acordu.Application.Operacao;
 using Acordu.Application.Autenticacao;
+using Acordu.Application.Cadastro;
 using Acordu.Application.Empresas;
 using Acordu.Infrastructure;
 using Acordu.Infrastructure.Armazenamento;
@@ -30,7 +31,8 @@ namespace Acordu.Api.Composicao;
 /// endpoints de teste nos grupos). Configuração só por variáveis de ambiente (ADR 0010 §10): <c>ConnectionStrings__Acordu</c>,
 /// <c>Jwt__ChaveAssinatura</c>, <c>Jobs__Token</c>, <c>Cors__Origem</c>, <c>App__UrlPublica</c> (links dos e-mails),
 /// <c>App__UrlApi</c> (feed ICS, quando a API tem host próprio), <c>Proxy__*</c> (borda, ver <see cref="Seguranca.TokenDeOrigem"/>),
-/// <c>TempoReal__Sse</c> (padrão ligado; ADR 0010 §4), <c>Empresas__DiasDeTeste</c> e <c>Empresas__DiasAteExpurgo</c> (padrão 30; F14) e
+/// <c>TempoReal__Sse</c> (padrão ligado; ADR 0010 §4), <c>Empresas__DiasDeTeste</c> e <c>Empresas__DiasAteExpurgo</c> (padrão 30; F14),
+/// <c>Documentos__ChaveHmac</c> (obrigatória, ≥ 32 bytes; F14g) e <c>Nebrys__Contato</c> (canal da Nebrys; F14g) e
 /// <c>Email__ResendChave</c>, <c>Email__Remetente</c>, <c>Email__NomeRemetente</c> e <c>Email__Smtp__Host</c>/<c>Email__Smtp__Porta</c> (Mailpit, só em desenvolvimento), <c>Email__RegistrarConteudo</c> (só em
 /// desenvolvimento).
 /// </summary>
@@ -71,6 +73,10 @@ internal static class ComposicaoApi
             DiasPositivos(configuracao, "Empresas:DiasDeTeste", OpcoesEmpresas.DiasDeTestePadrao),
             DiasPositivos(configuracao, "Empresas:DiasAteExpurgo", OpcoesEmpresas.DiasAteExpurgoPadrao),
             DiasPositivos(configuracao, "Empresas:DiasFaixaTeste", OpcoesEmpresas.DiasFaixaTestePadrao)));
+        // Um teste por documento (F14g, design D8): a chave do HMAC é obrigatória, como a do JWT; sem ela a API não sobe.
+        services.AddSingleton(ProtecaoDocumento.DaConfiguracao(configuracao["Documentos:ChaveHmac"]));
+        // Canal da Nebrys nas recusas e avisos (D15); sem ele, os textos dizem só "fale com a Nebrys".
+        services.AddSingleton(new OpcoesNebrys(configuracao["Nebrys:Contato"]));
         AdicionarEmail(services, configuracao);
         AdicionarArmazenamento(services, configuracao);
         AdicionarVerificacaoHumana(services, configuracao);

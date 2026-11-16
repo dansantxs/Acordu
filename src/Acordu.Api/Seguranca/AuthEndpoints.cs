@@ -32,7 +32,8 @@ internal static class AuthEndpoints
                         : "Confirme que você não é um robô e tente de novo.");
             }
 
-            var sessao = await servico.RegistrarAsync(corpo.Nome, corpo.Email, corpo.Senha, corpo.NomeEmpresa, cancellationToken);
+            var sessao = await servico.RegistrarAsync(
+                corpo.Nome, corpo.Email, corpo.Senha, corpo.NomeEmpresa, corpo.Documento, cancellationToken);
             return Results.Created("/api/v1/auth/eu", Responder(sessao, jwt, relogio, resposta));
         })
             .RequireRateLimiting(ComposicaoSeguranca.LimiteRegistro)
