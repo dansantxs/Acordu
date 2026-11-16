@@ -5,7 +5,7 @@ import { lerTokenDeLink } from '@/shared/sessao/tokenDaUrl'
 
 export const Route = createFileRoute('/portal/convite/')({
     component: () => (
-        <CapaAcesso titulo="Convite para o portal">
+        <CapaAcesso titulo="Convite para o portal" soPrivacidade>
             <AceiteConvitePortal token={lerTokenDeLink('convite-portal')} />
         </CapaAcesso>
     ),

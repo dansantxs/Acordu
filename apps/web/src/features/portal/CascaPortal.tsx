@@ -6,6 +6,7 @@ import { sair } from '@/shared/sessao/acoes'
 import { encerrarSessaoLink } from '@/shared/sessao/sessaoLink'
 import { SeletorTema } from '@/shared/tema/SeletorTema'
 import { aplicarCouro } from '@/shared/tema/tema'
+import { LinksLegais } from '@/features/legal/LinksLegais'
 import { PontoNovidade } from '@/features/novidades/ListaNotas'
 import { useHaNovidade } from '@/features/novidades/vistas'
 import { ContextoGravacao, ID_MOTIVO_SEM_GRAVACAO, useAoRecusarGravacao } from '@/shared/sessao/gravacao'
@@ -109,8 +110,12 @@ export function CascaPortal({ eu, link = false, children }: { eu: PortalEu; link
                     )}
                     {children}
                 </main>
-                <footer className="mx-auto max-w-3xl px-4 pb-8 text-xs text-suave">
-                    {eu.cliente.nome} · atendimento de {eu.prestador.nome}, pelo Acordu
+                <footer className="mx-auto flex max-w-3xl flex-col gap-1 px-4 pb-8 text-xs text-suave">
+                    <span>
+                        {eu.cliente.nome} · atendimento de {eu.prestador.nome}, pelo Acordu
+                    </span>
+                    {/* Só a política (F14-84): a relação do contato é com o prestador, os termos não cabem. */}
+                    <LinksLegais soPrivacidade />
                 </footer>
             </div>
         </ContextoGravacao>

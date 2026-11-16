@@ -201,5 +201,5 @@ Cada job é um endpoint interno (`POST /internal/jobs/<nome>`): `X-Job-Token` co
 - [ ] Tokens R2 separados (anexos para a API, escrita em backups para o Actions).
 - [ ] Backup diário + restore testado.
 - [ ] Domínio de envio verificado no Resend (SPF/DKIM) antes do primeiro e-mail a cliente.
-- [ ] Política de privacidade informa dados hospedados nos EUA (LGPD, transferência internacional).
+- [ ] Política de privacidade informa dados hospedados nos EUA (LGPD, transferência internacional): página `https://acordu.app.br/privacidade` (F14f, segurança §6), com o texto revisado pelo Daniel e os marcadores "a preencher" resolvidos antes de valer.
 - [ ] MFA com códigos de recuperação em Google, Neon, Cloudflare, GitHub e Resend.

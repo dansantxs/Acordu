@@ -81,6 +81,15 @@ export const SECOES_AJUDA_PORTAL: SecaoAjudaPortal[] = [
         imagens: [{ captura: 'portal-contratos', legenda: 'O extrato do mês de um banco de horas.' }],
     },
     {
+        id: 'privacidade',
+        titulo: 'Seus dados',
+        resumo: 'Quem cuida dos dados que você manda por aqui é a empresa que atende você.',
+        dicas: [
+            'O link "Política de privacidade", no pé do portal, explica como o Acordu trata os dados.',
+            'Para ver, corrigir ou pedir a exclusão dos seus dados, fale com a empresa que atende você.',
+        ],
+    },
+    {
         id: 'link',
         titulo: 'Acesso sem senha',
         resumo: 'A equipe pode mandar um link para você acompanhar uma solicitação sem entrar com conta.',

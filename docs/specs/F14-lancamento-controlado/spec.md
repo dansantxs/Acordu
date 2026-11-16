@@ -152,16 +152,16 @@ Termos usados nos cenários:
 
 | Id | Dado | Quando | Então | Teste |
 |---|---|---|---|---|
-| F14-78 | ninguém logado | abre a página da política de privacidade ou a dos termos de uso | a página abre, com a versão e a data de vigência | — |
+| F14-78 | ninguém logado | abre a página da política de privacidade ou a dos termos de uso | a página abre, com a versão e a data de vigência | Web/legal.test.tsx › PaginaPrivacidade_NinguemLogado_AbreComVersaoEVigencia; PaginaTermos_NinguemLogado_AbreComVersaoEVigencia; versoes.test.ts › TextoLegal_VersaoEVigenciaDoArquivo_IguaisAConstante |
 | F14-79 | tela de cadastro (com convite ou aberto) | abre | tem os links para as duas páginas e a caixa de aceite, desmarcada, obrigatória para enviar | — |
 | F14-80 | cadastro | o registro chega sem o aceite | `400` no campo do aceite; nada criado | — |
 | F14-81 | cadastro | o registro chega com o aceite | a conta guarda a versão de cada texto aceito e a data | — |
 | F14-82 | pessoa que aceita convite da equipe (conta nova, ou existente que não aceitou a versão vigente) | abre a tela do aceite e aceita | a tela tem os links para as duas páginas junto da caixa de aceite, obrigatória; o aceite é registrado como no F14-81 (pergunta 12) | — |
 | F14-83 | nova versão de um dos textos publicada | uma pessoa da equipe que aceitou a anterior entra | vê um aviso com o link até marcar "ciente", que registra a versão nova e a data; o uso não é bloqueado (pergunta 12) | — |
-| F14-84 | telas de entrar, de aceite de convite do portal e do portal | abrem | têm o link para a política de privacidade (e, onde cabe, para os termos), sem pedir aceite | — |
+| F14-84 | telas de entrar, de aceite de convite do portal e do portal | abrem | têm o link para a política de privacidade (e, onde cabe, para os termos), sem pedir aceite | Web/legal.test.tsx › TelaEntrar_Abre_TemLinksParaPoliticaETermosSemPedirAceite; AceiteConvitePortal_Abre_TemLinkParaPoliticaSemTermosNemAceite; Portal_ContatoComConta_TemLinkParaPoliticaSemTermosNemAceite; PortalPorLink_SemSessao_TemLinkParaPolitica |
 | F14-109 | tela da lista de espera | abre | tem o link para a política de privacidade, sem pedir aceite | — |
-| F14-85 | texto da política de privacidade | é revisado | informa o Acordu como operador e o prestador como controlador dos dados dos clientes dele, a Nebrys como controladora dos dados de cadastro, a hospedagem nos EUA e a transferência internacional (LGPD), a retenção (expurgos do F9 e do F14 e backups de 14 dias), os direitos do titular e o canal (pergunta 14) | manual: revisão do Daniel, de preferência com advogado, antes do merge do PR que publica o texto |
-| F14-86 | texto dos termos de uso | é revisado | descreve o teste, a situação só leitura, o expurgo e seus prazos, o cancelamento, a disponibilidade sem garantia (*best-effort*, ERS 1.3.4) e as responsabilidades de cada parte | manual: revisão do Daniel, de preferência com advogado, antes do merge do PR que publica o texto |
+| F14-85 | texto da política de privacidade | é revisado | informa o Acordu como operador e o prestador como controlador dos dados dos clientes dele, a Nebrys como controladora dos dados de cadastro, a hospedagem nos EUA e a transferência internacional (LGPD), a retenção (expurgos do F9 e do F14 e backups de 14 dias), os direitos do titular e o canal (pergunta 14) | manual: revisão do Daniel, de preferência com advogado, antes do merge do PR que publica o texto (prazos e canal: Web/prazos.test.ts › Privacidade_Retencao_InformaTesteExpurgoBackupETrilha) |
+| F14-86 | texto dos termos de uso | é revisado | descreve o teste, a situação só leitura, o expurgo e seus prazos, o cancelamento, a disponibilidade sem garantia (*best-effort*, ERS 1.3.4) e as responsabilidades de cada parte | manual: revisão do Daniel, de preferência com advogado, antes do merge do PR que publica o texto (prazos: Web/prazos.test.ts › Termos_Prazos_InformaTesteExpurgoEBackup) |
 
 ### Empresa de demonstração e dados de exemplo (F14s; F14-91 a F14-96 no F14r)
 
