@@ -4,6 +4,7 @@ using System.Text;
 using Acordu.Application.Abstractions;
 using Acordu.Application.Auditoria;
 using Acordu.Application.Autenticacao;
+using Acordu.Application.Cadastro;
 using Acordu.Application.Empresas;
 using Acordu.Domain.Common;
 using Acordu.Domain.Entities;
@@ -12,6 +13,7 @@ using Acordu.Domain.Exceptions;
 using Acordu.Infrastructure.MultiTenancy;
 using Acordu.Infrastructure.Persistence;
 using Acordu.Infrastructure.Persistence.Auditoria;
+using Acordu.Infrastructure.Persistence.Documentos;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
@@ -40,6 +42,8 @@ public sealed partial class ServicoAutenticacao : IServicoAutenticacao
     private readonly ILogger<ServicoAutenticacao> _logger;
     private readonly IOrigemRequisicao _origem;
     private readonly OpcoesEmpresas _empresas;
+    private readonly RegistroDocumentos _documentos;
+    private readonly OpcoesNebrys _nebrys;
 
     public ServicoAutenticacao(
         AcorduDbContext db,
@@ -50,10 +54,16 @@ public sealed partial class ServicoAutenticacao : IServicoAutenticacao
         EnderecosPublicos enderecos,
         ILogger<ServicoAutenticacao> logger,
         IOrigemRequisicao origem,
-        OpcoesEmpresas empresas)
+        OpcoesEmpresas empresas,
+        RegistroDocumentos documentos,
+        OpcoesNebrys nebrys)
     {
         ArgumentNullException.ThrowIfNull(empresas);
+        ArgumentNullException.ThrowIfNull(documentos);
+        ArgumentNullException.ThrowIfNull(nebrys);
         _empresas = empresas;
+        _documentos = documentos;
+        _nebrys = nebrys;
         ArgumentNullException.ThrowIfNull(db);
         ArgumentNullException.ThrowIfNull(usuarios);
         ArgumentNullException.ThrowIfNull(contexto);
@@ -73,8 +83,9 @@ public sealed partial class ServicoAutenticacao : IServicoAutenticacao
     }
 
     public async Task<Sessao> RegistrarAsync(
-        string nome, string email, string senha, string nomeEmpresa, CancellationToken cancellationToken = default)
+        string nome, string email, string senha, string nomeEmpresa, string? documento, CancellationToken cancellationToken = default)
     {
+        // Primeiro o que não consulta o banco; depois a conta (e-mail em uso) e o documento (design do F14, §1.2).
         var nomeValido = Obrigatorio(nome, Usuario.TamanhoNome, nameof(nome));
         var empresaValida = Obrigatorio(nomeEmpresa, LimitesTexto.Nome, nameof(nomeEmpresa));
         var emailValido = Obrigatorio(email, LimitesTexto.Email, nameof(email));
@@ -82,6 +93,10 @@ public sealed partial class ServicoAutenticacao : IServicoAutenticacao
         _ = Domain.Common.Email.Normalizar(emailValido, nameof(email));
         if (string.IsNullOrEmpty(senha))
             throw new ArgumentException("A senha é obrigatória.", nameof(senha));
+        // CPF ou CNPJ obrigatório no cadastro (RF-AUT-09, F14-56), normalizado pelo domínio: com e sem pontuação, e o CNPJ
+        // alfanumérico em qualquer caixa, viram o mesmo texto (F14-58).
+        var documentoValido = Documento.Normalizar(documento, MensagensDeCadastro.CampoDocumento)
+            ?? throw new ArgumentException(MensagensDeCadastro.DocumentoObrigatorio, MensagensDeCadastro.CampoDocumento);
 
         var tenantId = Guid.CreateVersion7();
         var agora = _relogio.GetUtcNow();
@@ -102,22 +117,38 @@ public sealed partial class ServicoAutenticacao : IServicoAutenticacao
             };
         }
 
+        // Um teste por documento (RF-AUT-09): o registro global entra na mesma transação da empresa (design do F14, D8).
+        if (!await _documentos.ReservarTesteAsync(documentoValido, agora, cancellationToken))
+            throw DocumentoJaTeveTeste();
+
         var papeis = Papel.Padroes(tenantId);
         var dono = papeis.Single(p => p.Nome == Papel.NomeDono);
         var vinculo = Vinculo.Criar(Guid.CreateVersion7(), usuario.Id, dono);
         // Nasce em TESTE, com o fim do teste no cadastro mais a duração da configuração (F14-01).
-        _db.Add(Tenant.Criar(tenantId, empresaValida, agora, usuario.Id, _empresas.DuracaoDoTeste));
+        _db.Add(Tenant.Criar(tenantId, empresaValida, agora, usuario.Id, _empresas.DuracaoDoTeste, documentoValido));
         _db.AddRange(papeis);
         _db.Add(vinculo);
         _db.Add(CalendarioUtil.Padrao(tenantId));
 
         var sessao = Abrir(usuario, vinculo, dono, agora);
-        await _db.SaveChangesAsync(cancellationToken);
+        try
+        {
+            await _db.SaveChangesAsync(cancellationToken);
+        }
+        catch (DbUpdateException excecao) when (RegistroDocumentos.Disputa(excecao))
+        {
+            // Outro cadastro com o mesmo documento passou na frente: a transação volta inteira (nada criado).
+            throw DocumentoJaTeveTeste();
+        }
+
         await transacao.CommitAsync(cancellationToken);
 
         await EnviarConfirmacaoAsync(usuario, cancellationToken);
         return sessao;
     }
+
+    private ArgumentException DocumentoJaTeveTeste() =>
+        new(MensagensDeCadastro.DocumentoJaTeveTeste(_nebrys), MensagensDeCadastro.CampoDocumento);
 
     public async Task<Sessao?> EntrarAsync(string email, string senha, CancellationToken cancellationToken = default)
     {
