@@ -50,7 +50,7 @@ export function TelaRecorrencias({ perfil, filtros }: { perfil: Perfil; filtros:
             titulo="Recorrências"
             acoes={
                 gerencia && (
-                    <Botao onPress={() => mudarNova(true)}>
+                    <Botao grava onPress={() => mudarNova(true)}>
                         <Icone nome="mais" />
                         Nova recorrência
                     </Botao>

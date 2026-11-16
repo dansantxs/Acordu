@@ -250,7 +250,7 @@ function JanelaAcesso({
                     <Botao variante="secundario" onPress={aoFechar} isDisabled={envio.isPending}>
                         Cancelar
                     </Botao>
-                    <Botao type="submit" isPending={envio.isPending}>
+                    <Botao grava type="submit" isPending={envio.isPending}>
                         {modo === 'escopo' ? 'Salvar' : reenvio ? 'Reenviar convite' : 'Enviar convite'}
                     </Botao>
                 </div>

@@ -50,7 +50,7 @@ export function SecaoPapeis() {
                     O que cada pessoa pode fazer. Os papéis padrão não mudam; para outro recorte, crie um sob medida. A
                     mudança vale no próximo acesso de quem tem o papel.
                 </CabecalhoSecao>
-                <Botao onPress={() => setAberto({ modo: 'novo' })}>
+                <Botao grava onPress={() => setAberto({ modo: 'novo' })}>
                     <Icone nome="mais" />
                     Novo papel
                 </Botao>
@@ -268,7 +268,7 @@ function JanelaPapel({
                         <Botao variante="secundario" onPress={aoFechar} isDisabled={envio.isPending}>
                             Cancelar
                         </Botao>
-                        <Botao type="submit" isPending={envio.isPending}>
+                        <Botao grava type="submit" isPending={envio.isPending}>
                             {papel ? 'Salvar' : 'Criar papel'}
                         </Botao>
                     </div>

@@ -24,6 +24,7 @@ import {
     STATUS_EXTERNO,
     type SolicitacaoPortal,
 } from './consultas'
+import { BotaoNovaSolicitacao } from './BotaoNovaSolicitacao'
 import { TituloPortal } from './CascaPortal'
 
 const STATUS_TAREFA = {
@@ -122,10 +123,10 @@ function Aprovacao({ solicitacao: s }: { solicitacao: SolicitacaoPortal }) {
                 Aprovar encerra a solicitação. Se algo não ficou como combinado, peça um ajuste e conte o que falta.
             </p>
             <div className="flex flex-wrap gap-2">
-                <Botao isPending={aprovacao.isPending} onPress={() => aprovacao.mutate()}>
+                <Botao grava isPending={aprovacao.isPending} onPress={() => aprovacao.mutate()}>
                     Aprovar entrega
                 </Botao>
-                <Botao variante="secundario" onPress={() => setAjuste(true)}>
+                <Botao grava variante="secundario" onPress={() => setAjuste(true)}>
                     Pedir ajuste
                 </Botao>
             </div>
@@ -174,7 +175,7 @@ function JanelaAjuste({
                     <Botao variante="secundario" onPress={aoFechar} isDisabled={envio.isPending}>
                         Cancelar
                     </Botao>
-                    <Botao type="submit" isPending={envio.isPending}>
+                    <Botao grava type="submit" isPending={envio.isPending}>
                         Enviar pedido
                     </Botao>
                 </div>
@@ -278,12 +279,9 @@ function Conversa({
                             : 'Esta solicitação foi encerrada. Para outro assunto, fale com a equipe.'}
                     </p>
                     {podeAbrirNova && (
-                        <Link
-                            to="/portal/nova"
-                            className="rounded-couro border border-linha px-3 py-1.5 text-sm font-semibold text-tinta hover:bg-trilho"
-                        >
+                        <BotaoNovaSolicitacao className="rounded-couro border border-linha px-3 py-1.5 text-sm font-semibold text-tinta hover:bg-trilho">
                             Nova solicitação
-                        </Link>
+                        </BotaoNovaSolicitacao>
                     )}
                 </div>
             ) : (

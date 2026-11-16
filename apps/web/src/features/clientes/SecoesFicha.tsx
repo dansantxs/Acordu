@@ -119,6 +119,7 @@ export function EmAbertoCliente({ cliente, perfil }: { cliente: Cliente; perfil:
                         Solicitações
                         {cliente.ativo && pode(perfil, 'solicitacao.criar') && (
                             <Botao
+                                grava
                                 variante="discreto"
                                 className="!p-0 font-sans text-sm"
                                 onPress={() =>
@@ -219,7 +220,7 @@ export function ContratosCliente({ cliente, perfil }: { cliente: Cliente; perfil
                     Contratos
                 </h2>
                 {cliente.ativo && pode(perfil, 'contrato.gerenciar') && (
-                    <Botao variante="secundario" onPress={() => setNovo(true)}>
+                    <Botao grava variante="secundario" onPress={() => setNovo(true)}>
                         <Icone nome="mais" />
                         Novo contrato
                     </Botao>

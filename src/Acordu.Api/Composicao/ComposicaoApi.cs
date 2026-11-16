@@ -69,7 +69,8 @@ internal static class ComposicaoApi
             string.IsNullOrEmpty(urlApi) ? null : new Uri(urlApi)));
         services.AddSingleton(new OpcoesEmpresas(
             DiasPositivos(configuracao, "Empresas:DiasDeTeste", OpcoesEmpresas.DiasDeTestePadrao),
-            DiasPositivos(configuracao, "Empresas:DiasAteExpurgo", OpcoesEmpresas.DiasAteExpurgoPadrao)));
+            DiasPositivos(configuracao, "Empresas:DiasAteExpurgo", OpcoesEmpresas.DiasAteExpurgoPadrao),
+            DiasPositivos(configuracao, "Empresas:DiasFaixaTeste", OpcoesEmpresas.DiasFaixaTestePadrao)));
         AdicionarEmail(services, configuracao);
         AdicionarArmazenamento(services, configuracao);
         AdicionarVerificacaoHumana(services, configuracao);
@@ -109,7 +110,8 @@ internal static class ComposicaoApi
     }
 
     /// <summary>
-    /// Número de dias da configuração (<c>Empresas__DiasDeTeste</c>, <c>Empresas__DiasAteExpurgo</c>): ausente usa o padrão;
+    /// Número de dias da configuração (<c>Empresas__DiasDeTeste</c>, <c>Empresas__DiasAteExpurgo</c>,
+    /// <c>Empresas__DiasFaixaTeste</c>): ausente usa o padrão;
     /// presente e inválido (não inteiro ou menor que 1) impede a subida, para um prazo errado não valer em silêncio.
     /// </summary>
     private static int DiasPositivos(IConfiguration configuracao, string chave, int padrao)

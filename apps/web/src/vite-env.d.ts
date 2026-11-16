@@ -9,4 +9,6 @@ interface ImportMetaEnv {
     readonly VITE_TURNSTILE_CHAVE?: string
     /** Commit do build (produção). Sem ela (dev, testes), os erros do app não são relatados à API. */
     readonly VITE_VERSAO?: string
+    /** Canal da Nebrys nas faixas de situação da empresa (F14, D15). Sem ela, as faixas não citam endereço. */
+    readonly VITE_CONTATO_NEBRYS?: string
 }

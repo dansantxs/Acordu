@@ -197,6 +197,7 @@ function Detalhe({
                     {pode(perfil, 'portal.gerenciar_acessos') && !final && (
                         <>
                             <Botao
+                                grava
                                 variante="discreto"
                                 onPress={() => setJanelaLink(true)}
                                 className="!px-0"
@@ -213,7 +214,7 @@ function Detalhe({
                         </>
                     )}
                     {editavel && (
-                        <Botao variante="discreto" onPress={() => setEditando(true)} className="!px-0">
+                        <Botao grava variante="discreto" onPress={() => setEditando(true)} className="!px-0">
                             Editar
                         </Botao>
                     )}
@@ -332,7 +333,7 @@ function Detalhe({
                         <ContratoDaSolicitacao contratoId={s.contratoId} perfil={perfil} />
                         {/* Contrato não troca em RESOLVIDA nem em estado final (modelo §4.3). */}
                         {editavel && s.status !== 'RESOLVIDA' && pode(perfil, 'contrato.ver') && (
-                            <Botao variante="discreto" onPress={() => setJanelaContrato(true)} className="!p-0">
+                            <Botao grava variante="discreto" onPress={() => setJanelaContrato(true)} className="!p-0">
                                 Trocar
                             </Botao>
                         )}
@@ -362,12 +363,12 @@ function Detalhe({
                     <h3 id="tarefas" className="flex items-baseline gap-4 text-sm font-semibold">
                         <span className="mr-auto">Tarefas</span>
                         {podeCriarProjeto && (
-                            <Botao variante="discreto" onPress={() => setNovoProjeto(true)} className="!p-0">
+                            <Botao grava variante="discreto" onPress={() => setNovoProjeto(true)} className="!p-0">
                                 Criar projeto
                             </Botao>
                         )}
                         {podeCriarTarefa && (
-                            <Botao variante="discreto" onPress={() => setNovaTarefa(true)} className="!p-0">
+                            <Botao grava variante="discreto" onPress={() => setNovaTarefa(true)} className="!p-0">
                                 Nova tarefa
                             </Botao>
                         )}
@@ -597,6 +598,7 @@ function AcoesStatus({
         <div className="flex flex-wrap items-center gap-2">
             {principal && principal !== 'cancelamento' && (
                 <Botao
+                    grava
                     onPress={() => executar(principal)}
                     isPending={transicao.isPending && transicao.variables.acao === principal}
                 >
@@ -605,6 +607,7 @@ function AcoesStatus({
             )}
             {demais.map((acao) => (
                 <Botao
+                    grava
                     key={acao}
                     variante="secundario"
                     onPress={() => executar(acao)}

@@ -90,6 +90,7 @@ describe('acesso', () => {
                     prestador: { nome: 'Prado', logoUrl: null },
                     escopoPortal: 'PROPRIAS',
                     veContratos: false,
+                    envioDisponivel: true,
                     solicitacaoId: null,
                 }),
             '/api/v1/portal/solicitacoes': () => json({ itens: [], pagina: 1, tamanhoPagina: 20, total: 0 }),

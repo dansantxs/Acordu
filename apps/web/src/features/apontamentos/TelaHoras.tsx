@@ -72,7 +72,7 @@ export function TelaHoras({ perfil, filtros }: { perfil: Perfil; filtros: Filtro
             titulo="Horas trabalhadas na semana"
             acoes={
                 podeCriar && (
-                    <Botao onPress={() => setLancando(true)}>
+                    <Botao grava onPress={() => setLancando(true)}>
                         <Icone nome="mais" />
                         Lançar horas
                     </Botao>

@@ -52,12 +52,12 @@ export function TelaContratos({ perfil, filtros }: { perfil: Perfil; filtros: Fi
             acoes={
                 <div className="flex flex-wrap gap-2">
                     {pode(perfil, 'contrato.fechar_periodo') && (
-                        <Botao variante="secundario" onPress={() => setFechandoLote(true)}>
+                        <Botao grava variante="secundario" onPress={() => setFechandoLote(true)}>
                             Fechar o mês
                         </Botao>
                     )}
                     {pode(perfil, 'contrato.gerenciar') && (
-                        <Botao onPress={() => mudarNovo(true)}>
+                        <Botao grava onPress={() => mudarNovo(true)}>
                             <Icone nome="mais" />
                             Novo contrato
                         </Botao>

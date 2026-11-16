@@ -63,7 +63,7 @@ export function SecaoCategorias() {
                     }}
                 >
                     <CampoTexto name="nome" rotulo="Nova categoria" maxLength={100} className="min-w-56 flex-1" />
-                    <Botao type="submit" variante="secundario" isPending={criacao.isPending} className="mt-6">
+                    <Botao grava type="submit" variante="secundario" isPending={criacao.isPending} className="mt-6">
                         Adicionar
                     </Botao>
                 </Form>
@@ -177,7 +177,7 @@ function JanelaRenomear({ categoria, aoFechar }: { categoria: Categoria; aoFecha
                     <Botao variante="secundario" onPress={aoFechar} isDisabled={envio.isPending}>
                         Cancelar
                     </Botao>
-                    <Botao type="submit" isPending={envio.isPending}>
+                    <Botao grava type="submit" isPending={envio.isPending}>
                         Salvar
                     </Botao>
                 </div>

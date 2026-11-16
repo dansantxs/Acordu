@@ -186,7 +186,7 @@ function Detalhe({
                         {t.titulo}
                     </h2>
                     {editavel && (
-                        <Botao variante="discreto" onPress={() => setEditando(true)} className="!px-0">
+                        <Botao grava variante="discreto" onPress={() => setEditando(true)} className="!px-0">
                             Editar
                         </Botao>
                     )}
@@ -515,7 +515,13 @@ function Checklist({ tarefa: t, editavel, aoMudar }: { tarefa: Tarefa; editavel:
                         placeholder="Adicionar item"
                         className="min-w-0 flex-1 rounded-couro border border-linha bg-superficie px-3 py-1.5 text-sm text-tinta placeholder:text-suave"
                     />
-                    <Botao type="submit" variante="secundario" isPending={adicao.isPending} isDisabled={!novo.trim()}>
+                    <Botao
+                        grava
+                        type="submit"
+                        variante="secundario"
+                        isPending={adicao.isPending}
+                        isDisabled={!novo.trim()}
+                    >
                         Adicionar
                     </Botao>
                 </form>
@@ -622,6 +628,7 @@ function AcoesStatus({
         <div className="flex flex-wrap items-center gap-2">
             {principal && (
                 <Botao
+                    grava
                     onPress={() => executar(principal)}
                     isPending={transicao.isPending && transicao.variables === principal}
                 >
@@ -630,6 +637,7 @@ function AcoesStatus({
             )}
             {demais.map((acao) => (
                 <Botao
+                    grava
                     key={acao}
                     variante="secundario"
                     onPress={() => executar(acao)}
@@ -725,7 +733,7 @@ function JanelaEdicaoTarefa({
                     <Botao variante="secundario" onPress={() => aoMudar(false)} isDisabled={envio.isPending}>
                         Voltar
                     </Botao>
-                    <Botao type="submit" isPending={envio.isPending}>
+                    <Botao grava type="submit" isPending={envio.isPending}>
                         Salvar
                     </Botao>
                 </div>

@@ -129,7 +129,7 @@ export function NovaSolicitacaoPortal() {
                     {problema && <Alerta tom="aviso">{problema}</Alerta>}
                     <div className="flex items-center gap-3">
                         <FileTrigger allowsMultiple onSelect={(lista) => lista && adicionar([...lista])}>
-                            <Botao variante="secundario">
+                            <Botao grava variante="secundario">
                                 <Icone nome="clipe" />
                                 Anexar
                             </Botao>
@@ -138,7 +138,7 @@ export function NovaSolicitacaoPortal() {
                     </div>
                 </div>
                 <div className="flex justify-end gap-2">
-                    <Botao type="submit" isPending={envio.isPending}>
+                    <Botao grava type="submit" isPending={envio.isPending}>
                         Abrir solicitação
                     </Botao>
                 </div>

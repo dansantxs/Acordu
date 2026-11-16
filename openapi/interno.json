@@ -10242,7 +10242,8 @@
           "situacao",
           "fimDoTeste",
           "somenteLeituraDesde",
-          "expurgoPrevistoEm"
+          "expurgoPrevistoEm",
+          "diasFaixaTeste"
         ],
         "type": "object",
         "properties": {
@@ -10282,6 +10283,14 @@
               "string"
             ],
             "format": "date-time"
+          },
+          "diasFaixaTeste": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
           }
         }
       },

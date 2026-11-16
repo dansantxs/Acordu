@@ -56,7 +56,7 @@ export function ListaClientes({ perfil, filtros }: { perfil: Perfil; filtros: Fi
             titulo="Clientes"
             acoes={
                 podeGerenciar && (
-                    <Botao onPress={() => setNovo(true)}>
+                    <Botao grava onPress={() => setNovo(true)}>
                         <Icone nome="mais" />
                         Novo cliente
                     </Botao>
@@ -126,7 +126,11 @@ export function ListaClientes({ perfil, filtros }: { perfil: Perfil; filtros: Fi
                     <EstadoVazio
                         titulo="Nenhum cliente ainda"
                         acao={
-                            podeGerenciar && <Botao onPress={() => setNovo(true)}>Cadastrar o primeiro cliente</Botao>
+                            podeGerenciar && (
+                                <Botao grava onPress={() => setNovo(true)}>
+                                    Cadastrar o primeiro cliente
+                                </Botao>
+                            )
                         }
                     >
                         Cada solicitação, contrato e projeto pertence a um cliente. Comece por aqui.

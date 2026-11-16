@@ -47,7 +47,10 @@ export const SECOES_AJUDA_PORTAL: SecaoAjudaPortal[] = [
             'Embaixo, a conversa. Escreva e envie; dá para anexar arquivos.',
             'Quando a equipe está esperando por você, responder já retoma o atendimento.',
         ],
-        dicas: ['As respostas da equipe também chegam por e-mail.'],
+        dicas: [
+            'As respostas da equipe também chegam por e-mail.',
+            'Se aparecer "No momento não é possível enviar por aqui", fale direto com a empresa que atende você. O que já foi enviado continua aparecendo aqui.',
+        ],
     },
     {
         id: 'aprovar',

@@ -187,7 +187,7 @@ function Conteudo({
                         <Botao variante="secundario" onPress={aoFechar} isDisabled={emissao.isPending}>
                             Fechar
                         </Botao>
-                        <Botao type="submit" isPending={emissao.isPending}>
+                        <Botao grava type="submit" isPending={emissao.isPending}>
                             Gerar link
                         </Botao>
                     </div>

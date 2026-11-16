@@ -263,6 +263,38 @@ public sealed class SituacaoEmpresaTests(ApiFixture api)
         (await subir.Should().ThrowAsync<InvalidOperationException>()).WithMessage(mensagem);
     }
 
+    [Fact]
+    public async Task Eu_QualquerSituacao_TrazAJanelaDaFaixaDoTeste() // F14-10, F14-11 (Empresas__DiasFaixaTeste)
+    {
+        var equipe = await Equipe.CriarAsync(api);
+
+        var tenant = (await equipe.EsperarAsync(HttpStatusCode.OK, HttpMethod.Get, "/api/v1/auth/eu")).GetProperty("tenant");
+
+        tenant.GetProperty("diasFaixaTeste").GetInt32().Should().Be(7);
+    }
+
+    [Fact]
+    public async Task Configuracao_DiasFaixaTeste_PadraoSeteEConfiguravel() // F14-10, F14-11
+    {
+        await using (var padrao = await api.NovaApiAsync(new Dictionary<string, string?>()))
+            padrao.Services.GetRequiredService<OpcoesEmpresas>().DiasFaixaTeste.Should().Be(7);
+
+        await using var app = await api.NovaApiAsync(new Dictionary<string, string?> { ["Empresas:DiasFaixaTeste"] = "3" });
+        app.Services.GetRequiredService<OpcoesEmpresas>().DiasFaixaTeste.Should().Be(3);
+    }
+
+    [Theory]
+    [InlineData("0")]
+    [InlineData("-1")]
+    [InlineData("sete")]
+    [InlineData("7,5")]
+    public async Task Configuracao_DiasFaixaTesteInvalido_ApiNaoSobe(string valor) // F14-10, F14-11
+    {
+        var subir = () => api.NovaApiAsync(new Dictionary<string, string?> { ["Empresas:DiasFaixaTeste"] = valor });
+
+        (await subir.Should().ThrowAsync<InvalidOperationException>()).WithMessage("*Empresas__DiasFaixaTeste*");
+    }
+
     private async Task DefinirSituacaoAsync(Guid tenantId, string situacao)
     {
         await using var db = api.DaEquipe(tenantId);

@@ -17,6 +17,7 @@ import {
     type Grupo,
     type PortalEu,
 } from './consultas'
+import { BotaoNovaSolicitacao } from './BotaoNovaSolicitacao'
 import { TituloPortal } from './CascaPortal'
 
 const VAZIO: Record<Grupo, string> = {
@@ -42,13 +43,10 @@ export function ListaPortal({ eu, filtros, fuso }: { eu: PortalEu; filtros: Filt
                 titulo="Solicitações"
                 contexto={eu.escopoPortal === 'PROPRIAS' ? `As suas, em ${eu.cliente.nome}` : eu.cliente.nome}
                 acoes={
-                    <Link
-                        to="/portal/nova"
-                        className="inline-flex items-center gap-2 rounded-couro bg-acento px-4 py-2 text-sm font-semibold text-botao-tinta hover:brightness-110"
-                    >
+                    <BotaoNovaSolicitacao className="inline-flex items-center gap-2 rounded-couro bg-acento px-4 py-2 text-sm font-semibold text-botao-tinta hover:brightness-110">
                         <Icone nome="mais" />
                         Nova solicitação
-                    </Link>
+                    </BotaoNovaSolicitacao>
                 }
             />
             <Tabs

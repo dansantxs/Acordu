@@ -142,7 +142,7 @@ function Detalhe({
                         {r.modelo.titulo}
                     </h2>
                     {gerencia && !encerrada && (
-                        <Botao variante="discreto" onPress={() => setEditando(true)} className="!px-0">
+                        <Botao grava variante="discreto" onPress={() => setEditando(true)} className="!px-0">
                             Editar
                         </Botao>
                     )}
@@ -162,6 +162,7 @@ function Detalhe({
                 <div className="flex flex-wrap items-center gap-2">
                     {r.status === 'ATIVA' ? (
                         <Botao
+                            grava
                             variante="secundario"
                             isPending={transicao.isPending}
                             onPress={() => transicao.mutate('pausa')}
@@ -169,11 +170,12 @@ function Detalhe({
                             Pausar
                         </Botao>
                     ) : (
-                        <Botao isPending={transicao.isPending} onPress={() => transicao.mutate('retomada')}>
+                        <Botao grava isPending={transicao.isPending} onPress={() => transicao.mutate('retomada')}>
                             Retomar
                         </Botao>
                     )}
                     <Botao
+                        grava
                         variante="discreto"
                         onPress={() => setEncerrando(true)}
                         className="ml-auto !text-suave hover:!text-vermelho"

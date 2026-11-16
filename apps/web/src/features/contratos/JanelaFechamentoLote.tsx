@@ -157,6 +157,7 @@ function Conteudo({ fuso, aoFechar }: { fuso: string; aoFechar: () => void }) {
                     {Object.keys(resultados).length ? 'Concluir' : 'Cancelar'}
                 </Botao>
                 <Botao
+                    grava
                     onPress={() => void fechar()}
                     isPending={fechando}
                     isDisabled={carregando || aFechar.length === 0}

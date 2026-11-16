@@ -16,6 +16,7 @@ import {
 import { api } from '@/shared/api/cliente'
 import { contem } from '@/shared/format/texto'
 import { useAtrasado } from '@/shared/hooks/useAtrasado'
+import { podeGravar } from '@/shared/sessao/gravacao'
 import type { Perfil } from '@/shared/sessao/perfil'
 import { Icone } from '@/shared/ui/Icone'
 import { navegacaoDe, pode } from './navegacao'
@@ -88,7 +89,10 @@ export function PaletaComandos({
     })
 
     const destinos = navegacaoDe(perfil).filter((item) => !termo.trim() || contem(item.rotulo, termo))
-    const criacoes = CRIACOES.filter((c) => pode(perfil, c.permissao) && (!termo.trim() || contem(c.rotulo, termo)))
+    // Empresa só leitura: criar não levaria a nada (F14-26); a seção some, como para quem não tem a permissão.
+    const criacoes = podeGravar(perfil.tenant)
+        ? CRIACOES.filter((c) => pode(perfil, c.permissao) && (!termo.trim() || contem(c.rotulo, termo)))
+        : []
     const listaClientes = buscar ? (clientes.data ?? []) : []
     const listaSolicitacoes = buscar ? (solicitacoes.data ?? []) : []
     const carregando = buscar && (clientes.isFetching || solicitacoes.isFetching)

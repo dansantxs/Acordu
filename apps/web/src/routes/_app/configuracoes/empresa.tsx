@@ -8,7 +8,7 @@ function Pagina() {
     const { perfil } = Route.useRouteContext()
     return (
         <SecaoProtegida perfil={perfil} para="/configuracoes/empresa">
-            <SecaoEmpresa />
+            <SecaoEmpresa tenant={perfil.tenant} />
         </SecaoProtegida>
     )
 }

@@ -5,6 +5,7 @@ import type { paths as PathsPortal } from './portal'
 import { BASE_API } from '../config/ambiente'
 import { lerProblema } from './problema'
 import { encerrarSessaoLink, sessaoLink } from '../sessao/sessaoLink'
+import { anunciarRecusaSomenteLeitura, ehRecusaSomenteLeitura } from '../sessao/gravacao'
 
 /**
  * Cliente HTTP central (convenções §4): base `/api/v1`, Bearer do access token em memória (`shared/sessao`) e Problem
@@ -35,6 +36,13 @@ function comToken(requisicao: Request): Request {
     return requisicao
 }
 
+/** Problem Details da resposta; a recusa por só leitura avisa também a casca, que relê a situação (F14-27). */
+async function erroDaResposta(resposta: Response) {
+    const erro = await lerProblema(resposta)
+    if (ehRecusaSomenteLeitura(erro)) anunciarRecusaSomenteLeitura()
+    return erro
+}
+
 const autenticacao: Middleware = {
     async onRequest({ request, schemaPath, id }) {
         if (ROTAS_SEM_RENOVACAO.test(schemaPath)) return comToken(request)
@@ -54,7 +62,7 @@ const autenticacao: Middleware = {
                 if (final.status === 401) encerrarSessao()
             }
         }
-        if (!final.ok) throw await lerProblema(final)
+        if (!final.ok) throw await erroDaResposta(final)
         return final
     },
     onError({ id }) {
@@ -86,7 +94,7 @@ const autenticacaoLink: Middleware = {
     },
     async onResponse({ response }) {
         if (response.status === 401) encerrarSessaoLink('expirado')
-        if (!response.ok) throw await lerProblema(response)
+        if (!response.ok) throw await erroDaResposta(response)
         return response
     },
 }

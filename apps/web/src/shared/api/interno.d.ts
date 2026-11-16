@@ -6323,6 +6323,8 @@ export interface components {
             somenteLeituraDesde: null | string
             /** Format: date-time */
             expurgoPrevistoEm: null | string
+            /** Format: int32 */
+            diasFaixaTeste: number | string
         }
         TenantDoUsuario: {
             /** Format: uuid */

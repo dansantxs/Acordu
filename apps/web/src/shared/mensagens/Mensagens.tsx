@@ -289,7 +289,7 @@ export function CaixaMensagem({
                 {!semAnexos && (
                     <>
                         <FileTrigger allowsMultiple onSelect={(lista) => lista && adicionar([...lista])}>
-                            <Botao variante="discreto" className="!px-0">
+                            <Botao grava variante="discreto" className="!px-0">
                                 <Icone nome="clipe" />
                                 Anexar
                             </Botao>
@@ -299,6 +299,7 @@ export function CaixaMensagem({
                 )}
                 {outraAcao && (
                     <Botao
+                        grava
                         variante="secundario"
                         onPress={() => void mandar(outraAcao.enviar)}
                         isDisabled={vazio || enviando}
@@ -308,6 +309,7 @@ export function CaixaMensagem({
                     </Botao>
                 )}
                 <Botao
+                    grava
                     onPress={() => void mandar()}
                     isDisabled={vazio}
                     isPending={enviando}
