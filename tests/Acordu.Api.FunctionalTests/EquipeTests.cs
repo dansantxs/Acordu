@@ -65,7 +65,7 @@ public sealed class EquipeTests(ApiFixture api)
         var email = NovoEmail();
         using (var registro = await PostAsync("/api/v1/auth/registro", new
         {
-            nome = "Bruno", email, senha = Equipe.Senha, nomeEmpresa = "Empresa do Bruno",
+            nome = "Bruno", email, senha = Equipe.Senha, nomeEmpresa = "Empresa do Bruno", documento = Apoio.DocumentosDeTeste.Novo(),
         }))
         {
             registro.StatusCode.Should().Be(HttpStatusCode.Created);

@@ -9,9 +9,12 @@ public interface IServicoAutenticacao
     /// <summary>
     /// Cria usuário, tenant, papéis padrão, vínculo Dono e calendário padrão numa transação, e já abre a sessão. Depois do
     /// commit, envia a confirmação de e-mail (falha no envio não desfaz o registro: há o reenvio).
-    /// Entrada inválida → <see cref="ArgumentException"/> com o campo.
+    /// Entrada inválida → <see cref="ArgumentException"/> com o campo. O <paramref name="documento"/> (CPF ou CNPJ) é
+    /// obrigatório e vale um teste só (RF-AUT-09): já usado e sem liberação disponível → <see cref="ArgumentException"/> no
+    /// campo <c>documento</c>, com o canal da Nebrys (F14-57); com a liberação, ela fica usada na mesma transação (F14-59).
     /// </summary>
-    Task<Sessao> RegistrarAsync(string nome, string email, string senha, string nomeEmpresa, CancellationToken cancellationToken = default);
+    Task<Sessao> RegistrarAsync(
+        string nome, string email, string senha, string nomeEmpresa, string? documento, CancellationToken cancellationToken = default);
 
     /// <summary>Nulo para credenciais inválidas, conta bloqueada ou usuário sem vínculo, sem distinguir o motivo.</summary>
     Task<Sessao?> EntrarAsync(string email, string senha, CancellationToken cancellationToken = default);

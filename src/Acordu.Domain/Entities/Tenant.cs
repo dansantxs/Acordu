@@ -99,14 +99,26 @@ public sealed class Tenant
     /// </summary>
     public DateTimeOffset? GravavelDesde { get; private set; }
 
+    /// <summary>
+    /// CPF ou CNPJ de quem contratou o teste (RF-AUT-09, F14g), normalizado (<see cref="Common.Documento"/>). Fica só aqui,
+    /// enquanto a empresa existe; o registro global de "um teste por documento" guarda só o HMAC dele (design do F14, D8).
+    /// Nulo nas empresas anteriores ao F14g: a Application o exige no cadastro.
+    /// </summary>
+    public string? Documento { get; private set; }
+
+    /// <summary>Tamanho máximo do documento normalizado (CNPJ, 14 caracteres).</summary>
+    public const int TamanhoDocumento = 14;
+
     /// <summary>VENCIDA ou CANCELADA: a empresa lê e não grava (RF-EMP-02).</summary>
     public bool SomenteLeitura => Situacao.SomenteLeitura();
 
     /// <summary>
     /// A empresa nasce em TESTE, com o fim do teste no instante do cadastro mais a duração (RF-EMP-01; a duração vem da
-    /// configuração, padrão de 30 dias pela decisão 1 do G2 do F14).
+    /// configuração, padrão de 30 dias pela decisão 1 do G2 do F14). O <paramref name="documento"/> (CPF ou CNPJ) é
+    /// normalizado e conferido aqui; quem o exige é o cadastro (F14-56).
     /// </summary>
-    public static Tenant Criar(Guid id, string nome, DateTimeOffset agora, Guid criadoPorUsuarioId, TimeSpan duracaoDoTeste)
+    public static Tenant Criar(
+        Guid id, string nome, DateTimeOffset agora, Guid criadoPorUsuarioId, TimeSpan duracaoDoTeste, string? documento = null)
     {
         if (duracaoDoTeste <= TimeSpan.Zero)
             throw new ArgumentOutOfRangeException(nameof(duracaoDoTeste), duracaoDoTeste, "A duração do teste precisa ser positiva.");
@@ -117,7 +129,10 @@ public sealed class Tenant
             Texto.Obrigatorio(nome, LimitesTexto.Nome, nameof(nome)),
             criadoEm,
             Ids.Obrigatorio(criadoPorUsuarioId, nameof(criadoPorUsuarioId)),
-            criadoEm + duracaoDoTeste);
+            criadoEm + duracaoDoTeste)
+        {
+            Documento = Common.Documento.Normalizar(documento, nameof(documento)),
+        };
     }
 
     /// <summary>

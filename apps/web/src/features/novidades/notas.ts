@@ -15,6 +15,14 @@ export const NOTAS: NotaVersao[] = [
     {
         data: '2026-11-16',
         publico: 'equipe',
+        titulo: 'CPF ou CNPJ no cadastro',
+        itens: [
+            'O cadastro de uma empresa nova pede o CPF ou CNPJ de quem contrata. Cada documento tem um período de teste; para um novo teste com o mesmo documento, fale com a Nebrys.',
+        ],
+    },
+    {
+        data: '2026-11-16',
+        publico: 'equipe',
         titulo: 'Termos de uso e política de privacidade',
         itens: [
             'Os termos de uso e a política de privacidade do Acordu agora têm páginas próprias, com a versão e a data de vigência, e links no pé da tela de entrar.',

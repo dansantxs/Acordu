@@ -650,6 +650,37 @@ namespace Acordu.Infrastructure.Persistence.Migrations
                     b.ToTable("cronometros", (string)null);
                 });
 
+            modelBuilder.Entity("Acordu.Domain.Entities.DocumentoTeste", b =>
+                {
+                    b.Property<string>("Hash")
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)")
+                        .HasColumnName("hash");
+
+                    b.Property<DateTimeOffset?>("LiberacaoUsadaEm")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("liberacao_usada_em");
+
+                    b.Property<DateTimeOffset?>("LiberadoEm")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("liberado_em");
+
+                    b.Property<DateTimeOffset>("PrimeiroTesteEm")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("primeiro_teste_em");
+
+                    b.Property<uint>("Versao")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("xid")
+                        .HasColumnName("xmin");
+
+                    b.HasKey("Hash")
+                        .HasName("pk_documentos_teste");
+
+                    b.ToTable("documentos_teste", (string)null);
+                });
+
             modelBuilder.Entity("Acordu.Domain.Entities.Interacao", b =>
                 {
                     b.Property<Guid>("Id")
@@ -1166,6 +1197,11 @@ namespace Acordu.Infrastructure.Persistence.Migrations
                     b.Property<int>("DiasFechamentoAutomatico")
                         .HasColumnType("integer")
                         .HasColumnName("dias_fechamento_automatico");
+
+                    b.Property<string>("Documento")
+                        .HasMaxLength(14)
+                        .HasColumnType("character varying(14)")
+                        .HasColumnName("documento");
 
                     b.Property<DateTimeOffset?>("EnvioLiberadoEm")
                         .HasColumnType("timestamp with time zone")

@@ -107,7 +107,7 @@ internal sealed class Equipe
             nome = "Pessoa da equipe",
             email,
             senha = Senha,
-            nomeEmpresa = empresa,
+            nomeEmpresa = empresa, documento = DocumentosDeTeste.Novo(),
         }, null, null);
         resposta.StatusCode.Should().Be(HttpStatusCode.Created);
         var cookie = resposta.Headers.GetValues("Set-Cookie").Single(c => c.StartsWith("acordu_refresh=", StringComparison.Ordinal));

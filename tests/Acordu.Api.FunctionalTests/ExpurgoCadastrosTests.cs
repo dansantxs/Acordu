@@ -256,7 +256,7 @@ public sealed class ExpurgoCadastrosTests(ApiFixture api)
         using var http = api.NovoHttp();
         using var resposta = await http.PostAsJsonAsync(new Uri("/api/v1/auth/registro", UriKind.Relative), new
         {
-            nome = "Ana Souza", email = $"abandono-{Guid.NewGuid():N}@exemplo.com", senha = Equipe.Senha, nomeEmpresa = "Estúdio Traço",
+            nome = "Ana Souza", email = $"abandono-{Guid.NewGuid():N}@exemplo.com", senha = Equipe.Senha, nomeEmpresa = "Estúdio Traço", documento = Apoio.DocumentosDeTeste.Novo(),
         });
         resposta.StatusCode.Should().Be(HttpStatusCode.Created);
         var cookie = resposta.Headers.GetValues("Set-Cookie").Single(c => c.StartsWith("acordu_refresh=", StringComparison.Ordinal));

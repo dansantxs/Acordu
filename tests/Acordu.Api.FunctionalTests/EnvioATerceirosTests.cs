@@ -289,7 +289,7 @@ public sealed class EnvioATerceirosTests(ApiFixture api)
     {
         var email = $"criador-{Guid.NewGuid():N}@exemplo.com";
         using var resposta = await PostAsync(
-            "/api/v1/auth/registro", new { nome = "Ana Souza", email, senha = Equipe.Senha, nomeEmpresa = "Estúdio Traço" });
+            "/api/v1/auth/registro", new { nome = "Ana Souza", email, senha = Equipe.Senha, nomeEmpresa = "Estúdio Traço", documento = Apoio.DocumentosDeTeste.Novo() });
         resposta.StatusCode.Should().Be(HttpStatusCode.Created);
         return (email, (await resposta.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("accessToken").GetString()!);
     }

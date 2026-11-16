@@ -165,6 +165,7 @@ public sealed class AcorduDbContext : IdentityUserContext<Usuario, Guid>
         Acordu.Infrastructure.Operacao.OcorrenciaErroConfiguration.Aplicar(builder);
         Acordu.Infrastructure.Operacao.MarcaOperacaoConfiguration.Aplicar(builder);
         Sugestoes.SugestaoConfiguration.Aplicar(builder);
+        Documentos.DocumentoTesteConfiguration.Aplicar(builder);
 
         AplicarFiltros(builder);
     }

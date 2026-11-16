@@ -31,6 +31,7 @@ async function preencher() {
     await usuario.type(screen.getByLabelText('E-mail'), 'ana@exemplo.com')
     await usuario.type(screen.getByLabelText('Senha'), 'umasenhaboa')
     await usuario.type(screen.getByLabelText('Nome da empresa'), 'Prado')
+    await usuario.type(screen.getByLabelText('CPF ou CNPJ'), '52998224725')
     return usuario
 }
 

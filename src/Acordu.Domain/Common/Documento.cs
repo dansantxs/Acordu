@@ -5,7 +5,7 @@ namespace Acordu.Domain.Common;
 /// CPF só tem dígitos; o CNPJ pode ter letras nas 12 primeiras posições (alfanumérico, IN RFB 2.229/2024, desde julho
 /// de 2026), guardadas em maiúsculas, com os dois verificadores numéricos.
 /// </summary>
-internal static class Documento
+public static class Documento
 {
     public static string? Normalizar(string? documento, string parametro)
     {

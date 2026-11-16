@@ -257,4 +257,38 @@ public sealed class TenantTests
 
         tenant.ExpurgoPrevistoEm(TimeSpan.FromDays(30)).Should().BeNull();
     }
+
+    [Theory] // F14-56, F14-58: o documento é normalizado na empresa
+    [InlineData("529.982.247-25", "52998224725")]
+    [InlineData("11.222.333/0001-81", "11222333000181")]
+    [InlineData("12.abc.345/01de-35", "12ABC34501DE35")]
+    [InlineData(" 12ABC34501DE35 ", "12ABC34501DE35")]
+    public void Criar_ComDocumento_GuardaNormalizado(string documento, string esperado)
+    {
+        var tenant = Tenant.Criar(Guid.NewGuid(), "Estúdio", Agora, Criador, TimeSpan.FromDays(30), documento);
+
+        tenant.Documento.Should().Be(esperado);
+    }
+
+    [Theory] // F14-56
+    [InlineData("529.982.247-24")]
+    [InlineData("11222333000182")]
+    [InlineData("12ABC34501DE36")]
+    [InlineData("111.111.111-11")]
+    [InlineData("1234")]
+    public void Criar_DocumentoInvalido_LancaExcecaoNoCampo(string digitado)
+    {
+        var acao = () => Tenant.Criar(Guid.NewGuid(), "Estúdio", Agora, Criador, TimeSpan.FromDays(30), digitado);
+
+        acao.Should().Throw<ArgumentException>().WithParameterName("documento");
+    }
+
+    [Fact]
+    public void Criar_SemDocumento_FicaNulo()
+    {
+        // As empresas anteriores ao F14g não têm documento; quem exige no cadastro é a Application.
+        var tenant = Tenant.Criar(Guid.NewGuid(), "Estúdio", Agora, Criador, TimeSpan.FromDays(30));
+
+        tenant.Documento.Should().BeNull();
+    }
 }

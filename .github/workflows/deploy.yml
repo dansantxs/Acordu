@@ -111,9 +111,11 @@ jobs:
           Proxy__TokenOrigem: ${{ secrets.API_TOKEN_ORIGEM }}
           Email__ResendChave: ${{ secrets.API_RESEND_CHAVE }}
           Turnstile__Segredo: ${{ secrets.API_TURNSTILE_SEGREDO }}
+          # Chave do HMAC do registro "um teste por documento" (F14g, design D8): não gira; sem ela a API nem sobe.
+          Documentos__ChaveHmac: ${{ secrets.API_DOCUMENTOS_CHAVE }}
           # Só conferida aqui (vai para o build do SPA, não para a API): falta dela barra o deploy antes de publicar.
           TURNSTILE_CHAVE_SITE: ${{ vars.TURNSTILE_CHAVE_SITE }}
-          # O canal da Nebrys nas faixas do SPA (F14, D15): também só conferido aqui, por enquanto.
+          # O canal da Nebrys (F14, D15): vai para o build do SPA e, como Nebrys__Contato, para a API (F14g).
           CONTATO_NEBRYS: ${{ vars.CONTATO_NEBRYS }}
           Armazenamento__Endpoint: ${{ secrets.R2_ENDPOINT }}
           Armazenamento__ChaveAcesso: ${{ secrets.API_R2_CHAVE_ACESSO }}
@@ -141,8 +143,9 @@ jobs:
               "App__Versao": os.environ["GITHUB_SHA"][:7],
           }
           # Turnstile__Segredo: sem ele o cadastro público fica sem desafio (RNF-SEG-10; spec do F9, F9-46).
+          # Documentos__ChaveHmac: sem ela a API não sobe (F14g); barrar aqui evita publicar uma revisão que cai.
           obrigatorias = ["ConnectionStrings__Acordu", "Jwt__ChaveAssinatura", "Jobs__Token", "Proxy__TokenOrigem",
-                          "Email__ResendChave", "Turnstile__Segredo"]
+                          "Email__ResendChave", "Turnstile__Segredo", "Documentos__ChaveHmac"]
           # Sem endpoint do R2, a API sobe sem anexos (ComposicaoApi); com ele, as chaves são obrigatórias.
           opcionais = ["Armazenamento__Endpoint", "Armazenamento__ChaveAcesso", "Armazenamento__ChaveSecreta"]
           # Sem webhook, o canal não envia (a API sobe igual); sem o link, o aviso de erro sai sem ele.
@@ -159,11 +162,17 @@ jobs:
           # A API não sobe com webhook fora de https (OpcoesDiscord): melhor barrar aqui, antes de publicar.
           faltam += [n + " (precisa ser https://)" for n in webhooks
                      if os.environ.get(n, "").strip() and not os.environ[n].strip().startswith("https://")]
+          # Nem com a chave do HMAC curta (ProtecaoDocumento, F14g).
+          chave_hmac = os.environ.get("Documentos__ChaveHmac", "")
+          if chave_hmac and len(chave_hmac.encode("utf-8")) < 32:
+              faltam.append("Documentos__ChaveHmac (precisa de 32 bytes ou mais; secret API_DOCUMENTOS_CHAVE)")
           if faltam:
               sys.exit("Faltam: " + ", ".join(faltam))
 
           variaveis = dict(fixas)
           variaveis.update({n: os.environ[n] for n in obrigatorias + opcionais + avisos if os.environ.get(n)})
+          # O canal da Nebrys também na API (D15), com o nome da configuração dela.
+          variaveis["Nebrys__Contato"] = os.environ["CONTATO_NEBRYS"].strip()
           if "Armazenamento__Endpoint" not in variaveis:
               for n in ("Armazenamento__Regiao", "Armazenamento__Bucket"):
                   variaveis.pop(n)

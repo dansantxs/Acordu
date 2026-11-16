@@ -463,7 +463,7 @@ Regras:
 - `Tenant.LogoChave` (opcional, ≤ 512): chave do logotipo no object storage (RF-POR-09). `DefinirLogo(chave?)`; a Application valida a imagem, envia antes e apaga a anterior depois do commit.
 
 ### 4.11.2 Criador e liberação do envio (RF-AUT-06, F9)
-- `Tenant.CriadoPorUsuarioId`: quem registrou a empresa (`Criar(id, nome, agora, criadoPor, duracaoDoTeste)`, §4.11.3). Sem FK: a identidade fica fora do domínio. Nulo só em empresa anterior ao F9 sem Dono.
+- `Tenant.CriadoPorUsuarioId`: quem registrou a empresa (`Criar(id, nome, agora, criadoPor, duracaoDoTeste, documento)`, §4.11.3 e §4.11.4). Sem FK: a identidade fica fora do domínio. Nulo só em empresa anterior ao F9 sem Dono.
 - `Tenant.EnvioLiberadoEm` (e `EnvioLiberado`): a primeira vez que o e-mail do criador ficou confirmado, pelo link de confirmação ou pela redefinição de senha. Gravada só na primeira vez (a Infrastructure atualiza com `EnvioLiberadoEm IS NULL`, fora do rastreamento: a confirmação é rota pública); nunca volta a nulo, nem se o criador sair ou mudar de papel. Sem ela, convites e links são recusados (`EnvioATerceiros` na Application).
 
 ### 4.11.3 Situação da empresa (RF-EMP-01 a RF-EMP-03, F14)
@@ -490,6 +490,9 @@ Regras:
 - **Empresas anteriores ao F14** (decisão 13 do G2): a migration as põe em CANCELADA, com `CanceladaEm` e `SomenteLeituraDesde` em `2026-01-01T00:00:00Z` (já fora do prazo do expurgo) e sem `FimDoTeste`.
 - **Demonstração** (F14s): ATIVA com uma marca própria, fora das transições; por ser ATIVA, nunca vence nem é expurgada.
 
+### 4.11.4 Documento da empresa (RF-AUT-09, F14g)
+- `Tenant.Documento` (opcional, até 14 caracteres): CPF ou CNPJ de quem contratou o teste, normalizado pelo domínio (`Documento.Normalizar`: sem pontuação, letras do CNPJ alfanumérico em maiúsculas, dígitos verificadores conferidos). `Criar(..., documento)` o recebe; nulo só nas empresas anteriores ao F14g, e quem o exige no cadastro é a Application (F14-56). É o único lugar com o documento em claro, enquanto a empresa existe (design do F14, D8); o registro global guarda só o HMAC (§4.14).
+
 ### 4.12 Categoria
 - Nome obrigatório (≤ 100); `Renomear`, `Inativar`, `Reativar`. Inativa some da escolha em novas solicitações, mas continua nas antigas.
 - Nome único por tenant é regra entre agregados: Application + índice único no banco.
@@ -501,9 +504,18 @@ Desenho base do ADR 0001 (`Tenant`, `Usuario` global, `Vinculo` N-N, `Papel`, `P
 
 ---
 
-### 4.14 Sugestao (RF-SUG-01, F13e)
+### 4.14 Entidades globais (fora dos tenants)
+Dados da Nebrys, não do prestador: sem `TenantId`, sem filtro global e sem entrar no expurgo por tenant (convenções §1). Cada uma só é usada pela feature que a grava e, quando houver, pela área da Nebrys (ADR 0014, item 7), o que um teste de arquitetura confere.
+
+#### Sugestao (RF-SUG-01, F13e)
 - Sugestão de melhoria de alguém da equipe **para a Nebrys**: global, fora dos tenants (sem filtro global; não é dado do prestador). Campos: `Numero` (sequencial global, do banco), `EmpresaId` e `PessoaId` só como referência (não se chamam `TenantId`, para não entrarem no filtro nem no expurgo do tenant), `Texto` (10 a 2.000 caracteres, sem os espaços das pontas), `Tela` (rota modelo, até 200), `CriadaEm`, `AvisadaEm` (nulo enquanto não saiu em #sugestoes).
 - Expurgo de cadastro abandonado: a sugestão fica, com `EmpresaId` e `PessoaId` nulos (RNF-PRIV-01). Nenhuma rota lista ou devolve sugestões.
+
+#### DocumentoTeste: registro de documento (RF-AUT-09, F14g; design do F14, D8)
+- Registro de que um CPF ou CNPJ já teve teste, para valer "um teste por documento" mesmo depois do expurgo da empresa. Tabela `documentos_teste`, **sem referência à empresa nem à pessoa**. Campos: `Hash` (chave; HMAC-SHA256 do documento normalizado, em hexadecimal minúsculo, 64 caracteres; a chave fica fora do banco, `Documentos__ChaveHmac`), `PrimeiroTesteEm`, `LiberadoEm` e `LiberacaoUsadaEm` (nulos sem liberação). Concorrência otimista por `xmin`.
+- `Registrar(hash, agora)` no cadastro que passa (F14-57). `LiberacaoDisponivel` = liberado e ainda não usado; `UsarLiberacao(agora)` no cadastro que a usa (F14-59), fora disso `TransicaoInvalidaException`: a liberação vale para um cadastro só. A liberação é dada pela área da Nebrys (F14l, F14-71 e F14-108), que calcula o HMAC do documento digitado e não o guarda.
+- O cadastro (`ServicoAutenticacao.RegistrarAsync`, pelo `RegistroDocumentos` da Infrastructure) cria ou usa o registro na mesma transação da empresa: documento já registrado sem liberação disponível é recusado no campo `documento` (`400`), e nada é criado. Dois cadastros simultâneos com o mesmo documento: o segundo falha na chave ou na versão e recebe a mesma recusa.
+- Sobrevive ao expurgo da empresa vencida ou cancelada (F14-37). O expurgo do cadastro abandonado (RF-AUT-07) apaga a linha, achada pelo HMAC do `Tenant.Documento` (decisão 16 do G2, F14-104, no F14i).
 
 ## 5. Value objects
 

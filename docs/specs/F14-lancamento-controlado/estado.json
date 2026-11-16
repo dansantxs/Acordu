@@ -2,9 +2,9 @@
   "marco": "F14",
   "issue": 182,
   "etapa": "AGUARDANDO_MERGE",
-  "branch": "feat/F14f-paginas-legais",
+  "branch": "feat/F14g-documento",
   "pr": {
-    "id": "F14f",
+    "id": "F14g",
     "numero": null
   },
   "feitos": [
@@ -27,14 +27,20 @@
     {
       "id": "F14e",
       "pr": 192
+    },
+    {
+      "id": "F14f",
+      "pr": 193
     }
   ],
   "contadores": {
     "devolucoesNaEtapa": 0,
-    "rodadasNoPr": 1
+    "rodadasNoPr": 0
   },
   "verificacao": [
     "node scripts/conferir-specs.mjs",
+    "dotnet build",
+    "dotnet test",
     "cd apps/web && pnpm test && pnpm lint && pnpm build"
   ],
   "portoes": {
@@ -45,14 +51,13 @@
       "PR #188 mesclado (F14b; filtro dos jobs adiantado mantido)",
       "PR #189 mesclado (F14c)",
       "PR #190 mesclado (F14d)",
-      "PR #192 mesclado (F14e; DiasFaixaTeste na API e #191 por decisão de 16/11)"
+      "PR #192 mesclado (F14e; DiasFaixaTeste na API e #191 por decisão de 16/11)",
+      "PR #193 mesclado (F14f; marcadores dos textos para depois do registro da Nebrys, issue #194)"
     ]
   },
   "ressalvas": [
-    "Marcadores [a preencher pelo Daniel] e [a confirmar pelo Daniel, com o advogado] visíveis; precisam sumir antes do merge (F14-85, F14-86)",
-    "Vigência provisória 2026-11-16, no arquivo e na constante",
-    "Textos citam partes futuras do F14: deploy só com o F14 até o F14q",
-    "termos.md: 'e a Nebrys escolhe quem convidar' sem marcador (cláusula nova)"
+    "Runbook do API_DOCUMENTOS_CHAVE alinhado ao segredo criado (openssl rand -base64 32), corrigido pelo orquestrador",
+    "Ordem das validações: e-mail em uso e senha (Identity) antes do documento; registrada no design"
   ],
   "bloqueios": [],
   "atualizadoEm": "2026-11-16"

@@ -30,6 +30,12 @@ public sealed class ApiFixture : IAsyncLifetime
 {
     public const string TokenJobs = "token-dos-testes";
 
+    /// <summary>Chave do HMAC dos documentos nos testes (F14g): os testes calculam o mesmo hash para gravar uma liberação.</summary>
+    public const string ChaveDocumentos = "chave-hmac-dos-testes-funcionais-com-mais-de-32-bytes";
+
+    /// <summary>Canal da Nebrys nos testes (decisão 14 do G2 do F14).</summary>
+    public const string ContatoNebrys = "contato@acordu.app.br";
+
     private readonly PostgreSqlContainer _postgres = new PostgreSqlBuilder("postgres:17").Build();
     private WebApplication? _app;
 
@@ -86,6 +92,8 @@ public sealed class ApiFixture : IAsyncLifetime
             ["ConnectionStrings:Acordu"] = _postgres.GetConnectionString(),
             ["Jobs:Token"] = TokenJobs,
             ["Jwt:ChaveAssinatura"] = "chave-dos-testes-funcionais-com-mais-de-32-bytes",
+            ["Documentos:ChaveHmac"] = ChaveDocumentos,
+            ["Nebrys:Contato"] = ContatoNebrys,
             ["RateLimit:Auth:PorMinuto"] = "100000",
             ["RateLimit:Refresh:PorMinuto"] = "100000",
             ["RateLimit:Portal:PorMinuto"] = "100000",

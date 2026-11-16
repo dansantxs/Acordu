@@ -6010,6 +6010,7 @@ export interface components {
             email: string
             senha: string
             nomeEmpresa: string
+            documento: string
             tokenTurnstile?: null | string
         }
         RegraRecorrenciaDto: {

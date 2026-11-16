@@ -8922,7 +8922,8 @@
           "nome",
           "email",
           "senha",
-          "nomeEmpresa"
+          "nomeEmpresa",
+          "documento"
         ],
         "type": "object",
         "properties": {
@@ -8936,6 +8937,9 @@
             "type": "string"
           },
           "nomeEmpresa": {
+            "type": "string"
+          },
+          "documento": {
             "type": "string"
           },
           "tokenTurnstile": {
