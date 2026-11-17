@@ -25,6 +25,8 @@ A coluna **Teste** é preenchida nos PRs de código. Os cenários de provisionam
 | F8-04 | um PR que muda `src/`, `tests/` ou a solução | a CI roda | backend e E2E rodam; imagem só se mudou o código da API (`src/`, solução, props, `global.json`) ou `docker/`; front só se `apps/web/` ou `openapi/` mudou | verificação no Actions: PR #126 |
 | F8-05 | um push na `main` (merge) | a CI roda | roda tudo, sem filtro, como base para o deploy | verificação no Actions: run da `main` do merge do #129 |
 
+Desde 17/11 (decisão do Daniel, PR da economia de minutos), E2E e imagem ficam pulados em PR rascunho: F8-03 e F8-04 valem para PR pronto, e marcar como pronto roda a CI inteira (deploy-ci §3).
+
 ### API
 
 | Id | Dado | Quando | Então | Teste |

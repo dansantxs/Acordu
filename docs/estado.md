@@ -1,6 +1,6 @@
 # Acordu — Estado
 
-Visão geral curta, atualizada por cada PR (`docs/processo.md` §1). O histórico está no git, nos PRs e no registro dos designs. Atualizado em 16/11/2026 (F14g).
+Visão geral curta, atualizada por cada PR (`docs/processo.md` §1). O histórico está no git, nos PRs e no registro dos designs. Atualizado em 17/11/2026 (economia de minutos da CI).
 
 ## Em revisão
 
@@ -35,6 +35,7 @@ Visão geral curta, atualizada por cada PR (`docs/processo.md` §1). O históric
 ## Limitações conhecidas do ambiente
 
 - Sessão na nuvem: sem SDK .NET e com nuget.org bloqueado; Infrastructure e Api só compilam na CI. Validar abrindo o PR como rascunho (a CI só roda com PR aberto).
+- PR em rascunho não roda E2E nem imagem (deploy-ci §3): a CI completa só roda quando o PR é marcado como pronto, e a sessão na nuvem não consegue marcar (a API REST não converte rascunho). Quem marca é o Daniel.
 - Sessão na nuvem: `gh pr create` não funciona (GraphQL bloqueado); usar `gh api repos/dansantxs/acordu/pulls`. O token não aciona workflows nem rerun (403).
 - Migrations e capturas do manual são geradas por bot: commitar `.github/migration-request` ou `.github/ajuda-request` na branch; commit do bot não dispara a CI (`git commit --allow-empty`).
 - Logs da CI só pelas annotations do check run (`gh api .../check-runs/<id>/annotations`).
