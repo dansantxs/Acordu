@@ -193,7 +193,7 @@
 - **Casos de borda documentados viram teste:** checklists dos documentos (read side §11, ADR 0003) são a lista mínima.
 - Commits: `convencoes-commit-acordu.md`. PRs: `convencoes-pr-acordu.md`. Layout: `estrutura-repositorio-acordu.md`.
 - **(Acordu) Specs e processo:** spec e design por marco, cenários, portões e PRs seguem `docs/processo.md` (ADR 0013); formato do PR em `docs/convencoes-pr-acordu.md`.
-- **(Acordu) Jobs da CI (F8a):** todo job novo do `ci.yml` depende de `mudancas` e tem `if` pela área que ele cobre (saída nova no `dorny/paths-filter` quando for uma área nova), e entra no `needs` do `CI ok`. Na `main` e no disparo manual tudo roda. A CI de uma branch só existe com o PR aberto: para validar antes da revisão, abra o PR como rascunho. Job caro (que sobe a API, o banco ou o Docker) também tem `&& !github.event.pull_request.draft` no `if`: no rascunho ele pula e roda quando o PR fica pronto. Job que usa o SDK do .NET chama a ação `cache-nuget` logo depois do `setup-dotnet`.
+- **(Acordu) Jobs da CI (F8a):** todo job novo do `ci.yml` depende de `mudancas` e tem `if` pela área que ele cobre (saída nova no `dorny/paths-filter` quando for uma área nova), e entra no `needs` do `CI ok`. Na `main` e no disparo manual tudo roda. A CI de uma branch só existe com o PR aberto: para validar antes da revisão, abra o PR como rascunho. Job que sobe a aplicação inteira ou o Docker (hoje `e2e` e `imagem`) também tem `&& !github.event.pull_request.draft` no `if`: no rascunho ele pula e roda quando o PR fica pronto. Job que usa o SDK do .NET chama a ação `cache-nuget` logo depois do `setup-dotnet`, menos o `backend` da CI e o `deploy.yml`, que restauram num ambiente limpo de propósito (#180).
 
 ---
 
