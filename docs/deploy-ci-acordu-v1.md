@@ -101,10 +101,10 @@ Com `Proxy__TokenOrigem` definido, a API responde 404 a requisição sem o token
 Roda na máquina o que a CI rodaria na branch, para o PR chegar verde e gastar um run só. As áreas vêm da diferença para a `origin/main` com as mesmas regras do `O que mudou` (testadas em `scripts/ci-local.test.sh`, no job **Specs**): mudou o filtro do `ci.yml`, muda o script no mesmo PR.
 
 - `scripts/ci-local.sh`: as áreas que mudaram, com os testes completos (o backend precisa do Docker, pelos Testcontainers).
-- `--rapido`: sem integração, funcionais, build do front nem empacotamento dos Workers. No backend, só unidade e arquitetura.
+- `--rapido`: sem bundle das migrations, integração, funcionais, build do front nem empacotamento dos Workers. No backend, só unidade e arquitetura.
 - `--tudo`: todas as áreas, sem olhar a diferença.
 - E2E e imagem ficam para a CI. Ferramenta ausente (`dotnet`, `pnpm`, `node`) pula a área com aviso, sem falhar: na sessão na nuvem o backend fica sempre para a CI.
-- Pre-push opcional: `git config core.hooksPath .githooks` liga o `.githooks/pre-push`, que roda o `--rapido`; `git push --no-verify` pula uma vez.
+- Pre-push opcional: `git config core.hooksPath .githooks` liga o `.githooks/pre-push`, que roda o `--rapido` (sem `origin/main` local, pula com aviso); `git push --no-verify` pula uma vez.
 
 ---
 

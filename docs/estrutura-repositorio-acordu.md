@@ -29,6 +29,8 @@ acordu/
 │  ├─ commands/                        # /roadmap, /marco (orquestrador), /spec, /design, /plano, /tarefas, /pr, /deploy, /triagem
 │  ├─ agents/                          # analista, arquiteto, desenvolvedor, testador, revisor-spec
 │  └─ settings.json                    # negações da fábrica (processo.md §8)
+├─ .githooks/
+│  └─ pre-push                         # opcional: ci-local.sh --rapido (git config core.hooksPath .githooks)
 ├─ .github/
 │  └─ workflows/
 │     ├─ ci.yml                        # build + testes a cada push/PR
@@ -143,7 +145,6 @@ acordu/
 │  ├─ conferir-fabrica.test.mjs        # regras do .claude/settings.json e modelos dos agentes
 │  ├─ rotulos.sh                       # rótulos do backlog (processo.md §7), com rotulos.test.sh
 │  └─ ci-local.sh                      # o que a CI rodaria na branch (deploy-ci §3.1), com ci-local.test.sh
-├─ .githooks/pre-push                # opcional: ci-local.sh --rapido (git config core.hooksPath .githooks)
 ├─ docker-compose.dev.yml              # dev local: Postgres 17 na porta 5434 (object storage local entra no marco de anexos)
 ├─ Acordu.sln
 ├─ Directory.Build.props
