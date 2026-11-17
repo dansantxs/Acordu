@@ -29,9 +29,35 @@ confere "este script" "specs" scripts/ci-local.sh
 confere "workers" "borda" infra/cloudflare/vigia/src/index.ts
 confere "ci.yml roda tudo" "backend web acoes specs borda" .github/workflows/ci.yml
 confere "ação que sobe o Acordu" "backend web borda" .github/actions/subir-acordu/action.yml
+confere "ação do cache do NuGet" "backend web borda" .github/actions/cache-nuget/action.yml
 confere "editorconfig" "backend web borda" .editorconfig
 confere "workflow de deploy não roda nada" "" .github/workflows/deploy.yml
 confere "mistura sem repetir" "backend web" src/a.cs src/b.cs apps/web/x.ts
 confere "linhas vazias ignoradas" "web" "" apps/web/x.ts ""
+
+# Passo do meio que falha derruba a área (a função roda dentro de if, sem set -e).
+repo="$(mktemp -d)"
+trap 'rm -rf "$repo"' EXIT
+mkdir -p "$repo/bin" "$repo/r/apps/web"
+cat > "$repo/bin/pnpm" <<'SH'
+#!/usr/bin/env bash
+[[ "$1" == "$PNPM_FALHA" ]] && exit 1
+exit 0
+SH
+chmod +x "$repo/bin/pnpm"
+(
+    cd "$repo/r"
+    git init -q && git -c user.name=t -c user.email=t@t commit -q --allow-empty -m base
+    echo x > apps/web/x.ts && git add -A && git -c user.name=t -c user.email=t@t commit -q -m web
+)
+roda() { (cd "$repo/r" && PATH="$repo/bin:$PATH" PNPM_FALHA="$1" CI_LOCAL_BASE=HEAD~1 bash "$aqui/ci-local.sh" "${@:2}" 2>&1); }
+for passo in install lint typecheck; do
+    if saida="$(roda "$passo" --rapido)"; then
+        echo "FALHOU falha no $passo passou"; falhas=$((falhas + 1))
+    elif grep -q "FALHOU  Web" <<< "$saida"; then echo "ok   falha no $passo derruba a Web"
+    else echo "FALHOU falha no $passo sem 'FALHOU  Web'"; falhas=$((falhas + 1)); fi
+done
+if saida="$(roda nenhum --rapido)" && grep -q "ok      Web" <<< "$saida"; then echo "ok   sem falha a Web passa"
+else echo "FALHOU sem falha a Web não passou: $saida"; falhas=$((falhas + 1)); fi
 
 [[ $falhas -eq 0 ]] || { echo "$falhas falha(s)"; exit 1; }

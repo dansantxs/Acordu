@@ -4,7 +4,7 @@
 #
 # Uso: scripts/ci-local.sh [--rapido] [--tudo] [--areas]
 #   (sem opção)  áreas da diferença para a main (origin/main, ou CI_LOCAL_BASE), com os testes completos
-#   --rapido     o mesmo, sem integração, funcionais e build do front (é o que o pre-push usa)
+#   --rapido     o mesmo, sem bundle, integração, funcionais e build do front (é o que o pre-push usa)
 #   --tudo       todas as áreas, sem olhar a diferença
 #   --areas      só imprime as áreas da lista de arquivos lida da entrada padrão (usado pelos testes)
 # E2E e imagem ficam para a CI: precisam do banco, da API no ar e do Docker.
@@ -100,6 +100,8 @@ passo() {
 tem() { command -v "$1" > /dev/null 2>&1; }
 
 backend() {
+    # O bundle das migrations vem antes do restore, como na CI (#180); no --rapido, fica para ela.
+    if ! $rapido; then bash scripts/bundle-migrations.sh "${TMPDIR:-/tmp}/acordu-efbundle" || return 1; fi
     dotnet restore Acordu.sln &&
         dotnet build Acordu.sln --configuration Release --no-restore &&
         if $rapido; then
@@ -113,23 +115,17 @@ backend() {
 }
 
 web() {
+    # Encadeado com && e return: chamada dentro do if do passo, a função roda sem o set -e.
     (
-        set -e
-        cd apps/web
-        pnpm install --frozen-lockfile --prefer-offline
-        pnpm api:tipos
+        cd apps/web || exit 1
+        pnpm install --frozen-lockfile --prefer-offline || exit 1
+        pnpm api:tipos || exit 1
         if ! git diff --quiet -- src/shared/api; then
             echo "Tipos do OpenAPI desatualizados: commite o que o pnpm api:tipos gerou."
             exit 1
         fi
-        pnpm format:check
-        pnpm lint
-        pnpm typecheck
-        pnpm test
-        if ! $rapido; then
-            pnpm build
-            pnpm csp:conferir
-        fi
+        pnpm format:check && pnpm lint && pnpm typecheck && pnpm test || exit 1
+        if ! $rapido; then pnpm build && pnpm csp:conferir || exit 1; fi
     )
 }
 
@@ -166,8 +162,9 @@ done <<< "$areas"
 
 echo
 echo "== Resumo$($rapido && echo ' (rápido)')"
-for n in "${ok[@]}"; do echo "ok      $n"; done
-for n in "${pulou[@]}"; do echo "pulado  $n"; done
-for n in "${falhou[@]}"; do echo "FALHOU  $n"; done
+# A forma ${a[@]+...} evita o "unbound variable" do set -u com array vazio no bash antigo (macOS).
+for n in ${ok[@]+"${ok[@]}"}; do echo "ok      $n"; done
+for n in ${pulou[@]+"${pulou[@]}"}; do echo "pulado  $n"; done
+for n in ${falhou[@]+"${falhou[@]}"}; do echo "FALHOU  $n"; done
 [[ ${#pulou[@]} -gt 0 ]] && echo "O que foi pulado fica para a CI."
 [[ ${#falhou[@]} -eq 0 ]]
