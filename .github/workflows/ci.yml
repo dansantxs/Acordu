@@ -140,8 +140,8 @@ jobs:
         with:
           global-json-file: global.json
 
-      - uses: ./.github/actions/cache-nuget
-
+      # Sem o cache do NuGet aqui, de propósito: o bundle confere o checkout limpo do deploy (#180), e pacotes em cache
+      # esconderiam um restore faltando (o dotnet ef local roda direto do cache).
       # Antes do restore, no checkout limpo como o do deploy: o bundle tem que se virar sozinho (#180).
       - name: Bundle das migrations (o mesmo do deploy)
         run: |

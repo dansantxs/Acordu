@@ -60,14 +60,20 @@ runs:
       working-directory: apps/web
       run: pnpm build
 
-    # O navegador fica em cache pela versão do lockfile; as dependências do sistema (apt) não cabem no cache e são
-    # instaladas sempre.
+    # O navegador fica em cache pela versão instalada do Playwright (não pelo lockfile inteiro, que muda com qualquer
+    # dependência); as dependências do sistema (apt) não cabem no cache e são instaladas sempre.
+    - name: Versão do Playwright
+      id: versao-playwright
+      shell: bash
+      working-directory: apps/web
+      run: echo "versao=$(node -p "require('@playwright/test/package.json').version")" >> "$GITHUB_OUTPUT"
+
     - name: Cache do Chromium do Playwright
       id: cache-playwright
       uses: actions/cache@v4
       with:
         path: ~/.cache/ms-playwright
-        key: playwright-${{ runner.os }}-${{ hashFiles('apps/web/pnpm-lock.yaml') }}
+        key: playwright-${{ runner.os }}-${{ steps.versao-playwright.outputs.versao }}
 
     - name: Instalar o Chromium do Playwright
       shell: bash
