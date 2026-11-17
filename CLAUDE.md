@@ -48,6 +48,7 @@ docker compose -f docker-compose.dev.yml up -d      # Postgres 5434, S3 9090, Ma
 dotnet ef database update --project src/Acordu.Infrastructure --startup-project src/Acordu.Api
 dotnet test                                          # unit, integração, funcional, arquitetura
 cd apps/web && pnpm test && pnpm lint && pnpm build
+scripts/ci-local.sh [--rapido|--tudo]                # o que a CI rodaria na branch (pre-push: git config core.hooksPath .githooks)
 ACORDU_ATUALIZAR_OPENAPI=1 dotnet test --filter ContratoOpenApiTests && cd apps/web && pnpm api:tipos   # mudou a API
 ```
 
