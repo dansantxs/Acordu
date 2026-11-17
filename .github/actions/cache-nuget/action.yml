@@ -1,0 +1,14 @@
+name: Cache do NuGet
+description: >
+  Guarda ~/.nuget/packages entre runs, com a chave pelos arquivos que decidem os pacotes. Sem lockfile do NuGet, o
+  cache do próprio setup-dotnet não serve. Chave nova reaproveita o cache mais recente (restore-keys) e baixa só a
+  diferença.
+
+runs:
+  using: composite
+  steps:
+    - uses: actions/cache@v4
+      with:
+        path: ~/.nuget/packages
+        key: nuget-${{ runner.os }}-${{ hashFiles('global.json', 'Directory.Packages.props', 'Directory.Build.props', '**/*.csproj', '.config/dotnet-tools.json') }}
+        restore-keys: nuget-${{ runner.os }}-

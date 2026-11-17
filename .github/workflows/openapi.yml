@@ -48,6 +48,9 @@ jobs:
         with:
           global-json-file: global.json
 
+      - uses: ./.github/actions/cache-nuget
+        if: steps.pedido.outputs.pular != 'true'
+
       - name: Gerar o contrato pelo teste
         if: steps.pedido.outputs.pular != 'true'
         env:
