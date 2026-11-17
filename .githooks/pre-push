@@ -1,0 +1,9 @@
+#!/usr/bin/env bash
+# Pre-push opcional (deploy-ci §3.1): roda o ci-local.sh --rapido nas áreas que a branch mudou.
+# Ligar: git config core.hooksPath .githooks. Pular uma vez: git push --no-verify.
+set -euo pipefail
+if ! git rev-parse --verify -q origin/main > /dev/null; then
+    echo "pre-push: sem origin/main para comparar (git fetch origin main); validação local pulada."
+    exit 0
+fi
+exec bash "$(git rev-parse --show-toplevel)/scripts/ci-local.sh" --rapido
