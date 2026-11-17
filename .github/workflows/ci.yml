@@ -2,11 +2,13 @@ name: CI
 
 # Economia de minutos (spec do F8, F8-01 a F8-05): branch de feature roda só pelo PR (o push dela não roda de novo);
 # no PR, cada job só quando a área dele muda (job pulado conta como verde); na main roda tudo, como base do deploy.
+# PR em rascunho não roda E2E nem imagem (os dois mais caros); marcar como pronto (ready_for_review) roda a CI inteira.
 on:
   push:
     branches: [main]
   pull_request:
     branches: [main]
+    types: [opened, synchronize, reopened, ready_for_review]
   workflow_dispatch:
 
 concurrency:
@@ -42,6 +44,7 @@ jobs:
               - .github/workflows/ci.yml
               # Só a ação que sobe o Acordu: o aviso do Discord tem o job próprio ("Ações").
               - .github/actions/subir-acordu/**
+              - .github/actions/cache-nuget/**
               - .editorconfig
               - .gitattributes
             backend:
@@ -136,6 +139,8 @@ jobs:
       - uses: actions/setup-dotnet@v4
         with:
           global-json-file: global.json
+
+      - uses: ./.github/actions/cache-nuget
 
       # Antes do restore, no checkout limpo como o do deploy: o bundle tem que se virar sozinho (#180).
       - name: Bundle das migrations (o mesmo do deploy)
@@ -249,8 +254,10 @@ jobs:
   e2e:
     name: E2E (Playwright)
     needs: mudancas
-    # A fumaça depende da API e do SPA: roda quando qualquer um dos dois muda.
-    if: needs.mudancas.outputs.backend == 'true' || needs.mudancas.outputs.web == 'true'
+    # A fumaça depende da API e do SPA: roda quando qualquer um dos dois muda. Em rascunho, não (só no push e no pronto).
+    if: >
+      (needs.mudancas.outputs.backend == 'true' || needs.mudancas.outputs.web == 'true')
+      && !github.event.pull_request.draft
     runs-on: ubuntu-24.04
     timeout-minutes: 25
     services:
@@ -301,14 +308,31 @@ jobs:
   imagem:
     name: Imagem da API
     needs: mudancas
-    if: needs.mudancas.outputs.imagem == 'true'
+    # Em rascunho, não: o backend já compila a API; a imagem roda no push e quando o PR fica pronto.
+    if: needs.mudancas.outputs.imagem == 'true' && !github.event.pull_request.draft
     runs-on: ubuntu-24.04
     timeout-minutes: 20
+    env:
+      # Sem o resumo e o artefato do build do Docker em cada run (ocupam o armazenamento de artefatos).
+      DOCKER_BUILD_SUMMARY: "false"
+      DOCKER_BUILD_RECORD_UPLOAD: "false"
     steps:
       - uses: actions/checkout@v4
 
+      - uses: docker/setup-buildx-action@v3
+
+      # Camadas no cache do Actions (mode=max guarda também o estágio de build, com o restore): o PR lê o cache da main
+      # e só refaz o que mudou.
       - name: Construir (linux/amd64)
-        run: docker build --platform linux/amd64 -f docker/api.Dockerfile -t acordu-api:ci .
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: docker/api.Dockerfile
+          platforms: linux/amd64
+          tags: acordu-api:ci
+          load: true
+          cache-from: type=gha,scope=api
+          cache-to: type=gha,mode=max,scope=api
 
       - name: Sem root
         run: |

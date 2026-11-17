@@ -10,6 +10,8 @@ runs:
       with:
         global-json-file: global.json
 
+    - uses: ./.github/actions/cache-nuget
+
     - uses: pnpm/action-setup@v4
       with:
         package_json_file: apps/web/package.json
@@ -58,7 +60,23 @@ runs:
       working-directory: apps/web
       run: pnpm build
 
+    # O navegador fica em cache pela versão do lockfile; as dependências do sistema (apt) não cabem no cache e são
+    # instaladas sempre.
+    - name: Cache do Chromium do Playwright
+      id: cache-playwright
+      uses: actions/cache@v4
+      with:
+        path: ~/.cache/ms-playwright
+        key: playwright-${{ runner.os }}-${{ hashFiles('apps/web/pnpm-lock.yaml') }}
+
     - name: Instalar o Chromium do Playwright
       shell: bash
       working-directory: apps/web
-      run: pnpm exec playwright install --with-deps chromium
+      env:
+        EM_CACHE: ${{ steps.cache-playwright.outputs.cache-hit }}
+      run: |
+        if [[ "$EM_CACHE" == "true" ]]; then
+          pnpm exec playwright install-deps chromium
+        else
+          pnpm exec playwright install --with-deps chromium
+        fi
