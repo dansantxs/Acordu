@@ -60,9 +60,10 @@ export const CONTATO_NEBRYS = contatoNebrys(import.meta.env.VITE_CONTATO_NEBRYS)
 
 /**
  * Se os textos legais estão publicados (`VITE_TEXTOS_LEGAIS_PUBLICADOS`; F14f, issue #194): só com `true` as páginas
- * `/termos` e `/privacidade` abrem e os links das telas de acesso e do portal aparecem. Sem ela (padrão), ficam
- * escondidos até o Daniel resolver os marcadores do texto com o registro da empresa. Em produção, a variável
- * `TEXTOS_LEGAIS_PUBLICADOS` do GitHub, opcional.
+ * `/termos` e `/privacidade` abrem e os links das telas de acesso e do portal, a caixa de aceite do cadastro e do convite
+ * da equipe e o aviso de "ciente" aparecem (F14h). Sem ela (padrão), ficam escondidos até o Daniel resolver os
+ * marcadores do texto com o registro da empresa. Em produção, o valor normalizado da variável opcional
+ * `TEXTOS_LEGAIS_PUBLICADOS` do GitHub, o mesmo que vai à API como `TextosLegais__Publicados` (D16 do F14).
  */
 export const textosLegaisPublicados = (valor: string | undefined): boolean => valor?.trim().toLowerCase() === 'true'
 

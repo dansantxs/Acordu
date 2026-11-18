@@ -479,7 +479,7 @@ export const SECOES_AJUDA: SecaoAjuda[] = [
             'Nos últimos 7 dias do teste, uma faixa no topo de todas as telas mostra quantos dias faltam e com quem falar para ativar.',
             'Os Donos também recebem por e-mail: 7 dias e 1 dia antes do fim do teste, no dia em que a empresa fica só leitura (com a data em que os dados serão apagados) e 7 dias antes de apagar. Antes de confirmar o e-mail de quem criou a empresa, só essa pessoa recebe.',
             'Quando o teste acaba sem ativação (ou a conta é cancelada), a empresa fica só leitura: dá para consultar tudo, inclusive os relatórios e os anexos, mas não criar nem mudar nada. Os botões de gravar aparecem indisponíveis, e a faixa explica desde quando e até quando os dados ficam guardados.',
-            'No só leitura continuam valendo entrar, sair, trocar de empresa, a sua senha, o sino, as suas preferências de aviso, o link da agenda, seguir itens e "Sugerir melhoria".',
+            'No só leitura continuam valendo entrar, sair, trocar de empresa, a sua senha, o sino, as suas preferências de aviso, o link da agenda, seguir itens, o "Ciente" dos termos e da política e "Sugerir melhoria".',
             'Os dados ficam guardados por 30 dias depois do início do só leitura; depois disso, são apagados. Ativar a conta antes disso devolve tudo como estava.',
             'Nesse tempo, nada sai para os clientes: sem avisos por e-mail, sem recorrências geradas. O portal continua mostrando o que eles já viam, mas não aceita envios.',
             'A situação aparece em Configurações › Empresa. Para ativar ou cancelar, fale com a Nebrys pelo endereço da faixa.',
@@ -495,6 +495,8 @@ export const SECOES_AJUDA: SecaoAjuda[] = [
         dicas: [
             'Os links ficam no pé da tela de entrar e das demais telas de acesso; o portal dos seus clientes mostra o link da política de privacidade.',
             'Cada texto mostra no topo a versão e a data em que passou a valer.',
+            'Quem cria a empresa e quem entra na equipe por convite marca que leu e aceita os dois textos; o Acordu guarda a versão aceita e a data.',
+            'Quando sai uma versão nova de um dos textos, um aviso no topo das telas traz o link para ela até você marcar "Ciente". O aviso não impede o uso.',
             'Pela LGPD, a sua empresa é a controladora dos dados dos seus clientes, e o Acordu é o operador: pedidos dos seus clientes sobre os dados deles são respondidos pela sua empresa.',
             'Dúvidas sobre os textos ou sobre os seus dados: fale com a Nebrys pelo endereço que aparece neles.',
         ],

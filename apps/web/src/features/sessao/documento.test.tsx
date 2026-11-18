@@ -20,6 +20,7 @@ async function preencher(documento: string) {
     await usuario.type(screen.getByLabelText('Senha'), 'umasenhaboa')
     await usuario.type(screen.getByLabelText('Nome da empresa'), 'Prado')
     if (documento) await usuario.type(screen.getByLabelText('CPF ou CNPJ'), documento)
+    await usuario.click(screen.getByRole('checkbox', { name: /Li e aceito/ }))
     await usuario.click(screen.getByRole('button', { name: 'Criar conta' }))
 }
 

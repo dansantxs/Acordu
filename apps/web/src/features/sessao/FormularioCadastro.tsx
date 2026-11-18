@@ -2,6 +2,7 @@ import { useMutation } from '@tanstack/react-query'
 import { Link, useNavigate } from '@tanstack/react-router'
 import { useId, useState } from 'react'
 import { Form } from 'react-aria-components'
+import { AceiteTextosLegais, erroDoAceite, versoesAceitas } from '@/features/legal/AceiteTextosLegais'
 import { errosDeCampo, mensagemDeErro } from '@/shared/api/mensagens'
 import { ErroApi } from '@/shared/api/problema'
 import { CHAVE_TURNSTILE, CONTATO_NEBRYS } from '@/shared/config/ambiente'
@@ -80,6 +81,7 @@ export function FormularioCadastro({ chaveTurnstile = CHAVE_TURNSTILE }: { chave
                     senha: String(dados.get('senha')),
                     nomeEmpresa: String(dados.get('nomeEmpresa')),
                     documento: String(dados.get('documento')),
+                    ...versoesAceitas(dados),
                     ...(chaveTurnstile ? { tokenTurnstile: token } : {}),
                 })
             }}
@@ -112,6 +114,7 @@ export function FormularioCadastro({ chaveTurnstile = CHAVE_TURNSTILE }: { chave
                 descricao={DESCRICAO_DOCUMENTO}
                 isRequired
             />
+            <AceiteTextosLegais erro={erroDoAceite(envio.error)} />
             {chaveTurnstile && <DesafioTurnstile chave={chaveTurnstile} versao={versaoDesafio} aoMudar={setToken} />}
             {aguardandoDesafio && (
                 <p id={motivo} className="text-sm text-suave">

@@ -1,3 +1,4 @@
+import tiposDaApi from '@/shared/api/interno.d.ts?raw'
 import termosBruto from './textos/termos.md?raw'
 import { describe, expect, it } from 'vitest'
 import { lerTextoLegal, TEXTOS, type TipoTextoLegal } from './textosLegais'
@@ -15,6 +16,19 @@ function impressao(texto: string): string {
 
 const TIPOS: TipoTextoLegal[] = ['termos', 'privacidade']
 
+/**
+ * Valores do `enum` de um campo de um esquema, lidos dos tipos gerados do OpenAPI por `pnpm api:tipos`
+ * (`campo?: '1' | null`).
+ */
+function enumDoCampo(esquema: string, campo: string): string[] {
+    const texto = tiposDaApi.replace(/\r\n/g, '\n')
+    const inicio = texto.indexOf(`\n        ${esquema}: {\n`)
+    if (inicio < 0) return []
+    const bloco = texto.slice(inicio + 1, texto.indexOf('\n        }', inicio + 1))
+    const linha = bloco.split('\n').find((l) => l.trim().startsWith(`${campo}?:`) || l.trim().startsWith(`${campo}:`))
+    return [...(linha ?? '').matchAll(/'([^']*)'/g)].map((m) => m[1] ?? '')
+}
+
 // D10 do F14 (convenções §4): mudar um texto legal é mudar a versão no arquivo e na constante, no mesmo PR.
 describe('textos legais: versão (D10)', () => {
     it.each(TIPOS)('TextoLegal_VersaoEVigenciaDoArquivo_IguaisAConstante (%s)', (tipo) => {
@@ -28,6 +42,16 @@ describe('textos legais: versão (D10)', () => {
             calculada,
             `O texto "${tipo}" mudou: publique versão e vigência novas no arquivo e em versoes.ts, com a impressão "${calculada}".`,
         ).toBe(VERSOES_TEXTOS_LEGAIS[tipo].impressao)
+    })
+
+    // F14h: a API confere o aceite contra a constante TextosLegais, publicada no OpenAPI como o enum do campo.
+    it.each([
+        ['termos', 'versaoTermos'],
+        ['privacidade', 'versaoPrivacidade'],
+    ] as const)('TextoLegal_VersaoDaConstante_IgualAoEnumDaApi (%s)', (tipo, campo) => {
+        for (const corpo of ['RegistroRequest', 'AceiteConviteEquipeRequest']) {
+            expect(enumDoCampo(corpo, campo), corpo).toEqual([VERSOES_TEXTOS_LEGAIS[tipo].versao])
+        }
     })
 
     it('TextoLegal_QuebraDeLinhaDoWindows_MesmaImpressao', () => {
