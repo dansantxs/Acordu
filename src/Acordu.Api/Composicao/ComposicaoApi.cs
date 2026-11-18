@@ -1,6 +1,7 @@
 using System.Diagnostics;
 using System.Globalization;
 using System.Text.Json;
+using System.Text.Json.Nodes;
 using System.Text.Json.Serialization;
 using Acordu.Api.Endpoints;
 using Acordu.Api.Erros;
@@ -34,7 +35,8 @@ namespace Acordu.Api.Composicao;
 /// <c>TempoReal__Sse</c> (padrão ligado; ADR 0010 §4), <c>Empresas__DiasDeTeste</c> e <c>Empresas__DiasAteExpurgo</c> (padrão 30; F14),
 /// <c>Empresas__DiasFaixaTeste</c> (padrão 7; F14e), <c>Empresas__AvisosAntesDoFim</c> (padrão <c>7,1</c>) e
 /// <c>Empresas__AvisoAntesDoExpurgo</c> (padrão 7; F14j),
-/// <c>Documentos__ChaveHmac</c> (obrigatória, ≥ 32 bytes; F14g) e <c>Nebrys__Contato</c> (canal da Nebrys; F14g) e
+/// <c>Documentos__ChaveHmac</c> (obrigatória, ≥ 32 bytes; F14g), <c>Nebrys__Contato</c> (canal da Nebrys; F14g),
+/// <c>TextosLegais__Publicados</c> (<c>true</c> ou <c>false</c>, padrão desligado; F14h, D16) e
 /// <c>Email__ResendChave</c>, <c>Email__Remetente</c>, <c>Email__NomeRemetente</c> e <c>Email__Smtp__Host</c>/<c>Email__Smtp__Porta</c> (Mailpit, só em desenvolvimento), <c>Email__RegistrarConteudo</c> (só em
 /// desenvolvimento).
 /// </summary>
@@ -85,6 +87,8 @@ internal static class ComposicaoApi
         services.AddSingleton(ProtecaoDocumento.DaConfiguracao(configuracao["Documentos:ChaveHmac"]));
         // Canal da Nebrys nas recusas e avisos (D15); sem ele, os textos dizem só "fale com a Nebrys".
         services.AddSingleton(new OpcoesNebrys(configuracao["Nebrys:Contato"]));
+        // Textos legais publicados (D16): padrão desligado; valor presente e inválido impede a subida (F14-121).
+        services.AddSingleton(OpcoesTextosLegais.DaConfiguracao(configuracao["TextosLegais:Publicados"]));
         AdicionarEmail(services, configuracao);
         AdicionarArmazenamento(services, configuracao);
         AdicionarVerificacaoHumana(services, configuracao);
@@ -112,6 +116,7 @@ internal static class ComposicaoApi
                 && !rota.StartsWith(PrefixoPortal, StringComparison.Ordinal);
             opcoes.AddDocumentTransformer(DeclararBearer);
             opcoes.AddDocumentTransformer(Identificar("Acordu — interno"));
+            opcoes.AddSchemaTransformer(VersoesDosTextosLegais);
         });
         services.AddOpenApi(DocumentoPortal, opcoes =>
         {
@@ -356,6 +361,30 @@ internal static class ComposicaoApi
             documento.Servers = [];
             return Task.CompletedTask;
         };
+
+    /// <summary>
+    /// As versões vigentes dos textos legais (<see cref="TextosLegais"/>, D10) como o <c>enum</c> de <c>versaoTermos</c> e
+    /// <c>versaoPrivacidade</c> no cadastro e no aceite de convite da equipe: o teste do SPA confere o arquivo do texto
+    /// contra o OpenAPI. A obrigatoriedade não entra no documento: depende de <c>TextosLegais__Publicados</c> (D16).
+    /// </summary>
+    private static Task VersoesDosTextosLegais(
+        OpenApiSchema esquema, OpenApiSchemaTransformerContext contexto, CancellationToken cancellationToken)
+    {
+        var tipo = contexto.JsonTypeInfo.Type;
+        if ((tipo != typeof(RegistroRequest) && tipo != typeof(AceiteConviteEquipeRequest)) || esquema.Properties is null)
+            return Task.CompletedTask;
+        foreach (var (campo, versao) in new[]
+                 {
+                     (AceiteDosTextos.CampoTermos, TextosLegais.VersaoTermos),
+                     (AceiteDosTextos.CampoPrivacidade, TextosLegais.VersaoPrivacidade),
+                 })
+        {
+            if (esquema.Properties.TryGetValue(campo, out var propriedade) && propriedade is OpenApiSchema versaoEsquema)
+                versaoEsquema.Enum = [JsonValue.Create(versao)];
+        }
+
+        return Task.CompletedTask;
+    }
 
     /// <summary>Esquema Bearer nos documentos: o Scalar mostra o campo do token e o envia nas chamadas.</summary>
     private static Task DeclararBearer(OpenApiDocument documento, OpenApiDocumentTransformerContext contexto, CancellationToken cancellationToken)

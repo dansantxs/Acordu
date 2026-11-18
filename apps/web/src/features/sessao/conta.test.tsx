@@ -26,12 +26,15 @@ describe('telas de conta', () => {
         const usuario = userEvent.setup()
         await usuario.type(screen.getByLabelText('Seu nome'), 'Bia')
         await usuario.type(screen.getByLabelText('Crie uma senha'), 'umasenhaboa')
+        await usuario.click(screen.getByRole('checkbox', { name: /Li e aceito/ }))
         await usuario.click(screen.getByRole('button', { name: 'Entrar na equipe' }))
         expect(await screen.findByRole('heading', { level: 1, name: /, Ana$/ })).toBeInTheDocument()
         expect(chamadas.find((c) => c.caminho === '/api/v1/auth/convite')?.corpo).toEqual({
             token: 'tok-convite',
             nome: 'Bia',
             senha: 'umasenhaboa',
+            versaoTermos: '1',
+            versaoPrivacidade: '1',
         })
         expect(sessionStorage.getItem('acordu.link.convite')).toBeNull()
     })

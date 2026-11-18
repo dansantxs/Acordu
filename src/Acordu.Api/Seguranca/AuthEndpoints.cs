@@ -33,7 +33,8 @@ internal static class AuthEndpoints
             }
 
             var sessao = await servico.RegistrarAsync(
-                corpo.Nome, corpo.Email, corpo.Senha, corpo.NomeEmpresa, corpo.Documento, cancellationToken);
+                corpo.Nome, corpo.Email, corpo.Senha, corpo.NomeEmpresa, corpo.Documento, corpo.VersaoTermos,
+                corpo.VersaoPrivacidade, cancellationToken);
             return Results.Created("/api/v1/auth/eu", Responder(sessao, jwt, relogio, resposta));
         })
             .RequireRateLimiting(ComposicaoSeguranca.LimiteRegistro)
@@ -133,10 +134,11 @@ internal static class AuthEndpoints
             .Produces<ConviteEquipeInfo>();
 
         publicas.MapPost("/convite", async (
-            AceiteConviteRequest corpo, IServicoAutenticacao servico, ConfiguracaoJwt jwt, TimeProvider relogio,
+            AceiteConviteEquipeRequest corpo, IServicoAutenticacao servico, ConfiguracaoJwt jwt, TimeProvider relogio,
             HttpResponse resposta, CancellationToken cancellationToken) =>
         {
-            var sessao = await servico.AceitarConviteEquipeAsync(corpo.Token, corpo.Nome, corpo.Senha, cancellationToken);
+            var sessao = await servico.AceitarConviteEquipeAsync(
+                corpo.Token, corpo.Nome, corpo.Senha, corpo.VersaoTermos, corpo.VersaoPrivacidade, cancellationToken);
             return sessao is null
                 ? ConviteInvalido()
                 : Results.Created("/api/v1/auth/eu", Responder(sessao, jwt, relogio, resposta));
@@ -187,6 +189,17 @@ internal static class AuthEndpoints
         })
             .RequireAuthorization(Politicas.Usuario)
             .Produces<PerfilUsuario>();
+
+        // "Ciente" dos textos legais (F14-83, F14-119): da conta, só para a equipe (o contato do portal nunca registra
+        // aceite, F14-120). Sem corpo: grava a versão vigente de cada texto pendente. Não publicados → 404 (F14-118, D16);
+        // a rota fica mapeada, quem recusa é o caso de uso.
+        auth.MapPost("/textos/ciente", async (ITenantContext contexto, IServicoAutenticacao servico, CancellationToken cancellationToken) =>
+        {
+            await servico.RegistrarCienteAsync(contexto.UsuarioId!.Value, cancellationToken);
+            return Results.NoContent();
+        })
+            .RequireAuthorization(Politicas.Usuario, Politicas.Equipe)
+            .Produces(StatusCodes.Status204NoContent);
     }
 
     private static TokenDeAcesso Responder(Sessao sessao, ConfiguracaoJwt jwt, TimeProvider relogio, HttpResponse resposta)

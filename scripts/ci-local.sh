@@ -44,7 +44,7 @@ areas_de() {
             .github/actions/avisar-discord/* | .github/workflows/ci.yml) acoes=true ;;
         esac
         case "$arquivo" in
-            docs/specs/* | scripts/conferir-* | scripts/rotulos* | scripts/ci-local* | docs/processo.md | .claude/* | .github/workflows/ci.yml)
+            docs/specs/* | scripts/conferir-* | scripts/rotulos* | scripts/ci-local* | docs/processo.md | .claude/* | .github/workflows/ci.yml | .github/workflows/deploy.yml)
                 specs=true ;;
         esac
         case "$arquivo" in

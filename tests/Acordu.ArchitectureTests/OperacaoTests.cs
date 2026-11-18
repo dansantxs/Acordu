@@ -82,6 +82,30 @@ public sealed class OperacaoTests
             string.Join(", ", fora.FailingTypeNames ?? []));
     }
 
+    [Fact] // Design do F14, D4 e D10 (F14h)
+    public void AceiteTexto_SoORegistroDosAceitesUsa()
+    {
+        const string aceite = "Acordu.Domain.Entities.AceiteTexto";
+        Camadas.Domain.GetType(aceite).Should().NotBeNull("o teste perde o sentido se o tipo mudar de nome");
+        var fora = Types.InAssemblies([Camadas.Api, Camadas.Application, Camadas.Infrastructure])
+            .That().DoNotResideInNamespace("Acordu.Infrastructure.Persistence.Aceites")
+            .And().DoNotResideInNamespace("Acordu.Infrastructure.Persistence.Migrations")
+            .ShouldNot().HaveDependencyOn(aceite)
+            .GetResult();
+
+        fora.IsSuccessful.Should().BeTrue(
+            "a tabela global dos aceites é do registro dos aceites (ADR 0014, item 7); violações: {0}",
+            string.Join(", ", fora.FailingTypeNames ?? []));
+    }
+
+    [Fact] // Design do F14, D10: o aceite é da conta, sem referência à empresa
+    public void AceiteTexto_SemReferenciaAEmpresa()
+    {
+        var propriedades = Camadas.Domain.GetType("Acordu.Domain.Entities.AceiteTexto")!.GetProperties().Select(p => p.Name);
+
+        propriedades.Should().BeEquivalentTo(["UsuarioId", "Texto", "Versao", "Forma", "RegistradoEm"]);
+    }
+
     [Fact] // Design do F14, D8: o registro do documento não tem referência à empresa nem à pessoa
     public void DocumentoTeste_SemReferenciaAEmpresaNemAPessoa()
     {

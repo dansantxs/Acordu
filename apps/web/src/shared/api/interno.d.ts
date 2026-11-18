@@ -396,7 +396,7 @@ export interface paths {
             }
             requestBody: {
                 content: {
-                    'application/json': components['schemas']['AceiteConviteRequest']
+                    'application/json': components['schemas']['AceiteConviteEquipeRequest']
                 }
             }
             responses: {
@@ -557,6 +557,39 @@ export interface paths {
         }
         put?: never
         post?: never
+        delete?: never
+        options?: never
+        head?: never
+        patch?: never
+        trace?: never
+    }
+    '/api/v1/auth/textos/ciente': {
+        parameters: {
+            query?: never
+            header?: never
+            path?: never
+            cookie?: never
+        }
+        get?: never
+        put?: never
+        post: {
+            parameters: {
+                query?: never
+                header?: never
+                path?: never
+                cookie?: never
+            }
+            requestBody?: never
+            responses: {
+                /** @description No Content */
+                204: {
+                    headers: {
+                        [name: string]: unknown
+                    }
+                    content?: never
+                }
+            }
+        }
         delete?: never
         options?: never
         head?: never
@@ -5076,6 +5109,15 @@ export interface components {
     schemas: {
         /** @enum {unknown} */
         AcaoTarefasAbertas: 'MANTER' | 'CONCLUIR' | 'CANCELAR'
+        AceiteConviteEquipeRequest: {
+            token: string
+            nome: null | string
+            senha: string
+            /** @enum {null|string} */
+            versaoTermos?: '1' | null
+            /** @enum {null|string} */
+            versaoPrivacidade?: '1' | null
+        }
         AceiteConviteRequest: {
             token: string
             nome: null | string
@@ -5866,6 +5908,7 @@ export interface components {
             clienteId: null | string
             escopoPortal: null | components['schemas']['EscopoPortal']
             tenants: components['schemas']['TenantDoUsuario'][]
+            textosPendentes: components['schemas']['TextoPendente'][]
         }
         /** @enum {unknown} */
         Periodicidade: 'SEMANAL' | 'MENSAL' | 'TRIMESTRAL' | 'ANUAL'
@@ -6012,6 +6055,10 @@ export interface components {
             nomeEmpresa: string
             documento: string
             tokenTurnstile?: null | string
+            /** @enum {null|string} */
+            versaoTermos?: '1' | null
+            /** @enum {null|string} */
+            versaoPrivacidade?: '1' | null
         }
         RegraRecorrenciaDto: {
             periodicidade: components['schemas']['Periodicidade']
@@ -6333,6 +6380,10 @@ export interface components {
             nome: string
             papel: string
         }
+        TextoPendente: {
+            texto: components['schemas']['TipoTextoLegal']
+            versao: string
+        }
         /** @enum {unknown} */
         TipoAtividade:
             | 'SOLICITACAO_ABERTA'
@@ -6352,6 +6403,8 @@ export interface components {
         TipoItemAgenda: 'SOLICITACAO' | 'TAREFA' | 'PROJETO' | 'RECORRENCIA' | 'CONTRATO'
         /** @enum {unknown} */
         TipoPapel: 'INTERNO' | 'CLIENTE'
+        /** @enum {unknown} */
+        TipoTextoLegal: 'TERMOS' | 'PRIVACIDADE'
         TokenDeAcesso: {
             accessToken: string
             /** Format: date-time */

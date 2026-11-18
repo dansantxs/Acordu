@@ -256,7 +256,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/AceiteConviteRequest"
+                "$ref": "#/components/schemas/AceiteConviteEquipeRequest"
               }
             }
           },
@@ -361,6 +361,18 @@
                 }
               }
             }
+          }
+        }
+      }
+    },
+    "/api/v1/auth/textos/ciente": {
+      "post": {
+        "tags": [
+          "Autenticação"
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
           }
         }
       }
@@ -5002,6 +5014,46 @@
           "CANCELAR"
         ]
       },
+      "AceiteConviteEquipeRequest": {
+        "required": [
+          "token",
+          "nome",
+          "senha"
+        ],
+        "type": "object",
+        "properties": {
+          "token": {
+            "type": "string"
+          },
+          "nome": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "senha": {
+            "type": "string"
+          },
+          "versaoTermos": {
+            "enum": [
+              "1"
+            ],
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "versaoPrivacidade": {
+            "enum": [
+              "1"
+            ],
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
       "AceiteConviteRequest": {
         "required": [
           "token",
@@ -8309,7 +8361,8 @@
           "permissoes",
           "clienteId",
           "escopoPortal",
-          "tenants"
+          "tenants",
+          "textosPendentes"
         ],
         "type": "object",
         "properties": {
@@ -8359,6 +8412,12 @@
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/TenantDoUsuario"
+            }
+          },
+          "textosPendentes": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TextoPendente"
             }
           }
         }
@@ -8943,6 +9002,24 @@
             "type": "string"
           },
           "tokenTurnstile": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "versaoTermos": {
+            "enum": [
+              "1"
+            ],
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "versaoPrivacidade": {
+            "enum": [
+              "1"
+            ],
             "type": [
               "null",
               "string"
@@ -10318,6 +10395,21 @@
           }
         }
       },
+      "TextoPendente": {
+        "required": [
+          "texto",
+          "versao"
+        ],
+        "type": "object",
+        "properties": {
+          "texto": {
+            "$ref": "#/components/schemas/TipoTextoLegal"
+          },
+          "versao": {
+            "type": "string"
+          }
+        }
+      },
       "TipoAtividade": {
         "enum": [
           "SOLICITACAO_ABERTA",
@@ -10353,6 +10445,12 @@
         "enum": [
           "INTERNO",
           "CLIENTE"
+        ]
+      },
+      "TipoTextoLegal": {
+        "enum": [
+          "TERMOS",
+          "PRIVACIDADE"
         ]
       },
       "TokenDeAcesso": {

@@ -1,10 +1,10 @@
 # Acordu — Estado
 
-Visão geral curta, atualizada por cada PR (`docs/processo.md` §1). O histórico está no git, nos PRs e no registro dos designs. Atualizado em 18/11/2026 (spec e design do aceite atrás dos textos publicados).
+Visão geral curta, atualizada por cada PR (`docs/processo.md` §1). O histórico está no git, nos PRs e no registro dos designs. Atualizado em 18/11/2026 (F14h, aceite dos textos legais).
 
 ## Em revisão
 
-- **Spec e design do F14h com o aceite atrás dos textos publicados** (#182, G2 só desta mudança): cenários F14-114 a F14-121 e D16 (a mesma `TEXTOS_LEGAIS_PUBLICADOS` liga páginas, links e aceite no SPA e na API; janela da virada como risco a aceitar). F14i (#199) e F14j (#200) na `main`: no primeiro diário depois do deploy, as empresas anteriores ao F14 são apagadas e as VENCIDA com expurgo à frente recebem o aviso do vencimento atrasado.
+- **F14h — aceite dos textos legais** (#182): aceite no cadastro e no convite da equipe e "ciente" de versão nova, tudo atrás de `TEXTOS_LEGAIS_PUBLICADOS` (desligada: sem caixa, sem aviso, nada gravado). F14i (#199) e F14j (#200) na `main`: no primeiro diário depois do deploy, as empresas anteriores ao F14 são apagadas e as VENCIDA com expurgo à frente recebem o aviso do vencimento atrasado.
 
 ## Marco em andamento
 
@@ -17,7 +17,7 @@ Visão geral curta, atualizada por cada PR (`docs/processo.md` §1). O históric
 
 ## Próximos passos
 
-1. G2 da mudança do F14h (merge do PR de spec e design, com a escolha das perguntas da D16). Depois o `/marco F14 182` implementa o F14h, que vai a produção com `TEXTOS_LEGAIS_PUBLICADOS` desligada. Abrir o cadastro para quem é de fora continua dependendo da #194. Email Routing de `contato@acordu.app.br` ativo e testado pelo Daniel em 16/11.
+1. Merge do F14h. Depois o `/marco F14 182` segue pela área da Nebrys (F14k, sessão de operação, lista e detalhe das empresas). Ligar `TEXTOS_LEGAIS_PUBLICADOS` só depois da #194, num deploy fora do horário de uso (janela da virada, deploy-ci §7); a conferência do F14-121 é nesse deploy. Email Routing de `contato@acordu.app.br` ativo e testado pelo Daniel em 16/11.
 2. Conferências que faltam da produção:
    - deploy: F8-27 e F8-28 (rollback por migration e por health), F8-29 (jobs do Scheduler), hostname do Turnstile;
    - backup: F8-30 e F13-32 na primeira madrugada com o `BACKUP_ATIVO`; F8-31 (restore) antes do primeiro cliente;

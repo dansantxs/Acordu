@@ -59,3 +59,22 @@ test('todo subagente termina com o bloco de status do processo §5', () => {
         assert.match(ler(`.claude/agents/${agente}.md`), /processo §5/, agente);
     }
 });
+
+test('F14-121: o deploy normaliza TEXTOS_LEGAIS_PUBLICADOS uma vez e leva o mesmo valor à API e ao build do SPA', () => {
+    const deploy = ler('.github/workflows/deploy.yml').replace(/\r\n/g, '\n');
+    // O passo que normaliza tem id, e o valor sai dele para a API (arquivo de variáveis) e para o passo do SPA.
+    assert.match(deploy, /- name: Variáveis da API\n\s+id: variaveis\n/);
+    assert.match(deploy, /textos = os\.environ\.get\("TEXTOS_LEGAIS_PUBLICADOS", ""\)\.strip\(\)\.lower\(\) or "false"/);
+    assert.match(deploy, /if textos not in \("true", "false"\):\n\s+faltam\.append\("TEXTOS_LEGAIS_PUBLICADOS/);
+    assert.match(deploy, /variaveis\["TextosLegais__Publicados"\] = textos\n/);
+    assert.match(deploy, /saida\.write\("textos_legais_publicados=" \+ textos \+ "[\\]n"\)/);
+    // A normalização e a conferência vêm antes de qualquer publicação (o passo que para o deploy é o das variáveis).
+    assert.ok(deploy.indexOf('TEXTOS_LEGAIS_PUBLICADOS (variável inválida') < deploy.indexOf('- name: SPA (Pages)'));
+    // O SPA lê a saída do passo, nunca a variável do repositório direto (não pode divergir da API).
+    const linhas = deploy.split('\n').filter((l) => l.includes('VITE_TEXTOS_LEGAIS_PUBLICADOS:'));
+    assert.equal(linhas.length, 1);
+    assert.match(linhas[0], /\$\{\{ steps\.variaveis\.outputs\.textos_legais_publicados \}\}/);
+    assert.doesNotMatch(linhas[0], /vars\./);
+    // O passo do SPA vem depois do passo que escreve a saída.
+    assert.ok(deploy.indexOf('- name: Variáveis da API') < deploy.indexOf('- name: SPA (build)'));
+});

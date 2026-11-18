@@ -3,6 +3,7 @@ import { Outlet, useRouter } from '@tanstack/react-router'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Button, Dialog, Modal, ModalOverlay } from 'react-aria-components'
 import { pode } from '@/features/casca/navegacao'
+import { AvisoTextosPendentes } from '@/features/legal/AvisoTextosPendentes'
 import { AvisoEnvioBloqueado } from '@/features/sessao/AvisoConfirmacao'
 import { anunciarManifesto } from '@/shared/app/instalacao'
 import { useLembreteCronometro } from '@/shared/cronometro/useLembreteCronometro'
@@ -79,6 +80,7 @@ export function Casca({ perfil }: { perfil: Perfil }) {
                     <main id="conteudo" className="flex flex-1 flex-col gap-4 px-4 py-6 sm:px-7">
                         <FaixaSituacao tenant={perfil.tenant} />
                         <AvisoEnvioBloqueado perfil={perfil} />
+                        <AvisoTextosPendentes perfil={perfil} />
                         <Outlet />
                     </main>
                 </div>

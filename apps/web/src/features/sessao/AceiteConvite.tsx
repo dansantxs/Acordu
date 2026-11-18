@@ -2,6 +2,7 @@ import { useMutation, useQuery } from '@tanstack/react-query'
 import { Link, useNavigate } from '@tanstack/react-router'
 import { Form } from 'react-aria-components'
 import { api } from '@/shared/api/cliente'
+import { AceiteTextosLegais, erroDoAceite, versoesAceitas } from '@/features/legal/AceiteTextosLegais'
 import { errosDeCampo, mensagemDeErro } from '@/shared/api/mensagens'
 import { aceitarConvite } from '@/shared/sessao/acoes'
 import { descartarTokenDeLink } from '@/shared/sessao/tokenDaUrl'
@@ -12,7 +13,10 @@ import { CampoTexto } from '@/shared/ui/CampoTexto'
 import { SENHA_MINIMA, validarSenha } from './FormularioCadastro'
 import { linkRecusado } from './linkInvalido'
 
-/** Aceite do convite para a equipe (contrato §3): conta nova pede nome e senha; conta existente, só a senha dela. */
+/**
+ * Aceite do convite para a equipe (contrato §3): conta nova pede nome e senha; conta existente, só a senha dela. Com os
+ * textos legais publicados, a caixa de aceite dos termos e da política, obrigatória (F14-82; sem eles, F14-117).
+ */
 export function AceiteConvite({ token }: { token: string | null }) {
     const navegar = useNavigate()
     const convite = useQuery({
@@ -55,6 +59,7 @@ export function AceiteConvite({ token }: { token: string | null }) {
                     token,
                     nome: temConta ? null : String(dados.get('nome')),
                     senha: String(dados.get('senha')),
+                    ...versoesAceitas(dados),
                 })
             }}
         >
@@ -85,6 +90,7 @@ export function AceiteConvite({ token }: { token: string | null }) {
                     />
                 </>
             )}
+            <AceiteTextosLegais erro={erroDoAceite(aceite.error)} />
             <div className="flex items-center justify-between gap-4">
                 {temConta ? (
                     <Link to="/conta/senha" className="text-sm text-acento-texto underline-offset-4 hover:underline">

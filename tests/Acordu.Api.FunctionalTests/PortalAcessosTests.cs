@@ -71,7 +71,7 @@ public sealed class PortalAcessosTests(ApiFixture api)
         var email = NovoEmail();
         using (var registro = await PostAsync("/api/v1/auth/registro", new
         {
-            nome = "Marina", email, senha = Equipe.Senha, nomeEmpresa = "Empresa da Marina", documento = Apoio.DocumentosDeTeste.Novo(),
+            nome = "Marina", email, senha = Equipe.Senha, nomeEmpresa = "Empresa da Marina", documento = Apoio.DocumentosDeTeste.Novo(), versaoTermos = Apoio.TextosAceitos.Termos, versaoPrivacidade = Apoio.TextosAceitos.Privacidade,
         }))
         {
             registro.StatusCode.Should().Be(HttpStatusCode.Created);

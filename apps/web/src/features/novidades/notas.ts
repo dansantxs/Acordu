@@ -15,6 +15,15 @@ export const NOTAS: NotaVersao[] = [
     {
         data: '2026-11-18',
         publico: 'equipe',
+        titulo: 'Aceite dos termos de uso e da política de privacidade',
+        itens: [
+            'O cadastro da empresa e a entrada na equipe por convite pedem que você marque que leu e aceita os termos de uso e a política de privacidade, com os links para as duas páginas.',
+            'Quando um dos textos ganhar uma versão nova, um aviso no topo das telas traz o link para ela até você marcar "Ciente". Dá para continuar usando normalmente.',
+        ],
+    },
+    {
+        data: '2026-11-18',
+        publico: 'equipe',
         titulo: 'Avisos por e-mail sobre o teste',
         itens: [
             'Os Donos recebem um e-mail 7 dias e 1 dia antes do fim do teste, outro no dia em que a empresa fica só leitura, com a data em que os dados serão apagados, e um último 7 dias antes de apagar. Cada e-mail diz com quem falar para ativar a conta.',

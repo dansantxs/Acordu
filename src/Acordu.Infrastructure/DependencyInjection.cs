@@ -132,6 +132,7 @@ public static class DependencyInjection
         services.AddIdentityCore<Usuario>(OpcoesIdentidade.Configurar)
             .AddEntityFrameworkStores<AcorduDbContext>();
         services.AddScoped<Persistence.Documentos.RegistroDocumentos>();
+        services.AddScoped<Persistence.Aceites.RegistroAceites>();
         services.AddScoped<IServicoAutenticacao, ServicoAutenticacao>();
         return services;
     }

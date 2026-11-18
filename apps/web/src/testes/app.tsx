@@ -38,6 +38,7 @@ export const perfil = {
     clienteId: null,
     escopoPortal: null,
     tenants: [{ id: 't1', nome: 'Prado Consultoria', papel: 'Dono' }],
+    textosPendentes: [] as { texto: 'TERMOS' | 'PRIVACIDADE'; versao: string }[],
 }
 
 /** Tempo real sem sinais: a conexão fecha e a casca tenta de novo mais tarde (sem afetar o teste). */
