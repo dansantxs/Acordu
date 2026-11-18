@@ -96,6 +96,14 @@ internal static class ComposicaoSeguranca
         services.AddRateLimiter(opcoes =>
         {
             opcoes.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+            // Na área da Nebrys (abertura da sessão), o limite estourado responde como a credencial recusada: 404, para o
+            // 429 não revelar a rota (ADR 0014, itens 2 e 4).
+            opcoes.OnRejected = (rejeicao, _) =>
+            {
+                if (AreaNebrys.NaArea(rejeicao.HttpContext.Request.Path))
+                    rejeicao.HttpContext.Response.StatusCode = StatusCodes.Status404NotFound;
+                return ValueTask.CompletedTask;
+            };
             opcoes.AddPolicy(LimitePortal, http => RateLimitPartition.GetFixedWindowLimiter(
                 http.User.FindFirst(ClaimsAcordu.Usuario)?.Value ?? http.Connection.RemoteIpAddress?.ToString() ?? "desconhecido",
                 _ => new FixedWindowRateLimiterOptions { PermitLimit = limitePortal, Window = TimeSpan.FromMinutes(1), QueueLimit = 0 }));
@@ -156,7 +164,8 @@ internal static class ComposicaoSeguranca
     }
 
     /// <summary>
-    /// Token de origem, cabeçalhos do proxy, CORS, autenticação, contexto de tenant, rate limit e autorização, nessa ordem.
+    /// Token de origem, cabeçalhos do proxy, CORS, autenticação, barreira da área da Nebrys, contexto de tenant, rate limit e
+    /// autorização, nessa ordem.
     /// </summary>
     public static void UseSegurancaApi(this WebApplication app)
     {
@@ -164,6 +173,7 @@ internal static class ComposicaoSeguranca
         app.UseForwardedHeaders();
         app.UseCors();
         app.UseAuthentication();
+        app.Use(AreaNebrys.ConferirAsync);
         app.Use(ContextoDaRequisicao.DefinirAsync);
         app.UseRateLimiter();
         app.UseAuthorization();

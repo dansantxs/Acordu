@@ -2,9 +2,9 @@
   "marco": "F14",
   "issue": 182,
   "etapa": "AGUARDANDO_MERGE",
-  "branch": "feat/F14h-aceite",
+  "branch": "feat/F14k-area-nebrys",
   "pr": {
-    "id": "F14h",
+    "id": "F14k",
     "numero": null
   },
   "feitos": [
@@ -43,6 +43,10 @@
     {
       "id": "F14j",
       "pr": 200
+    },
+    {
+      "id": "F14h",
+      "pr": 202
     }
   ],
   "contadores": {
@@ -67,14 +71,15 @@
       "PR #193 mesclado (F14f; marcadores dos textos para depois do registro da Nebrys, issue #194)",
       "PR #195 mesclado (F14g)",
       "PR #199 mesclado (F14i; F14-104 \"Só apagar a linha\", 18/11)",
-      "PR #200 mesclado (F14j)"
+      "PR #200 mesclado (F14j)",
+      "PR #202 mesclado (F14h; coluna Forma e ciente sem corpo mantidos)"
     ],
     "G2_F14h": "PR #201 mesclado (18/11), sem comentário nas perguntas: valem as recomendações da D16 (variável única conferida no deploy.yml; ciente 404; pendentes sem migration; nenhum campo novo; convenção §4) e o risco da janela da virada aceito"
   },
   "ressalvas": [
-    "F14-121: estrutura do deploy.yml testada (conferir-fabrica); o valor nos dois destinos se confere no primeiro deploy com a variável",
-    "ciente sem versões no corpo: aba antiga grava a versão vigente sem ter mostrado a página",
-    "coluna Forma (ACEITE/CIENTE) em aceites_textos, fora do design"
+    "Políticas Equipe e Usuario passam a exigir tenant_id",
+    "Bloqueio provocado da conta do operador e diferença residual de tempo: risco aceito (segurança §5.5)",
+    "nao-operador e email-nao-confirmado sem teste próprio de contagem de hash (já vêm depois da senha real)"
   ],
   "bloqueios": [],
   "atualizadoEm": "2026-11-18",

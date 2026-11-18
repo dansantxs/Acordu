@@ -5,7 +5,7 @@
 | **Versão** | 0.1 |
 | **Data** | 30/09/2026 |
 | **Estilo** | REST sobre HTTP, JSON. API-first (SPA interna + portal do cliente; app mobile no futuro). |
-| **Base** | `/api/v1` (interna) e `/api/v1/portal` (portal do cliente) |
+| **Base** | `/api/v1` (interna), `/api/v1/portal` (portal do cliente) e `/api/v1/nebrys` (área da Nebrys, §17) |
 | **Base de requisitos** | `ERS-acordu-v1.md`, `modelo-de-dominio-acordu.md`, ADRs 0002–0004 |
 
 ---
@@ -14,11 +14,12 @@
 
 Convenções gerais, com as adaptações marcadas como (Acordu):
 
-- **Autenticação:** `Authorization: Bearer <token>` em tudo, exceto `/auth/*`, a troca de link do portal, o feed ICS da agenda (`/agenda/{token}.ics`, §11d) e o relato de erro do app (`POST /erros-web`, §16).
+- **Autenticação:** `Authorization: Bearer <token>` em tudo, exceto `/auth/*`, a troca de link do portal, o feed ICS da agenda (`/agenda/{token}.ics`, §11d), o relato de erro do app (`POST /erros-web`, §16) e a abertura da sessão de operação da Nebrys (`POST /nebrys/sessao`, §17).
 - **Tenant:** sempre derivado do token (tenant ativo). Nunca na URL nem no corpo.
 - **Duas superfícies (ADR 0002):**
   - `/api/v1/*` — equipe do prestador. Token com papel **Cliente** → **403** em qualquer rota interna.
   - `/api/v1/portal/*` — contatos do cliente. Exige papel Cliente ou sessão de link. DTOs próprios, **sem campos internos**.
+  - `/api/v1/nebrys/*` — operação da Nebrys (F14, ADR 0014, §17). Só a sessão de operação, sem tenant; qualquer outra sessão ou ninguém → **404**, igual a rota inexistente. DTOs próprios, só com a relação da empresa com a Nebrys.
 - **Isolamento:** recurso de outro tenant **ou de outro cliente** → **404** (para o chamador, não existe).
 - **Instantes:** ISO-8601 em UTC (`2026-09-30T17:05:00Z`). **Datas civis** (prazo de tarefa, data de apontamento, período): `2026-09-30`. **Período mensal:** `2026-09`.
 - **Tempo (ADR 0004):** sempre **inteiro em minutos**, em campos com sufixo `Minutos` (`duracaoMinutos: 90`). Nunca horas decimais no contrato; formatação é do front.
@@ -628,7 +629,7 @@ Decidido no marco 15 (14/10):
   "pagina": 1, "tamanhoPagina": 50, "total": 1 }
 ```
 - `de`/`ate`: datas no fuso do tenant, inclusivas. `usuario` nulo: o sistema (job) ou uma sessão de link do portal.
-- Ações (`acao`, alvo, `dados`). Login com falha não aparece (fica sem tenant).
+- Ações (`acao`, alvo, `dados`). Login com falha não aparece (fica sem tenant), nem as ações da área da Nebrys (`nebrys.*`, sem tenant, só para a operação; §17): `nebrys.sessao` (o operador em `usuario`) e `nebrys.sessao.falha` (`dados`: `email` digitado e `motivo`).
 
 | Área | Ações | Alvo | `dados` |
 |---|---|---|---|
@@ -855,7 +856,7 @@ Tipos (`type`) do v1: `validacao` (com `errors` por campo), `transicao-invalida`
 | `400` | JSON malformado, parâmetro inválido. |
 | `401` | Sem token, token inválido, link inválido/expirado. |
 | `403` | Sem permissão; papel Cliente em rota interna; sessão de link fora do seu escopo. |
-| `404` | Inexistente, de outro tenant **ou de outro cliente**. |
+| `404` | Inexistente, de outro tenant **ou de outro cliente**; qualquer rota da área da Nebrys sem a sessão de operação, e a sessão de operação fora dela (§17). |
 | `409` | Versão divergente (`If-Match`); cronômetro já ativo; solicitação encerrada (RF-SOL-13). |
 | `413` | Anexo acima do limite; relato de erro do app acima de 16 KB. |
 | `422` | Regra de negócio violada. |
@@ -907,3 +908,42 @@ Qualquer pessoa da equipe com conta, sem permissão específica (decisão 5 da s
 - A sugestão é gravada fora dos tenants e sai em #sugestoes com o número, o texto, a tela e o nome da empresa, sem a pessoa e com menções desligadas. Se o Discord não responder em 3 s, a resposta sai igual e o próximo tick reenvia (`sugestoesReenviadas` na resposta do tick).
 - Nenhuma rota lista ou devolve sugestões.
 
+
+---
+
+## 17. Área da Nebrys (`/api/v1/nebrys`, F14, ADR 0014)
+
+Operação da Nebrys sobre as empresas (RF-NEB-01): só os dados da relação com a Nebrys, nunca dado de negócio do prestador (RNF-PRIV-01). Documento OpenAPI próprio, `openapi/nebrys.json`, fora do `interno.json`.
+
+**Sessão de operação (F14k).** Quem é operador vem só de `Nebrys__Operadores` (e-mails de contas existentes, com o e-mail confirmado; deploy-ci §7); sem a configuração, a área inteira responde `404`.
+
+```json
+// POST /nebrys/sessao (público, sem cookie)
+{ "email": "operacao@nebrys.com.br", "senha": "…" }
+// 200
+{ "accessToken": "eyJ...", "expiraEm": "2026-11-18T14:30:00Z", "tipo": "OPERACAO" }
+```
+
+- O token vale 30 min, **sem refresh e sem cookie**; claims só `sub` e `tipo = OPERACAO`, sem `tenant_id`, papel nem permissões (segurança §5.5). O SPA guarda só em memória.
+- Qualquer recusa responde `404 nao-encontrado`, o mesmo de uma rota inexistente, sem distinguir: senha errada, conta bloqueada (5 falhas, 15 min, como o login), e-mail sem conta, conta fora da lista, e-mail não confirmado, corpo vazio ou malformado. O limite das rotas de `/auth` (10 por minuto por IP) vale, e o estouro também responde `404`.
+- Sucesso e recusa vão para a trilha **sem tenant** (`nebrys.sessao`, `nebrys.sessao.falha` com o e-mail digitado e o motivo; §11a), visível só para a operação.
+
+**Barreira (F14-63).** Toda rota de `/api/v1/nebrys/*` (inclusive caminho inexistente, método errado ou outra caixa de letras), chamada por equipe (inclusive Dono), contato do portal, sessão de link, token expirado ou ninguém, responde o mesmo `404 nao-encontrado` de uma rota inexistente, antes de qualquer outra resposta (`401`, `403`, `405`, `400`). A única exceção é o `POST /nebrys/sessao`, que responde `404` à recusa. A conta do token é conferida a cada requisição: quem sai da lista recebe `404` na revisão seguinte, sem esperar o token expirar. No sentido inverso, a sessão de operação recebe `404` em toda rota da API fora da área que não é pública (clientes, solicitações, `/auth/eu`, portal, sugestões…).
+
+| Método | Rota | Descrição |
+|---|---|---|
+| GET | `/nebrys/empresas` | Empresas, criadas por último primeiro (`?situacao=TESTE\|ATIVA\|VENCIDA\|CANCELADA&pagina=&tamanhoPagina=`; situação inválida → `400`). F14-61. |
+| GET | `/nebrys/empresas/{id}` | Uma empresa, com a `versao`. Inexistente → `404`. F14-62. |
+
+```json
+// GET /nebrys/empresas/{id} → 200 (a linha da lista é igual, sem "versao")
+{ "id": "01a1...", "nome": "Estúdio Traço", "documento": "52998224725", "situacao": "VENCIDA",
+  "criadaEm": "2026-10-06T13:00:00Z", "fimDoTeste": "2026-11-05T13:00:00Z",
+  "somenteLeituraDesde": "2026-11-06T06:40:00Z", "canceladaEm": null, "expurgoPrevistoEm": "2026-12-06T06:40:00Z",
+  "criador": { "nome": "Ana", "email": "ana@estudiotraco.com.br" }, "pessoasNaEquipe": 3, "versao": "1043" }
+```
+
+- `documento`: CPF ou CNPJ normalizado (nulo nas empresas anteriores ao F14g). Datas como no `/auth/eu` (§2): `somenteLeituraDesde` é a data do vencimento na VENCIDA (e fica na CANCELADA que veio dela), `canceladaEm` a do cancelamento, `expurgoPrevistoEm` = `somenteLeituraDesde` + `Empresas__DiasAteExpurgo` (calculada; nula fora do só leitura).
+- `criador`: nome e e-mail da conta que criou a empresa; nulo se a conta não existe mais. `pessoasNaEquipe`: vínculos da equipe, sem os contatos do portal.
+- `versao`: a do `Tenant` (`xmin`), para o `If-Match` das ações sobre a empresa (F14l, design D5).
+- **Sem dado de negócio:** nem campo nem rota para clientes, contatos, solicitações, tarefas, horas, contratos ou anexos (F14-62). As consultas leem só o `Tenant`, a conta de quem o criou e a contagem da equipe (read side, "Área da Nebrys").

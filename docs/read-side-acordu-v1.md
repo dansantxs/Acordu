@@ -190,9 +190,19 @@ setweight(to_tsvector('portuguese', unaccent(titulo)), 'A')
 
 ---
 
+## 8a. Área da Nebrys (F14k, ADR 0014)
+
+A sessão de operação não tem tenant (segurança §5.5): com o contexto vazio, os filtros globais não devolvem nada. A área lê por consultas próprias (`IConsultasNebrys`, implementada em `Acordu.Infrastructure.Persistence.Nebrys.ConsultasNebrys`), um **ponto revisado** de `IgnoreQueryFilters` (convenções §1) que:
+
+- lê só o `Tenant`, a conta de quem o criou (nome e e-mail, tabela do Identity) e a **contagem** dos vínculos da equipe (`vinculos` sem `cliente_id`; os contatos do portal não contam). Nenhuma tabela de negócio do prestador (clientes, contatos, solicitações, tarefas, apontamentos, contratos, anexos) entra na consulta, e um teste de arquitetura garante que nem o tipo é referenciado;
+- projeta só os campos da relação com a Nebrys (contrato §17): nome, documento, situação, criada em, fim do teste, início do só leitura, cancelamento, expurgo previsto (calculado como no `/auth/eu`: início do só leitura + `Empresas__DiasAteExpurgo`, nulo fora do só leitura), criador, pessoas na equipe e, no detalhe, a `versao` (`xmin`) para o `If-Match` das ações (F14l);
+- lista as criadas por último primeiro (`criado_em desc, id desc`), com o filtro opcional de situação e a paginação do contrato §1. Uma consulta por página, com o criador e a contagem como subconsultas; sem índice novo (a lista é da operação, com poucas empresas no nível 0).
+
+---
+
 ## 9. Onde vive no código
 
-- Query handlers em `Acordu.Application` (namespaces `…Consultas` internos e `Acordu.Application.Portal` separados).
+- Query handlers em `Acordu.Application` (namespaces `…Consultas` internos, `Acordu.Application.Portal` e `Acordu.Application.Nebrys` separados; §8a).
 - Projeções simples: EF Core `Select` para DTO. Somas de consumo, dashboard e semelhantes: SQL em `Acordu.Infrastructure.Persistence.Consultas`, via helper que exige `TenantId` (e `ClienteId` quando portal).
 - Índices criados nas migrations (lista consolidada abaixo).
 - **Implementado (marco 1):** `IConsultasContrato` (§3), `IConsultaExtratoPortal` (§4, em `Acordu.Application.Portal.Extrato`) e `IConsultasProjeto` (§7). No banco de horas, o saldo acumula até o fim do período ou até hoje, o que vier antes. No extrato, apontamento visível de tarefa sem solicitação usa o título da tarefa se ela for visível, senão "Atendimento"; a ordem é (data, número da solicitação, id do apontamento). Os índices sobre colunas do relógio (`prazo_resolucao`, `limite_risco`) são SQL acrescentado à migration `ConsultasHoras`; um teste confere que existem.

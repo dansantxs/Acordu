@@ -14,6 +14,7 @@ using Acordu.Application.Operacao;
 using Acordu.Application.Autenticacao;
 using Acordu.Application.Cadastro;
 using Acordu.Application.Empresas;
+using Acordu.Application.Nebrys;
 using Acordu.Infrastructure;
 using Acordu.Infrastructure.Armazenamento;
 using Acordu.Infrastructure.Email;
@@ -36,6 +37,7 @@ namespace Acordu.Api.Composicao;
 /// <c>Empresas__DiasFaixaTeste</c> (padrão 7; F14e), <c>Empresas__AvisosAntesDoFim</c> (padrão <c>7,1</c>) e
 /// <c>Empresas__AvisoAntesDoExpurgo</c> (padrão 7; F14j),
 /// <c>Documentos__ChaveHmac</c> (obrigatória, ≥ 32 bytes; F14g), <c>Nebrys__Contato</c> (canal da Nebrys; F14g),
+/// <c>Nebrys__Operadores</c> (e-mails dos operadores da área da Nebrys, separados por vírgula; sem ela, a área responde 404; F14k),
 /// <c>TextosLegais__Publicados</c> (<c>true</c> ou <c>false</c>, padrão desligado; F14h, D16) e
 /// <c>Email__ResendChave</c>, <c>Email__Remetente</c>, <c>Email__NomeRemetente</c> e <c>Email__Smtp__Host</c>/<c>Email__Smtp__Porta</c> (Mailpit, só em desenvolvimento), <c>Email__RegistrarConteudo</c> (só em
 /// desenvolvimento).
@@ -44,8 +46,10 @@ internal static class ComposicaoApi
 {
     public const string DocumentoInterno = "interno";
     public const string DocumentoPortal = "portal";
+    public const string DocumentoNebrys = "nebrys";
     private const string PrefixoNegocio = "api/v1/";
     private const string PrefixoPortal = "api/v1/portal";
+    private const string PrefixoNebrys = "api/v1/nebrys";
     private const string EsquemaBearer = "Bearer";
     private const string UrlPublicaPadrao = "https://acordu.app.br/";
 
@@ -87,6 +91,10 @@ internal static class ComposicaoApi
         services.AddSingleton(ProtecaoDocumento.DaConfiguracao(configuracao["Documentos:ChaveHmac"]));
         // Canal da Nebrys nas recusas e avisos (D15); sem ele, os textos dizem só "fale com a Nebrys".
         services.AddSingleton(new OpcoesNebrys(configuracao["Nebrys:Contato"]));
+        // Operadores da área da Nebrys (ADR 0014, item 1): sem a variável, ninguém; e-mail inválido impede a subida.
+        services.AddSingleton(OperadoresNebrys.DaConfiguracao(configuracao["Nebrys:Operadores"]));
+        // Consultas da área (F14k): dependem do prazo do expurgo acima, que só a Api lê da configuração.
+        services.AddScoped<IConsultasNebrys, Infrastructure.Persistence.Nebrys.ConsultasNebrys>();
         // Textos legais publicados (D16): padrão desligado; valor presente e inválido impede a subida (F14-121).
         services.AddSingleton(OpcoesTextosLegais.DaConfiguracao(configuracao["TextosLegais:Publicados"]));
         AdicionarEmail(services, configuracao);
@@ -107,13 +115,15 @@ internal static class ComposicaoApi
             opcoes.SerializerOptions.Converters.Add(new MesReferenciaJsonConverter());
         });
 
-        // Dois documentos: o front do portal só pode gerar tipos das rotas /portal (estrutura do repositório).
+        // Três documentos: o front do portal só pode gerar tipos das rotas /portal (estrutura do repositório), e a área da
+        // Nebrys tem o seu (ADR 0014, item 4), fora do interno.
         services.AddOpenApi(DocumentoInterno, opcoes =>
         {
             opcoes.ShouldInclude = descricao =>
                 descricao.RelativePath is { } rota
                 && rota.StartsWith(PrefixoNegocio, StringComparison.Ordinal)
-                && !rota.StartsWith(PrefixoPortal, StringComparison.Ordinal);
+                && !rota.StartsWith(PrefixoPortal, StringComparison.Ordinal)
+                && !rota.StartsWith(PrefixoNebrys, StringComparison.Ordinal);
             opcoes.AddDocumentTransformer(DeclararBearer);
             opcoes.AddDocumentTransformer(Identificar("Acordu — interno"));
             opcoes.AddSchemaTransformer(VersoesDosTextosLegais);
@@ -124,6 +134,13 @@ internal static class ComposicaoApi
                 descricao.RelativePath is { } rota && rota.StartsWith(PrefixoPortal, StringComparison.Ordinal);
             opcoes.AddDocumentTransformer(DeclararBearer);
             opcoes.AddDocumentTransformer(Identificar("Acordu — portal"));
+        });
+        services.AddOpenApi(DocumentoNebrys, opcoes =>
+        {
+            opcoes.ShouldInclude = descricao =>
+                descricao.RelativePath is { } rota && rota.StartsWith(PrefixoNebrys, StringComparison.Ordinal);
+            opcoes.AddDocumentTransformer(DeclararBearerDaOperacao);
+            opcoes.AddDocumentTransformer(Identificar("Acordu — Nebrys"));
         });
         return services;
     }
@@ -297,7 +314,8 @@ internal static class ComposicaoApi
             app.MapOpenApi();
             app.MapScalarApiReference(opcoes => opcoes
                 .AddDocument(DocumentoInterno, "Acordu — interno")
-                .AddDocument(DocumentoPortal, "Acordu — portal"));
+                .AddDocument(DocumentoPortal, "Acordu — portal")
+                .AddDocument(DocumentoNebrys, "Acordu — Nebrys"));
         }
 
         // Não toca o banco: é chamado pelo uptime externo e pelo healthcheck do deploy (ADR 0010 §6).
@@ -308,6 +326,7 @@ internal static class ComposicaoApi
         api.MapAuth();
         api.MapAgendaIcs();
         api.MapErrosWeb();
+        api.MapNebrys();
         var grupos = new GruposApi(
             api,
             api.MapGroup(string.Empty).RequireAuthorization(Politicas.Equipe),
@@ -387,7 +406,15 @@ internal static class ComposicaoApi
     }
 
     /// <summary>Esquema Bearer nos documentos: o Scalar mostra o campo do token e o envia nas chamadas.</summary>
-    private static Task DeclararBearer(OpenApiDocument documento, OpenApiDocumentTransformerContext contexto, CancellationToken cancellationToken)
+    private static Task DeclararBearer(OpenApiDocument documento, OpenApiDocumentTransformerContext contexto, CancellationToken cancellationToken) =>
+        DeclararBearer(documento, "Access token de /api/v1/auth/login ou /auth/registro.");
+
+    /// <summary>Na área da Nebrys, o token é o da sessão de operação.</summary>
+    private static Task DeclararBearerDaOperacao(
+        OpenApiDocument documento, OpenApiDocumentTransformerContext contexto, CancellationToken cancellationToken) =>
+        DeclararBearer(documento, "Access token da sessão de operação (/api/v1/nebrys/sessao).");
+
+    private static Task DeclararBearer(OpenApiDocument documento, string descricao)
     {
         documento.Components ??= new OpenApiComponents();
         documento.Components.SecuritySchemes ??= new Dictionary<string, IOpenApiSecurityScheme>();
@@ -396,7 +423,7 @@ internal static class ComposicaoApi
             Type = SecuritySchemeType.Http,
             Scheme = "bearer",
             BearerFormat = "JWT",
-            Description = "Access token de /api/v1/auth/login ou /auth/registro.",
+            Description = descricao,
         };
         documento.Security = [new OpenApiSecurityRequirement { [new OpenApiSecuritySchemeReference(EsquemaBearer, documento)] = [] }];
         return Task.CompletedTask;

@@ -20,6 +20,13 @@ internal static class ClaimsAcordu
     public const string Tipo = "tipo";
     public const string TipoLink = "LINK_SOLICITACAO";
 
+    /// <summary>Sessão de operação da Nebrys (ADR 0014, item 2): só <c>sub</c> e o tipo, sem <c>tenant_id</c>.</summary>
+    public const string TipoOperacao = "OPERACAO";
+
+    /// <summary>Token de operação válido (já autenticado): só ele abre a área da Nebrys.</summary>
+    public static bool EhOperacao(ClaimsPrincipal usuario) =>
+        usuario.Identity?.IsAuthenticated == true && usuario.FindFirst(Tipo)?.Value == TipoOperacao;
+
     /// <summary>Mesmo formato do JSON e do banco: <c>TODAS_DO_CLIENTE</c>.</summary>
     public static string Texto(EscopoPortal escopo) => JsonNamingPolicy.SnakeCaseUpper.ConvertName(escopo.ToString());
 

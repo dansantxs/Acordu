@@ -179,6 +179,18 @@ Um usuário Cliente em um tenant e Membro em outro troca de tenant e recebe toke
 - **Risco aceito:** o conteúdo vai para um calendário de terceiro. O padrão leva título e cliente, e na descrição só o prazo e o link para o Acordu, nunca o texto de interações.
 - **Modo discreto:** opcional, com títulos genéricos ("Tarefa", "Prazo de solicitação"), sem cliente e sem descrição. Pode ser trocado sem trocar o link.
 
+### 5.5 Sessão de operação da Nebrys (RF-NEB-01, ADR 0014, F14k)
+- **Quem:** os e-mails de `Nebrys__Operadores` (secret `API_NEBRYS_OPERADORES`), de contas existentes com o e-mail confirmado. Sem a configuração, ninguém é operador e a área responde `404`. Não há tela para conceder o papel; trocar o operador é um deploy.
+- **Abertura:** `POST /api/v1/nebrys/sessao` confere a senha pelo Identity (bloqueio de 5 falhas por 15 min, como o login; limite de 10 por minuto por IP das rotas de `/auth`) e a lista. Devolve um **access token de 30 min, sem refresh e sem cookie**, com só `sub` e `tipo = OPERACAO`: **sem `tenant_id`**, papel nem permissões. O SPA o guarda só em memória. Qualquer recusa, e o limite estourado, respondem o `404` de rota inexistente.
+- **Contexto vazio por construção:** a sessão de operação não define tenant no `ContextoTenant`. Os filtros globais continuam valendo e não devolvem dado de negócio; a guarda de gravação recusa gravar em tenant. O que a área lê vem de consultas próprias na Infrastructure (pontos revisados de `IgnoreQueryFilters`), que projetam só os campos da relação (read side, "Área da Nebrys").
+- **Barreira de rota:** um middleware, logo depois da autenticação, responde `404` a qualquer requisição em `/api/v1/nebrys/*` sem a sessão de operação (equipe, contato, link, token expirado ou ninguém), qualquer que seja o método ou a caixa do caminho, antes de `401`, `403`, `405` e `400`; e responde `404` à sessão de operação em toda rota não pública fora da área. Um filtro do grupo confere no banco, a cada requisição, que a conta do token continua operadora. As políticas da equipe e de quem tem conta exigem `tenant_id`, e a de operação exige a ausência dele (segunda camada).
+- **Defesa em camadas, como no portal:** barreira de rota (404), DTOs próprios sem campo de negócio, teste de arquitetura (`Acordu.Application.Nebrys` e as consultas da área não referenciam tipos de negócio nem o portal), filtros globais com o contexto vazio.
+- **Tempo de resposta:** toda recusa da abertura (e-mail sem conta, senha vazia, conta bloqueada, senha errada, fora da lista, e-mail não confirmado) confere uma senha pelo hasher do Identity (a real, ou um hash fixo descartável) e grava a trilha, para o tempo não separar conta existente, bloqueio e operador.
+- **Riscos aceitos:**
+  - sem segundo fator nesta versão (fora de escopo do F14); a senha do operador é a barreira, com lista fechada, sessão curta sem refresh, bloqueio do Identity e trilha de toda ação;
+  - **bloqueio provocado:** qualquer pessoa que saiba o e-mail do operador bloqueia a conta dele por 15 min com 5 senhas erradas, pela área ou pelo login (o bloqueio é da conta e o limite de 10 por minuto por IP é o de `/auth`, compartilhado). É o custo do bloqueio do Identity, que o ADR 0014 (item 2) manda valer; a redefinição de senha desbloqueia, e as tentativas ficam na trilha;
+  - **diferença residual de tempo:** a abertura da sessão faz hash e grava a trilha, e uma rota inexistente não; a senha errada também grava a contagem de falhas no Identity. Medindo o tempo, dá para saber que `POST /nebrys/sessao` existe, e com muitas amostras talvez separar a senha errada das demais recusas. Aceito no nível 0: a rota em si não protege dado (a barreira é a lista, a senha e o bloqueio), e o limite por IP restringe as amostras.
+
 ---
 
 ## 6. Proteção de dados
@@ -213,11 +225,12 @@ Quem, tenant, ação, alvo, quando (IP opcional). Não audita leituras. Mecanism
 
 - Registro na mesma transação da ação (`IAuditoria`, chamada nos casos de uso); ações com nome estável (lista no contrato §11a). Status e responsável da solicitação pelos eventos, num manipulador dentro da transação, para cobrir todos os caminhos.
 - Login com sucesso fica no tenant da sessão emitida; com falha, **sem tenant** (e-mail digitado, motivo, IP), visível só para a operação. Troca de link por sessão fica no tenant do link, sem usuário.
+- **Área da Nebrys (ADR 0014, item 6):** toda ação dela fica **sem tenant**, com o operador em `usuario` e ação `nebrys.*`, fora do alcance de qualquer empresa, e sobrevive ao expurgo dela. Desde o F14k: abertura da sessão de operação (`nebrys.sessao`) e recusa (`nebrys.sessao.falha`, com o e-mail digitado e o motivo); as ações sobre as empresas entram no F14l. Ler a lista e o detalhe não é auditado (leitura).
 - Leitura: `GET /auditoria` com `auditoria.ver` (Dono e papéis customizados). Contato nunca lê.
 - Retenção: 12 meses (job diário de expurgo), porque guarda IP e e-mail.
 
 
-- Login: sucesso e falha; troca de link por sessão.
+- Login: sucesso e falha; troca de link por sessão; sessão de operação da Nebrys (abertura e recusa).
 - Usuários: convite, remoção, troca de papel, capacidade semanal.
 - Portal: concessão/revogação de acesso de contato, emissão/revogação de link, alteração de escopo.
 - Contratos: criação, edição, suspensão/encerramento, ajuste de saldo, fechamento de período.
@@ -229,6 +242,7 @@ Quem, tenant, ação, alvo, quando (IP opcional). Não audita leituras. Mecanism
 ## 9. Requisitos adicionais
 
 - **Rate limiting:** login, `/auth/portal/link` (por IP e por token), abertura de solicitação pelo portal, upload de anexos.
+  - Sessão de operação da Nebrys (`POST /nebrys/sessao`, F14k): o limite das rotas públicas de `/auth` (10 por minuto por IP, compartilhado com elas), mas o estouro responde `404`, não `429`, para não revelar a rota (§5.5).
   - Sugestões (`POST /api/v1/sugestoes`, F13e): 5 por hora por pessoa, contadas no banco (valem entre instâncias) → `429 limite-requisicoes`.
   - Relato de erro do app (`POST /api/v1/erros-web`, pública, F13d): 10 por minuto por IP, IPv6 por /64 (`RateLimit__ErrosWeb__PorMinuto`), corpo de até 16 KB. Vai sem cookie nem token; a API limpa e-mails, ids, números longos e a query antes de registrar, e o app não manda id de contato, cliente ou link.
   - As rotas públicas de `/auth` (login, convites, recuperação de senha) e o reenvio da confirmação: 10 por minuto por IP (`RateLimit__Auth__PorMinuto`).
@@ -245,5 +259,6 @@ Quem, tenant, ação, alvo, quando (IP opcional). Não audita leituras. Mecanism
   - cross-tenant (ADR 0001) e **cross-cliente** (ADR 0002), em integração e API;
   - papel Cliente em rota interna → 403;
   - sessão de link acessando outra solicitação → 404; link revogado → 401 na requisição seguinte;
+  - área da Nebrys (F14-63): equipe, contato, link e anônimo → 404 igual a rota inexistente em toda `/api/v1/nebrys/*`; sessão de operação → 404 nas rotas de negócio (F14-62);
   - nenhuma resposta do portal com interação/tarefa/apontamento interno;
   - Membro sem `contrato.gerenciar` → 403 ao criar contrato.
