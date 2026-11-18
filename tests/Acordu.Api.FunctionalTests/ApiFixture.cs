@@ -94,6 +94,8 @@ public sealed class ApiFixture : IAsyncLifetime
             ["Jwt:ChaveAssinatura"] = "chave-dos-testes-funcionais-com-mais-de-32-bytes",
             ["Documentos:ChaveHmac"] = ChaveDocumentos,
             ["Nebrys:Contato"] = ContatoNebrys,
+            // Textos legais publicados (design do F14, §1.2 e D16): os testes do estado desligado desligam no próprio teste.
+            ["TextosLegais:Publicados"] = "true",
             ["RateLimit:Auth:PorMinuto"] = "100000",
             ["RateLimit:Refresh:PorMinuto"] = "100000",
             ["RateLimit:Portal:PorMinuto"] = "100000",

@@ -209,7 +209,7 @@ public sealed class EnvioATerceirosTests(ApiFixture api)
             new { email, papelId = await PapelAsync(equipe, Papel.NomeMembro) });
 
         using var aceite = await PostAsync(
-            "/api/v1/auth/convite", new { token = api.Emails.TokenDoConviteEquipe(email), nome = "Bruno", senha = Equipe.Senha });
+            "/api/v1/auth/convite", new { token = api.Emails.TokenDoConviteEquipe(email), nome = "Bruno", senha = Equipe.Senha, versaoTermos = Apoio.TextosAceitos.Termos, versaoPrivacidade = Apoio.TextosAceitos.Privacidade });
         aceite.StatusCode.Should().Be(HttpStatusCode.Created);
         var token = (await aceite.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("accessToken").GetString()!;
 
@@ -289,7 +289,7 @@ public sealed class EnvioATerceirosTests(ApiFixture api)
     {
         var email = $"criador-{Guid.NewGuid():N}@exemplo.com";
         using var resposta = await PostAsync(
-            "/api/v1/auth/registro", new { nome = "Ana Souza", email, senha = Equipe.Senha, nomeEmpresa = "Estúdio Traço", documento = Apoio.DocumentosDeTeste.Novo() });
+            "/api/v1/auth/registro", new { nome = "Ana Souza", email, senha = Equipe.Senha, nomeEmpresa = "Estúdio Traço", documento = Apoio.DocumentosDeTeste.Novo(), versaoTermos = Apoio.TextosAceitos.Termos, versaoPrivacidade = Apoio.TextosAceitos.Privacidade });
         resposta.StatusCode.Should().Be(HttpStatusCode.Created);
         return (email, (await resposta.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("accessToken").GetString()!);
     }

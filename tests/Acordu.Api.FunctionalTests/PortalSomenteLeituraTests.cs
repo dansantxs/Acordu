@@ -205,7 +205,7 @@ public sealed partial class PortalSomenteLeituraTests(ApiFixture api)
         var token = api.Emails.TokenDoConviteEquipe(email);
         await SituacaoAsync(equipe.TenantId, "VENCIDA");
 
-        using var aceite = await PostAsync("/api/v1/auth/convite", new { token, nome = "Bruno Lima", senha = Equipe.Senha });
+        using var aceite = await PostAsync("/api/v1/auth/convite", new { token, nome = "Bruno Lima", senha = Equipe.Senha, versaoTermos = Apoio.TextosAceitos.Termos, versaoPrivacidade = Apoio.TextosAceitos.Privacidade });
 
         aceite.StatusCode.Should().Be(HttpStatusCode.UnprocessableEntity);
         var problema = await Equipe.JsonAsync(aceite);
@@ -224,7 +224,7 @@ public sealed partial class PortalSomenteLeituraTests(ApiFixture api)
 
         // Com a empresa gravável de novo (ativação do F14l), o mesmo convite é aceito.
         await SituacaoAsync(equipe.TenantId, "ATIVA");
-        using var depois = await PostAsync("/api/v1/auth/convite", new { token, nome = "Bruno Lima", senha = Equipe.Senha });
+        using var depois = await PostAsync("/api/v1/auth/convite", new { token, nome = "Bruno Lima", senha = Equipe.Senha, versaoTermos = Apoio.TextosAceitos.Termos, versaoPrivacidade = Apoio.TextosAceitos.Privacidade });
         depois.StatusCode.Should().Be(HttpStatusCode.Created);
     }
 
@@ -239,7 +239,7 @@ public sealed partial class PortalSomenteLeituraTests(ApiFixture api)
         var token = api.Emails.TokenDoConviteEquipe(outra.EmailDono);
         await SituacaoAsync(equipe.TenantId, "CANCELADA");
 
-        using var aceite = await PostAsync("/api/v1/auth/convite", new { token, senha = Equipe.Senha });
+        using var aceite = await PostAsync("/api/v1/auth/convite", new { token, senha = Equipe.Senha, versaoTermos = Apoio.TextosAceitos.Termos, versaoPrivacidade = Apoio.TextosAceitos.Privacidade });
 
         aceite.StatusCode.Should().Be(HttpStatusCode.UnprocessableEntity);
         (await Equipe.JsonAsync(aceite)).GetProperty("type").GetString().Should().Be(Erros + "empresa-somente-leitura");

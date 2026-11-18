@@ -38,7 +38,7 @@ public sealed class EquipeTests(ApiFixture api)
             info.GetProperty("temConta").GetBoolean().Should().BeFalse();
         }
 
-        using (var semNome = await PostAsync("/api/v1/auth/convite", new { token, senha = Senha }))
+        using (var semNome = await PostAsync("/api/v1/auth/convite", new { token, senha = Senha, versaoTermos = Apoio.TextosAceitos.Termos, versaoPrivacidade = Apoio.TextosAceitos.Privacidade }))
         {
             semNome.StatusCode.Should().Be(HttpStatusCode.BadRequest);
             (await Equipe.JsonAsync(semNome)).GetProperty("errors").TryGetProperty("nome", out _).Should().BeTrue();
@@ -55,7 +55,7 @@ public sealed class EquipeTests(ApiFixture api)
         bruno.GetProperty("email").GetString().Should().Be(email);
         bruno.GetProperty("dono").GetBoolean().Should().BeFalse();
         (await equipe.EsperarAsync(HttpStatusCode.OK, HttpMethod.Get, "/api/v1/convites")).GetArrayLength().Should().Be(0);
-        using var deNovo = await PostAsync("/api/v1/auth/convite", new { token, nome = "Bruno", senha = Senha });
+        using var deNovo = await PostAsync("/api/v1/auth/convite", new { token, nome = "Bruno", senha = Senha, versaoTermos = Apoio.TextosAceitos.Termos, versaoPrivacidade = Apoio.TextosAceitos.Privacidade });
         deNovo.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
     }
 
@@ -65,7 +65,7 @@ public sealed class EquipeTests(ApiFixture api)
         var email = NovoEmail();
         using (var registro = await PostAsync("/api/v1/auth/registro", new
         {
-            nome = "Bruno", email, senha = Equipe.Senha, nomeEmpresa = "Empresa do Bruno", documento = Apoio.DocumentosDeTeste.Novo(),
+            nome = "Bruno", email, senha = Equipe.Senha, nomeEmpresa = "Empresa do Bruno", documento = Apoio.DocumentosDeTeste.Novo(), versaoTermos = Apoio.TextosAceitos.Termos, versaoPrivacidade = Apoio.TextosAceitos.Privacidade,
         }))
         {
             registro.StatusCode.Should().Be(HttpStatusCode.Created);
@@ -75,7 +75,7 @@ public sealed class EquipeTests(ApiFixture api)
         await Convidar(equipe, email, await PapelAsync(equipe, Papel.NomeLeitor));
         var token = api.Emails.TokenDoConviteEquipe(email);
 
-        using (var errada = await PostAsync("/api/v1/auth/convite", new { token, senha = "outra-senha-qualquer" }))
+        using (var errada = await PostAsync("/api/v1/auth/convite", new { token, senha = "outra-senha-qualquer", versaoTermos = Apoio.TextosAceitos.Termos, versaoPrivacidade = Apoio.TextosAceitos.Privacidade }))
             errada.StatusCode.Should().Be(HttpStatusCode.BadRequest);
         var sessao = await AceitarAsync(token, Equipe.Senha);
 
@@ -183,7 +183,7 @@ public sealed class EquipeTests(ApiFixture api)
 
     private async Task<Sessao> AceitarAsync(string token, string senha = Senha, string? nome = null)
     {
-        using var resposta = await PostAsync("/api/v1/auth/convite", new { token, nome, senha });
+        using var resposta = await PostAsync("/api/v1/auth/convite", new { token, nome, senha, versaoTermos = Apoio.TextosAceitos.Termos, versaoPrivacidade = Apoio.TextosAceitos.Privacidade });
         var texto = await resposta.Content.ReadAsStringAsync();
         resposta.StatusCode.Should().Be(HttpStatusCode.Created, "corpo: {0}", texto);
         var cookie = resposta.Headers.GetValues("Set-Cookie").Single(c => c.StartsWith("acordu_refresh=", StringComparison.Ordinal));

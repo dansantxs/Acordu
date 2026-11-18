@@ -319,7 +319,7 @@ public sealed class DocumentoCadastroTests(ApiFixture api)
         using var http = api.NovoHttp();
         using var resposta = await http.PostAsJsonAsync(
             new Uri("/api/v1/auth/registro", UriKind.Relative),
-            new { nome = "Ana Souza", email, senha = Senha, nomeEmpresa = "Estúdio Traço", documento });
+            new { nome = "Ana Souza", email, senha = Senha, nomeEmpresa = "Estúdio Traço", documento, versaoTermos = Apoio.TextosAceitos.Termos, versaoPrivacidade = Apoio.TextosAceitos.Privacidade });
         return (resposta.StatusCode, await resposta.Content.ReadFromJsonAsync<JsonElement>());
     }
 

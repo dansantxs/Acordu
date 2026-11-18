@@ -158,6 +158,40 @@ public sealed class ExpurgoEmpresasTests(ApiFixture api)
         (await verificacao.Tenants.IgnoreQueryFilters().AnyAsync(t => t.Id == expurgavel.TenantId)).Should().BeFalse();
     }
 
+    [Fact] // D10 (F14h): a tabela dos aceites sai com a conta, no expurgo da empresa
+    public async Task Diario_ContaComAceitesSoDaEmpresaExpurgada_AceitesSaemComAConta()
+    {
+        var empresa = await EmpresaComTudoAsync();
+        await using (var db = api.DaEquipe(empresa.Equipe.TenantId))
+            (await db.Set<AceiteTexto>().CountAsync(a => a.UsuarioId == empresa.Dono)).Should().BeGreaterThan(0, "o cadastro com os textos publicados gravou o aceite");
+        await SoLeituraAsync(empresa.Equipe.TenantId, "CANCELADA", api.Relogio.Agora - Prazo);
+
+        await DiarioAsync();
+
+        await using var verificacao = api.DaEquipe(empresa.Equipe.TenantId);
+        (await verificacao.Users.AnyAsync(u => u.Id == empresa.Dono)).Should().BeFalse();
+        (await verificacao.Set<AceiteTexto>().CountAsync(a => a.UsuarioId == empresa.Dono)).Should().Be(0);
+    }
+
+    [Fact] // D10 (F14h): conta que continua em outra empresa mantém os aceites
+    public async Task Diario_ContaComVinculoEmOutraEmpresa_MantemOsAceites()
+    {
+        var expurgavel = await Equipe.CriarAsync(api);
+        var outra = await Equipe.CriarAsync(api);
+        var tokenNaOutra = await outra.ComPapelAsync(Papel.NomeMembro);
+        var pessoa = await UsuarioAsync(outra, tokenNaOutra);
+        await VincularAsync(expurgavel.TenantId, pessoa);
+        await using (var db = api.DaEquipe(outra.TenantId))
+            (await db.Set<AceiteTexto>().CountAsync(a => a.UsuarioId == pessoa)).Should().BeGreaterThan(0, "aceitou o convite com os textos publicados");
+        await SoLeituraAsync(expurgavel.TenantId, "CANCELADA", api.Relogio.Agora - Prazo);
+
+        await DiarioAsync();
+
+        await using var verificacao = api.DaEquipe(outra.TenantId);
+        (await verificacao.Users.AnyAsync(u => u.Id == pessoa)).Should().BeTrue();
+        (await verificacao.Set<AceiteTexto>().CountAsync(a => a.UsuarioId == pessoa)).Should().BeGreaterThan(0, "a conta fica, e os aceites são dela");
+    }
+
     [Fact] // borda: só leitura sem a data de início não tem de onde contar o prazo
     public async Task Diario_SoLeituraSemDataDeInicio_NaoEApagada()
     {
@@ -420,7 +454,7 @@ public sealed class ExpurgoEmpresasTests(ApiFixture api)
         {
             using var resposta = await http.PostAsJsonAsync(new Uri("/api/v1/auth/registro", UriKind.Relative), new
             {
-                nome = "Ana Souza", email, senha = Equipe.Senha, nomeEmpresa = "Estúdio Traço", documento,
+                nome = "Ana Souza", email, senha = Equipe.Senha, nomeEmpresa = "Estúdio Traço", documento, versaoTermos = Apoio.TextosAceitos.Termos, versaoPrivacidade = Apoio.TextosAceitos.Privacidade,
             });
             resposta.StatusCode.Should().Be(HttpStatusCode.Created);
         }
@@ -580,7 +614,7 @@ public sealed class ExpurgoEmpresasTests(ApiFixture api)
         using var http = api.NovoHttp();
         using var resposta = await http.PostAsJsonAsync(new Uri("/api/v1/auth/registro", UriKind.Relative), new
         {
-            nome = "Ana Souza", email, senha = Equipe.Senha, nomeEmpresa = "Estúdio Traço", documento,
+            nome = "Ana Souza", email, senha = Equipe.Senha, nomeEmpresa = "Estúdio Traço", documento, versaoTermos = Apoio.TextosAceitos.Termos, versaoPrivacidade = Apoio.TextosAceitos.Privacidade,
         });
         resposta.StatusCode.Should().Be(HttpStatusCode.Created);
         return ((await resposta.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("accessToken").GetString()!, email);
@@ -591,7 +625,7 @@ public sealed class ExpurgoEmpresasTests(ApiFixture api)
         using var http = api.NovoHttp();
         using var resposta = await http.PostAsJsonAsync(new Uri("/api/v1/auth/registro", UriKind.Relative), new
         {
-            nome = "Ana Souza", email = $"expurgo-{Guid.NewGuid():N}@exemplo.com", senha = Equipe.Senha, nomeEmpresa = "Estúdio Traço", documento,
+            nome = "Ana Souza", email = $"expurgo-{Guid.NewGuid():N}@exemplo.com", senha = Equipe.Senha, nomeEmpresa = "Estúdio Traço", documento, versaoTermos = Apoio.TextosAceitos.Termos, versaoPrivacidade = Apoio.TextosAceitos.Privacidade,
         });
         var texto = await resposta.Content.ReadAsStringAsync();
         return (resposta.StatusCode, texto.Length == 0 ? default : JsonDocument.Parse(texto).RootElement.Clone());

@@ -101,6 +101,37 @@ public sealed class ExpurgoCadastrosTests(ApiFixture api)
         await outra.EsperarAsync(HttpStatusCode.OK, HttpMethod.Get, "/api/v1/auth/eu", token: pessoa);
     }
 
+    [Fact] // D10 (F14h): o aceite sai com a conta do cadastro abandonado
+    public async Task Diario_CadastroAbandonadoComAceites_AceitesSaemComAConta()
+    {
+        var cadastro = await RegistrarAsync();
+        await using (var db = api.DaEquipe(cadastro.TenantId))
+            (await db.Set<AceiteTexto>().CountAsync(a => a.UsuarioId == cadastro.UsuarioId)).Should().Be(2, "o cadastro gravou os dois aceites");
+
+        await DiarioAsync(TimeSpan.FromDays(7));
+
+        await using var verificacao = api.DaEquipe(cadastro.TenantId);
+        (await verificacao.Users.AnyAsync(u => u.Id == cadastro.UsuarioId)).Should().BeFalse();
+        (await verificacao.Set<AceiteTexto>().CountAsync(a => a.UsuarioId == cadastro.UsuarioId)).Should().Be(0);
+    }
+
+    [Fact] // D10 (F14h): o criador que fica (vínculo em outra empresa) mantém os aceites
+    public async Task Diario_CriadorComVinculoEmOutraEmpresa_MantemOsAceites()
+    {
+        var outra = await Equipe.CriarAsync(api);
+        var pessoa = await outra.ComPapelAsync(Papel.NomeMembro);
+        var usuario = (await outra.EsperarAsync(HttpStatusCode.OK, HttpMethod.Get, "/api/v1/auth/eu", token: pessoa))
+            .GetProperty("usuarioId").GetGuid();
+        await using (var db = api.DaEquipe(outra.TenantId))
+            (await db.Set<AceiteTexto>().CountAsync(a => a.UsuarioId == usuario)).Should().BeGreaterThan(0, "aceitou o convite com os textos publicados");
+
+        await DiarioAsync(TimeSpan.FromDays(8));
+
+        await using var verificacao = api.DaEquipe(outra.TenantId);
+        (await verificacao.Users.AnyAsync(u => u.Id == usuario)).Should().BeTrue();
+        (await verificacao.Set<AceiteTexto>().CountAsync(a => a.UsuarioId == usuario)).Should().BeGreaterThan(0);
+    }
+
     [Fact]
     public async Task Refresh_DepoisDoExpurgo_Retorna401() // F9-33
     {
@@ -256,7 +287,7 @@ public sealed class ExpurgoCadastrosTests(ApiFixture api)
         using var http = api.NovoHttp();
         using var resposta = await http.PostAsJsonAsync(new Uri("/api/v1/auth/registro", UriKind.Relative), new
         {
-            nome = "Ana Souza", email = $"abandono-{Guid.NewGuid():N}@exemplo.com", senha = Equipe.Senha, nomeEmpresa = "Estúdio Traço", documento = Apoio.DocumentosDeTeste.Novo(),
+            nome = "Ana Souza", email = $"abandono-{Guid.NewGuid():N}@exemplo.com", senha = Equipe.Senha, nomeEmpresa = "Estúdio Traço", documento = Apoio.DocumentosDeTeste.Novo(), versaoTermos = Apoio.TextosAceitos.Termos, versaoPrivacidade = Apoio.TextosAceitos.Privacidade,
         });
         resposta.StatusCode.Should().Be(HttpStatusCode.Created);
         var cookie = resposta.Headers.GetValues("Set-Cookie").Single(c => c.StartsWith("acordu_refresh=", StringComparison.Ordinal));
