@@ -104,6 +104,7 @@ jobs:
       # Variáveis em arquivo (as connection strings têm ';' e '=' e quebrariam o --set-env-vars). O arquivo substitui
       # todas as variáveis da revisão: a configuração é a deste workflow, não a do painel.
       - name: Variáveis da API
+        id: variaveis
         env:
           ConnectionStrings__Acordu: ${{ secrets.API_CONNECTION_STRING }}
           Jwt__ChaveAssinatura: ${{ secrets.API_JWT_CHAVE }}
@@ -117,6 +118,9 @@ jobs:
           TURNSTILE_CHAVE_SITE: ${{ vars.TURNSTILE_CHAVE_SITE }}
           # O canal da Nebrys (F14, D15): vai para o build do SPA e, como Nebrys__Contato, para a API (F14g).
           CONTATO_NEBRYS: ${{ vars.CONTATO_NEBRYS }}
+          # Opcional (F14f, F14h; design do F14, D16): uma variável só liga as páginas, os links e o aceite no SPA e o aceite
+          # na API. Normalizada aqui e passada aos dois com o mesmo valor (F14-121).
+          TEXTOS_LEGAIS_PUBLICADOS: ${{ vars.TEXTOS_LEGAIS_PUBLICADOS }}
           Armazenamento__Endpoint: ${{ secrets.R2_ENDPOINT }}
           Armazenamento__ChaveAcesso: ${{ secrets.API_R2_CHAVE_ACESSO }}
           Armazenamento__ChaveSecreta: ${{ secrets.API_R2_CHAVE_SECRETA }}
@@ -166,6 +170,11 @@ jobs:
           chave_hmac = os.environ.get("Documentos__ChaveHmac", "")
           if chave_hmac and len(chave_hmac.encode("utf-8")) < 32:
               faltam.append("Documentos__ChaveHmac (precisa de 32 bytes ou mais; secret API_DOCUMENTOS_CHAVE)")
+          # Textos legais publicados (D16): ausente ou vazia → false; true ou false, sem diferenciar maiúsculas → o próprio;
+          # qualquer outro valor para o deploy (o SPA o leria como desligado, e a API não subiria).
+          textos = os.environ.get("TEXTOS_LEGAIS_PUBLICADOS", "").strip().lower() or "false"
+          if textos not in ("true", "false"):
+              faltam.append("TEXTOS_LEGAIS_PUBLICADOS (variável inválida: use true ou false)")
           if faltam:
               sys.exit("Faltam: " + ", ".join(faltam))
 
@@ -173,6 +182,10 @@ jobs:
           variaveis.update({n: os.environ[n] for n in obrigatorias + opcionais + avisos if os.environ.get(n)})
           # O canal da Nebrys também na API (D15), com o nome da configuração dela.
           variaveis["Nebrys__Contato"] = os.environ["CONTATO_NEBRYS"].strip()
+          # O mesmo valor normalizado vai à API e, pela saída do passo, ao build do SPA (F14-121).
+          variaveis["TextosLegais__Publicados"] = textos
+          with open(os.environ["GITHUB_OUTPUT"], "a") as saida:
+              saida.write("textos_legais_publicados=" + textos + "\n")
           if "Armazenamento__Endpoint" not in variaveis:
               for n in ("Armazenamento__Regiao", "Armazenamento__Bucket"):
                   variaveis.pop(n)
@@ -254,9 +267,10 @@ jobs:
           VITE_TURNSTILE_CHAVE: ${{ vars.TURNSTILE_CHAVE_SITE }}
           # Canal da Nebrys nas faixas da situação da empresa (F14, D15), conferido no passo "Variáveis da API".
           VITE_CONTATO_NEBRYS: ${{ vars.CONTATO_NEBRYS }}
-          # Opcional (F14f, #194): só com `true` as páginas /termos e /privacidade e os links delas aparecem. Sem ela,
-          # escondidos; ligar depois de resolver os marcadores do texto com o registro da empresa.
-          VITE_TEXTOS_LEGAIS_PUBLICADOS: ${{ vars.TEXTOS_LEGAIS_PUBLICADOS }}
+          # Textos legais publicados (F14f, F14h, #194): o valor normalizado no passo "Variáveis da API", o mesmo que foi à
+          # API como TextosLegais__Publicados (D16). Só com `true` as páginas, os links e o aceite aparecem; ligar depois de
+          # resolver os marcadores do texto com o registro da empresa, fora do horário de uso (deploy-ci §7).
+          VITE_TEXTOS_LEGAIS_PUBLICADOS: ${{ steps.variaveis.outputs.textos_legais_publicados }}
           # Vai junto dos relatos de erro do app (F13d); sem ela o app não relata.
           VITE_VERSAO: ${{ github.sha }}
         run: |
