@@ -1,10 +1,10 @@
 # Acordu — Estado
 
-Visão geral curta, atualizada por cada PR (`docs/processo.md` §1). O histórico está no git, nos PRs e no registro dos designs. Atualizado em 17/11/2026 (economia de minutos da CI e validação local).
+Visão geral curta, atualizada por cada PR (`docs/processo.md` §1). O histórico está no git, nos PRs e no registro dos designs. Atualizado em 18/11/2026 (F14i, expurgo de empresas).
 
 ## Em revisão
 
-- **Textos legais escondidos** (#196, ligado ao F14f e à #194): `/termos`, `/privacidade` e os links só aparecem com a variável `TEXTOS_LEGAIS_PUBLICADOS=true` no GitHub, que só deve ser criada depois da #194. Com ele na `main`, o deploy volta a ser seguro.
+- **F14i — expurgo de empresas** (#182): passo `expurgo-empresas` no diário. **No primeiro diário depois do deploy, as empresas anteriores ao F14 (CANCELADA pela migration do F14a) são apagadas** com dados, anexos e contas só delas (F14-112, decisão 13 do G2).
 
 ## Marco em andamento
 
@@ -17,12 +17,13 @@ Visão geral curta, atualizada por cada PR (`docs/processo.md` §1). O históric
 
 ## Próximos passos
 
-1. Merge do #196 (textos legais escondidos); **sem deploy até ele entrar**. O F14g (#195) já está na `main`, com o secret `API_DOCUMENTOS_CHAVE` criado. Depois o `/marco F14 182` segue pelo F14h (aceite; depende das páginas publicadas, ver design §3) ou pelo F14i (expurgo). Email Routing de `contato@acordu.app.br` ativo e testado pelo Daniel em 16/11.
+1. Merge do F14i. Depois o `/marco F14 182` segue pelo F14j (avisos de situação) ou pelo F14h (aceite), que depende das páginas publicadas (#194) ou de pôr o aceite atrás da `TEXTOS_LEGAIS_PUBLICADOS` (decisão do Daniel no F14h, design §3). Textos legais escondidos (#196) e F14g (#195) na `main`; Email Routing de `contato@acordu.app.br` ativo e testado pelo Daniel em 16/11.
 2. Conferências que faltam da produção:
    - deploy: F8-27 e F8-28 (rollback por migration e por health), F8-29 (jobs do Scheduler), hostname do Turnstile;
    - backup: F8-30 e F13-32 na primeira madrugada com o `BACKUP_ATIVO`; F8-31 (restore) antes do primeiro cliente;
    - monitoramento: F13-02 (Error Reporting), trace do F13a, pilhas do Firefox e do Safari (F13d), vigia e KV (F13h);
-   - riscos (deploy-ci §10): `max-instances`, limpeza do Artifact Registry e lifecycle do bucket, `acordu_app` sem DDL e autoscaling do Neon.
+   - riscos (deploy-ci §10): `max-instances`, limpeza do Artifact Registry e lifecycle do bucket, `acordu_app` sem DDL e autoscaling do Neon;
+   - arquivos órfãos no storage se o processo cair entre o commit do expurgo e a remoção (F14i): limpeza por prefixo `{tenantId}/` como melhoria.
 3. Política de privacidade e termos de uso: rascunho na `main` (F14f, #193); marcadores para depois do registro da Nebrys (#194).
 
 ## Para o Daniel confirmar

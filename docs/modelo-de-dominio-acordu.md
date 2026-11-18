@@ -475,6 +475,7 @@ Regras:
   - `CanceladaEm`: quando foi cancelada.
   - `GravavelDesde`: instante da última saída do só leitura (ativação, prorrogação ou reativação, gravado pelas ações do F14l); nulo se a empresa nunca voltou do só leitura. A geração de recorrências não cria as ocorrências com data anterior ao dia dele no fuso do tenant: o que passou no só leitura passa sem gerar, como no cliente inativo (F14-24). O SLA não usa: os prazos correm durante o só leitura (decisão 19 do G2, F14-111).
 - **Data prevista do expurgo** (RF-EMP-03): calculada, não gravada. `ExpurgoPrevistoEm(prazo)` = `SomenteLeituraDesde` + prazo (`Empresas__DiasAteExpurgo`, padrão 30); nula fora do só leitura.
+- **Expurgo** (RF-EMP-03, F14i): `ExpurgoDevido(agora, prazo)` é verdadeiro quando a data prevista já chegou (só leitura há o prazo ou mais); TESTE e ATIVA nunca. O passo `expurgo-empresas` do job diário (deploy-ci §5) filtra pela mesma regra no banco e apaga a empresa inteira pela Infrastructure (`ApagadorDeEmpresa`, fora das guardas), com as contas sem presença em outra empresa. O registro do documento (§4.14) fica.
 - **Transições** (o domínio recebe o instante; não lê o relógio):
 
 | De \ Para | ATIVA | VENCIDA | CANCELADA | TESTE |
@@ -509,13 +510,13 @@ Dados da Nebrys, não do prestador: sem `TenantId`, sem filtro global e sem entr
 
 #### Sugestao (RF-SUG-01, F13e)
 - Sugestão de melhoria de alguém da equipe **para a Nebrys**: global, fora dos tenants (sem filtro global; não é dado do prestador). Campos: `Numero` (sequencial global, do banco), `EmpresaId` e `PessoaId` só como referência (não se chamam `TenantId`, para não entrarem no filtro nem no expurgo do tenant), `Texto` (10 a 2.000 caracteres, sem os espaços das pontas), `Tela` (rota modelo, até 200), `CriadaEm`, `AvisadaEm` (nulo enquanto não saiu em #sugestoes).
-- Expurgo de cadastro abandonado: a sugestão fica, com `EmpresaId` e `PessoaId` nulos (RNF-PRIV-01). Nenhuma rota lista ou devolve sugestões.
+- Expurgo de cadastro abandonado e da empresa só leitura (F14i): a sugestão fica, com `EmpresaId` e `PessoaId` nulos (RNF-PRIV-01). Nenhuma rota lista ou devolve sugestões.
 
 #### DocumentoTeste: registro de documento (RF-AUT-09, F14g; design do F14, D8)
 - Registro de que um CPF ou CNPJ já teve teste, para valer "um teste por documento" mesmo depois do expurgo da empresa. Tabela `documentos_teste`, **sem referência à empresa nem à pessoa**. Campos: `Hash` (chave; HMAC-SHA256 do documento normalizado, em hexadecimal minúsculo, 64 caracteres; a chave fica fora do banco, `Documentos__ChaveHmac`), `PrimeiroTesteEm`, `LiberadoEm` e `LiberacaoUsadaEm` (nulos sem liberação). Concorrência otimista por `xmin`.
 - `Registrar(hash, agora)` no cadastro que passa (F14-57). `LiberacaoDisponivel` = liberado e ainda não usado; `UsarLiberacao(agora)` no cadastro que a usa (F14-59), fora disso `TransicaoInvalidaException`: a liberação vale para um cadastro só. A liberação é dada pela área da Nebrys (F14l, F14-71 e F14-108), que calcula o HMAC do documento digitado e não o guarda.
 - O cadastro (`ServicoAutenticacao.RegistrarAsync`, pelo `RegistroDocumentos` da Infrastructure) cria ou usa o registro na mesma transação da empresa: documento já registrado sem liberação disponível é recusado no campo `documento` (`400`), e nada é criado. Dois cadastros simultâneos com o mesmo documento: o segundo falha na chave ou na versão e recebe a mesma recusa.
-- Sobrevive ao expurgo da empresa vencida ou cancelada (F14-37). O expurgo do cadastro abandonado (RF-AUT-07) apaga a linha, achada pelo HMAC do `Tenant.Documento` (decisão 16 do G2, F14-104, no F14i).
+- Sobrevive ao expurgo da empresa vencida ou cancelada (F14-37). O expurgo do cadastro abandonado (RF-AUT-07) apaga a linha que o próprio cadastro criou, achada pelo HMAC do `Tenant.Documento` e pelo instante do cadastro (`PrimeiroTesteEm` = `Tenant.CriadoEm`, gravados com o mesmo instante; decisão 16 do G2, F14-104, F14i). O cadastro que usou uma liberação não criou a linha: ela fica, e a liberação usada não volta (decisão do Daniel, 18/11). Por remoção direta, na transação do expurgo (`RegistroDocumentos`).
 
 ## 5. Value objects
 
