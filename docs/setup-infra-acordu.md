@@ -197,6 +197,7 @@ Repositório → Settings → Secrets and variables → Actions. Só os nomes fi
 | Secret | `API_RESEND_CHAVE` | Chave do Resend (D3) |
 | Secret | `API_TURNSTILE_SEGREDO` | Chave secreta do widget do Turnstile (C5) |
 | Secret | `API_DOCUMENTOS_CHAVE` | Texto aleatório de pelo menos 32 bytes (`openssl rand -base64 32`, 44 caracteres; criado assim em 16/11; `Documentos__ChaveHmac`, F14g): chave do HMAC do registro "um teste por documento". Obrigatória no `deploy.yml` (≥ 32 bytes). **Nunca trocar:** trocar ou perder a chave faz o Acordu esquecer quais documentos já tiveram teste nas empresas expurgadas (segurança §4). Guarde uma cópia fora do GitHub |
+| Secret | `API_NEBRYS_OPERADORES` | Opcional (F14k, ADR 0014): e-mails das contas que abrem a área da Nebrys, separados por vírgula (`Nebrys__Operadores`). A conta precisa existir no Acordu, com o e-mail confirmado. Sem ele, a área inteira responde `404` e o deploy só avisa no log; um item que não é e-mail para o deploy. Trocar o operador: mudar o secret e fazer um deploy. É secret (e não variável) para a lista de quem opera não ficar visível nos logs do Actions |
 | Secret | `R2_ENDPOINT` | Endpoint S3 do R2 (C2) |
 | Secret | `API_R2_CHAVE_ACESSO`, `API_R2_CHAVE_SECRETA` | Token `acordu-api-anexos` (C2) |
 | Secret | `R2_BACKUP_CHAVE_ACESSO`, `R2_BACKUP_CHAVE_SECRETA` | Token `acordu-backup` (C2) |

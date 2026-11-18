@@ -94,6 +94,7 @@ acordu/
 │  │  ├─ Notificacoes/
 │  │  ├─ Configuracoes/
 │  │  ├─ Empresas/                     # situação da empresa: prazos e vencimento do teste (F14)
+│  │  ├─ Nebrys/                       # área da Nebrys: sessão de operação, consultas e DTOs próprios, sem tipo de negócio (ADR 0014)
 │  │  ├─ Portal/                       # casos de uso e DTOs EXCLUSIVOS do portal (ADR 0002)
 │  │  │  ├─ Solicitacoes/
 │  │  │  └─ Extrato/
@@ -104,6 +105,7 @@ acordu/
 │  │  │  ├─ Configurations/            # IEntityTypeConfiguration por entidade
 │  │  │  ├─ Repositories/
 │  │  │  ├─ Consultas/                 # SQL do read side (helper com TenantId/ClienteId obrigatórios)
+│  │  │  ├─ Nebrys/                    # consultas da área da Nebrys (ponto revisado de IgnoreQueryFilters, ADR 0014)
 │  │  │  └─ Migrations/
 │  │  ├─ MultiTenancy/                 # filtros globais por TenantId e ClienteId
 │  │  ├─ Armazenamento/                # object storage S3-compatível (R2) + URLs assinadas
@@ -204,7 +206,7 @@ Testes obrigatórios nos níveis de integração **e** API: cross-tenant (RNF-SE
 ## 6. Frontend
 
 - `apps/web`: uma SPA com **duas áreas**: app interno (`features/`) e portal (`portal/`, rota `/portal`, layout mobile-first).
-- Tipos gerados do OpenAPI em `shared/api/interno.d.ts` e `shared/api/portal.d.ts`, a partir de `openapi/*.json` na raiz (contrato versionado, convenções §4); o portal consome só os tipos das rotas `/portal`.
+- Tipos gerados do OpenAPI em `shared/api/interno.d.ts` e `shared/api/portal.d.ts`, a partir de `openapi/*.json` na raiz (contrato versionado, convenções §4); o portal consome só os tipos das rotas `/portal`. A área da Nebrys tem o seu `openapi/nebrys.json` (F14k), e os tipos dele nascem com `src/nebrys` (F14m).
 - **(F1)** pnpm, `pnpm dev` (proxy de `/api` para a API em `http://localhost:5080`), `pnpm test`, `pnpm build`. Rotas por arquivo em `src/routes`.
 - **(F14f)** `features/legal`: os textos legais em Markdown (`textos/termos.md`, `textos/privacidade.md`) com a versão na constante `versoes.ts` (convenções §4), e as páginas públicas `/termos` e `/privacidade` (rotas `src/routes/termos.tsx` e `privacidade.tsx`, fora das guardas de sessão).
 - Separar em dois apps só se o bundle do portal ficar pesado para o cliente final — medir antes.
