@@ -14,3 +14,14 @@ Pontos do código que o design usa, para quem implementar. Sem decisão nova aqu
 - Front: as faixas do F9 (`casca.test.tsx`, empresa não liberada) são o modelo das faixas de situação. Os botões desabilitados com `aria-describedby` (F9e) são o modelo do `podeGravar`.
 - Testes de arquitetura das tabelas globais: `tests/Acordu.ArchitectureTests/OperacaoTests.cs`. O da `Sugestao` libera o `ExpurgoCadastros` pelo nome (`^ExpurgoCadastros`) e passa a liberar o `ApagadorDeEmpresa` no F14i. As tabelas novas do F14 ganham testes no mesmo molde (design D4).
 - Sessão da empresa apagada: o F9 já cobre (`ExpurgoCadastrosTests › Refresh_DepoisDoExpurgo_Retorna401` e `Eu_ComAccessTokenDaEmpresaExpurgada_Retorna401`). O F14-33 reaproveita o mesmo caminho.
+
+## 18/11 — aceite atrás dos textos publicados (D16, F14h)
+
+Pontos para quem implementar o F14h; a decisão está no D16 do design.
+
+- `deploy.yml`: hoje o passo "SPA (build)" lê `vars.TEXTOS_LEGAIS_PUBLICADOS` direto. Passa a ler a saída do passo "Variáveis da API" (dar `id` ao passo e gravar o valor normalizado em `$GITHUB_OUTPUT`), e o mesmo valor entra no dicionário `variaveis` como `TextosLegais__Publicados`. Valor inválido entra na lista `faltam`, com o nome da variável.
+- Ordem do deploy (revisão, health, borda, build, Pages): a API sobe antes do SPA. É a origem da janela da virada do D16; não mudar a ordem neste PR.
+- API: `OpcoesTextosLegais` na Application, composta na `ComposicaoApi` como as `OpcoesEmpresas` (o helper de lá não sobe com valor inválido). `app.Configuration.GetValue("TempoReal:Sse", true)` é o precedente de booleano, mas sem a validação: aqui a validação conta para o F14-121.
+- Front: `TEXTOS_LEGAIS_PUBLICADOS` de `ambiente.ts` já existe; a caixa de aceite e o aviso de "ciente" passam pelo mesmo ponto que o `LinksLegais` e o `exigirTextosLegaisPublicados`. O `legalEscondido.test.tsx` é o modelo dos testes do estado desligado.
+- Portal (F14-120): `/auth/portal/convite` e `/portal/eu` não ganham nada; o teste confere que nada é gravado em `aceites_textos` pelas rotas do contato, com a configuração ligada.
+- F14-119 sem migration: os pendentes saem da comparação com a constante `TextosLegais`, e a falta de linha conta como pendente.

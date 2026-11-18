@@ -1,10 +1,10 @@
 {
   "marco": "F14",
   "issue": 182,
-  "etapa": "AGUARDANDO_MERGE",
-  "branch": "feat/F14j-avisos-situacao",
+  "etapa": "AGUARDANDO_G2",
+  "branch": "docs/F14-spec-aceite-escondido",
   "pr": {
-    "id": "F14j",
+    "id": "F14h-spec",
     "numero": null
   },
   "feitos": [
@@ -39,11 +39,15 @@
     {
       "id": "F14i",
       "pr": 199
+    },
+    {
+      "id": "F14j",
+      "pr": 200
     }
   ],
   "contadores": {
     "devolucoesNaEtapa": 0,
-    "rodadasNoPr": 1
+    "rodadasNoPr": 0
   },
   "verificacao": [
     "node scripts/conferir-specs.mjs",
@@ -62,12 +66,11 @@
       "PR #192 mesclado (F14e; DiasFaixaTeste na API e #191 por decisão de 16/11)",
       "PR #193 mesclado (F14f; marcadores dos textos para depois do registro da Nebrys, issue #194)",
       "PR #195 mesclado (F14g)",
-      "PR #199 mesclado (F14i; F14-104 \"Só apagar a linha\", 18/11)"
+      "PR #199 mesclado (F14i; F14-104 \"Só apagar a linha\", 18/11)",
+      "PR #200 mesclado (F14j)"
     ]
   },
-  "ressalvas": [
-    "Primeiro diário em produção: empresas VENCIDA com expurgo à frente recebem o aviso do vencimento atrasado"
-  ],
+  "ressalvas": [],
   "bloqueios": [],
   "atualizadoEm": "2026-11-18",
   "decisoes": [
