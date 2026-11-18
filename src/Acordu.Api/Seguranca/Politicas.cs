@@ -14,18 +14,30 @@ internal static class Politicas
     /// <summary>Sessão de uma pessoa com conta (tem <c>sub</c>): exclui a sessão de link, que não tem usuário.</summary>
     public const string Usuario = "usuario";
 
+    /// <summary>
+    /// Sessão de operação da Nebrys (ADR 0014): segunda camada da área, atrás do <see cref="AreaNebrys"/>, que já respondeu
+    /// 404 a qualquer outra sessão. As políticas da equipe e de quem tem conta exigem tenant, e a de operação não tem.
+    /// </summary>
+    public const string Operacao = "operacao";
+
     public static void Registrar(AuthorizationOptions opcoes)
     {
         ArgumentNullException.ThrowIfNull(opcoes);
         opcoes.AddPolicy(Equipe, p => p
             .RequireAuthenticatedUser()
+            .RequireClaim(ClaimsAcordu.Tenant)
             .RequireAssertion(c => !c.User.HasClaim(claim => claim.Type == ClaimsAcordu.Cliente)));
         opcoes.AddPolicy(Portal, p => p
             .RequireAuthenticatedUser()
             .RequireClaim(ClaimsAcordu.Cliente));
         opcoes.AddPolicy(Usuario, p => p
             .RequireAuthenticatedUser()
+            .RequireClaim(ClaimsAcordu.Tenant)
             .RequireClaim(ClaimsAcordu.Usuario));
+        opcoes.AddPolicy(Operacao, p => p
+            .RequireAuthenticatedUser()
+            .RequireClaim(ClaimsAcordu.Tipo, ClaimsAcordu.TipoOperacao)
+            .RequireAssertion(c => !c.User.HasClaim(claim => claim.Type == ClaimsAcordu.Tenant)));
     }
 
     /// <summary>Exige ao menos uma das permissões (ex.: <c>usuario.*</c> do contrato §3).</summary>

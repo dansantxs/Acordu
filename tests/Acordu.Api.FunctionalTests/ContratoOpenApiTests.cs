@@ -24,6 +24,7 @@ public sealed class ContratoOpenApiTests(ApiFixture api)
     [Theory]
     [InlineData("interno")]
     [InlineData("portal")]
+    [InlineData("nebrys")]
     public async Task Documento_BateComOVersionado(string documento)
     {
         using var cliente = api.NovoHttp();

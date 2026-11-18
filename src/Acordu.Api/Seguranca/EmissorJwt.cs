@@ -52,9 +52,26 @@ internal static class EmissorJwt
         return Assinar(claims, configuracao, agora);
     }
 
-    private static TokenDeAcesso Assinar(List<Claim> claims, ConfiguracaoJwt configuracao, DateTimeOffset agora)
+    /// <summary>
+    /// Sessão de operação da Nebrys (ADR 0014, item 2): só o operador (<c>sub</c>) e <c>tipo = OPERACAO</c>, <b>sem</b>
+    /// <c>tenant_id</c>, papel nem permissões; 30 min, sem refresh.
+    /// </summary>
+    public static TokenDeAcesso EmitirOperacao(Guid operadorId, ConfiguracaoJwt configuracao, DateTimeOffset agora)
     {
-        var expiraEm = agora + ConfiguracaoJwt.Validade;
+        ArgumentNullException.ThrowIfNull(configuracao);
+        var claims = new List<Claim>
+        {
+            new(ClaimsAcordu.Usuario, operadorId.ToString()),
+            new(ClaimsAcordu.Tipo, ClaimsAcordu.TipoOperacao),
+            new(JwtRegisteredClaimNames.Jti, Guid.CreateVersion7().ToString()),
+        };
+        return Assinar(claims, configuracao, agora, ConfiguracaoJwt.ValidadeOperacao);
+    }
+
+    private static TokenDeAcesso Assinar(
+        List<Claim> claims, ConfiguracaoJwt configuracao, DateTimeOffset agora, TimeSpan? validade = null)
+    {
+        var expiraEm = agora + (validade ?? ConfiguracaoJwt.Validade);
         var descritor = new SecurityTokenDescriptor
         {
             Issuer = ConfiguracaoJwt.Emissor,

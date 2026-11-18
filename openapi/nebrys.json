@@ -1,0 +1,416 @@
+{
+  "openapi": "3.1.1",
+  "info": {
+    "title": "Acordu — Nebrys",
+    "version": "v1"
+  },
+  "paths": {
+    "/api/v1/nebrys/sessao": {
+      "post": {
+        "tags": [
+          "Nebrys"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SessaoOperacaoRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TokenDeOperacao"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/nebrys/empresas": {
+      "get": {
+        "tags": [
+          "Nebrys"
+        ],
+        "parameters": [
+          {
+            "name": "situacao",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "pagina",
+            "in": "query",
+            "schema": {
+              "pattern": "^-?(?:0|[1-9]\\d*)$",
+              "type": [
+                "integer",
+                "string"
+              ],
+              "format": "int32"
+            }
+          },
+          {
+            "name": "tamanhoPagina",
+            "in": "query",
+            "schema": {
+              "pattern": "^-?(?:0|[1-9]\\d*)$",
+              "type": [
+                "integer",
+                "string"
+              ],
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultadoPaginadoOfEmpresaResumoNebrysDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/nebrys/empresas/{id}": {
+      "get": {
+        "tags": [
+          "Nebrys"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EmpresaNebrysDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "CriadorEmpresaDto": {
+        "required": [
+          "nome",
+          "email"
+        ],
+        "type": "object",
+        "properties": {
+          "nome": {
+            "type": "string"
+          },
+          "email": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "EmpresaNebrysDto": {
+        "required": [
+          "id",
+          "nome",
+          "documento",
+          "situacao",
+          "criadaEm",
+          "fimDoTeste",
+          "somenteLeituraDesde",
+          "canceladaEm",
+          "expurgoPrevistoEm",
+          "criador",
+          "pessoasNaEquipe",
+          "versao"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "nome": {
+            "type": "string"
+          },
+          "documento": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "situacao": {
+            "$ref": "#/components/schemas/SituacaoEmpresa"
+          },
+          "criadaEm": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "fimDoTeste": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "somenteLeituraDesde": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "canceladaEm": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "expurgoPrevistoEm": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "criador": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/CriadorEmpresaDto"
+              }
+            ]
+          },
+          "pessoasNaEquipe": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "versao": {
+            "type": "string"
+          }
+        }
+      },
+      "EmpresaResumoNebrysDto": {
+        "required": [
+          "id",
+          "nome",
+          "documento",
+          "situacao",
+          "criadaEm",
+          "fimDoTeste",
+          "somenteLeituraDesde",
+          "canceladaEm",
+          "expurgoPrevistoEm",
+          "criador",
+          "pessoasNaEquipe"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "nome": {
+            "type": "string"
+          },
+          "documento": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "situacao": {
+            "$ref": "#/components/schemas/SituacaoEmpresa"
+          },
+          "criadaEm": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "fimDoTeste": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "somenteLeituraDesde": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "canceladaEm": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "expurgoPrevistoEm": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "criador": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/CriadorEmpresaDto"
+              }
+            ]
+          },
+          "pessoasNaEquipe": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          }
+        }
+      },
+      "ResultadoPaginadoOfEmpresaResumoNebrysDto": {
+        "required": [
+          "itens",
+          "pagina",
+          "tamanhoPagina",
+          "total"
+        ],
+        "type": "object",
+        "properties": {
+          "itens": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/EmpresaResumoNebrysDto"
+            }
+          },
+          "pagina": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "tamanhoPagina": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "total": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          }
+        }
+      },
+      "SessaoOperacaoRequest": {
+        "required": [
+          "email",
+          "senha"
+        ],
+        "type": "object",
+        "properties": {
+          "email": {
+            "type": "string"
+          },
+          "senha": {
+            "type": "string"
+          }
+        }
+      },
+      "SituacaoEmpresa": {
+        "enum": [
+          "TESTE",
+          "ATIVA",
+          "VENCIDA",
+          "CANCELADA"
+        ]
+      },
+      "TokenDeOperacao": {
+        "required": [
+          "accessToken",
+          "expiraEm",
+          "tipo"
+        ],
+        "type": "object",
+        "properties": {
+          "accessToken": {
+            "type": "string"
+          },
+          "expiraEm": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "tipo": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "securitySchemes": {
+      "Bearer": {
+        "type": "http",
+        "description": "Access token da sessão de operação (/api/v1/nebrys/sessao).",
+        "scheme": "bearer",
+        "bearerFormat": "JWT"
+      }
+    }
+  },
+  "security": [
+    {
+      "Bearer": []
+    }
+  ],
+  "tags": [
+    {
+      "name": "Nebrys"
+    }
+  ]
+}

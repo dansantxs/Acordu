@@ -94,6 +94,8 @@ public sealed class ApiFixture : IAsyncLifetime
             ["Jwt:ChaveAssinatura"] = "chave-dos-testes-funcionais-com-mais-de-32-bytes",
             ["Documentos:ChaveHmac"] = ChaveDocumentos,
             ["Nebrys:Contato"] = ContatoNebrys,
+            // Operadores da área da Nebrys (F14k, ADR 0014): as contas nascem no Apoio.OperadorNebrys quando um teste precisa.
+            ["Nebrys:Operadores"] = $"{Apoio.OperadorNebrys.Email}, {Apoio.OperadorNebrys.EmailSemConfirmar}",
             // Textos legais publicados (design do F14, §1.2 e D16): os testes do estado desligado desligam no próprio teste.
             ["TextosLegais:Publicados"] = "true",
             ["RateLimit:Auth:PorMinuto"] = "100000",

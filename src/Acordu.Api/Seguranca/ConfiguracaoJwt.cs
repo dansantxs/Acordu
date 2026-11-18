@@ -12,6 +12,9 @@ internal sealed record ConfiguracaoJwt(SymmetricSecurityKey Chave)
     public const string Emissor = "acordu";
     public const string Audiencia = "acordu";
     public static readonly TimeSpan Validade = TimeSpan.FromMinutes(60);
+
+    /// <summary>Sessão de operação da Nebrys (ADR 0014, item 2): mais curta, sem refresh.</summary>
+    public static readonly TimeSpan ValidadeOperacao = TimeSpan.FromMinutes(30);
     public static readonly TimeSpan Tolerancia = TimeSpan.FromSeconds(30);
 
     public static ConfiguracaoJwt De(IConfiguration configuracao)
