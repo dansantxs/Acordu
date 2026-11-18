@@ -1,10 +1,10 @@
 {
   "marco": "F14",
   "issue": 182,
-  "etapa": "AGUARDANDO_G2",
-  "branch": "docs/F14-spec-aceite-escondido",
+  "etapa": "AGUARDANDO_MERGE",
+  "branch": "feat/F14h-aceite",
   "pr": {
-    "id": "F14h-spec",
+    "id": "F14h",
     "numero": null
   },
   "feitos": [
@@ -68,9 +68,14 @@
       "PR #195 mesclado (F14g)",
       "PR #199 mesclado (F14i; F14-104 \"Só apagar a linha\", 18/11)",
       "PR #200 mesclado (F14j)"
-    ]
+    ],
+    "G2_F14h": "PR #201 mesclado (18/11), sem comentário nas perguntas: valem as recomendações da D16 (variável única conferida no deploy.yml; ciente 404; pendentes sem migration; nenhum campo novo; convenção §4) e o risco da janela da virada aceito"
   },
-  "ressalvas": [],
+  "ressalvas": [
+    "F14-121: estrutura do deploy.yml testada (conferir-fabrica); o valor nos dois destinos se confere no primeiro deploy com a variável",
+    "ciente sem versões no corpo: aba antiga grava a versão vigente sem ter mostrado a página",
+    "coluna Forma (ACEITE/CIENTE) em aceites_textos, fora do design"
+  ],
   "bloqueios": [],
   "atualizadoEm": "2026-11-18",
   "decisoes": [
