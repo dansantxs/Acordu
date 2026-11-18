@@ -12,9 +12,19 @@ public interface IServicoAutenticacao
     /// Entrada inválida → <see cref="ArgumentException"/> com o campo. O <paramref name="documento"/> (CPF ou CNPJ) é
     /// obrigatório e vale um teste só (RF-AUT-09): já usado e sem liberação disponível → <see cref="ArgumentException"/> no
     /// campo <c>documento</c>, com o canal da Nebrys (F14-57); com a liberação, ela fica usada na mesma transação (F14-59).
+    /// Com os textos legais publicados, <paramref name="versaoTermos"/> e <paramref name="versaoPrivacidade"/> precisam ser as
+    /// vigentes (F14-80) e o aceite é gravado na mesma transação (F14-81); sem eles publicados, são ignorados (F14-115,
+    /// F14-116).
     /// </summary>
     Task<Sessao> RegistrarAsync(
-        string nome, string email, string senha, string nomeEmpresa, string? documento, CancellationToken cancellationToken = default);
+        string nome,
+        string email,
+        string senha,
+        string nomeEmpresa,
+        string? documento,
+        string? versaoTermos = null,
+        string? versaoPrivacidade = null,
+        CancellationToken cancellationToken = default);
 
     /// <summary>Nulo para credenciais inválidas, conta bloqueada ou usuário sem vínculo, sem distinguir o motivo.</summary>
     Task<Sessao?> EntrarAsync(string email, string senha, CancellationToken cancellationToken = default);
@@ -50,9 +60,22 @@ public interface IServicoAutenticacao
     /// <summary>
     /// Aceita o convite para a equipe e abre a sessão no tenant que convidou: e-mail sem conta cria o usuário (nome
     /// obrigatório); com conta, a senha precisa ser a dela. Nulo se o token não vale; e-mail que já tem vínculo no tenant
-    /// → regra de negócio (422).
+    /// → regra de negócio (422). O aceite dos textos segue a regra do <see cref="RegistrarAsync"/> (F14-82, F14-117).
     /// </summary>
-    Task<Sessao?> AceitarConviteEquipeAsync(string token, string? nome, string senha, CancellationToken cancellationToken = default);
+    Task<Sessao?> AceitarConviteEquipeAsync(
+        string token,
+        string? nome,
+        string senha,
+        string? versaoTermos = null,
+        string? versaoPrivacidade = null,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// "Ciente" dos textos legais (F14-83, F14-119): grava a versão vigente de cada texto pendente da conta, com a data;
+    /// nada pendente, nada a fazer. Com os textos não publicados → <see cref="Common.NaoEncontradoException"/>, sem gravar
+    /// (F14-118).
+    /// </summary>
+    Task RegistrarCienteAsync(Guid usuarioId, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Confirma o e-mail pelo token do link (uso único, 48 h). Falso se o token não vale, sem distinguir o motivo.
