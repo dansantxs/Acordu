@@ -1182,6 +1182,11 @@ namespace Acordu.Infrastructure.Persistence.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("id");
 
+                    b.PrimitiveCollection<string[]>("AvisosSituacao")
+                        .IsRequired()
+                        .HasColumnType("text[]")
+                        .HasColumnName("avisos_situacao");
+
                     b.Property<DateTimeOffset?>("CanceladaEm")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("cancelada_em");

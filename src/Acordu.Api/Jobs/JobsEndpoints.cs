@@ -120,14 +120,16 @@ internal static partial class JobsEndpoints
 
     /// <summary>
     /// O disparo diário do Scheduler (ADR 0010 §5; o plano gratuito tem 3 jobs): vencimento dos testes (F14a; primeiro,
-    /// para a recém-vencida já ficar fora dos passos seguintes), fechamento automático, expurgo da auditoria, expurgo das
-    /// notificações e do feed, expurgo dos cadastros abandonados (RF-AUT-07), das empresas só leitura há o prazo
-    /// (RF-EMP-03, F14i), das ocorrências de erro e das marcas de operação (ADR 0012), em sequência; no fim, os avisos do
-    /// F13c. Um passo que falha é logado, entra em <c>falhas</c> e não impede os seguintes; os endpoints individuais continuam para disparo manual.
+    /// para a recém-vencida já ficar fora dos passos seguintes), avisos de situação aos Donos (F14j; logo depois, para o
+    /// aviso do vencimento sair no mesmo diário), fechamento automático, expurgo da auditoria, expurgo das notificações e
+    /// do feed, expurgo dos cadastros abandonados (RF-AUT-07), das empresas só leitura há o prazo (RF-EMP-03, F14i), das
+    /// ocorrências de erro e das marcas de operação (ADR 0012), em sequência; no fim, os avisos do F13c. Um passo que
+    /// falha é logado, entra em <c>falhas</c> e não impede os seguintes; os endpoints individuais continuam para disparo manual.
     /// </summary>
     private static void MapDiario(RouteGroupBuilder jobs) =>
         jobs.MapPost("/diario", async (
             ExecutorPorTenant executor,
+            AvisosDeSituacao situacao,
             ExpurgoAuditoria auditoria,
             ExpurgoNotificacoes notificacoes,
             ExpurgoAtividades atividades,
@@ -140,6 +142,7 @@ internal static partial class JobsEndpoints
             CancellationToken cancellationToken) =>
         {
             var falhasVencimento = 0;
+            var falhasSituacao = 0;
             var falhasFechamento = 0;
             var falhasCadastros = 0;
             var falhasEmpresas = 0;
@@ -154,6 +157,14 @@ internal static partial class JobsEndpoints
                             ct);
                         falhasVencimento = vencimento.Falhas;
                         return vencimento.Tratados;
+                    }),
+                    // E-mails aos Donos antes do fim do teste, no vencimento e antes do expurgo (RF-EMP-04, F14j), com laço
+                    // próprio: as empresas só leitura também recebem.
+                    new("avisos-situacao", async ct =>
+                    {
+                        var envio = await situacao.ExecutarAsync(ct);
+                        falhasSituacao = envio.Falhas;
+                        return envio.Avisadas;
                     }),
                     new("fechamento-automatico", async ct =>
                     {
@@ -188,32 +199,34 @@ internal static partial class JobsEndpoints
             var falhas = AvisosDosJobs.PorPasso(
                 resultado.PassosFalhos,
                 [
-                    new("vencimento-testes", falhasVencimento), new("fechamento-automatico", falhasFechamento),
-                    new("expurgo-cadastros", falhasCadastros), new("expurgo-empresas", falhasEmpresas),
+                    new("vencimento-testes", falhasVencimento), new("avisos-situacao", falhasSituacao),
+                    new("fechamento-automatico", falhasFechamento), new("expurgo-cadastros", falhasCadastros),
+                    new("expurgo-empresas", falhasEmpresas),
                 ]);
             await avisos.DiarioAsync(
                 falhas,
                 [
-                    ("vencidas", resultado.Contagens[0]), ("fechadas", resultado.Contagens[1]),
-                    ("auditoria", resultado.Contagens[2]), ("notificações", resultado.Contagens[3]),
-                    ("atividades", resultado.Contagens[4]), ("cadastros", resultado.Contagens[5]),
-                    ("empresas expurgadas", resultado.Contagens[6]), ("ocorrências de erro", resultado.Contagens[7]),
-                    ("marcas", resultado.Contagens[8]),
+                    ("vencidas", resultado.Contagens[0]), ("avisos de situação", resultado.Contagens[1]),
+                    ("fechadas", resultado.Contagens[2]), ("auditoria", resultado.Contagens[3]),
+                    ("notificações", resultado.Contagens[4]), ("atividades", resultado.Contagens[5]),
+                    ("cadastros", resultado.Contagens[6]), ("empresas expurgadas", resultado.Contagens[7]),
+                    ("ocorrências de erro", resultado.Contagens[8]), ("marcas", resultado.Contagens[9]),
                 ],
                 cancellationToken);
 
             return Results.Ok(new
             {
                 empresasVencidas = resultado.Contagens[0],
-                fechadas = resultado.Contagens[1],
-                auditoriaRemovida = resultado.Contagens[2],
-                notificacoesRemovidas = resultado.Contagens[3],
-                atividadesRemovidas = resultado.Contagens[4],
-                cadastrosRemovidos = resultado.Contagens[5],
-                empresasExpurgadas = resultado.Contagens[6],
-                ocorrenciasErroRemovidas = resultado.Contagens[7],
-                marcasOperacaoRemovidas = resultado.Contagens[8],
-                falhas = resultado.Falhas + falhasVencimento + falhasFechamento + falhasCadastros + falhasEmpresas,
+                avisosSituacao = resultado.Contagens[1],
+                fechadas = resultado.Contagens[2],
+                auditoriaRemovida = resultado.Contagens[3],
+                notificacoesRemovidas = resultado.Contagens[4],
+                atividadesRemovidas = resultado.Contagens[5],
+                cadastrosRemovidos = resultado.Contagens[6],
+                empresasExpurgadas = resultado.Contagens[7],
+                ocorrenciasErroRemovidas = resultado.Contagens[8],
+                marcasOperacaoRemovidas = resultado.Contagens[9],
+                falhas = resultado.Falhas + falhasVencimento + falhasSituacao + falhasFechamento + falhasCadastros + falhasEmpresas,
             });
         });
 

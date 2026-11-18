@@ -13,6 +13,14 @@ export interface NotaVersao {
 
 export const NOTAS: NotaVersao[] = [
     {
+        data: '2026-11-18',
+        publico: 'equipe',
+        titulo: 'Avisos por e-mail sobre o teste',
+        itens: [
+            'Os Donos recebem um e-mail 7 dias e 1 dia antes do fim do teste, outro no dia em que a empresa fica só leitura, com a data em que os dados serão apagados, e um último 7 dias antes de apagar. Cada e-mail diz com quem falar para ativar a conta.',
+        ],
+    },
+    {
         data: '2026-11-16',
         publico: 'equipe',
         titulo: 'CPF ou CNPJ no cadastro',

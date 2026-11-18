@@ -1,10 +1,10 @@
 # Acordu — Estado
 
-Visão geral curta, atualizada por cada PR (`docs/processo.md` §1). O histórico está no git, nos PRs e no registro dos designs. Atualizado em 18/11/2026 (F14i, expurgo de empresas).
+Visão geral curta, atualizada por cada PR (`docs/processo.md` §1). O histórico está no git, nos PRs e no registro dos designs. Atualizado em 18/11/2026 (F14j, avisos de situação).
 
 ## Em revisão
 
-- **F14i — expurgo de empresas** (#182): passo `expurgo-empresas` no diário. **No primeiro diário depois do deploy, as empresas anteriores ao F14 (CANCELADA pela migration do F14a) são apagadas** com dados, anexos e contas só delas (F14-112, decisão 13 do G2).
+- **F14j — avisos de situação** (#182): passo `avisos-situacao` no diário, e-mails aos Donos antes do fim do teste, no vencimento e antes do expurgo. **No primeiro diário depois do deploy, as empresas VENCIDA com o expurgo à frente recebem o e-mail do vencimento atrasado.** O F14i (#199, expurgo) está na `main`: no primeiro diário depois do deploy, as empresas anteriores ao F14 são apagadas (F14-112).
 
 ## Marco em andamento
 
@@ -17,7 +17,7 @@ Visão geral curta, atualizada por cada PR (`docs/processo.md` §1). O históric
 
 ## Próximos passos
 
-1. Merge do F14i. Depois o `/marco F14 182` segue pelo F14j (avisos de situação) ou pelo F14h (aceite), que depende das páginas publicadas (#194) ou de pôr o aceite atrás da `TEXTOS_LEGAIS_PUBLICADOS` (decisão do Daniel no F14h, design §3). Textos legais escondidos (#196) e F14g (#195) na `main`; Email Routing de `contato@acordu.app.br` ativo e testado pelo Daniel em 16/11.
+1. Merge do F14j. Depois o `/marco F14 182` segue pelo F14h com o aceite atrás da `TEXTOS_LEGAIS_PUBLICADOS` (decisão do Daniel em 18/11): antes do código, um PR de spec e design com os cenários do estado desligado (G2 só da mudança). Abrir o cadastro para quem é de fora continua dependendo da #194. Email Routing de `contato@acordu.app.br` ativo e testado pelo Daniel em 16/11.
 2. Conferências que faltam da produção:
    - deploy: F8-27 e F8-28 (rollback por migration e por health), F8-29 (jobs do Scheduler), hostname do Turnstile;
    - backup: F8-30 e F13-32 na primeira madrugada com o `BACKUP_ATIVO`; F8-31 (restore) antes do primeiro cliente;

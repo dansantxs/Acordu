@@ -477,6 +477,7 @@ export const SECOES_AJUDA: SecaoAjuda[] = [
         resumo: 'Toda empresa começa com 30 dias de teste. Para continuar depois disso, a conta precisa ser ativada pela Nebrys.',
         dicas: [
             'Nos últimos 7 dias do teste, uma faixa no topo de todas as telas mostra quantos dias faltam e com quem falar para ativar.',
+            'Os Donos também recebem por e-mail: 7 dias e 1 dia antes do fim do teste, no dia em que a empresa fica só leitura (com a data em que os dados serão apagados) e 7 dias antes de apagar. Antes de confirmar o e-mail de quem criou a empresa, só essa pessoa recebe.',
             'Quando o teste acaba sem ativação (ou a conta é cancelada), a empresa fica só leitura: dá para consultar tudo, inclusive os relatórios e os anexos, mas não criar nem mudar nada. Os botões de gravar aparecem indisponíveis, e a faixa explica desde quando e até quando os dados ficam guardados.',
             'No só leitura continuam valendo entrar, sair, trocar de empresa, a sua senha, o sino, as suas preferências de aviso, o link da agenda, seguir itens e "Sugerir melhoria".',
             'Os dados ficam guardados por 30 dias depois do início do só leitura; depois disso, são apagados. Ativar a conta antes disso devolve tudo como estava.',
