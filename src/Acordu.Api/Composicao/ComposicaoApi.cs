@@ -32,6 +32,8 @@ namespace Acordu.Api.Composicao;
 /// <c>Jwt__ChaveAssinatura</c>, <c>Jobs__Token</c>, <c>Cors__Origem</c>, <c>App__UrlPublica</c> (links dos e-mails),
 /// <c>App__UrlApi</c> (feed ICS, quando a API tem host próprio), <c>Proxy__*</c> (borda, ver <see cref="Seguranca.TokenDeOrigem"/>),
 /// <c>TempoReal__Sse</c> (padrão ligado; ADR 0010 §4), <c>Empresas__DiasDeTeste</c> e <c>Empresas__DiasAteExpurgo</c> (padrão 30; F14),
+/// <c>Empresas__DiasFaixaTeste</c> (padrão 7; F14e), <c>Empresas__AvisosAntesDoFim</c> (padrão <c>7,1</c>) e
+/// <c>Empresas__AvisoAntesDoExpurgo</c> (padrão 7; F14j),
 /// <c>Documentos__ChaveHmac</c> (obrigatória, ≥ 32 bytes; F14g) e <c>Nebrys__Contato</c> (canal da Nebrys; F14g) e
 /// <c>Email__ResendChave</c>, <c>Email__Remetente</c>, <c>Email__NomeRemetente</c> e <c>Email__Smtp__Host</c>/<c>Email__Smtp__Porta</c> (Mailpit, só em desenvolvimento), <c>Email__RegistrarConteudo</c> (só em
 /// desenvolvimento).
@@ -72,9 +74,13 @@ internal static class ComposicaoApi
         services.AddSingleton(new OpcoesEmpresas(
             DiasPositivos(configuracao, "Empresas:DiasDeTeste", OpcoesEmpresas.DiasDeTestePadrao),
             DiasPositivos(configuracao, "Empresas:DiasAteExpurgo", OpcoesEmpresas.DiasAteExpurgoPadrao),
-            DiasPositivos(configuracao, "Empresas:DiasFaixaTeste", OpcoesEmpresas.DiasFaixaTestePadrao)));
-        // Expurgo das empresas só leitura (F14i): depende do prazo acima, que só a Api lê da configuração.
+            DiasPositivos(configuracao, "Empresas:DiasFaixaTeste", OpcoesEmpresas.DiasFaixaTestePadrao),
+            ListaDeDias(configuracao, "Empresas:AvisosAntesDoFim", OpcoesEmpresas.AvisosAntesDoFimPadrao),
+            DiasPositivos(configuracao, "Empresas:AvisoAntesDoExpurgo", OpcoesEmpresas.AvisoAntesDoExpurgoPadrao)));
+        // Expurgo das empresas só leitura (F14i) e avisos de situação (F14j): dependem dos prazos acima, que só a Api lê da
+        // configuração.
         services.AddSingleton<Infrastructure.Persistence.Cadastros.ExpurgoEmpresas>();
+        services.AddSingleton<Infrastructure.Persistence.Cadastros.AvisosDeSituacao>();
         // Um teste por documento (F14g, design D8): a chave do HMAC é obrigatória, como a do JWT; sem ela a API não sobe.
         services.AddSingleton(ProtecaoDocumento.DaConfiguracao(configuracao["Documentos:ChaveHmac"]));
         // Canal da Nebrys nas recusas e avisos (D15); sem ele, os textos dizem só "fale com a Nebrys".
@@ -119,7 +125,7 @@ internal static class ComposicaoApi
 
     /// <summary>
     /// Número de dias da configuração (<c>Empresas__DiasDeTeste</c>, <c>Empresas__DiasAteExpurgo</c>,
-    /// <c>Empresas__DiasFaixaTeste</c>): ausente usa o padrão;
+    /// <c>Empresas__DiasFaixaTeste</c>, <c>Empresas__AvisoAntesDoExpurgo</c>): ausente usa o padrão;
     /// presente e inválido (não inteiro ou menor que 1) impede a subida, para um prazo errado não valer em silêncio.
     /// </summary>
     private static int DiasPositivos(IConfiguration configuracao, string chave, int padrao)
@@ -130,6 +136,30 @@ internal static class ComposicaoApi
         return int.TryParse(texto, NumberStyles.Integer, CultureInfo.InvariantCulture, out var dias) && dias > 0
             ? dias
             : throw new InvalidOperationException($"{chave.Replace(":", "__", StringComparison.Ordinal)} precisa ser um número inteiro de dias maior que zero.");
+    }
+
+    /// <summary>
+    /// Lista de dias separados por vírgula (<c>Empresas__AvisosAntesDoFim</c>, ex.: <c>7,1</c>): ausente usa o padrão;
+    /// presente com um item inválido (não inteiro ou menor que 1) impede a subida, como em <see cref="DiasPositivos"/>.
+    /// </summary>
+    private static IReadOnlyList<int> ListaDeDias(IConfiguration configuracao, string chave, IReadOnlyList<int> padrao)
+    {
+        var texto = configuracao[chave];
+        if (string.IsNullOrWhiteSpace(texto))
+            return padrao;
+        var dias = new List<int>();
+        foreach (var item in texto.Split(',', StringSplitOptions.TrimEntries))
+        {
+            if (!int.TryParse(item, NumberStyles.Integer, CultureInfo.InvariantCulture, out var valor) || valor <= 0)
+            {
+                throw new InvalidOperationException(
+                    $"{chave.Replace(":", "__", StringComparison.Ordinal)} precisa ser uma lista de números inteiros de dias maiores que zero, separados por vírgula.");
+            }
+
+            dias.Add(valor);
+        }
+
+        return dias;
     }
 
     /// <summary>Nome do HttpClient do Discord (os testes trocam o handler por ele).</summary>
