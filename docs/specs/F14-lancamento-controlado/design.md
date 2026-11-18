@@ -6,7 +6,7 @@ Os valores, as regras e os comportamentos estão nas decisões 1 a 19 do G2 (spe
 
 ## 1. Decisões
 
-O G2 (PR #186, mesclado em 13/11 pelo Daniel) aprovou o design com a recomendação de cada D. ADRs 0014 e 0015 aceitos.
+O G2 (PR #186, mesclado em 13/11 pelo Daniel) aprovou o design com a recomendação de cada D. ADRs 0014 e 0015 aceitos. O D16 (18/11) entrou depois e aguarda o G2 da mudança do F14h.
 
 1. **D1 — Como modelar a situação.**
    - (a) **Recomendado.** Enum `SituacaoEmpresa` (`Teste`, `Ativa`, `Vencida`, `Cancelada`) no próprio `Tenant`, com `FimDoTeste` (instante UTC), `SomenteLeituraDesde`, `CanceladaEm`, `GravavelDesde` (última saída do só leitura) e as marcas de aviso (D7). As transições ficam em métodos de domínio (`Vencer`, `Ativar`, `Prorrogar`, `Cancelar`, `Reativar`), com a tabela de transições no modelo de domínio e `TransicaoInvalidaException` para o resto. A data do expurgo é calculada (`SomenteLeituraDesde` + prazo da configuração), não gravada. Por quê: é configuração por tenant, como o fechamento automático e a liberação do envio (modelo §4.11.1 e §4.11.2), e não pede agregado. O histórico fica na trilha (D14).
@@ -111,6 +111,7 @@ O G2 (PR #186, mesclado em 13/11 pelo Daniel) aprovou o design com a recomendaç
     - (b) A API serve os textos: uma fonte só, mas cada visita acorda a API e o banco.
     - (c) A API grava a versão que vier: aceite de texto vencido por cliente antigo.
     - **Vira convenção** (convenções §4, no F14f e no F14h): "mudar um texto legal é mudar a versão no arquivo e na constante, no mesmo PR; o teste confere". Por quê: todo PR futuro que mexer nos textos precisa seguir isso. Não é ADR: não há trade-off de arquitetura além deste marco.
+    - **Publicação:** o aceite, o registro dele e o "ciente" só valem com os textos publicados (decisão do Daniel, 18/11). Como, no D16.
 
 11. **D11 — Modo do cadastro.**
     - (a) **Recomendado.** `Cadastro__Modo` (`convite` ou `aberto`), **sem padrão em produção**. O `deploy.yml` exige a variável `CADASTRO_MODO` e para antes de publicar sem ela, como o segredo do HMAC. Sem valor, a API trata como `convite` (fail-closed). `appsettings.Development.json`, a fixture dos testes, a E2E e o bot do manual definem `aberto`. `GET /api/v1/auth/cadastro` público responde `{ modo }` para a tela. Por quê: configuração só por ambiente (ADR 0010). Abrir o cadastro é trocar a variável e fazer um deploy (G4), e um esquecimento nunca abre o cadastro.
@@ -145,6 +146,28 @@ O G2 (PR #186, mesclado em 13/11 pelo Daniel) aprovou o design com a recomendaç
     - (a) **Recomendado.** Por quê: uma fonte no deploy, sem chamada extra. Cada lado nasce no primeiro PR que o usa: na API, o F14g (recusa do documento, F14-57; depois os e-mails do F14j); no SPA, o F14e (faixas).
     - (b) A API devolve o canal em `/auth/eu`: não serve às páginas públicas.
 
+16. **D16 — Aceite atrás da publicação dos textos** (decisão do Daniel, 18/11: "Pôr o aceite atrás da TEXTOS_LEGAIS_PUBLICADOS"; F14-114 a F14-121, emenda o D10). Proposto: entra no G2 desta mudança.
+    - **Como a API recebe a configuração e como o deploy garante o mesmo valor (F14-121):**
+      - (a) **Recomendado.** Uma fonte só, dois leitores. A variável opcional `TEXTOS_LEGAIS_PUBLICADOS` do GitHub, a mesma do F14f, é conferida e normalizada no passo "Variáveis da API" do `deploy.yml`: ausente ou vazia → `false`; `true` ou `false`, aparado e sem diferenciar maiúsculas → o próprio; qualquer outro valor (`1`, `sim`, `ligado`) para o deploy antes de publicar, com a mensagem de variável inválida. O valor normalizado sai do passo (`$GITHUB_OUTPUT`) e alimenta os dois: `TextosLegais__Publicados` no env do Cloud Run e `VITE_TEXTOS_LEGAIS_PUBLICADOS` no build do SPA (que deixa de ler `vars.` direto). Na API, `OpcoesTextosLegais` (Application, ao lado da constante `TextosLegais` do D10) com `Publicados` booleano, **padrão desligado**, lida na `ComposicaoApi` como as `OpcoesEmpresas`: valor presente e inválido impede a subida. O front segue lendo só em `shared/config/ambiente.ts` (só `true` liga). Por quê:
+        - é o padrão do `CONTATO_NEBRYS` (D15): uma variável do GitHub, conferida antes de publicar, que vira a configuração de cada lado com o nome dele;
+        - com o valor inválido barrado no deploy e o mesmo texto normalizado indo aos dois, os leitores não têm como discordar: o front só liga com `true`, e a API só recebe `true` ou `false`;
+        - configuração só por variável de ambiente (ADR 0010), sem tabela nem chamada a mais.
+      - (b) A API é a fonte: uma rota pública (ou o `GET /auth/cadastro` do D11, adiantado para o F14h) devolve `textosPublicados`, e a caixa de aceite segue a resposta. A caixa nunca diverge da API, mas as páginas e os links continuam no build (as páginas não chamam a API, D10): o front passa a ter duas fontes para a mesma coisa, e a caixa pode aparecer com links para "não encontrada", o estado que a decisão de 18/11 quis evitar. Rejeitado pelo mesmo motivo da opção (c) do D11.
+      - (c) Duas variáveis no GitHub (uma por lado): o esquecimento de uma é o cadastro impossível do F14-121.
+      - **Janela da virada (risco a aceitar no G2):** o `deploy.yml` publica a API antes do SPA (revisão, health, borda, build, Pages: alguns minutos). No deploy que liga a variável, nesses minutos e numa aba aberta com o SPA anterior até recarregar, a tela sem caixa encontra a API que exige o aceite, e o cadastro recebe `400` no campo do aceite. A virada acontece uma vez (depois da #194), num deploy autorizado no G4. Recomendo aceitar e registrar no deploy-ci §7, com a orientação de fazer a virada fora do horário de uso. Eliminar a janela pediria a opção (b), com o custo dito acima, ou inverter a ordem do deploy, que vale para todo deploy e não só para este. A virada contrária (desligar) é inofensiva: a tela antiga manda o aceite e a API o ignora (F14-116).
+    - **Recusa do "ciente" com os textos não publicados (F14-118):**
+      - (a) **Recomendado.** `404 nao-encontrado`, antes de ler o corpo. A rota continua mapeada (o OpenAPI não depende da configuração); quem recusa é o caso de uso. Por quê: é o mesmo tratamento das páginas escondidas ("não encontrada") e do `TempoReal__Sse=false` (`/api/v1/eventos` → 404, ADR 0010 §4); nenhuma tela chama a rota nesse estado (não há aviso), então um tipo novo serviria só a pedido direto.
+      - (b) `422` com tipo novo `textos-nao-publicados`: mais explícito, mas um tipo no contrato §13 para uma chamada que nenhuma tela faz.
+      - (c) `422 transicao-invalida`: o tipo é das transições de estado de uma entidade; aqui não há entidade.
+    - **Quem não tem aceite nenhum (F14-119):**
+      - (a) **Recomendado.** Sem marca nem migration: os pendentes do `/auth/eu` são, para cada texto, os que a conta não tem aceite na versão vigente, contando a falta de linha em `aceites_textos` como versão aceita nula, diferente da vigente. Com os textos não publicados, `textosPendentes` é sempre a lista vazia (F14-118). Assim, quem se cadastrou ou entrou por convite com os textos escondidos, e quem já tinha conta antes do F14h, cai no mesmo aviso da versão nova ao ligar a variável, e o "ciente" grava a versão vigente de cada texto pendente. O `/portal/eu` não ganha o campo e as rotas do portal não registram aceite (F14-120). Por quê: é a mesma regra do F14-83 sem caso especial, e a virada não pede passo de dados.
+      - (b) Marcar no cadastro "sem aceite" para tratar à parte: estado a mais para o mesmo aviso.
+    - **Estado exposto ao front:**
+      - (a) **Recomendado.** Nenhum campo novo. O front decide páginas, links, caixa de aceite e aviso de "ciente" pelo mesmo ponto (`TEXTOS_LEGAIS_PUBLICADOS` de `ambiente.ts`); o aviso aparece só com a configuração ligada **e** `textosPendentes` não vazio. A API decide exigir, gravar e listar pendentes pela dela. Por quê: o deploy garante o mesmo valor (acima), e a condição dupla no aviso faz a divergência, se houver, esconder em vez de mostrar link para "não encontrada".
+      - (b) `textosPublicados` no `/auth/eu` ou numa rota pública: a opção (b) da primeira pergunta.
+    - **Promoção:** a regra "configuração que o SPA e a API precisam ver igual vem de uma variável só do GitHub, conferida e normalizada no `deploy.yml`, que alimenta os dois" vira item das convenções §4 (variáveis de build), no F14h, citando `CONTATO_NEBRYS` e `TEXTOS_LEGAIS_PUBLICADOS`. Não é ADR: aplica o ADR 0010 sem trade-off novo.
+    - Conferência: ADR 0010 (configuração só por variável de ambiente; a API sobe sem a variável, com o padrão seguro) e ADR 0013 (a spec do F9 não muda). D11 (c) rejeitou duas fontes para o modo do cadastro; aqui a fonte é uma, com dois leitores, porque as páginas públicas não chamam a API (D10). Sem contradição com ADR aceito.
+
 ### 1.1 Decisões do G2 que tocam o design
 
 As decisões 15 a 19 do G2 (spec §4) vieram dos achados do design:
@@ -161,6 +184,7 @@ A decisão 13 (apagar as empresas anteriores) está no D1, no D6 e no D7. A deci
 
 - **Sessão:**
   - `/auth/eu` traz `tenant.situacao`, `fimDoTeste`, `somenteLeituraDesde`, `expurgoPrevistoEm`, `diasFaixaTeste`, `demonstracao` e `textosPendentes`;
+  - `textosPendentes` é a lista vazia com os textos não publicados (D16);
   - `/portal/eu` traz só `envioDisponivel`;
   - o front desabilita as ações por um único `podeGravar` da sessão, que entra nas convenções §4 no F14e.
 - **Transições:**
@@ -172,7 +196,7 @@ A decisão 13 (apagar as empresas anteriores) está no D1, no D6 e no D7. A deci
   Prorrogar até o dia D grava o início de D+1 no fuso do tenant. VENCIDA → CANCELADA mantém `SomenteLeituraDesde` e grava `CanceladaEm`.
 - **Recorrências sem retroativo:** a geração trata as datas antes de `GravavelDesde` como já trata as de cliente inativo.
 - **Migration:** colunas aditivas; o preenchimento põe as empresas existentes em CANCELADA com a data fixa antiga (D1, decisão 13 do G2); o documento fica anulável no `Tenant`, e a Application o exige no cadastro.
-- **Cadastro:** o corpo ganha `documento`, `convite`, `versaoTermos` e `versaoPrivacidade`. As validações ficam no caso de uso de registro, numa sequência única: primeiro o que não consulta o banco, depois convite e documento. O registro do documento e o consumo do convite entram na mesma transação da empresa. As recusas são erro de campo (`400`), como o cadastro já faz; nenhum tipo novo.
+- **Cadastro:** o corpo ganha `documento`, `convite`, `versaoTermos` e `versaoPrivacidade`. As validações ficam no caso de uso de registro, numa sequência única: primeiro o que não consulta o banco, depois convite e documento. O registro do documento e o consumo do convite entram na mesma transação da empresa. As recusas são erro de campo (`400`), como o cadastro já faz; nenhum tipo novo. `versaoTermos` e `versaoPrivacidade` são opcionais no OpenAPI, porque a obrigatoriedade depende da configuração (D16): publicados, a falta ou a versão diferente da constante dá `400` no campo; não publicados, o caso de uso não confere nem grava nada (F14-115, F14-116). O aceite de convite da equipe segue a mesma regra (F14-117).
 - **Área no SPA:**
   - `/nebrys` sem sessão de operação mostra a entrada da área, com a aparência do `/entrar`;
   - com sessão de empresa, o SPA não carrega a área;
@@ -182,7 +206,9 @@ A decisão 13 (apagar as empresas anteriores) está no D1, no D6 e no D7. A deci
   - `Empresas__DiasDeTeste` (30), `Empresas__DiasAteExpurgo` (30), `Empresas__AvisosAntesDoFim` (`7,1`), `Empresas__AvisoAntesDoExpurgo` (7), `Empresas__DiasFaixaTeste` (7);
   - `Cadastro__Modo` (obrigatória em produção), `Cadastro__DiasConvite` (7);
   - `Documentos__ChaveHmac`, `Nebrys__Operadores` e `Nebrys__Contato`;
-  - `RateLimit__ListaEspera__PorHora` (3).
+  - `RateLimit__ListaEspera__PorHora` (3);
+  - `TextosLegais__Publicados` (padrão desligado, D16; no deploy, vem de `TEXTOS_LEGAIS_PUBLICADOS`).
+- **Textos publicados nos testes** (D16): a fixture dos testes funcionais liga `TextosLegais__Publicados`, como o `vite.config.ts` liga `VITE_TEXTOS_LEGAIS_PUBLICADOS` nos do front; os testes do estado desligado (F14-114 a F14-118) desligam no próprio teste, nos dois lados. E2E, bot do manual e desenvolvimento ficam sem as duas variáveis: desligados dos dois lados. O F14-121 pede uma conferência do `deploy.yml` (o mesmo valor normalizado nos dois destinos); se o testador não a automatizar, a coluna Teste diz como foi conferido no deploy.
 - **Testes de arquitetura:**
   - `Acordu.Application.Nebrys` não referencia tipos de negócio nem o portal;
   - cada tabela global nova só é usada pelos namespaces liberados (D4);
@@ -193,13 +219,13 @@ A decisão 13 (apagar as empresas anteriores) está no D1, no D6 e no D7. A deci
 
 Cada documento muda no PR que muda o comportamento.
 
-- **ERS:** nenhum além do que a spec e o G2 já trouxeram (a RF-AUT-09 já tem a exceção do cadastro abandonado, decisão 16).
+- **ERS:** nenhum além do que a spec e o G2 já trouxeram (a RF-AUT-09 já tem a exceção do cadastro abandonado, decisão 16; a RF-AUT-11 já tem a condição da publicação, 18/11).
 - **Modelo de domínio:**
   - §4.11.3 novo, Situação da empresa: campos, tabela de transições, demonstração e marcas de aviso. Entra no F14a e resolve a contradição do §4.11;
   - §4.14 ganha as entidades globais: registro de documento (F14g), aceite (F14h), `ConviteEmpresa` (F14n) e `EntradaListaEspera` (F14o);
   - §4.1 ganha `Cliente.Exemplo` (F14r).
 - **Contrato e OpenAPI:**
-  - §2: situação em `/auth/eu` (F14a), documento (F14g), aceite e `textos/ciente` (F14h), convite, `auth/cadastro` e consulta do convite (F14n), e-mail descartável (F14p). Resolve a contradição do §2 nesses PRs, um campo por vez;
+  - §2: situação em `/auth/eu` (F14a), documento (F14g), aceite e `textos/ciente` (F14h, com a condição da publicação: sem os textos publicados, o aceite do registro e do convite é ignorado, `textosPendentes` vem vazio e o `ciente` responde `404`, D16), convite, `auth/cadastro` e consulta do convite (F14n), e-mail descartável (F14p). Resolve a contradição do §2 nesses PRs, um campo por vez;
   - §12: `envioDisponivel` (F14c);
   - §13: tipos `empresa-somente-leitura` (F14b), `portal-indisponivel` (F14c) e `demonstracao-sem-envio` (F14s);
   - §6, exemplos: F14r;
@@ -211,15 +237,16 @@ Cada documento muda no PR que muda o comportamento.
   - §3.3: o só leitura como guarda (ADR 0015), no F14b;
   - §4: o "Fora, por ora" é substituído. O documento e o HMAC (D8) entram no F14g; o cadastro por convite, no F14n; a lista descartável, no F14p;
   - §5.5 novo, sessão de operação (ADR 0014): F14k;
-  - §6: link da política (F14f), com o texto citando a trilha da Nebrys (12 meses), backups (14 dias) e expurgos;
+  - §6: link da política (F14f), com o texto citando a trilha da Nebrys (12 meses), backups (14 dias) e expurgos; no F14h, uma frase no item da política: o aceite no cadastro e no convite da equipe é registrado por conta, só com os textos publicados (D16);
   - §8: ações `nebrys.*` (F14k, F14l);
   - §9: rotas da área com 404 (F14k); limite e Turnstile da lista de espera (F14o).
 - **Deploy e CI:**
   - §5, passos novos do diário: F14a (vencimento), F14i (expurgo) e F14j (avisos). Resolve a contradição do §5;
   - §7, cada variável no PR que a usa: `VITE_CONTATO_NEBRYS` (F14e), `Documentos__ChaveHmac` e `Nebrys__Contato` (F14g), `Nebrys__Operadores` (F14k), `Cadastro__Modo` (F14n), `RateLimit__ListaEspera__PorHora` (F14o);
-  - `deploy.yml` exige o segredo do HMAC (F14g) e `CADASTRO_MODO` (F14n), parando antes de publicar sem eles;
+  - §4 (passo 7) e §7, no F14h: `TEXTOS_LEGAIS_PUBLICADOS` conferida e normalizada no passo "Variáveis da API", indo à API como `TextosLegais__Publicados` e ao build do SPA; a janela da virada como risco aceito, com a orientação de ligar fora do horário de uso (D16);
+  - `deploy.yml` exige o segredo do HMAC (F14g) e `CADASTRO_MODO` (F14n), parando antes de publicar sem eles, e para com `TEXTOS_LEGAIS_PUBLICADOS` inválida (F14h);
   - §10: o item da política aponta para a página (F14f).
-- **Setup da infra:** em "Segredos do GitHub", `CONTATO_NEBRYS` (F14e), `API_DOCUMENTOS_CHAVE` (F14g), `API_NEBRYS_OPERADORES` (F14k) e `CADASTRO_MODO` (F14n). O widget do Turnstile (C5) serve à lista de espera sem mudança.
+- **Setup da infra:** em "Segredos do GitHub", `CONTATO_NEBRYS` (F14e), `API_DOCUMENTOS_CHAVE` (F14g), `API_NEBRYS_OPERADORES` (F14k) e `CADASTRO_MODO` (F14n). A linha de `TEXTOS_LEGAIS_PUBLICADOS` passa a dizer, no F14h, que a mesma variável liga o aceite na API e que só aceita `true` ou `false` (D16). O widget do Turnstile (C5) serve à lista de espera sem mudança.
 - **ADRs:**
   - 0014 e 0015 aceitos no G2 (PR #186), com o `CLAUDE.md` citando 0001–0015;
   - nenhum ADR aceito muda de texto: os testes do ADR 0012 ficam, e as tabelas novas ganham os seus (D4);
@@ -227,7 +254,7 @@ Cada documento muda no PR que muda o comportamento.
 - **Convenções:**
   - §1: classificação do só leitura (F14b), tabelas globais novas (F14g);
   - §3: rotas `/api/v1/nebrys`, 404, DTOs próprios e `If-Match` nas ações (F14k, F14l); tipos novos (F14b, F14c);
-  - §4: `podeGravar` e `VITE_CONTATO_NEBRYS` (F14e), textos legais versionados (F14f, F14h, D10), área `src/nebrys` (F14m), dados fictícios só no JSON (F14r, D13);
+  - §4: `podeGravar` e `VITE_CONTATO_NEBRYS` (F14e), textos legais versionados (F14f, F14h, D10), no F14h a caixa de aceite e o aviso de "ciente" atrás do mesmo ponto da publicação e a regra da variável única para SPA e API (D16), área `src/nebrys` (F14m), dados fictícios só no JSON (F14r, D13);
   - §5: `EmpresaSomenteLeituraException` (F14b), jobs só em empresas graváveis (F14d).
 - **Estrutura do repositório:** `apps/web/src/nebrys` e `openapi/nebrys.json` (F14k, F14m); `features/legal` (F14f).
 - **Manual e ajuda:**
@@ -253,7 +280,7 @@ Cada PR contra a `main`, a partir dela, um aberto por vez, com testes e CI verde
 | F14e | Front: faixas da casca, situação em Configurações › Empresa, `podeGravar`, recusa tratada, portal neutro; ajuda e Novidades | F14-10 a F14-12, F14-25 a F14-28 |
 | F14f | Front: páginas `/termos` e `/privacidade`, links no entrar e no portal, texto da política e dos termos (revisão do Daniel antes do merge) | F14-78, F14-84 a F14-86 |
 | F14g | API: documento obrigatório, HMAC (D8), recusa e liberação consumida; campo no formulário | F14-56 a F14-59 |
-| F14h | API e front: aceite no cadastro e no convite da equipe (D10), "ciente" de versão nova | F14-79 a F14-83 |
+| F14h | API e front: aceite no cadastro e no convite da equipe (D10), "ciente" de versão nova e de quem não tem aceite, tudo atrás de `TEXTOS_LEGAIS_PUBLICADOS` na API e no SPA (D16) | F14-79 a F14-83, F14-114 a F14-121 |
 | F14i | API: `ApagadorDeEmpresa` e `expurgo-empresas` (D6) | F14-29 a F14-38, F14-104, F14-112 |
 | F14j | API: `avisos-situacao` com marcas no `Tenant` e e-mails aos Donos (D7) | F14-39 a F14-43, F14-101 a F14-103, F14-113 |
 | F14k | API: sessão de operação, filtro 404, lista e detalhe das empresas (ADR 0014), `openapi/nebrys.json` | F14-61 a F14-63 |
@@ -271,7 +298,7 @@ Tamanho: o antigo F14b virou F14b, F14c e F14d (guarda; portal e convites; jobs)
 Ordem e dependências:
 
 - **Só leitura:** F14a → F14b → F14c → F14d → F14e. O F14e precisa dos tipos do F14b e do F14c.
-- **Corpo do registro** (`/auth/registro` e o OpenAPI): F14g → F14h → F14n → F14p, nessa ordem, cada um a partir da `main` com o anterior já mesclado, para nenhum PR carregar conflito no mesmo caso de uso e no `interno.json`. O F14h depende também do F14f (as páginas). As páginas e os links ficam escondidos até a variável `TEXTOS_LEGAIS_PUBLICADOS` ser ligada, depois da #194: o F14h só vai a produção com ela ligada, ou põe o aceite atrás da mesma configuração (decidir no F14h; `notas/desenvolvedor-F14f-esconder.md`).
+- **Corpo do registro** (`/auth/registro` e o OpenAPI): F14g → F14h → F14n → F14p, nessa ordem, cada um a partir da `main` com o anterior já mesclado, para nenhum PR carregar conflito no mesmo caso de uso e no `interno.json`. O F14h depende também do F14f (as páginas). O aceite fica atrás da mesma configuração das páginas e dos links (D16), então o F14h vai a produção com `TEXTOS_LEGAIS_PUBLICADOS` desligada, sem esperar a #194; ligá-la depois da #194 publica páginas, links e aceite juntos.
 - **Independentes do resto:** F14f (abrir cedo, porque a revisão do texto é o caminho mais longo) e o F14g.
 - **Expurgo e avisos:** F14i depende de F14a, F14b (guarda e classificação; o apagador passa fora delas) e F14g (F14-37, F14-104). F14j depende de F14a e do F14g (`Nebrys__Contato`).
 - **Área:** F14k depende de F14a; F14l de F14k e F14g; F14m de F14k e F14l; F14n de F14l e F14h; F14o de F14n; F14p de F14o; F14q de F14m, F14n, F14o e F14p.
@@ -282,6 +309,7 @@ Ordem e dependências:
 
 Uma linha por PR: o que entrou e as decisões não óbvias que surgiram na implementação.
 
+- 18/11 — design: aceite atrás de `TEXTOS_LEGAIS_PUBLICADOS` (decisão do Daniel, 18/11, a partir de `notas/desenvolvedor-F14f-esconder.md`). D16 novo, proposto para o G2 desta mudança: a mesma variável do GitHub, conferida e normalizada no `deploy.yml`, alimenta `TextosLegais__Publicados` (padrão desligado; inválido não sobe) e o build do SPA; "ciente" com os textos não publicados → `404`; quem não tem aceite cai nos pendentes do `/auth/eu` sem migration; nenhum campo novo para o front; janela da virada como risco a aceitar. D10 aponta para o D16; §1.2, §2 e a linha do F14h (F14-114 a F14-121) atualizados, e o "decidir no F14h" saiu das dependências.
 - 18/11 — F14j: passo `avisos-situacao` no diário, logo depois de `vencimento-testes` (`AvisosDeSituacao`, laço próprio, inclui as só leitura). `Tenant.AvisoDeSituacaoDevido(agora, fuso, prazos)` decide por **dia civil no fuso da empresa** (a mesma conta da faixa da SPA; achado do revisor, rodada 1): sai um aviso por empresa e diário, o mais próximo; os outros já devidos ficam marcados (F14-103); o atrasado sai uma vez com os dias que faltam (F14-102); referência já passada, nenhum (F14-113). Marcas em `tenants.avisos_situacao text[]` (`tipo:instante` da referência, o que reabre o aviso depois de prorrogar, F14-101; migration `AvisosDeSituacaoDaEmpresa`, aditiva), gravadas por `ExecuteUpdate` com o `xmin` lido, fora da guarda (ADR 0015 item 3). Destinatários buscados antes de marcar: sem nenhum, nada é marcado. E-mail fora da outbox e do `PodeAvisarAsync`, aos Donos (só o criador antes da liberação, F14-43); falha devolve as marcas e o Dono que já recebeu pode receber de novo. Configurações `Empresas__AvisosAntesDoFim` (padrão `7,1`) e `Empresas__AvisoAntesDoExpurgo` (padrão 7). Exceção de fuso no Domain registrada nas convenções §2; RF-EMP-02 da ERS emendada para não contradizer a RF-EMP-04. Premissas em `notas/desenvolvedor-F14j.md`.
 - 18/11 — F14i: `ApagadorDeEmpresa` (Infrastructure, extraído do `ExpurgoCadastros`) apaga por `TenantId` todo tipo do modelo (`TiposComTenant`) dentro da transação de quem chama, fora dos filtros e das guardas, anonimiza as sugestões e apaga cada conta ligada sem rastro em outra empresa (vínculo, refresh token, contato ou empresa que ela criou); anexos e logotipo saem do storage depois do commit, em melhor esforço (órfão possível se o processo cair: limpeza por prefixo `{tenantId}/` fica como melhoria, `docs/estado.md`). Passo `expurgo-empresas` no diário depois de `expurgo-cadastros` (`Tenant.ExpurgoDevido(agora, prazo)`, VENCIDA ou CANCELADA com `SomenteLeituraDesde` além de `Empresas__DiasAteExpurgo`), uma transação serializável por empresa com a condição repetida no `DELETE`; `empresasExpurgadas` na resposta e no #deploy. F14-104 por decisão do Daniel (18/11, "Só apagar a linha"): o expurgo do cadastro abandonado apaga só a linha do documento que o próprio cadastro criou (`PrimeiroTesteEm == Tenant.CriadoEm`, mesmo instante no registro, com teste); a liberação usada não volta. Demonstração (F14-31) coberta por ser ATIVA: **o F14s mantém a demonstração ATIVA ou a exclui no `ExpurgoEmpresas`**. Sem migration. Premissas em `notas/desenvolvedor-F14i.md`.
 
