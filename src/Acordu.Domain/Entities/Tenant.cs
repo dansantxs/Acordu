@@ -1,3 +1,4 @@
+using System.Globalization;
 using Acordu.Domain.Common;
 using Acordu.Domain.Enums;
 using Acordu.Domain.Exceptions;
@@ -109,6 +110,16 @@ public sealed class Tenant
     /// <summary>Tamanho máximo do documento normalizado (CNPJ, 14 caracteres).</summary>
     public const int TamanhoDocumento = 14;
 
+    private List<string> _avisosSituacao = [];
+
+    /// <summary>
+    /// Marcas dos avisos de situação já enviados aos Donos (F14j, design do F14, D7), cada uma <c>tipo:referência</c>: o
+    /// tipo com a antecedência (<c>fim-do-teste-7</c>, <c>vencimento</c>, <c>expurgo-7</c>) e o instante UTC de referência
+    /// (o fim do teste, ou a data prevista do expurgo). A referência na marca é o que faz o aviso sair de novo depois de
+    /// uma prorrogação (F14-101). Vazia nas empresas anteriores ao F14j.
+    /// </summary>
+    public IReadOnlyCollection<string> AvisosSituacao => _avisosSituacao;
+
     /// <summary>VENCIDA ou CANCELADA: a empresa lê e não grava (RF-EMP-02).</summary>
     public bool SomenteLeitura => Situacao.SomenteLeitura();
 
@@ -163,6 +174,104 @@ public sealed class Tenant
     /// </summary>
     public bool ExpurgoDevido(DateTimeOffset agora, TimeSpan prazoAteExpurgo) =>
         ExpurgoPrevistoEm(prazoAteExpurgo) is { } data && data <= agora;
+
+    /// <summary>
+    /// O aviso de situação devido em <paramref name="agora"/> (RF-EMP-04, F14-39 a F14-42, F14-101 a F14-103, F14-113), ou
+    /// nulo. O momento de cada aviso é um <b>dia civil no fuso da empresa</b> (<paramref name="fuso"/>), a mesma conta da
+    /// faixa da SPA: o diário roda uma vez por dia, e o aviso de "N dias antes" é devido no primeiro diário do dia que fica
+    /// a N dias do prazo, qualquer que seja a hora do cadastro. Um aviso por empresa e por diário, o mais próximo do prazo, e
+    /// só com o instante de referência ainda à frente:
+    /// <list type="bullet">
+    /// <item>TESTE com o fim do teste à frente: devido o aviso de N dias quando hoje ≥ último dia do teste − N
+    /// (<see cref="UltimoDiaDoTeste"/>). Dos devidos sai o mais próximo do fim (o menor N), com as marcas dos maiores junto,
+    /// para eles não saírem depois (F14-103); o atrasado sai uma vez só (F14-102). Se o mais próximo já tem marca, nada sai.</item>
+    /// <item>VENCIDA ou CANCELADA com a data do expurgo à frente (F14-113: já alcançada, nenhum aviso): na VENCIDA sem a marca
+    /// do vencimento, sai o do vencimento (F14-41), com a marca do de antes do expurgo junto se ele também já for devido,
+    /// porque o e-mail do vencimento já traz a data; senão, o de antes do expurgo, quando hoje ≥ dia do expurgo − N (F14-42).</item>
+    /// </list>
+    /// ATIVA (e a demonstração, que é ATIVA) nunca. Não muda a empresa: quem envia grava as marcas
+    /// (<see cref="RegistrarAviso"/>).
+    /// </summary>
+    public AvisoSituacao? AvisoDeSituacaoDevido(DateTimeOffset agora, TimeZoneInfo fuso, PrazosAvisosSituacao prazos)
+    {
+        ArgumentNullException.ThrowIfNull(fuso);
+        ArgumentNullException.ThrowIfNull(prazos);
+        var hoje = DiaCivil(agora, fuso);
+
+        if (Situacao == SituacaoEmpresa.Teste)
+        {
+            if (FimDoTeste is not { } fim || agora >= fim)
+                return null;
+
+            var ultimoDia = UltimoDiaDoTeste(fim, fuso);
+            var devidos = prazos.DiasAntesDoFim.Where(dias => hoje >= ultimoDia.AddDays(-dias)).ToList();
+            if (devidos.Count == 0)
+                return null;
+
+            var marcas = devidos.Select(dias => MarcaAviso(TipoFimDoTeste + Dias(dias), fim)).ToList();
+            return _avisosSituacao.Contains(marcas[0])
+                ? null
+                : new AvisoSituacao(TipoAvisoSituacao.AntesDoFimDoTeste, fim, devidos[0], marcas);
+        }
+
+        if (ExpurgoPrevistoEm(prazos.PrazoAteExpurgo) is not { } expurgo || agora >= expurgo)
+            return null;
+
+        var antesDoExpurgo = prazos.DiasAntesDoExpurgo;
+        var marcaExpurgo = MarcaAviso(TipoExpurgo + Dias(antesDoExpurgo), expurgo);
+        var expurgoDevido = hoje >= DiaCivil(expurgo, fuso).AddDays(-antesDoExpurgo);
+        var marcaVencimento = MarcaAviso(TipoVencimento, expurgo);
+        if (Situacao == SituacaoEmpresa.Vencida && !_avisosSituacao.Contains(marcaVencimento))
+        {
+            return new AvisoSituacao(
+                TipoAvisoSituacao.Vencimento, expurgo, null, expurgoDevido ? [marcaVencimento, marcaExpurgo] : [marcaVencimento]);
+        }
+
+        return expurgoDevido && !_avisosSituacao.Contains(marcaExpurgo)
+            ? new AvisoSituacao(TipoAvisoSituacao.AntesDoExpurgo, expurgo, antesDoExpurgo, [marcaExpurgo])
+            : null;
+    }
+
+    /// <summary>
+    /// Grava as marcas do aviso (design D7: no mesmo commit em que se decide enviar). As marcas de outra referência (um fim
+    /// do teste ou uma data de expurgo que já não vale) saem: só as do ciclo atual importam.
+    /// </summary>
+    public void RegistrarAviso(AvisoSituacao aviso)
+    {
+        ArgumentNullException.ThrowIfNull(aviso);
+        var referencia = SufixoDaReferencia(aviso.Referencia);
+        _avisosSituacao =
+        [
+            .. _avisosSituacao
+                .Where(m => m.EndsWith(referencia, StringComparison.Ordinal))
+                .Union(aviso.Marcas, StringComparer.Ordinal),
+        ];
+    }
+
+    /// <summary>
+    /// Último dia do teste no fuso: o dia do instante logo antes do fim (a prorrogação até D grava o início de D+1, design
+    /// do F14 §1.2). É a conta da faixa da SPA (<c>ultimoDiaDoTeste</c>) e do texto dos avisos.
+    /// </summary>
+    public static DateOnly UltimoDiaDoTeste(DateTimeOffset fimDoTeste, TimeZoneInfo fuso) =>
+        DiaCivil(fimDoTeste - TimeSpan.FromTicks(1), fuso);
+
+    /// <summary>Dia civil de um instante no fuso (o relógio é de quem chama).</summary>
+    public static DateOnly DiaCivil(DateTimeOffset instante, TimeZoneInfo fuso)
+    {
+        ArgumentNullException.ThrowIfNull(fuso);
+        return DateOnly.FromDateTime(TimeZoneInfo.ConvertTime(instante, fuso).DateTime);
+    }
+
+    private const string TipoFimDoTeste = "fim-do-teste-";
+    private const string TipoVencimento = "vencimento";
+    private const string TipoExpurgo = "expurgo-";
+
+    private static string Dias(int dias) => dias.ToString(CultureInfo.InvariantCulture);
+
+    private static string MarcaAviso(string tipo, DateTimeOffset referencia) => tipo + SufixoDaReferencia(referencia);
+
+    private static string SufixoDaReferencia(DateTimeOffset referencia) =>
+        ":" + referencia.UtcDateTime.ToString("yyyy-MM-dd'T'HH:mm:ss'Z'", CultureInfo.InvariantCulture);
 
     public void Renomear(string nome) => Nome = Texto.Obrigatorio(nome, LimitesTexto.Nome, nameof(nome));
 
