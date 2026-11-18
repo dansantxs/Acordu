@@ -26,6 +26,38 @@ namespace Acordu.Infrastructure.Persistence.Migrations
             NpgsqlModelBuilderExtensions.HasPostgresExtension(modelBuilder, "unaccent");
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
 
+            modelBuilder.Entity("Acordu.Domain.Entities.AceiteTexto", b =>
+                {
+                    b.Property<Guid>("UsuarioId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("usuario_id");
+
+                    b.Property<string>("Texto")
+                        .HasMaxLength(40)
+                        .HasColumnType("character varying(40)")
+                        .HasColumnName("texto");
+
+                    b.Property<string>("Versao")
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("versao");
+
+                    b.Property<string>("Forma")
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .HasColumnType("character varying(40)")
+                        .HasColumnName("forma");
+
+                    b.Property<DateTimeOffset>("RegistradoEm")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("registrado_em");
+
+                    b.HasKey("UsuarioId", "Texto", "Versao")
+                        .HasName("pk_aceites_textos");
+
+                    b.ToTable("aceites_textos", (string)null);
+                });
+
             modelBuilder.Entity("Acordu.Domain.Entities.AcessoPortal", b =>
                 {
                     b.Property<Guid>("Id")
@@ -2096,6 +2128,16 @@ namespace Acordu.Infrastructure.Persistence.Migrations
                         .HasName("pk_usuario_tokens");
 
                     b.ToTable("usuario_tokens", (string)null);
+                });
+
+            modelBuilder.Entity("Acordu.Domain.Entities.AceiteTexto", b =>
+                {
+                    b.HasOne("Acordu.Infrastructure.Seguranca.Usuario", null)
+                        .WithMany()
+                        .HasForeignKey("UsuarioId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_aceites_textos_usuarios_usuario_id");
                 });
 
             modelBuilder.Entity("Acordu.Domain.Entities.CalendarioUtil", b =>

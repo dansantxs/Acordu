@@ -5,6 +5,7 @@ using Acordu.Application.Abstractions;
 using Acordu.Application.Auditoria;
 using Acordu.Application.Autenticacao;
 using Acordu.Application.Cadastro;
+using Acordu.Application.Common;
 using Acordu.Application.Empresas;
 using Acordu.Domain.Common;
 using Acordu.Domain.Entities;
@@ -12,6 +13,7 @@ using Acordu.Domain.Enums;
 using Acordu.Domain.Exceptions;
 using Acordu.Infrastructure.MultiTenancy;
 using Acordu.Infrastructure.Persistence;
+using Acordu.Infrastructure.Persistence.Aceites;
 using Acordu.Infrastructure.Persistence.Auditoria;
 using Acordu.Infrastructure.Persistence.Documentos;
 using Microsoft.AspNetCore.Identity;
@@ -44,6 +46,8 @@ public sealed partial class ServicoAutenticacao : IServicoAutenticacao
     private readonly OpcoesEmpresas _empresas;
     private readonly RegistroDocumentos _documentos;
     private readonly OpcoesNebrys _nebrys;
+    private readonly RegistroAceites _aceites;
+    private readonly OpcoesTextosLegais _textos;
 
     public ServicoAutenticacao(
         AcorduDbContext db,
@@ -56,8 +60,14 @@ public sealed partial class ServicoAutenticacao : IServicoAutenticacao
         IOrigemRequisicao origem,
         OpcoesEmpresas empresas,
         RegistroDocumentos documentos,
-        OpcoesNebrys nebrys)
+        OpcoesNebrys nebrys,
+        RegistroAceites aceites,
+        OpcoesTextosLegais textos)
     {
+        ArgumentNullException.ThrowIfNull(aceites);
+        ArgumentNullException.ThrowIfNull(textos);
+        _aceites = aceites;
+        _textos = textos;
         ArgumentNullException.ThrowIfNull(empresas);
         ArgumentNullException.ThrowIfNull(documentos);
         ArgumentNullException.ThrowIfNull(nebrys);
@@ -83,7 +93,14 @@ public sealed partial class ServicoAutenticacao : IServicoAutenticacao
     }
 
     public async Task<Sessao> RegistrarAsync(
-        string nome, string email, string senha, string nomeEmpresa, string? documento, CancellationToken cancellationToken = default)
+        string nome,
+        string email,
+        string senha,
+        string nomeEmpresa,
+        string? documento,
+        string? versaoTermos = null,
+        string? versaoPrivacidade = null,
+        CancellationToken cancellationToken = default)
     {
         // Primeiro o que não consulta o banco; depois a conta (e-mail em uso) e o documento (design do F14, §1.2).
         var nomeValido = Obrigatorio(nome, Usuario.TamanhoNome, nameof(nome));
@@ -97,6 +114,9 @@ public sealed partial class ServicoAutenticacao : IServicoAutenticacao
         // alfanumérico em qualquer caixa, viram o mesmo texto (F14-58).
         var documentoValido = Documento.Normalizar(documento, MensagensDeCadastro.CampoDocumento)
             ?? throw new ArgumentException(MensagensDeCadastro.DocumentoObrigatorio, MensagensDeCadastro.CampoDocumento);
+        // Aceite dos textos legais (RF-AUT-11, F14-80): só com os textos publicados (D16); sem eles, o que vier é ignorado e
+        // nada é gravado (F14-115, F14-116). Ainda sem consultar o banco.
+        var gravarAceite = AceiteDosTextos.Conferir(_textos, versaoTermos, versaoPrivacidade);
 
         var tenantId = Guid.CreateVersion7();
         var agora = _relogio.GetUtcNow();
@@ -133,6 +153,9 @@ public sealed partial class ServicoAutenticacao : IServicoAutenticacao
         _db.AddRange(papeis);
         _db.Add(vinculo);
         _db.Add(CalendarioUtil.Padrao(tenantId));
+        // A versão de cada texto e a data, na mesma transação: recusa depois daqui não deixa aceite de conta que não existe.
+        if (gravarAceite)
+            await _aceites.RegistrarVigentesAsync(usuario.Id, FormaAceiteTexto.Aceite, agora, cancellationToken);
 
         var sessao = Abrir(usuario, vinculo, dono, agora);
         try
@@ -328,13 +351,21 @@ public sealed partial class ServicoAutenticacao : IServicoAutenticacao
     }
 
     public async Task<Sessao?> AceitarConviteEquipeAsync(
-        string token, string? nome, string senha, CancellationToken cancellationToken = default)
+        string token,
+        string? nome,
+        string senha,
+        string? versaoTermos = null,
+        string? versaoPrivacidade = null,
+        CancellationToken cancellationToken = default)
     {
         var dados = await ConviteEquipeValidoAsync(token, cancellationToken);
         if (dados is null)
             return null;
         if (string.IsNullOrEmpty(senha))
             throw new ArgumentException("A senha é obrigatória.", nameof(senha));
+        // Aceite dos textos, como no cadastro (F14-82): antes de conferir a senha, para a recusa não contar no bloqueio.
+        // Não publicados, ignorado (F14-117).
+        var gravarAceite = AceiteDosTextos.Conferir(_textos, versaoTermos, versaoPrivacidade);
 
         var (convite, papel, _) = dados;
         var agora = _relogio.GetUtcNow();
@@ -359,6 +390,10 @@ public sealed partial class ServicoAutenticacao : IServicoAutenticacao
         var vinculo = Vinculo.Criar(Guid.CreateVersion7(), usuario.Id, papel);
         _db.Add(vinculo);
         convite.Aceitar(token, usuario.Id, agora);
+        // Conta nova ou existente sem a versão vigente: grava o aceite na mesma transação do vínculo (F14-82); a que já tem
+        // a vigente fica como está.
+        if (gravarAceite)
+            await _aceites.RegistrarVigentesAsync(usuario.Id, FormaAceiteTexto.Aceite, agora, cancellationToken);
 
         var sessao = Abrir(usuario, vinculo, papel, agora);
         await _db.SaveChangesAsync(cancellationToken);
@@ -504,6 +539,10 @@ public sealed partial class ServicoAutenticacao : IServicoAutenticacao
             .Where(c => c.TenantId == tenantId)
             .Select(c => c.FusoHorario)
             .SingleOrDefaultAsync(cancellationToken) ?? CalendarioUtil.FusoPadrao;
+        // Pendentes só para a equipe: o contato do portal nunca recebe o aviso (F14-120, decisão 12 do G2).
+        IReadOnlyList<TextoPendente> pendentes = ativo.ClienteId is null
+            ? await _aceites.PendentesAsync(usuarioId, cancellationToken)
+            : [];
 
         return new PerfilUsuario(
             usuario.Id,
@@ -526,7 +565,26 @@ public sealed partial class ServicoAutenticacao : IServicoAutenticacao
             ativo.EscopoPortal,
             [.. vinculos
                 .Where(v => tenants.ContainsKey(v.TenantId) && papeis.ContainsKey(v.PapelId))
-                .Select(v => new TenantDoUsuario(v.TenantId, tenants[v.TenantId].Nome, papeis[v.PapelId].Nome))]);
+                .Select(v => new TenantDoUsuario(v.TenantId, tenants[v.TenantId].Nome, papeis[v.PapelId].Nome))],
+            pendentes);
+    }
+
+    public async Task RegistrarCienteAsync(Guid usuarioId, CancellationToken cancellationToken = default)
+    {
+        // Sem os textos publicados, não há aviso nem página para ler: a rota responde como inexistente (F14-118, D16).
+        if (!_textos.Publicados)
+            throw new NaoEncontradoException("Recurso não encontrado.");
+
+        // A conta, não a empresa: segue numa empresa só leitura (decisão 10 do G2) e vale em todas as empresas dela.
+        await _aceites.RegistrarVigentesAsync(usuarioId, FormaAceiteTexto.Ciente, _relogio.GetUtcNow(), cancellationToken);
+        try
+        {
+            await _db.SaveChangesAsync(cancellationToken);
+        }
+        catch (DbUpdateException excecao) when (RegistroAceites.Duplicado(excecao))
+        {
+            // Dois "ciente" ao mesmo tempo (duas abas): o outro já gravou a mesma versão.
+        }
     }
 
     /// <summary>SHA-256 hexadecimal do token, como fica no banco.</summary>
