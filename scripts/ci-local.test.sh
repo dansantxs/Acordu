@@ -31,7 +31,8 @@ confere "ci.yml roda tudo" "backend web acoes specs borda" .github/workflows/ci.
 confere "ação que sobe o Acordu" "backend web borda" .github/actions/subir-acordu/action.yml
 confere "ação do cache do NuGet" "backend web borda" .github/actions/cache-nuget/action.yml
 confere "editorconfig" "backend web borda" .editorconfig
-confere "workflow de deploy não roda nada" "" .github/workflows/deploy.yml
+confere "workflow de deploy roda as specs (F14-121)" "specs" .github/workflows/deploy.yml
+confere "outro workflow não roda nada" "" .github/workflows/backup.yml
 confere "mistura sem repetir" "backend web" src/a.cs src/b.cs apps/web/x.ts
 confere "linhas vazias ignoradas" "web" "" apps/web/x.ts ""
 

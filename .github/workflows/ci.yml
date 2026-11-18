@@ -84,6 +84,8 @@ jobs:
               - docs/processo.md
               - .claude/**
               - .github/workflows/ci.yml
+              # O conferir-fabrica confere a normalização de TEXTOS_LEGAIS_PUBLICADOS no deploy (F14-121).
+              - .github/workflows/deploy.yml
             # Worker de api.acordu.app.br (spec do F8, F8-23 a F8-25).
             borda:
               - *pipeline
@@ -117,6 +119,7 @@ jobs:
             docs/processo.md
             scripts
             .claude
+            .github/workflows
           persist-credentials: false
       - uses: actions/setup-node@v4
         with:
