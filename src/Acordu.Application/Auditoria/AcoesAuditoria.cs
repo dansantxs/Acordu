@@ -10,6 +10,15 @@ public static class AcoesAuditoria
 
     public const string LinkPortalTroca = "portal.link.troca";
 
+    /// <summary>
+    /// Sessão de operação da Nebrys aberta (ADR 0014, itens 2 e 6; F14k): sem tenant, com o operador em <c>usuario</c>.
+    /// Fica só para a operação, como o login com falha.
+    /// </summary>
+    public const string NebrysSessao = "nebrys.sessao";
+
+    /// <summary>Sessão de operação recusada: sem tenant, com o e-mail digitado e o motivo (a resposta não distingue).</summary>
+    public const string NebrysSessaoFalha = "nebrys.sessao.falha";
+
     public const string EquipeConvite = "equipe.convite";
     public const string EquipeConviteRevogacao = "equipe.convite.revogacao";
     public const string EquipePapelTroca = "equipe.papel.troca";
