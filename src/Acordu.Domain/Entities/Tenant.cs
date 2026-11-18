@@ -156,6 +156,14 @@ public sealed class Tenant
     public DateTimeOffset? ExpurgoPrevistoEm(TimeSpan prazoAteExpurgo) =>
         SomenteLeitura && SomenteLeituraDesde is { } desde ? desde + prazoAteExpurgo : null;
 
+    /// <summary>
+    /// A data do expurgo já chegou em <paramref name="agora"/> (RF-EMP-03, F14-29, F14-30): só leitura há o prazo ou mais.
+    /// TESTE e ATIVA (inclusive a demonstração, que é ATIVA) nunca (F14-31). O passo <c>expurgo-empresas</c> do diário
+    /// filtra pela mesma regra no banco.
+    /// </summary>
+    public bool ExpurgoDevido(DateTimeOffset agora, TimeSpan prazoAteExpurgo) =>
+        ExpurgoPrevistoEm(prazoAteExpurgo) is { } data && data <= agora;
+
     public void Renomear(string nome) => Nome = Texto.Obrigatorio(nome, LimitesTexto.Nome, nameof(nome));
 
     public void ConfigurarPortal(string? nomePortal, int diasFechamentoAutomatico)

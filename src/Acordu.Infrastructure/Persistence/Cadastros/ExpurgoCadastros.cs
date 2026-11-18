@@ -1,10 +1,8 @@
 using System.Data;
-using System.Linq.Expressions;
 using System.Reflection;
-using Acordu.Application.Abstractions;
 using Acordu.Domain.Entities;
 using Acordu.Infrastructure.MultiTenancy;
-using Acordu.Infrastructure.Seguranca;
+using Acordu.Infrastructure.Persistence.Documentos;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
@@ -13,10 +11,11 @@ namespace Acordu.Infrastructure.Persistence.Cadastros;
 
 /// <summary>
 /// Expurgo de cadastro abandonado (RF-AUT-07, F9d), no job diário: empresa não liberada há <see cref="Prazo"/> ou mais
-/// desde <see cref="Tenant.CriadoEm"/> e sem dado (<see cref="ClassificacaoDoExpurgo"/>) é apagada inteira, com o
-/// criador se ele não tiver vínculo com outra empresa. Cada empresa num escopo e numa transação próprios; a falha de uma
-/// é logada e não para as demais. Ponto revisado de IgnoreQueryFilters e de remoção fora da guarda de gravação
-/// (convenções §1): é o sistema agindo, sem contexto de empresa.
+/// desde <see cref="Tenant.CriadoEm"/> e sem dado (<see cref="ClassificacaoDoExpurgo"/>) é apagada inteira pelo
+/// <see cref="ApagadorDeEmpresa"/>, com o criador se ele não tiver vínculo com outra empresa, e o registro do documento
+/// dela sai (decisão 16 do G2 do F14, F14-104). Cada empresa num escopo e numa transação próprios; a falha de uma é logada
+/// e não para as demais. Ponto revisado de IgnoreQueryFilters e de remoção fora da guarda de gravação (convenções §1): é o
+/// sistema agindo, sem contexto de empresa.
 /// </summary>
 public sealed partial class ExpurgoCadastros
 {
@@ -24,18 +23,21 @@ public sealed partial class ExpurgoCadastros
 
     private static readonly string[] Filtros = [FiltrosGlobais.Tenant, FiltrosGlobais.Cliente];
     private static readonly MethodInfo Existe = typeof(ExpurgoCadastros).GetMethod(nameof(ExisteAsync), BindingFlags.NonPublic | BindingFlags.Static)!;
-    private static readonly MethodInfo Apagar = typeof(ExpurgoCadastros).GetMethod(nameof(ApagarAsync), BindingFlags.NonPublic | BindingFlags.Static)!;
 
     private readonly IServiceScopeFactory _escopos;
+    private readonly ApagadorDeEmpresa _apagador;
     private readonly TimeProvider _relogio;
     private readonly ILogger<ExpurgoCadastros> _logger;
 
-    public ExpurgoCadastros(IServiceScopeFactory escopos, TimeProvider relogio, ILogger<ExpurgoCadastros> logger)
+    public ExpurgoCadastros(
+        IServiceScopeFactory escopos, ApagadorDeEmpresa apagador, TimeProvider relogio, ILogger<ExpurgoCadastros> logger)
     {
         ArgumentNullException.ThrowIfNull(escopos);
+        ArgumentNullException.ThrowIfNull(apagador);
         ArgumentNullException.ThrowIfNull(relogio);
         ArgumentNullException.ThrowIfNull(logger);
         _escopos = escopos;
+        _apagador = apagador;
         _relogio = relogio;
         _logger = logger;
     }
@@ -92,52 +94,18 @@ public sealed partial class ExpurgoCadastros
             .ExecuteDeleteAsync(cancellationToken);
         if (removida != 1)
             return false;
-        foreach (var tipo in TiposComTenant(db))
-            await (Task<int>)Apagar.MakeGenericMethod(tipo).Invoke(null, [db, tenantId, cancellationToken])!;
-        // Sugestões são da Nebrys, não do tenant: ficam, mas sem a empresa nem a pessoa (RNF-PRIV-01, F13e).
-        await db.Set<Sugestao>().Where(sugestao => sugestao.EmpresaId == tenantId)
-            .ExecuteUpdateAsync(
-                campos => campos.SetProperty(x => x.EmpresaId, (Guid?)null).SetProperty(x => x.PessoaId, (Guid?)null),
-                cancellationToken);
-
-        if (tenant.CriadoPorUsuarioId is { } criador && !await TemRastroForaAsync(db, criador, tenantId, cancellationToken))
+        var arquivos = await _apagador.ApagarDadosAsync(db, tenant, cancellationToken);
+        // O teste nunca foi usado: o documento volta a poder abrir um (F14-104). Na mesma transação.
+        if (tenant.Documento is { } documento)
         {
-            await db.Set<RefreshToken>().Where(r => r.UsuarioId == criador).ExecuteDeleteAsync(cancellationToken);
-            await db.Set<TokenConta>().Where(t => t.UsuarioId == criador).ExecuteDeleteAsync(cancellationToken);
-            // Claims, logins e tokens do Identity saem pela FK em cascata.
-            await db.Users.Where(u => u.Id == criador).ExecuteDeleteAsync(cancellationToken);
+            await escopo.ServiceProvider.GetRequiredService<RegistroDocumentos>()
+                .DesfazerTesteDoCadastroAsync(documento, tenant.CriadoEm, cancellationToken);
         }
 
         await transacao.CommitAsync(cancellationToken);
         CadastroExpurgado(_logger, tenantId);
-        await RemoverLogoAsync(escopo.ServiceProvider, tenant, cancellationToken);
+        await _apagador.RemoverArquivosAsync(escopo.ServiceProvider, tenantId, arquivos, cancellationToken);
         return true;
-    }
-
-    /// <summary>
-    /// A conta fica se a pessoa tem ou já teve presença em outra empresa: vínculo, sessão aberta lá (refresh token, que
-    /// fica guardado mesmo revogado) ou conta ligada a um contato. Apagá-la deixaria autoria e contato apontando para o vazio.
-    /// </summary>
-    private static async Task<bool> TemRastroForaAsync(
-        AcorduDbContext db, Guid usuarioId, Guid tenantId, CancellationToken cancellationToken) =>
-        await db.Vinculos.IgnoreQueryFilters(Filtros).AnyAsync(v => v.UsuarioId == usuarioId, cancellationToken)
-        || await db.Set<RefreshToken>().AnyAsync(r => r.UsuarioId == usuarioId && r.TenantId != tenantId, cancellationToken)
-        || await db.Clientes.IgnoreQueryFilters(Filtros)
-            .AnyAsync(c => c.Contatos.Any(x => x.UsuarioId == usuarioId), cancellationToken);
-
-    /// <summary>Logotipo do portal, se havia: depois do commit e sem desfazer o expurgo se falhar (fica no log).</summary>
-    private async Task RemoverLogoAsync(IServiceProvider servicos, Tenant tenant, CancellationToken cancellationToken)
-    {
-        if (tenant.LogoChave is not { } chave || servicos.GetService<IArmazenamentoArquivos>() is not { } armazenamento)
-            return;
-        try
-        {
-            await armazenamento.RemoverAsync(chave, cancellationToken);
-        }
-        catch (Exception ex) when (ex is not OperationCanceledException || !cancellationToken.IsCancellationRequested)
-        {
-            LogoFicou(_logger, ex, tenant.Id);
-        }
     }
 
     /// <summary>Algum registro de negócio, papel criado pela empresa ou vínculo de outra pessoa que não o criador.</summary>
@@ -154,45 +122,13 @@ public sealed partial class ExpurgoCadastros
                 .AnyAsync(v => v.TenantId == tenant.Id && v.UsuarioId != tenant.CriadoPorUsuarioId, cancellationToken);
     }
 
-    /// <summary>Entidades com <c>TenantId</c> (as próprias, não as owned, que saem em cascata com a dona).</summary>
-    public static IEnumerable<Type> TiposComTenant(DbContext db) => db.Model.GetEntityTypes()
-        .Where(e => !e.IsOwned() && e.FindProperty("TenantId") is not null)
-        .Select(e => e.ClrType);
-
     private static Task<bool> ExisteAsync<T>(AcorduDbContext db, Guid tenantId, CancellationToken cancellationToken)
         where T : class =>
-        db.Set<T>().IgnoreQueryFilters(Filtros).AnyAsync(DoTenant<T>(db, tenantId), cancellationToken);
-
-    private static Task<int> ApagarAsync<T>(AcorduDbContext db, Guid tenantId, CancellationToken cancellationToken)
-        where T : class =>
-        db.Set<T>().IgnoreQueryFilters(Filtros).Where(DoTenant<T>(db, tenantId)).ExecuteDeleteAsync(cancellationToken);
-
-    /// <summary>
-    /// <c>e =&gt; EF.Property&lt;tipo do TenantId&gt;(e, "TenantId") == tenantId</c>; o tipo pode ser anulável. O valor vem de
-    /// um membro (como numa closure), para o EF parametrizar em vez de gerar uma consulta por empresa.
-    /// </summary>
-    private static Expression<Func<T, bool>> DoTenant<T>(AcorduDbContext db, Guid tenantId)
-        where T : class
-    {
-        var tipo = db.Model.FindEntityType(typeof(T))!.FindProperty("TenantId")!.ClrType;
-        var e = Expression.Parameter(typeof(T), "e");
-        var propriedade = Expression.Call(typeof(EF), nameof(EF.Property), [tipo], e, Expression.Constant("TenantId"));
-        var valor = Expression.Convert(
-            Expression.Property(Expression.Constant(new Parametro(tenantId)), nameof(Parametro.Valor)), tipo);
-        return Expression.Lambda<Func<T, bool>>(Expression.Equal(propriedade, valor), e);
-    }
-
-    private sealed class Parametro(Guid valor)
-    {
-        public Guid Valor { get; } = valor;
-    }
+        db.Set<T>().IgnoreQueryFilters(Filtros).AnyAsync(ApagadorDeEmpresa.DoTenant<T>(db, tenantId), cancellationToken);
 
     [LoggerMessage(EventId = 202, Level = LogLevel.Information, Message = "Cadastro abandonado expurgado: empresa {TenantId}.")]
     private static partial void CadastroExpurgado(ILogger logger, Guid tenantId);
 
     [LoggerMessage(EventId = 203, Level = LogLevel.Error, Message = "Expurgo do cadastro da empresa {TenantId} falhou.")]
     private static partial void ExpurgoFalhou(ILogger logger, Exception erro, Guid tenantId);
-
-    [LoggerMessage(EventId = 204, Level = LogLevel.Warning, Message = "Logotipo da empresa expurgada {TenantId} ficou no storage.")]
-    private static partial void LogoFicou(ILogger logger, Exception erro, Guid tenantId);
 }

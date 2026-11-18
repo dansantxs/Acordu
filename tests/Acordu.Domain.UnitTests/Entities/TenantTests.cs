@@ -258,6 +258,33 @@ public sealed class TenantTests
         tenant.ExpurgoPrevistoEm(TimeSpan.FromDays(30)).Should().BeNull();
     }
 
+    [Fact] // F14-29: só leitura há o prazo ou mais (a borda conta)
+    public void ExpurgoDevido_VencidaHaOPrazoOuMais_Verdadeiro()
+    {
+        var tenant = Tenant.Criar(Guid.NewGuid(), "Estúdio", Agora, Criador, TimeSpan.FromDays(30));
+        tenant.Vencer(Agora.AddDays(30));
+
+        tenant.ExpurgoDevido(Agora.AddDays(60), TimeSpan.FromDays(30)).Should().BeTrue();
+        tenant.ExpurgoDevido(Agora.AddDays(400), TimeSpan.FromDays(30)).Should().BeTrue();
+    }
+
+    [Fact] // F14-30
+    public void ExpurgoDevido_VencidaComMenosQueOPrazo_Falso()
+    {
+        var tenant = Tenant.Criar(Guid.NewGuid(), "Estúdio", Agora, Criador, TimeSpan.FromDays(30));
+        tenant.Vencer(Agora.AddDays(30));
+
+        tenant.ExpurgoDevido(Agora.AddDays(60).AddMinutes(-1), TimeSpan.FromDays(30)).Should().BeFalse();
+    }
+
+    [Fact] // F14-31: em teste, de qualquer idade
+    public void ExpurgoDevido_EmTeste_Falso()
+    {
+        var tenant = Tenant.Criar(Guid.NewGuid(), "Estúdio", Agora, Criador, TimeSpan.FromDays(30));
+
+        tenant.ExpurgoDevido(Agora.AddYears(5), TimeSpan.FromDays(30)).Should().BeFalse();
+    }
+
     [Theory] // F14-56, F14-58: o documento é normalizado na empresa
     [InlineData("529.982.247-25", "52998224725")]
     [InlineData("11.222.333/0001-81", "11222333000181")]

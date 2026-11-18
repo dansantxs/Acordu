@@ -14,7 +14,7 @@ public sealed class ClassificacaoDoExpurgoTests(BancoFixture banco)
     public async Task EntidadesComTenant_TodasClassificadas_NumaListaSo()
     {
         await using var db = banco.Contexto(Quem.Sistema());
-        var tipos = ExpurgoCadastros.TiposComTenant(db).ToList();
+        var tipos = ApagadorDeEmpresa.TiposComTenant(db).ToList();
 
         tipos.Where(t => !ClassificacaoDoExpurgo.Dados.Contains(t) && !ClassificacaoDoExpurgo.RegistroOuRastro.Contains(t))
             .Should().BeEmpty("classifique a entidade em ClassificacaoDoExpurgo (dado ou registro/rastro)");

@@ -121,9 +121,9 @@ internal static partial class JobsEndpoints
     /// <summary>
     /// O disparo diário do Scheduler (ADR 0010 §5; o plano gratuito tem 3 jobs): vencimento dos testes (F14a; primeiro,
     /// para a recém-vencida já ficar fora dos passos seguintes), fechamento automático, expurgo da auditoria, expurgo das
-    /// notificações e do feed, expurgo dos cadastros abandonados (RF-AUT-07), das ocorrências de erro e das marcas de
-    /// operação (ADR 0012), em sequência; no fim, os avisos do F13c. Um passo que falha é logado, entra em <c>falhas</c>
-    /// e não impede os seguintes; os endpoints individuais continuam para disparo manual.
+    /// notificações e do feed, expurgo dos cadastros abandonados (RF-AUT-07), das empresas só leitura há o prazo
+    /// (RF-EMP-03, F14i), das ocorrências de erro e das marcas de operação (ADR 0012), em sequência; no fim, os avisos do
+    /// F13c. Um passo que falha é logado, entra em <c>falhas</c> e não impede os seguintes; os endpoints individuais continuam para disparo manual.
     /// </summary>
     private static void MapDiario(RouteGroupBuilder jobs) =>
         jobs.MapPost("/diario", async (
@@ -132,6 +132,7 @@ internal static partial class JobsEndpoints
             ExpurgoNotificacoes notificacoes,
             ExpurgoAtividades atividades,
             ExpurgoCadastros cadastros,
+            ExpurgoEmpresas empresas,
             ExpurgoOcorrenciasErro ocorrencias,
             MarcasDeOperacao marcas,
             AvisosDosJobs avisos,
@@ -141,6 +142,7 @@ internal static partial class JobsEndpoints
             var falhasVencimento = 0;
             var falhasFechamento = 0;
             var falhasCadastros = 0;
+            var falhasEmpresas = 0;
             var resultado = await PassosDiario.ExecutarAsync(
                 [
                     // Cada empresa no próprio escopo e contexto (F14-09): a falha de uma conta e não para as outras.
@@ -171,6 +173,13 @@ internal static partial class JobsEndpoints
                         falhasCadastros = expurgo.Falhas;
                         return expurgo.Removidos;
                     }),
+                    // Empresa VENCIDA ou CANCELADA há o prazo ou mais (RF-EMP-03, F14i): cada uma na própria transação.
+                    new("expurgo-empresas", async ct =>
+                    {
+                        var expurgo = await empresas.ExecutarAsync(ct);
+                        falhasEmpresas = expurgo.Falhas;
+                        return expurgo.Expurgadas;
+                    }),
                     new("expurgo-ocorrencias-erro", ocorrencias.ExecutarAsync),
                     new("expurgo-marcas-operacao", marcas.ExpurgarAsync),
                 ],
@@ -180,7 +189,7 @@ internal static partial class JobsEndpoints
                 resultado.PassosFalhos,
                 [
                     new("vencimento-testes", falhasVencimento), new("fechamento-automatico", falhasFechamento),
-                    new("expurgo-cadastros", falhasCadastros),
+                    new("expurgo-cadastros", falhasCadastros), new("expurgo-empresas", falhasEmpresas),
                 ]);
             await avisos.DiarioAsync(
                 falhas,
@@ -188,7 +197,8 @@ internal static partial class JobsEndpoints
                     ("vencidas", resultado.Contagens[0]), ("fechadas", resultado.Contagens[1]),
                     ("auditoria", resultado.Contagens[2]), ("notificações", resultado.Contagens[3]),
                     ("atividades", resultado.Contagens[4]), ("cadastros", resultado.Contagens[5]),
-                    ("ocorrências de erro", resultado.Contagens[6]), ("marcas", resultado.Contagens[7]),
+                    ("empresas expurgadas", resultado.Contagens[6]), ("ocorrências de erro", resultado.Contagens[7]),
+                    ("marcas", resultado.Contagens[8]),
                 ],
                 cancellationToken);
 
@@ -200,9 +210,10 @@ internal static partial class JobsEndpoints
                 notificacoesRemovidas = resultado.Contagens[3],
                 atividadesRemovidas = resultado.Contagens[4],
                 cadastrosRemovidos = resultado.Contagens[5],
-                ocorrenciasErroRemovidas = resultado.Contagens[6],
-                marcasOperacaoRemovidas = resultado.Contagens[7],
-                falhas = resultado.Falhas + falhasVencimento + falhasFechamento + falhasCadastros,
+                empresasExpurgadas = resultado.Contagens[6],
+                ocorrenciasErroRemovidas = resultado.Contagens[7],
+                marcasOperacaoRemovidas = resultado.Contagens[8],
+                falhas = resultado.Falhas + falhasVencimento + falhasFechamento + falhasCadastros + falhasEmpresas,
             });
         });
 

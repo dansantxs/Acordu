@@ -2,9 +2,9 @@
   "marco": "F14",
   "issue": 182,
   "etapa": "AGUARDANDO_MERGE",
-  "branch": "feat/F14g-documento",
+  "branch": "feat/F14i-expurgo",
   "pr": {
-    "id": "F14g",
+    "id": "F14i",
     "numero": null
   },
   "feitos": [
@@ -31,11 +31,15 @@
     {
       "id": "F14f",
       "pr": 193
+    },
+    {
+      "id": "F14g",
+      "pr": 195
     }
   ],
   "contadores": {
     "devolucoesNaEtapa": 0,
-    "rodadasNoPr": 0
+    "rodadasNoPr": 1
   },
   "verificacao": [
     "node scripts/conferir-specs.mjs",
@@ -52,13 +56,17 @@
       "PR #189 mesclado (F14c)",
       "PR #190 mesclado (F14d)",
       "PR #192 mesclado (F14e; DiasFaixaTeste na API e #191 por decisão de 16/11)",
-      "PR #193 mesclado (F14f; marcadores dos textos para depois do registro da Nebrys, issue #194)"
+      "PR #193 mesclado (F14f; marcadores dos textos para depois do registro da Nebrys, issue #194)",
+      "PR #195 mesclado (F14g)"
     ]
   },
   "ressalvas": [
-    "Runbook do API_DOCUMENTOS_CHAVE alinhado ao segredo criado (openssl rand -base64 32), corrigido pelo orquestrador",
-    "Ordem das validações: e-mail em uso e senha (Identity) antes do documento; registrada no design"
+    "F14-31: demonstração ainda não existe (F14s); coberta só por ser ATIVA. O F14s mantém a demonstração ATIVA ou o filtro do ExpurgoEmpresas a exclui",
+    "Contagens do diário nos testes com >= 1 (banco funcional compartilhado); a precisão fica nos testes por empresa"
   ],
   "bloqueios": [],
-  "atualizadoEm": "2026-11-16"
+  "atualizadoEm": "2026-11-18",
+  "decisoes": [
+    "18/11 F14-104: \"Só apagar a linha\" (Daniel, no chat): a liberação usada pelo cadastro abandonado não volta"
+  ]
 }

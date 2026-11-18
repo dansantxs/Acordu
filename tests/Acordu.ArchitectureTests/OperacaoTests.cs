@@ -46,7 +46,7 @@ public sealed class OperacaoTests
             .That().DoNotResideInNamespace("Acordu.Application.Sugestoes")
             .And().DoNotResideInNamespace("Acordu.Infrastructure.Persistence.Sugestoes")
             .And().DoNotResideInNamespace("Acordu.Infrastructure.Persistence.Migrations")
-            .And().DoNotHaveNameMatching("^ExpurgoCadastros")
+            .And().DoNotHaveNameMatching("^ApagadorDeEmpresa")
             .ShouldNot().HaveDependencyOn(sugestao)
             .GetResult();
 
