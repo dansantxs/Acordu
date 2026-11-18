@@ -134,6 +134,8 @@ public static class DependencyInjection
         services.AddScoped<Persistence.Documentos.RegistroDocumentos>();
         services.AddScoped<Persistence.Aceites.RegistroAceites>();
         services.AddScoped<IServicoAutenticacao, ServicoAutenticacao>();
+        // Sessão de operação da Nebrys (ADR 0014): depende de OperadoresNebrys, que a Api lê da configuração.
+        services.AddScoped<Application.Nebrys.IServicoOperacao, ServicoOperacao>();
         return services;
     }
 }
