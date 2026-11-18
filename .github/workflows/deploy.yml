@@ -114,6 +114,8 @@ jobs:
           Turnstile__Segredo: ${{ secrets.API_TURNSTILE_SEGREDO }}
           # Chave do HMAC do registro "um teste por documento" (F14g, design D8): não gira; sem ela a API nem sobe.
           Documentos__ChaveHmac: ${{ secrets.API_DOCUMENTOS_CHAVE }}
+          # Operadores da área da Nebrys (F14k, ADR 0014): opcional; sem ele a área responde 404 para todos.
+          Nebrys__Operadores: ${{ secrets.API_NEBRYS_OPERADORES }}
           # Só conferida aqui (vai para o build do SPA, não para a API): falta dela barra o deploy antes de publicar.
           TURNSTILE_CHAVE_SITE: ${{ vars.TURNSTILE_CHAVE_SITE }}
           # O canal da Nebrys (F14, D15): vai para o build do SPA e, como Nebrys__Contato, para a API (F14g).
@@ -175,6 +177,10 @@ jobs:
           textos = os.environ.get("TEXTOS_LEGAIS_PUBLICADOS", "").strip().lower() or "false"
           if textos not in ("true", "false"):
               faltam.append("TEXTOS_LEGAIS_PUBLICADOS (variável inválida: use true ou false)")
+          # Operadores da Nebrys (F14k): a API não sobe com um item que não é e-mail (OperadoresNebrys); sem o e-mail no log.
+          operadores = [e.strip() for e in os.environ.get("Nebrys__Operadores", "").replace(";", ",").split(",") if e.strip()]
+          if any("@" not in e or any(c.isspace() for c in e) for e in operadores):
+              faltam.append("Nebrys__Operadores (lista de e-mails separados por vírgula; secret API_NEBRYS_OPERADORES)")
           if faltam:
               sys.exit("Faltam: " + ", ".join(faltam))
 
@@ -184,6 +190,8 @@ jobs:
           variaveis["Nebrys__Contato"] = os.environ["CONTATO_NEBRYS"].strip()
           # O mesmo valor normalizado vai à API e, pela saída do passo, ao build do SPA (F14-121).
           variaveis["TextosLegais__Publicados"] = textos
+          if operadores:
+              variaveis["Nebrys__Operadores"] = ",".join(operadores)
           with open(os.environ["GITHUB_OUTPUT"], "a") as saida:
               saida.write("textos_legais_publicados=" + textos + "\n")
           if "Armazenamento__Endpoint" not in variaveis:
@@ -196,6 +204,8 @@ jobs:
           sem = [n for n in webhooks if n not in variaveis]
           if sem:
               print("::warning::Sem " + ", ".join(sem) + ": esses canais do Discord não recebem avisos da API.")
+          if not operadores:
+              print("::warning::Sem API_NEBRYS_OPERADORES: a área da Nebrys responde 404 para todos.")
           PY
 
       # Parâmetros do deploy-ci §2.2. O --to-latest desfaz um rollback anterior, que fixa o tráfego numa revisão.
