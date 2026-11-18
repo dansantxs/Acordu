@@ -16,7 +16,7 @@ public sealed class ClassificacaoSomenteLeituraTests(BancoFixture banco)
     public async Task EntidadesComTenant_TodasClassificadas_NumaListaSo()
     {
         await using var db = banco.Contexto(Quem.Sistema());
-        var tipos = ExpurgoCadastros.TiposComTenant(db).ToList();
+        var tipos = ApagadorDeEmpresa.TiposComTenant(db).ToList();
         var daEmpresa = ClassificacaoSomenteLeitura.DaEmpresa;
         var daPessoa = ClassificacaoSomenteLeitura.DaPessoaOuRastro;
 

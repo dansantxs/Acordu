@@ -75,6 +75,27 @@ public sealed class RegistroDocumentos
     }
 
     /// <summary>
+    /// Expurgo do cadastro abandonado (RF-AUT-07; decisão 16 do G2 do F14, F14-104): o teste nunca foi usado, então a linha
+    /// que o próprio cadastro criou sai, e o documento pode abrir outro teste. Dentro da transação do expurgo, por remoção
+    /// direta (o expurgo está fora da guarda e sem contexto de empresa).
+    /// <para>
+    /// A linha do cadastro é a de <c>PrimeiroTesteEm</c> igual ao <c>Tenant.CriadoEm</c>: o cadastro grava os dois com o
+    /// mesmo instante (<c>ServicoAutenticacao.RegistrarAsync</c>), e o teste
+    /// <c>ExpurgoEmpresasTests.Registro_DocumentoNovo_RegistroEEmpresaComOMesmoInstante</c> confere o vínculo. O cadastro
+    /// que usou uma liberação não criou a linha: ela fica como está, e a liberação usada não volta (decisão do Daniel,
+    /// 18/11: "só apagar a linha").
+    /// </para>
+    /// </summary>
+    public Task DesfazerTesteDoCadastroAsync(
+        string documentoNormalizado, DateTimeOffset cadastradoEm, CancellationToken cancellationToken = default)
+    {
+        var hash = _protecao.Hash(documentoNormalizado);
+        return _db.Set<DocumentoTeste>()
+            .Where(d => d.Hash == hash && d.PrimeiroTesteEm == cadastradoEm)
+            .ExecuteDeleteAsync(cancellationToken);
+    }
+
+    /// <summary>
     /// A gravação falhou porque outro cadastro, ao mesmo tempo, registrou o mesmo documento (chave primária) ou usou a mesma
     /// liberação (versão): quem chama recusa como documento que já teve teste.
     /// </summary>

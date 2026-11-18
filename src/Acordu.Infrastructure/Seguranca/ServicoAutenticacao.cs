@@ -118,6 +118,10 @@ public sealed partial class ServicoAutenticacao : IServicoAutenticacao
         }
 
         // Um teste por documento (RF-AUT-09): o registro global entra na mesma transação da empresa (design do F14, D8).
+        // O MESMO `agora` vai ao registro (PrimeiroTesteEm) e à empresa (CriadoEm): é por essa igualdade que o expurgo do
+        // cadastro abandonado acha a linha que este cadastro criou (RegistroDocumentos.DesfazerTesteDoCadastroAsync,
+        // F14-104). Não troque um dos dois por outro instante; o teste
+        // ExpurgoEmpresasTests.Registro_DocumentoNovo_RegistroEEmpresaComOMesmoInstante confere.
         if (!await _documentos.ReservarTesteAsync(documentoValido, agora, cancellationToken))
             throw DocumentoJaTeveTeste();
 
