@@ -47,7 +47,8 @@ internal static class AreaNebrys
 
     /// <summary>
     /// Filtro das rotas da área (menos a abertura da sessão): a conta do token continua operadora (na lista, com o e-mail
-    /// confirmado). Tirar alguém da lista vale na revisão seguinte, sem esperar o token de 30 min expirar.
+    /// confirmado). Tirar alguém da lista vale na revisão seguinte, sem esperar o token de 30 min expirar. Conferida, a conta
+    /// vira o operador da requisição (<see cref="OperadorDaRequisicao"/>), que as ações gravam na trilha.
     /// </summary>
     public static async ValueTask<object?> ConferirOperadorAsync(EndpointFilterInvocationContext contexto, EndpointFilterDelegate proximo)
     {
@@ -61,6 +62,8 @@ internal static class AreaNebrys
             return Results.NotFound();
         }
 
+        // O operador conferido fica para as ações da área (trilha sem tenant, ADR 0014, item 6).
+        http.RequestServices.GetRequiredService<OperadorDaRequisicao>().Definir(operador);
         return await proximo(contexto);
     }
 

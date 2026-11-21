@@ -14,6 +14,7 @@ using Acordu.Application.Contratos;
 using Acordu.Application.Dashboard;
 using Acordu.Application.Empresas;
 using Acordu.Application.Equipe;
+using Acordu.Application.Nebrys;
 using Acordu.Application.Notificacoes;
 using Acordu.Application.Papeis;
 using Acordu.Application.Portal;
@@ -68,6 +69,9 @@ internal static class CasosDeUso
         services.AddScoped<ComandosPapel>();
         services.AddScoped<FechamentoAutomatico>();
         services.AddScoped<VencimentoTestes>();
+        // Área da Nebrys (F14l): ações sobre a situação das empresas e liberação de documento.
+        services.AddScoped<AcoesEmpresasNebrys>();
+        services.AddScoped<LiberacaoDocumentos>();
         services.AddScoped<ComandosPortal>();
         services.AddScoped<TarefasAbertas>();
         services.AddScoped<LeituraPortal>();
