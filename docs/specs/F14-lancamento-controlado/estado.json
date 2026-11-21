@@ -2,10 +2,10 @@
   "marco": "F14",
   "issue": 182,
   "etapa": "AGUARDANDO_MERGE",
-  "branch": "feat/F14l-acoes-nebrys",
+  "branch": "feat/F14m-area-nebrys-web",
   "pr": {
-    "id": "F14l",
-    "numero": 205
+    "id": "F14m",
+    "numero": null
   },
   "feitos": [
     {
@@ -51,11 +51,15 @@
     {
       "id": "F14k",
       "pr": 203
+    },
+    {
+      "id": "F14l",
+      "pr": 205
     }
   ],
   "contadores": {
     "devolucoesNaEtapa": 0,
-    "rodadasNoPr": 1
+    "rodadasNoPr": 0
   },
   "verificacao": [
     "node scripts/conferir-specs.mjs",
@@ -77,21 +81,22 @@
       "PR #199 mesclado (F14i; F14-104 \"Só apagar a linha\", 18/11)",
       "PR #200 mesclado (F14j)",
       "PR #202 mesclado (F14h; coluna Forma e ciente sem corpo mantidos)",
-      "PR #203 mesclado (F14k)"
+      "PR #203 mesclado (F14k)",
+      "PR #205 mesclado (F14l; \"aceito as recomendações\": liberação repetida ou sem teste → 422, ativar/reativar limpam as datas do ciclo, prorrogar TESTE para antes do fim atual aceito)"
     ],
     "G2_F14h": "PR #201 mesclado (18/11), sem comentário nas perguntas: valem as recomendações da D16 (variável única conferida no deploy.yml; ciente 404; pendentes sem migration; nenhum campo novo; convenção §4) e o risco da janela da virada aceito"
   },
   "ressalvas": [
-    "Fuso diferente do padrão na prorrogação só com teste de unidade",
-    "Sem teste do IP gravado na trilha das ações",
-    "Marca Tenant.Demonstracao adiantada do F14s para o F14-69 (migration DemonstracaoDaEmpresa)",
-    "Revisor: liberação repetida e documento sem teste → 422; ativar/reativar limpam as datas do ciclo; prorrogar TESTE para antes do fim atual aceito (para o Daniel decidir)",
-    "Revisor: sugere teste de arquitetura garantindo que só SituacaoDasEmpresas chama PermitirMudancaDeSituacao"
+    "Testador: a regra do ESLint que barra import cruzado não tem teste automatizado; conferida à mão",
+    "Revisor: sessaoOperacao() chamada na renderização da CascaNebrys pode encerrar a sessão durante o render (raro)",
+    "Revisor: 404 da barreira na liberação não encerra a sessão (só a lista encerra)",
+    "Revisor: retry: 1 global repete o 404 do detalhe e da lista"
   ],
   "bloqueios": [],
   "atualizadoEm": "2026-11-21",
   "decisoes": [
     "18/11 F14-104: \"Só apagar a linha\" (Daniel, no chat): a liberação usada pelo cadastro abandonado não volta",
-    "18/11 F14h: \"Pôr o aceite atrás da TEXTOS_LEGAIS_PUBLICADOS\" (Daniel, no chat); cenários do estado desligado pedem PR de spec e design (G2 só da mudança) antes do F14h"
+    "18/11 F14h: \"Pôr o aceite atrás da TEXTOS_LEGAIS_PUBLICADOS\" (Daniel, no chat); cenários do estado desligado pedem PR de spec e design (G2 só da mudança) antes do F14h",
+    "21/11 F14l: \"aceito as recomendações\" (Daniel, no chat) para as três premissas do \"Para o Daniel decidir\" do PR #205"
   ]
 }
