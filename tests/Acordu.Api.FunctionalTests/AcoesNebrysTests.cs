@@ -6,6 +6,7 @@ using System.Text.Json;
 using Acordu.Api.FunctionalTests.Apoio;
 using Acordu.Api.Jobs;
 using Acordu.Domain.Entities;
+using Microsoft.AspNetCore.TestHost;
 using Microsoft.EntityFrameworkCore;
 
 namespace Acordu.Api.FunctionalTests;
@@ -72,7 +73,7 @@ public sealed class AcoesNebrysTests(ApiFixture api)
         var ate = Hoje().AddDays(10);
 
         var (status, corpo) = await AgirAsync(
-            token, equipe.TenantId, "prorrogacao", await VersaoAsync(token, equipe.TenantId), new { ate = ate.ToString("yyyy-MM-dd") });
+            token, equipe.TenantId, "prorrogacao", await VersaoAsync(token, equipe.TenantId), new { ate = Dia(ate) });
 
         status.Should().Be(HttpStatusCode.OK, "corpo: {0}", corpo);
         corpo.GetProperty("situacao").GetString().Should().Be("TESTE");
@@ -89,7 +90,7 @@ public sealed class AcoesNebrysTests(ApiFixture api)
         var token = await OperadorNebrys.TokenAsync(api);
         var ate = Hoje().AddDays(60);
 
-        var (status, corpo) = await AgirAsync(token, equipe.TenantId, "prorrogacao", null, new { ate = ate.ToString("yyyy-MM-dd") });
+        var (status, corpo) = await AgirAsync(token, equipe.TenantId, "prorrogacao", null, new { ate = Dia(ate) });
 
         status.Should().Be(HttpStatusCode.OK, "corpo: {0}", corpo);
         corpo.GetProperty("situacao").GetString().Should().Be("TESTE");
@@ -196,7 +197,7 @@ public sealed class AcoesNebrysTests(ApiFixture api)
         await GravarSituacaoAsync(equipe.TenantId, situacao, desde, situacao == "CANCELADA" ? desde : null);
         var token = await OperadorNebrys.TokenAsync(api);
         var antes = await DetalheAsync(token, equipe.TenantId);
-        var corpoDaAcao = dias is null ? null : new { ate = Hoje().AddDays(int.Parse(dias, System.Globalization.CultureInfo.InvariantCulture)).ToString("yyyy-MM-dd") };
+        var corpoDaAcao = dias is null ? null : new { ate = Dia(Hoje().AddDays(int.Parse(dias, System.Globalization.CultureInfo.InvariantCulture))) };
 
         var (status, corpo) = await AgirAsync(token, equipe.TenantId, acao, antes.GetProperty("versao").GetString(), corpoDaAcao);
 
@@ -220,7 +221,7 @@ public sealed class AcoesNebrysTests(ApiFixture api)
             await db.Database.ExecuteSqlAsync($"UPDATE tenants SET demonstracao = TRUE WHERE id = {equipe.TenantId}");
         var token = await OperadorNebrys.TokenAsync(api);
         var antes = await DetalheAsync(token, equipe.TenantId);
-        var corpoDaAcao = acao == "prorrogacao" ? new { ate = Hoje().AddDays(10).ToString("yyyy-MM-dd") } : null;
+        var corpoDaAcao = acao == "prorrogacao" ? new { ate = Dia(Hoje().AddDays(10)) } : null;
 
         var (status, corpo) = await AgirAsync(token, equipe.TenantId, acao, null, corpoDaAcao);
 
@@ -240,7 +241,7 @@ public sealed class AcoesNebrysTests(ApiFixture api)
     public async Task Acao_EmpresaExpurgadaOuInexistente_404(string acao)
     {
         var token = await OperadorNebrys.TokenAsync(api);
-        var corpoDaAcao = acao == "prorrogacao" ? new { ate = Hoje().AddDays(10).ToString("yyyy-MM-dd") } : null;
+        var corpoDaAcao = acao == "prorrogacao" ? new { ate = Dia(Hoje().AddDays(10)) } : null;
         var expurgada = Guid.NewGuid();
 
         var (status, corpo) = await AgirAsync(token, expurgada, acao, null, corpoDaAcao);
@@ -280,7 +281,7 @@ public sealed class AcoesNebrysTests(ApiFixture api)
         var antes = await DetalheAsync(token, equipe.TenantId);
 
         var (status, corpo) = await AgirAsync(
-            token, equipe.TenantId, "prorrogacao", lida, new { ate = Hoje().AddDays(10).ToString("yyyy-MM-dd") });
+            token, equipe.TenantId, "prorrogacao", lida, new { ate = Dia(Hoje().AddDays(10)) });
 
         status.Should().Be(HttpStatusCode.Conflict, "corpo: {0}", corpo);
         corpo.GetProperty("type").GetString().Should().EndWith("/conflito-versao");
@@ -364,7 +365,7 @@ public sealed class AcoesNebrysTests(ApiFixture api)
         var equipe = await Equipe.CriarAsync(api);
         var token = await OperadorNebrys.TokenAsync(api);
 
-        var (status, corpo) = await AgirAsync(token, equipe.TenantId, "prorrogacao", null, new { ate = Hoje().ToString("yyyy-MM-dd") });
+        var (status, corpo) = await AgirAsync(token, equipe.TenantId, "prorrogacao", null, new { ate = Dia(Hoje()) });
 
         status.Should().Be(HttpStatusCode.OK, "corpo: {0}", corpo);
         corpo.GetProperty("situacao").GetString().Should().Be("TESTE");
@@ -382,7 +383,7 @@ public sealed class AcoesNebrysTests(ApiFixture api)
         await GravarSituacaoAsync(equipe.TenantId, antes, desde, antes == "CANCELADA" ? desde : null);
         var token = await OperadorNebrys.TokenAsync(api);
         var operador = await OperadorNebrys.ContaAsync(api.App, OperadorNebrys.Email);
-        var corpoDaAcao = acao == "prorrogacao" ? new { ate = Hoje().AddDays(5).ToString("yyyy-MM-dd") } : null;
+        var corpoDaAcao = acao == "prorrogacao" ? new { ate = Dia(Hoje().AddDays(5)) } : null;
 
         (await AgirAsync(token, equipe.TenantId, acao, null, corpoDaAcao)).Status.Should().Be(HttpStatusCode.OK);
 
@@ -521,6 +522,8 @@ public sealed class AcoesNebrysTests(ApiFixture api)
     // ---------- apoio ----------
 
     private DateOnly Hoje() => DateOnly.FromDateTime(TimeZoneInfo.ConvertTime(api.Relogio.Agora, SaoPaulo).DateTime);
+
+    private static string Dia(DateOnly dia) => dia.ToString("yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture);
 
     private static DateTimeOffset InicioDoDia(DateOnly dia) =>
         new(TimeZoneInfo.ConvertTimeToUtc(dia.ToDateTime(TimeOnly.MinValue, DateTimeKind.Unspecified), SaoPaulo), TimeSpan.Zero);
