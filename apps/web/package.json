@@ -21,7 +21,7 @@
     "test:watch": "vitest",
     "e2e": "playwright test",
     "ajuda:capturas": "playwright test --config playwright.ajuda.config.ts",
-    "api:tipos": "openapi-typescript ../../openapi/interno.json -o src/shared/api/interno.d.ts && openapi-typescript ../../openapi/portal.json -o src/shared/api/portal.d.ts && prettier --write src/shared/api/*.d.ts"
+    "api:tipos": "openapi-typescript ../../openapi/interno.json -o src/shared/api/interno.d.ts && openapi-typescript ../../openapi/portal.json -o src/shared/api/portal.d.ts && openapi-typescript ../../openapi/nebrys.json -o src/shared/api/nebrys.d.ts && prettier --write src/shared/api/*.d.ts"
   },
   "dependencies": {
     "@fontsource-variable/fraunces": "^5.3.0",
