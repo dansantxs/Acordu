@@ -8,8 +8,9 @@ namespace Acordu.Api.Endpoints;
 
 /// <summary>
 /// Área da Nebrys (contrato §17, ADR 0014): sessão de operação sem tenant, lista e detalhe das empresas, só com os campos
-/// da relação com a Nebrys (RNF-PRIV-01). Quem não tem a sessão de operação recebe <c>404</c> antes de chegar aqui
-/// (<see cref="AreaNebrys"/>). Documento OpenAPI próprio (<c>openapi/nebrys.json</c>).
+/// da relação com a Nebrys (RNF-PRIV-01), ações sobre a situação delas e liberação de documento (F14l). Quem não tem a
+/// sessão de operação recebe <c>404</c> antes de chegar aqui (<see cref="AreaNebrys"/>). Documento OpenAPI próprio
+/// (<c>openapi/nebrys.json</c>).
 /// </summary>
 internal static class NebrysEndpoints
 {
@@ -47,10 +48,47 @@ internal static class NebrysEndpoints
             .Produces<ResultadoPaginado<EmpresaResumoNebrysDto>>();
 
         area.MapGet("/empresas/{id:guid}", async (Guid id, IConsultasNebrys consultas, CancellationToken cancellationToken) =>
-            Results.Ok(await consultas.ObterEmpresaAsync(id, cancellationToken)
-                ?? throw new NaoEncontradoException("Empresa não encontrada.")))
+            Results.Ok(await DetalheAsync(consultas, id, cancellationToken)))
             .Produces<EmpresaNebrysDto>();
+
+        // Ações sobre a situação (F14l, design D5): If-Match com a versão do detalhe; devolvem o detalhe com a versão nova.
+        MapAcao(area, "/ativacao", (acoes, id, versao, ct) => acoes.AtivarAsync(id, versao, ct));
+        area.MapPost("/empresas/{id:guid}/prorrogacao", async (
+            Guid id, ProrrogacaoTesteRequest corpo, HttpRequest requisicao, AcoesEmpresasNebrys acoes, IConsultasNebrys consultas,
+            CancellationToken cancellationToken) =>
+        {
+            await acoes.ProrrogarAsync(id, corpo, Versoes.IfMatch(requisicao), cancellationToken);
+            return Results.Ok(await DetalheAsync(consultas, id, cancellationToken));
+        })
+            .Produces<EmpresaNebrysDto>();
+        MapAcao(area, "/cancelamento", (acoes, id, versao, ct) => acoes.CancelarAsync(id, versao, ct));
+        MapAcao(area, "/reativacao", (acoes, id, versao, ct) => acoes.ReativarAsync(id, versao, ct));
+
+        // Liberação de documento (F14-71, F14-108): o documento digitado não é guardado nem vai para a trilha.
+        area.MapPost("/documentos/liberacao", async (
+            LiberacaoDocumentoRequest corpo, LiberacaoDocumentos liberacao, CancellationToken cancellationToken) =>
+        {
+            await liberacao.LiberarAsync(corpo, cancellationToken);
+            return Results.NoContent();
+        })
+            .Produces(StatusCodes.Status204NoContent);
     }
+
+    /// <summary>Ação de situação sem corpo: <c>If-Match</c> opcional (D5), devolve o detalhe atualizado.</summary>
+    private static void MapAcao(
+        RouteGroupBuilder area,
+        string acao,
+        Func<AcoesEmpresasNebrys, Guid, string?, CancellationToken, Task> executar) =>
+        area.MapPost("/empresas/{id:guid}" + acao, async (
+            Guid id, HttpRequest requisicao, AcoesEmpresasNebrys acoes, IConsultasNebrys consultas, CancellationToken cancellationToken) =>
+        {
+            await executar(acoes, id, Versoes.IfMatch(requisicao), cancellationToken);
+            return Results.Ok(await DetalheAsync(consultas, id, cancellationToken));
+        })
+            .Produces<EmpresaNebrysDto>();
+
+    private static async Task<EmpresaNebrysDto> DetalheAsync(IConsultasNebrys consultas, Guid id, CancellationToken cancellationToken) =>
+        await consultas.ObterEmpresaAsync(id, cancellationToken) ?? throw new NaoEncontradoException("Empresa não encontrada.");
 
     /// <summary>Corpo da sessão sem o binding padrão: o 400 do corpo malformado revelaria a rota a quem não é operador.</summary>
     private static async Task<SessaoOperacaoRequest?> LerCorpoAsync(HttpRequest requisicao, CancellationToken cancellationToken)

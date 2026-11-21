@@ -204,7 +204,12 @@ public sealed partial class AreaNebrysTests(ApiFixture api)
         var interno = await http.GetStringAsync(new Uri("/openapi/interno.json", UriKind.Relative));
 
         nebrys.GetProperty("paths").EnumerateObject().Select(p => p.Name).Should().BeEquivalentTo(
-            ["/api/v1/nebrys/sessao", "/api/v1/nebrys/empresas", "/api/v1/nebrys/empresas/{id}"]);
+            [
+                "/api/v1/nebrys/sessao", "/api/v1/nebrys/empresas", "/api/v1/nebrys/empresas/{id}",
+                "/api/v1/nebrys/empresas/{id}/ativacao", "/api/v1/nebrys/empresas/{id}/prorrogacao",
+                "/api/v1/nebrys/empresas/{id}/cancelamento", "/api/v1/nebrys/empresas/{id}/reativacao",
+                "/api/v1/nebrys/documentos/liberacao",
+            ]);
         interno.Should().NotContain("/api/v1/nebrys");
     }
 
@@ -217,6 +222,11 @@ public sealed partial class AreaNebrysTests(ApiFixture api)
         { "GET", "/api/v1/nebrys/empresas/{tenant}" },
         { "DELETE", "/api/v1/nebrys/empresas/{tenant}" },
         { "POST", "/api/v1/nebrys/empresas/{tenant}/ativacao" },
+        { "POST", "/api/v1/nebrys/empresas/{tenant}/prorrogacao" },
+        { "POST", "/api/v1/nebrys/empresas/{tenant}/cancelamento" },
+        { "POST", "/api/v1/nebrys/empresas/{tenant}/reativacao" },
+        { "POST", "/api/v1/nebrys/documentos/liberacao" },
+        { "GET", "/api/v1/nebrys/documentos/liberacao" },
         { "GET", "/api/v1/nebrys/sessao" },
         { "GET", "/api/v1/nebrys" },
         { "GET", "/api/v1/nebrys/qualquer-coisa" },

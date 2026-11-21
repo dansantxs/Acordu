@@ -19,6 +19,22 @@ public static class AcoesAuditoria
     /// <summary>Sessão de operação recusada: sem tenant, com o e-mail digitado e o motivo (a resposta não distingue).</summary>
     public const string NebrysSessaoFalha = "nebrys.sessao.falha";
 
+    /// <summary>
+    /// Ações da Nebrys sobre a situação de uma empresa (F14l): sem tenant, o operador em <c>usuario</c>, a empresa no alvo e
+    /// a situação antes e depois em <c>dados</c> (ADR 0014, item 6; design D14).
+    /// </summary>
+    public const string NebrysEmpresaAtivacao = "nebrys.empresa.ativacao";
+
+    public const string NebrysEmpresaProrrogacao = "nebrys.empresa.prorrogacao";
+    public const string NebrysEmpresaCancelamento = "nebrys.empresa.cancelamento";
+    public const string NebrysEmpresaReativacao = "nebrys.empresa.reativacao";
+
+    /// <summary>
+    /// Liberação de um documento para novo teste (F14-71, F14-108): sem tenant, sem alvo e sem o documento (nem o HMAC);
+    /// <c>dados</c> só com as datas da liberação, antes e depois.
+    /// </summary>
+    public const string NebrysDocumentoLiberacao = "nebrys.documento.liberacao";
+
     public const string EquipeConvite = "equipe.convite";
     public const string EquipeConviteRevogacao = "equipe.convite.revogacao";
     public const string EquipePapelTroca = "equipe.papel.troca";

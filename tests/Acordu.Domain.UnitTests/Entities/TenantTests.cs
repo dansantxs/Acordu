@@ -560,6 +560,261 @@ public sealed class TenantTests
         tenant.AvisoDeSituacaoDevido(FimDoTeste - TimeSpan.FromDays(1), SaoPaulo, Prazos).Should().BeNull();
     }
 
+    // ---------- Transições da área da Nebrys (F14l; modelo §4.11.3, design §1.2) ----------
+
+    private static readonly DateTimeOffset Acao = Agora + TimeSpan.FromDays(40);
+
+    /// <summary>Em TESTE vencido no fim do teste (o só leitura começa no fim).</summary>
+    private static Tenant Vencida()
+    {
+        var tenant = EmTeste();
+        tenant.Vencer(FimDoTeste);
+        return tenant;
+    }
+
+    private static Tenant Ativa()
+    {
+        var tenant = EmTeste();
+        tenant.Ativar(Agora + TimeSpan.FromDays(1));
+        return tenant;
+    }
+
+    private static Tenant Cancelada()
+    {
+        var tenant = EmTeste();
+        tenant.Cancelar(Agora + TimeSpan.FromDays(2));
+        return tenant;
+    }
+
+    [Fact]
+    public void Ativar_EmTeste_FicaAtivaSemFimDoTesteENaoMarcaAVolta() // F14-65
+    {
+        var tenant = EmTeste();
+
+        tenant.Ativar(Acao);
+
+        tenant.Situacao.Should().Be(SituacaoEmpresa.Ativa);
+        tenant.FimDoTeste.Should().BeNull();
+        tenant.SomenteLeituraDesde.Should().BeNull();
+        tenant.SomenteLeitura.Should().BeFalse();
+        tenant.GravavelDesde.Should().BeNull("a empresa em teste não estava só leitura");
+    }
+
+    [Fact]
+    public void Ativar_Vencida_SaiDoSomenteLeituraEGravaAVolta() // F14-65, F14-24
+    {
+        var tenant = Vencida();
+
+        tenant.Ativar(new DateTimeOffset(2026, 11, 20, 9, 0, 0, TimeSpan.FromHours(-3)));
+
+        tenant.Situacao.Should().Be(SituacaoEmpresa.Ativa);
+        tenant.FimDoTeste.Should().BeNull();
+        tenant.SomenteLeituraDesde.Should().BeNull();
+        tenant.ExpurgoPrevistoEm(TimeSpan.FromDays(30)).Should().BeNull();
+        tenant.GravavelDesde.Should().Be(new DateTimeOffset(2026, 11, 20, 12, 0, 0, TimeSpan.Zero));
+        tenant.GravavelDesde!.Value.Offset.Should().Be(TimeSpan.Zero);
+    }
+
+    [Fact]
+    public void Ativar_JaAtiva_LancaTransicaoInvalidaENaoMuda() // F14-69
+    {
+        var tenant = Ativa();
+
+        var acao = () => tenant.Ativar(Acao);
+
+        acao.Should().Throw<TransicaoInvalidaException>().WithMessage("*já está ativa*");
+        tenant.Situacao.Should().Be(SituacaoEmpresa.Ativa);
+        tenant.GravavelDesde.Should().BeNull();
+    }
+
+    [Fact]
+    public void Ativar_Cancelada_LancaTransicaoInvalidaEApontaAReativacao() // F14-69
+    {
+        var tenant = Cancelada();
+
+        var acao = () => tenant.Ativar(Acao);
+
+        acao.Should().Throw<TransicaoInvalidaException>().WithMessage("*reativação*");
+        tenant.Situacao.Should().Be(SituacaoEmpresa.Cancelada);
+    }
+
+    [Fact]
+    public void Prorrogar_EmTeste_FimNoInicioDoDiaSeguinteNoFusoSemMarcarAVolta() // F14-66
+    {
+        var tenant = EmTeste();
+
+        tenant.Prorrogar(new DateOnly(2026, 12, 15), SaoPaulo, Acao);
+
+        tenant.Situacao.Should().Be(SituacaoEmpresa.Teste);
+        // 16/12 00:00 em São Paulo (UTC−3).
+        tenant.FimDoTeste.Should().Be(new DateTimeOffset(2026, 12, 16, 3, 0, 0, TimeSpan.Zero));
+        tenant.FimDoTeste!.Value.Offset.Should().Be(TimeSpan.Zero);
+        Tenant.UltimoDiaDoTeste(tenant.FimDoTeste.Value, SaoPaulo).Should().Be(new DateOnly(2026, 12, 15));
+        tenant.GravavelDesde.Should().BeNull();
+    }
+
+    [Fact]
+    public void Prorrogar_OutroFuso_FimNaMeiaNoiteDele() // F14-66
+    {
+        var tenant = EmTeste();
+
+        tenant.Prorrogar(new DateOnly(2026, 12, 15), Manaus, Acao);
+
+        // 16/12 00:00 em Manaus (UTC−4).
+        tenant.FimDoTeste.Should().Be(new DateTimeOffset(2026, 12, 16, 4, 0, 0, TimeSpan.Zero));
+    }
+
+    [Fact]
+    public void Prorrogar_Vencida_VoltaAoTesteForaDoSomenteLeituraEGravaAVolta() // F14-66, F14-24
+    {
+        var tenant = Vencida();
+
+        tenant.Prorrogar(new DateOnly(2026, 12, 15), SaoPaulo, Acao);
+
+        tenant.Situacao.Should().Be(SituacaoEmpresa.Teste);
+        tenant.FimDoTeste.Should().Be(new DateTimeOffset(2026, 12, 16, 3, 0, 0, TimeSpan.Zero));
+        tenant.SomenteLeituraDesde.Should().BeNull();
+        tenant.SomenteLeitura.Should().BeFalse();
+        tenant.GravavelDesde.Should().Be(Acao);
+    }
+
+    [Fact]
+    public void Prorrogar_AteHoje_ValeAteOFimDoDia() // F14-66 (borda)
+    {
+        var tenant = Vencida();
+        var hoje = Tenant.DiaCivil(Acao, SaoPaulo);
+
+        tenant.Prorrogar(hoje, SaoPaulo, Acao);
+
+        tenant.Situacao.Should().Be(SituacaoEmpresa.Teste);
+        tenant.FimDoTeste.Should().BeAfter(Acao);
+    }
+
+    [Fact]
+    public void Prorrogar_DataPassada_LancaTransicaoInvalidaENaoMuda() // F14-69
+    {
+        var tenant = Vencida();
+        var ontem = Tenant.DiaCivil(Acao, SaoPaulo).AddDays(-1);
+
+        var acao = () => tenant.Prorrogar(ontem, SaoPaulo, Acao);
+
+        acao.Should().Throw<TransicaoInvalidaException>().WithMessage("*hoje ou uma data futura*");
+        tenant.Situacao.Should().Be(SituacaoEmpresa.Vencida);
+        tenant.FimDoTeste.Should().Be(FimDoTeste);
+        tenant.SomenteLeituraDesde.Should().Be(FimDoTeste);
+        tenant.GravavelDesde.Should().BeNull();
+    }
+
+    [Fact]
+    public void Prorrogar_AtivaOuCancelada_LancaTransicaoInvalida() // F14-69
+    {
+        foreach (var tenant in new[] { Ativa(), Cancelada() })
+        {
+            var situacao = tenant.Situacao;
+
+            var acao = () => tenant.Prorrogar(new DateOnly(2026, 12, 15), SaoPaulo, Acao);
+
+            acao.Should().Throw<TransicaoInvalidaException>();
+            tenant.Situacao.Should().Be(situacao);
+        }
+    }
+
+    [Fact]
+    public void Cancelar_EmTesteOuAtiva_SoLeituraDesdeOCancelamento() // F14-67
+    {
+        foreach (var tenant in new[] { EmTeste(), Ativa() })
+        {
+            tenant.Cancelar(Acao);
+
+            tenant.Situacao.Should().Be(SituacaoEmpresa.Cancelada);
+            tenant.SomenteLeitura.Should().BeTrue();
+            tenant.CanceladaEm.Should().Be(Acao);
+            tenant.SomenteLeituraDesde.Should().Be(Acao);
+            tenant.ExpurgoPrevistoEm(TimeSpan.FromDays(30)).Should().Be(Acao + TimeSpan.FromDays(30));
+        }
+    }
+
+    [Fact]
+    public void Cancelar_Vencida_MantemOInicioDoSomenteLeituraEGravaOCancelamento() // F14-67 (design §1.2)
+    {
+        var tenant = Vencida();
+
+        tenant.Cancelar(Acao);
+
+        tenant.Situacao.Should().Be(SituacaoEmpresa.Cancelada);
+        tenant.CanceladaEm.Should().Be(Acao);
+        tenant.SomenteLeituraDesde.Should().Be(FimDoTeste, "o só leitura conta do vencimento");
+        tenant.ExpurgoPrevistoEm(TimeSpan.FromDays(30)).Should().Be(FimDoTeste + TimeSpan.FromDays(30));
+    }
+
+    [Fact]
+    public void Cancelar_JaCancelada_LancaTransicaoInvalidaENaoMudaAData() // F14-69
+    {
+        var tenant = Cancelada();
+        var canceladaEm = tenant.CanceladaEm;
+
+        var acao = () => tenant.Cancelar(Acao);
+
+        acao.Should().Throw<TransicaoInvalidaException>().WithMessage("*já está cancelada*");
+        tenant.CanceladaEm.Should().Be(canceladaEm);
+    }
+
+    [Fact]
+    public void Reativar_Cancelada_FicaAtivaForaDoSomenteLeituraEGravaAVolta() // F14-68, F14-24
+    {
+        var tenant = Cancelada();
+
+        tenant.Reativar(Acao);
+
+        tenant.Situacao.Should().Be(SituacaoEmpresa.Ativa);
+        tenant.SomenteLeitura.Should().BeFalse();
+        tenant.SomenteLeituraDesde.Should().BeNull();
+        tenant.CanceladaEm.Should().BeNull();
+        tenant.FimDoTeste.Should().BeNull();
+        tenant.ExpurgoPrevistoEm(TimeSpan.FromDays(30)).Should().BeNull();
+        tenant.GravavelDesde.Should().Be(Acao);
+    }
+
+    [Fact]
+    public void Reativar_ForaDeCancelada_LancaTransicaoInvalida() // F14-69
+    {
+        foreach (var tenant in new[] { EmTeste(), Ativa(), Vencida() })
+        {
+            var situacao = tenant.Situacao;
+
+            var acao = () => tenant.Reativar(Acao);
+
+            acao.Should().Throw<TransicaoInvalidaException>().WithMessage("*Só uma empresa cancelada*");
+            tenant.Situacao.Should().Be(situacao);
+        }
+    }
+
+    [Fact]
+    public void Transicoes_EmpresaDeDemonstracao_TodasRecusadas() // F14-69
+    {
+        var tenant = EmTeste();
+        Definir(tenant, nameof(Tenant.Situacao), SituacaoEmpresa.Ativa);
+        Definir(tenant, nameof(Tenant.Demonstracao), true);
+        Action[] acoes =
+        [
+            () => tenant.Ativar(Acao),
+            () => tenant.Prorrogar(new DateOnly(2026, 12, 15), SaoPaulo, Acao),
+            () => tenant.Cancelar(Acao),
+            () => tenant.Reativar(Acao),
+        ];
+
+        foreach (var acao in acoes)
+            acao.Should().Throw<TransicaoInvalidaException>().WithMessage("*demonstração*");
+        tenant.Situacao.Should().Be(SituacaoEmpresa.Ativa);
+        tenant.CanceladaEm.Should().BeNull();
+    }
+
+    [Fact]
+    public void Criar_NaoEhDemonstracao()
+    {
+        EmTeste().Demonstracao.Should().BeFalse();
+    }
+
     private static Tenant EmTeste() => Tenant.Criar(Guid.NewGuid(), "Estúdio", Agora, Criador, TimeSpan.FromDays(30));
 
     private static void Definir(Tenant tenant, string propriedade, object? valor) =>

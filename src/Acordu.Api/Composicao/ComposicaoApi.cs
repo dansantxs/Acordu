@@ -95,6 +95,12 @@ internal static class ComposicaoApi
         services.AddSingleton(OperadoresNebrys.DaConfiguracao(configuracao["Nebrys:Operadores"]));
         // Consultas da área (F14k): dependem do prazo do expurgo acima, que só a Api lê da configuração.
         services.AddScoped<IConsultasNebrys, Infrastructure.Persistence.Nebrys.ConsultasNebrys>();
+        // Ações da área (F14l): o operador da requisição (preenchido pela barreira), a trilha sem tenant e a mudança de
+        // situação num escopo próprio com o tenant fixado (ADR 0014, itens 5 e 6).
+        services.AddScoped<OperadorDaRequisicao>();
+        services.AddScoped<IOperadorAtual>(sp => sp.GetRequiredService<OperadorDaRequisicao>());
+        services.AddScoped<ITrilhaDaOperacao, Infrastructure.Persistence.Auditoria.TrilhaDaOperacao>();
+        services.AddScoped<ISituacaoDasEmpresas, Infrastructure.Persistence.Nebrys.SituacaoDasEmpresas>();
         // Textos legais publicados (D16): padrão desligado; valor presente e inválido impede a subida (F14-121).
         services.AddSingleton(OpcoesTextosLegais.DaConfiguracao(configuracao["TextosLegais:Publicados"]));
         AdicionarEmail(services, configuracao);

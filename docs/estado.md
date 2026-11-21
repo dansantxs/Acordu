@@ -1,10 +1,10 @@
 # Acordu — Estado
 
-Visão geral curta, atualizada por cada PR (`docs/processo.md` §1). O histórico está no git, nos PRs e no registro dos designs. Atualizado em 18/11/2026 (F14k, área da Nebrys).
+Visão geral curta, atualizada por cada PR (`docs/processo.md` §1). O histórico está no git, nos PRs e no registro dos designs. Atualizado em 21/11/2026 (F14l, ações da área da Nebrys).
 
 ## Em revisão
 
-- **F14k — área da Nebrys** (#182): sessão de operação, barreira `404` e lista e detalhe das empresas, sem dado de negócio. Para usar: secret `API_NEBRYS_OPERADORES` com o e-mail de uma conta confirmada e um deploy. F14h (#202), F14i (#199) e F14j (#200) na `main`: no primeiro diário depois do deploy, as empresas anteriores ao F14 são apagadas e as VENCIDA com expurgo à frente recebem o aviso do vencimento atrasado; o aceite fica escondido até a `TEXTOS_LEGAIS_PUBLICADOS`.
+- **F14l — ações da área da Nebrys** (#182): ativar, prorrogar, cancelar e reativar empresa com `If-Match`, liberação de documento e trilha `nebrys.*`, só pela API (as telas vêm no F14m). Migration `DemonstracaoDaEmpresa` (aditiva). F14k (#203) na `main`: para usar a área, secret `API_NEBRYS_OPERADORES` com o e-mail de uma conta confirmada e um deploy.
 
 ## Marco em andamento
 
@@ -17,7 +17,7 @@ Visão geral curta, atualizada por cada PR (`docs/processo.md` §1). O históric
 
 ## Próximos passos
 
-1. Merge do F14k. Depois o `/marco F14 182` segue pelo F14l (ações de situação com `If-Match`, liberação de documento, trilha `nebrys.*`). Ligar `TEXTOS_LEGAIS_PUBLICADOS` só depois da #194, num deploy fora do horário de uso (deploy-ci §7). Email Routing de `contato@acordu.app.br` ativo e testado pelo Daniel em 16/11.
+1. Merge do F14l. Depois o `/marco F14 182` segue pelo F14m (front da área da Nebrys). Ligar `TEXTOS_LEGAIS_PUBLICADOS` só depois da #194, num deploy fora do horário de uso (deploy-ci §7). Email Routing de `contato@acordu.app.br` ativo e testado pelo Daniel em 16/11.
 2. Conferências que faltam da produção:
    - deploy: F8-27 e F8-28 (rollback por migration e por health), F8-29 (jobs do Scheduler), hostname do Turnstile;
    - backup: F8-30 e F13-32 na primeira madrugada com o `BACKUP_ATIVO`; F8-31 (restore) antes do primeiro cliente;

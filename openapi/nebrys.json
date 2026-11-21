@@ -115,6 +115,158 @@
           }
         }
       }
+    },
+    "/api/v1/nebrys/empresas/{id}/ativacao": {
+      "post": {
+        "tags": [
+          "Nebrys"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EmpresaNebrysDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/nebrys/empresas/{id}/prorrogacao": {
+      "post": {
+        "tags": [
+          "Nebrys"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ProrrogacaoTesteRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EmpresaNebrysDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/nebrys/empresas/{id}/cancelamento": {
+      "post": {
+        "tags": [
+          "Nebrys"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EmpresaNebrysDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/nebrys/empresas/{id}/reativacao": {
+      "post": {
+        "tags": [
+          "Nebrys"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EmpresaNebrysDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/nebrys/documentos/liberacao": {
+      "post": {
+        "tags": [
+          "Nebrys"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LiberacaoDocumentoRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "No Content"
+          }
+        }
+      }
     }
   },
   "components": {
@@ -306,6 +458,35 @@
               "string"
             ],
             "format": "int32"
+          }
+        }
+      },
+      "LiberacaoDocumentoRequest": {
+        "required": [
+          "documento"
+        ],
+        "type": "object",
+        "properties": {
+          "documento": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "ProrrogacaoTesteRequest": {
+        "required": [
+          "ate"
+        ],
+        "type": "object",
+        "properties": {
+          "ate": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date"
           }
         }
       },

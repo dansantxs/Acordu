@@ -52,4 +52,46 @@ public sealed class DocumentoTesteTests
         acao.Should().Throw<TransicaoInvalidaException>();
         registro.LiberacaoUsadaEm.Should().BeNull();
     }
+
+    [Fact] // F14-71
+    public void Liberar_SemLiberacao_FicaDisponivelComAData()
+    {
+        var registro = DocumentoTeste.Registrar(Hash, Agora);
+
+        registro.Liberar(new DateTimeOffset(2026, 11, 20, 9, 0, 0, TimeSpan.FromHours(-3)));
+
+        registro.LiberadoEm.Should().Be(new DateTimeOffset(2026, 11, 20, 12, 0, 0, TimeSpan.Zero));
+        registro.LiberadoEm!.Value.Offset.Should().Be(TimeSpan.Zero);
+        registro.LiberacaoUsadaEm.Should().BeNull();
+        registro.LiberacaoDisponivel.Should().BeTrue();
+        registro.PrimeiroTesteEm.Should().Be(Agora, "a liberação não muda o primeiro teste");
+    }
+
+    [Fact] // F14-71, F14-59
+    public void Liberar_DepoisDoUso_LiberacaoNovaParaUmCadastro()
+    {
+        var registro = DocumentoTeste.Registrar(Hash, Agora);
+        registro.Liberar(Agora.AddDays(1));
+        registro.UsarLiberacao(Agora.AddDays(2));
+
+        registro.Liberar(Agora.AddDays(3));
+
+        registro.LiberadoEm.Should().Be(Agora.AddDays(3));
+        registro.LiberacaoUsadaEm.Should().BeNull();
+        registro.LiberacaoDisponivel.Should().BeTrue();
+        registro.UsarLiberacao(Agora.AddDays(4));
+        registro.LiberacaoDisponivel.Should().BeFalse("cada liberação vale para um cadastro só");
+    }
+
+    [Fact] // F14-71
+    public void Liberar_ComLiberacaoAindaNaoUsada_LancaTransicaoInvalidaENaoMuda()
+    {
+        var registro = DocumentoTeste.Registrar(Hash, Agora);
+        registro.Liberar(Agora.AddDays(1));
+
+        var acao = () => registro.Liberar(Agora.AddDays(2));
+
+        acao.Should().Throw<TransicaoInvalidaException>();
+        registro.LiberadoEm.Should().Be(Agora.AddDays(1));
+    }
 }

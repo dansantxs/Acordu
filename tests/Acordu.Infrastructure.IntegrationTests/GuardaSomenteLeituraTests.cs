@@ -185,4 +185,84 @@ public sealed class GuardaSomenteLeituraTests(BancoFixture banco)
 
         await ((Func<Task>)(() => db.SaveChangesAsync())).Should().NotThrowAsync();
     }
+
+    // ---------- Mudança de situação num escopo marcado (ADR 0015, item 2; F14l) ----------
+
+    [Theory] // F14-65, F14-68
+    [MemberData(nameof(SoLeitura))]
+    public async Task SaveChanges_MudancaDeSituacaoNoEscopoMarcado_GravaNaEmpresaSoLeitura(SituacaoEmpresa situacao)
+    {
+        var (tenant, _) = await EmpresaAsync(situacao);
+        var agora = Dados.Agora.AddDays(40);
+
+        await using (var db = banco.DaEquipe(tenant))
+        {
+            db.PermitirMudancaDeSituacao();
+            var empresa = await db.Tenants.SingleAsync();
+            if (situacao == SituacaoEmpresa.Cancelada)
+                empresa.Reativar(agora);
+            else
+                empresa.Ativar(agora);
+            await ((Func<Task>)(() => db.SaveChangesAsync())).Should().NotThrowAsync();
+        }
+
+        await using var leitura = banco.DaEquipe(tenant);
+        var gravada = await leitura.Tenants.AsNoTracking().SingleAsync();
+        gravada.Situacao.Should().Be(SituacaoEmpresa.Ativa);
+        gravada.GravavelDesde.Should().Be(agora.ToUniversalTime());
+    }
+
+    [Fact]
+    public async Task SaveChanges_MudancaDeSituacaoSemOEscopoMarcado_Recusa()
+    {
+        var (tenant, _) = await EmpresaAsync(SituacaoEmpresa.Vencida);
+
+        await using (var db = banco.DaEquipe(tenant))
+        {
+            (await db.Tenants.SingleAsync()).Ativar(Dados.Agora.AddDays(40));
+            await ((Func<Task>)(() => db.SaveChangesAsync())).Should().ThrowAsync<EmpresaSomenteLeituraException>();
+        }
+
+        await using var leitura = banco.DaEquipe(tenant);
+        (await leitura.Tenants.AsNoTracking().SingleAsync()).Situacao.Should().Be(SituacaoEmpresa.Vencida);
+    }
+
+    [Fact]
+    public async Task SaveChanges_EscopoMarcadoComOutroCampoDoTenant_Recusa()
+    {
+        var (tenant, _) = await EmpresaAsync(SituacaoEmpresa.Vencida);
+
+        await using (var db = banco.DaEquipe(tenant))
+        {
+            db.PermitirMudancaDeSituacao();
+            var empresa = await db.Tenants.SingleAsync();
+            empresa.Ativar(Dados.Agora.AddDays(40));
+            empresa.Renomear("Outro nome");
+            await ((Func<Task>)(() => db.SaveChangesAsync())).Should().ThrowAsync<EmpresaSomenteLeituraException>();
+        }
+
+        await using var leitura = banco.DaEquipe(tenant);
+        var gravada = await leitura.Tenants.AsNoTracking().SingleAsync();
+        gravada.Situacao.Should().Be(SituacaoEmpresa.Vencida);
+        gravada.Nome.Should().Be("Estúdio Traço");
+    }
+
+    [Fact]
+    public async Task SaveChanges_EscopoMarcadoComDadoDaEmpresa_RecusaTudo()
+    {
+        var (tenant, _) = await EmpresaAsync(SituacaoEmpresa.Cancelada);
+        var novo = Dados.Cliente(tenant, "Mercado Central");
+
+        await using (var db = banco.DaEquipe(tenant))
+        {
+            db.PermitirMudancaDeSituacao();
+            (await db.Tenants.SingleAsync()).Reativar(Dados.Agora.AddDays(40));
+            db.Add(novo);
+            await ((Func<Task>)(() => db.SaveChangesAsync())).Should().ThrowAsync<EmpresaSomenteLeituraException>();
+        }
+
+        await using var leitura = banco.DaEquipe(tenant);
+        (await leitura.Clientes.AnyAsync(c => c.Id == novo.Id)).Should().BeFalse();
+        (await leitura.Tenants.AsNoTracking().SingleAsync()).Situacao.Should().Be(SituacaoEmpresa.Cancelada);
+    }
 }

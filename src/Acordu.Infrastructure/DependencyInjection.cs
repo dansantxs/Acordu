@@ -132,6 +132,8 @@ public static class DependencyInjection
         services.AddIdentityCore<Usuario>(OpcoesIdentidade.Configurar)
             .AddEntityFrameworkStores<AcorduDbContext>();
         services.AddScoped<Persistence.Documentos.RegistroDocumentos>();
+        // A liberação da área da Nebrys (F14l) lê o mesmo registro, pelo HMAC.
+        services.AddScoped<Application.Nebrys.IDocumentosTeste>(sp => sp.GetRequiredService<Persistence.Documentos.RegistroDocumentos>());
         services.AddScoped<Persistence.Aceites.RegistroAceites>();
         services.AddScoped<IServicoAutenticacao, ServicoAutenticacao>();
         // Sessão de operação da Nebrys (ADR 0014): depende de OperadoresNebrys, que a Api lê da configuração.

@@ -30,6 +30,22 @@ public sealed class AcorduDbContext : IdentityUserContext<Usuario, Guid>
 {
     private static readonly string[] FiltroTenant = [FiltrosGlobais.Tenant];
 
+    /// <summary>
+    /// Campos da situação do <see cref="Tenant"/> (modelo §4.11.3): os únicos que a mudança de situação num escopo marcado
+    /// (<see cref="PermitirMudancaDeSituacao"/>) grava numa empresa só leitura.
+    /// </summary>
+    private static readonly HashSet<string> CamposDaSituacao = new(StringComparer.Ordinal)
+    {
+        nameof(Tenant.Situacao),
+        nameof(Tenant.FimDoTeste),
+        nameof(Tenant.SomenteLeituraDesde),
+        nameof(Tenant.CanceladaEm),
+        nameof(Tenant.GravavelDesde),
+    };
+
+    /// <summary>Escopo marcado para a mudança de situação (ADR 0015, item 2).</summary>
+    private bool _mudancaDeSituacao;
+
     private readonly ITenantContext _contexto;
 
     /// <summary>
@@ -46,6 +62,14 @@ public sealed class AcorduDbContext : IdentityUserContext<Usuario, Guid>
     }
 
     public DbSet<Tenant> Tenants => Set<Tenant>();
+
+    /// <summary>
+    /// Marca o escopo para a mudança de situação da empresa (ADR 0015, item 2; ações da área da Nebrys, F14l): a guarda de
+    /// só leitura deixa passar o <see cref="Tenant"/> alterado só nos campos da situação, para uma empresa VENCIDA ou
+    /// CANCELADA poder voltar a gravar. Todo o resto continua com as duas guardas, inclusive o próprio <see cref="Tenant"/>
+    /// com qualquer outro campo mudado. Só quem muda a situação, num escopo próprio com o tenant fixado, chama.
+    /// </summary>
+    public void PermitirMudancaDeSituacao() => _mudancaDeSituacao = true;
 
     public DbSet<Papel> Papeis => Set<Papel>();
 
@@ -314,6 +338,9 @@ public sealed class AcorduDbContext : IdentityUserContext<Usuario, Guid>
                 continue;
             }
 
+            if (_mudancaDeSituacao && entrada is { Entity: Tenant, State: EntityState.Modified } && SoASituacao(entrada))
+                continue;
+
             if (ClassificacaoSomenteLeitura.DaPessoaOuRastro.Contains(Raiz(entrada.Metadata).ClrType))
                 continue;
             if (TenantDe(entrada, entradas) is { } tenant)
@@ -323,6 +350,10 @@ public sealed class AcorduDbContext : IdentityUserContext<Usuario, Guid>
         tenants.ExceptWith(novos);
         return tenants;
     }
+
+    /// <summary>A alteração do <see cref="Tenant"/> mexe só nos campos da situação.</summary>
+    private static bool SoASituacao(EntityEntry entrada) =>
+        entrada.Properties.Where(p => p.IsModified).All(p => CamposDaSituacao.Contains(p.Metadata.Name));
 
     private static IReadOnlyEntityType Raiz(IReadOnlyEntityType tipo)
     {

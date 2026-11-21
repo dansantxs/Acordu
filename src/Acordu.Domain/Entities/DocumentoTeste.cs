@@ -50,6 +50,19 @@ public sealed class DocumentoTeste
     }
 
     /// <summary>
+    /// A Nebrys libera um novo teste para o documento (F14-71, F14-108): o próximo cadastro com ele passa (F14-59). Uma
+    /// liberação já usada não volta sozinha (decisão do Daniel de 18/11, F14-104); só uma liberação nova a substitui. Com
+    /// uma liberação ainda não usada, não há o que liberar → <see cref="TransicaoInvalidaException"/>.
+    /// </summary>
+    public void Liberar(DateTimeOffset agora)
+    {
+        if (LiberacaoDisponivel)
+            throw new TransicaoInvalidaException("Este documento já tem uma liberação para novo teste ainda não usada.");
+        LiberadoEm = agora.ToUniversalTime();
+        LiberacaoUsadaEm = null;
+    }
+
+    /// <summary>
     /// Um cadastro novo usa a liberação (F14-59): ela fica usada e não vale para outro. Sem liberação disponível →
     /// <see cref="TransicaoInvalidaException"/>.
     /// </summary>
