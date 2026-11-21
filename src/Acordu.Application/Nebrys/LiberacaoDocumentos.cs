@@ -1,5 +1,6 @@
 using Acordu.Application.Abstractions;
 using Acordu.Application.Auditoria;
+using Acordu.Application.Common;
 using Acordu.Domain.Common;
 using Acordu.Domain.Exceptions;
 
@@ -45,7 +46,7 @@ public sealed class LiberacaoDocumentos
     {
         ArgumentNullException.ThrowIfNull(corpo);
         var documento = Documento.Normalizar(corpo.Documento, CampoDocumento)
-            ?? throw new ArgumentException("Informe o CPF ou CNPJ.", CampoDocumento);
+            ?? throw ErroDeCampo.Criar(CampoDocumento, "Informe o CPF ou CNPJ.");
         var registro = await _documentos.ObterAsync(documento, cancellationToken)
             ?? throw new TransicaoInvalidaException(
                 "Este CPF ou CNPJ não teve teste no Acordu: o cadastro com ele já passa, sem liberação.");

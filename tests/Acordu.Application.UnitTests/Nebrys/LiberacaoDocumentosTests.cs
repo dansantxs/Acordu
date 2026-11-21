@@ -15,6 +15,7 @@ public sealed class LiberacaoDocumentosTests
 {
     private static readonly DateTimeOffset Agora = new(2026, 11, 20, 15, 0, 0, TimeSpan.Zero);
     private const string Cpf = "52998224725";
+    private static readonly JsonSerializerOptions ComoATrilha = new(JsonSerializerDefaults.Web);
 
     [Fact]
     public async Task Liberar_DocumentoComPontuacao_AchaPeloNormalizadoLiberaETrilhaSemODocumento() // F14-71, F14-108
@@ -33,7 +34,7 @@ public sealed class LiberacaoDocumentosTests
         acao.Should().Be(AcoesAuditoria.NebrysDocumentoLiberacao);
         alvoTipo.Should().Be("documento");
         alvoId.Should().BeNull();
-        var json = JsonSerializer.Serialize(dados, new JsonSerializerOptions(JsonSerializerDefaults.Web));
+        var json = JsonSerializer.Serialize(dados, ComoATrilha);
         json.Should().NotContain(Cpf).And.NotContain("529.982").And.NotContain(registro.Hash);
         var elemento = JsonDocument.Parse(json).RootElement;
         elemento.GetProperty("antes").GetProperty("liberadoEm").ValueKind.Should().Be(JsonValueKind.Null);

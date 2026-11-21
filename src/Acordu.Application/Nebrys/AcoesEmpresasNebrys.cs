@@ -1,4 +1,5 @@
 using Acordu.Application.Auditoria;
+using Acordu.Application.Common;
 using Acordu.Domain.Entities;
 using Acordu.Domain.Enums;
 
@@ -38,7 +39,7 @@ public sealed class AcoesEmpresasNebrys
         Guid empresaId, ProrrogacaoTesteRequest corpo, string? versaoEsperada, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(corpo);
-        var ate = corpo.Ate ?? throw new ArgumentException("Informe o último dia do teste.", CampoAte);
+        var ate = corpo.Ate ?? throw ErroDeCampo.Criar(CampoAte, "Informe o último dia do teste.");
         return AlterarAsync(
             empresaId, versaoEsperada, AcoesAuditoria.NebrysEmpresaProrrogacao, (t, fuso, agora) => t.Prorrogar(ate, fuso, agora),
             cancellationToken);
