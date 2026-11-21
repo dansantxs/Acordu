@@ -94,11 +94,17 @@ public sealed class Tenant
     public DateTimeOffset? CanceladaEm { get; private set; }
 
     /// <summary>
-    /// Instante da última saída do só leitura (ativação, prorrogação ou reativação, que chegam no F14l); nulo se a empresa
-    /// nunca voltou do só leitura. As recorrências não geram as datas anteriores ao dia dele (F14-24): o que passou
-    /// enquanto ela estava só leitura não é gerado de forma retroativa.
+    /// Instante da última saída do só leitura (<see cref="Ativar"/> ou <see cref="Prorrogar"/> de uma VENCIDA, ou
+    /// <see cref="Reativar"/>); nulo se a empresa nunca voltou do só leitura. As recorrências não geram as datas anteriores
+    /// ao dia dele (F14-24): o que passou enquanto ela estava só leitura não é gerado de forma retroativa.
     /// </summary>
     public DateTimeOffset? GravavelDesde { get; private set; }
+
+    /// <summary>
+    /// Empresa de demonstração (RF-NEB-02; design do F14, D1 a1): ATIVA e fora do ciclo de situação, então nenhuma transição
+    /// vale para ela (F14-69). Quem a cria e a marca é a área da Nebrys (F14s).
+    /// </summary>
+    public bool Demonstracao { get; private set; }
 
     /// <summary>
     /// CPF ou CNPJ de quem contratou o teste (RF-AUT-09, F14g), normalizado (<see cref="Common.Documento"/>). Fica só aqui,
@@ -159,6 +165,108 @@ public sealed class Tenant
 
         Situacao = SituacaoEmpresa.Vencida;
         SomenteLeituraDesde = agora.ToUniversalTime();
+    }
+
+    /// <summary>
+    /// TESTE ou VENCIDA → ATIVA (área da Nebrys, F14-65): sem fim de teste e fora do só leitura. Vinda da VENCIDA, grava
+    /// <see cref="GravavelDesde"/> com <paramref name="agora"/> (as recorrências não geram as datas do só leitura, F14-24).
+    /// </summary>
+    public void Ativar(DateTimeOffset agora)
+    {
+        ExigirForaDaDemonstracao();
+        if (Situacao is not (SituacaoEmpresa.Teste or SituacaoEmpresa.Vencida))
+        {
+            throw new TransicaoInvalidaException(Situacao == SituacaoEmpresa.Ativa
+                ? "A empresa já está ativa."
+                : "Uma empresa cancelada volta pela reativação, não pela ativação.");
+        }
+
+        SairDoSomenteLeitura(agora);
+        Situacao = SituacaoEmpresa.Ativa;
+        FimDoTeste = null;
+    }
+
+    /// <summary>
+    /// TESTE ou VENCIDA → TESTE com o novo fim (F14-66). Prorrogar até o dia <paramref name="ultimoDia"/> grava o início do
+    /// dia seguinte no <paramref name="fuso"/> da empresa: o teste vale o último dia inteiro (design do F14, §1.2). O novo
+    /// fim precisa estar à frente de <paramref name="agora"/>: um dia já passado é recusado (F14-69). Vinda da VENCIDA, sai
+    /// do só leitura e grava <see cref="GravavelDesde"/> (F14-24).
+    /// </summary>
+    public void Prorrogar(DateOnly ultimoDia, TimeZoneInfo fuso, DateTimeOffset agora)
+    {
+        ArgumentNullException.ThrowIfNull(fuso);
+        ExigirForaDaDemonstracao();
+        if (Situacao is not (SituacaoEmpresa.Teste or SituacaoEmpresa.Vencida))
+            throw new TransicaoInvalidaException("Só se prorroga o teste de uma empresa em teste ou vencida.");
+
+        var novoFim = InicioDoDia(ultimoDia.AddDays(1), fuso);
+        if (novoFim <= agora)
+            throw new TransicaoInvalidaException("O teste só pode ser prorrogado até hoje ou uma data futura.");
+
+        SairDoSomenteLeitura(agora);
+        Situacao = SituacaoEmpresa.Teste;
+        FimDoTeste = novoFim;
+    }
+
+    /// <summary>
+    /// TESTE, ATIVA ou VENCIDA → CANCELADA (F14-67): só leitura, com <see cref="CanceladaEm"/> = <paramref name="agora"/>.
+    /// Vinda da VENCIDA, o só leitura continua contando do vencimento (<see cref="SomenteLeituraDesde"/> fica, e com ele a
+    /// data do expurgo); das demais, começa agora.
+    /// </summary>
+    public void Cancelar(DateTimeOffset agora)
+    {
+        ExigirForaDaDemonstracao();
+        if (Situacao == SituacaoEmpresa.Cancelada)
+            throw new TransicaoInvalidaException("A empresa já está cancelada.");
+
+        var instante = agora.ToUniversalTime();
+        if (Situacao != SituacaoEmpresa.Vencida)
+            SomenteLeituraDesde = instante;
+        Situacao = SituacaoEmpresa.Cancelada;
+        CanceladaEm = instante;
+    }
+
+    /// <summary>
+    /// CANCELADA → ATIVA (F14-68): sai do só leitura, sem as datas do cancelamento nem fim de teste, e grava
+    /// <see cref="GravavelDesde"/>. A empresa já expurgada não existe mais: quem chama responde 404 (F14-106).
+    /// </summary>
+    public void Reativar(DateTimeOffset agora)
+    {
+        ExigirForaDaDemonstracao();
+        if (Situacao != SituacaoEmpresa.Cancelada)
+            throw new TransicaoInvalidaException("Só uma empresa cancelada é reativada.");
+
+        SairDoSomenteLeitura(agora);
+        Situacao = SituacaoEmpresa.Ativa;
+        FimDoTeste = null;
+        CanceladaEm = null;
+    }
+
+    /// <summary>Volta a gravar: o só leitura atual acaba e, se havia um, a volta fica em <see cref="GravavelDesde"/>.</summary>
+    private void SairDoSomenteLeitura(DateTimeOffset agora)
+    {
+        if (!SomenteLeitura)
+            return;
+        SomenteLeituraDesde = null;
+        GravavelDesde = agora.ToUniversalTime();
+    }
+
+    private void ExigirForaDaDemonstracao()
+    {
+        if (Demonstracao)
+            throw new TransicaoInvalidaException("A empresa de demonstração fica fora do ciclo de situação.");
+    }
+
+    /// <summary>
+    /// Primeiro instante do <paramref name="dia"/> no fuso, em UTC. Num fuso em que a meia-noite não existe (início do
+    /// horário de verão), o primeiro instante válido do dia.
+    /// </summary>
+    private static DateTimeOffset InicioDoDia(DateOnly dia, TimeZoneInfo fuso)
+    {
+        var local = dia.ToDateTime(TimeOnly.MinValue, DateTimeKind.Unspecified);
+        while (fuso.IsInvalidTime(local))
+            local = local.AddMinutes(30);
+        return new DateTimeOffset(TimeZoneInfo.ConvertTimeToUtc(local, fuso), TimeSpan.Zero);
     }
 
     /// <summary>
