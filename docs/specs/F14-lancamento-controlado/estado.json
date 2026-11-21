@@ -5,7 +5,7 @@
   "branch": "feat/F14l-acoes-nebrys",
   "pr": {
     "id": "F14l",
-    "numero": null
+    "numero": 205
   },
   "feitos": [
     {
@@ -55,7 +55,7 @@
   ],
   "contadores": {
     "devolucoesNaEtapa": 0,
-    "rodadasNoPr": 0
+    "rodadasNoPr": 1
   },
   "verificacao": [
     "node scripts/conferir-specs.mjs",
@@ -82,11 +82,9 @@
     "G2_F14h": "PR #201 mesclado (18/11), sem comentário nas perguntas: valem as recomendações da D16 (variável única conferida no deploy.yml; ciente 404; pendentes sem migration; nenhum campo novo; convenção §4) e o risco da janela da virada aceito"
   },
   "ressalvas": [
-    "Testador: nada de .NET rodado na sessão (sem SDK); validação na CI",
     "Fuso diferente do padrão na prorrogação só com teste de unidade",
     "Sem teste do IP gravado na trilha das ações",
     "Marca Tenant.Demonstracao adiantada do F14s para o F14-69 (migration DemonstracaoDaEmpresa)",
-    "openapi/nebrys.json escrito à mão; regenerar se o ContratoOpenApiTests acusar diferença",
     "Revisor: liberação repetida e documento sem teste → 422; ativar/reativar limpam as datas do ciclo; prorrogar TESTE para antes do fim atual aceito (para o Daniel decidir)",
     "Revisor: sugere teste de arquitetura garantindo que só SituacaoDasEmpresas chama PermitirMudancaDeSituacao"
   ],

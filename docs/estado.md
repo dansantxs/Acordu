@@ -4,7 +4,7 @@ Visão geral curta, atualizada por cada PR (`docs/processo.md` §1). O históric
 
 ## Em revisão
 
-- **F14l — ações da área da Nebrys** (#182): ativar, prorrogar, cancelar e reativar empresa com `If-Match`, liberação de documento e trilha `nebrys.*`, só pela API (as telas vêm no F14m). Pede a migration `DemonstracaoDaEmpresa` (bot). F14k (#203) na `main`: para usar a área, secret `API_NEBRYS_OPERADORES` com o e-mail de uma conta confirmada e um deploy.
+- **F14l — ações da área da Nebrys** (#182): ativar, prorrogar, cancelar e reativar empresa com `If-Match`, liberação de documento e trilha `nebrys.*`, só pela API (as telas vêm no F14m). Migration `DemonstracaoDaEmpresa` (aditiva). F14k (#203) na `main`: para usar a área, secret `API_NEBRYS_OPERADORES` com o e-mail de uma conta confirmada e um deploy.
 
 ## Marco em andamento
 

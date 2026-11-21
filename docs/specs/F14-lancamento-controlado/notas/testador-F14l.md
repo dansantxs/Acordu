@@ -1,6 +1,6 @@
 # Notas do testador (F14l, etapa 5)
 
-Sem SDK .NET na sessão: nada foi compilado nem rodado; os testes .NET rodam só na CI. A migration `DemonstracaoDaEmpresa` ainda não existe: os testes com banco falham até o bot gerá-la.
+Devolução: corrigidos CA1305 (helper `Dia`) e o `using Microsoft.AspNetCore.TestHost`. Build 0 erros; funcionais 664 verdes; suíte completa: ver status.
 
 ## Cobertura
 Os cenários F14-65 a F14-69, F14-71 e F14-106 a F14-108 já tinham testes do desenvolvedor que verificam o "então" (Domain, Application, guarda na integração, funcionais). Coluna Teste da spec preenchida.

@@ -47,3 +47,11 @@ Premissas técnicas do F14l (F14-65 a F14-69, F14-71, F14-106 a F14-108; D1, D5,
 ## Documentos
 
 Contrato §11a e §17; segurança §5.5 e §8 (e o item da liberação em §4); modelo de domínio §4.11.3 e `DocumentoTeste`; read side §8a (uma nota: as ações respondem com a consulta do detalhe); convenções (área da Nebrys e a exceção de fuso do `Tenant.Prorrogar`). ERS sem mudança (RF-NEB-01 e RF-EMP-01 já descrevem as ações).
+
+## Devolução 1 (CI vermelha)
+
+- `CA2208` na Application: os dois erros de campo do corpo (`ate` na prorrogação, `documento` na liberação) passaram a usar `ErroDeCampo.Criar(campo, mensagem)`, o padrão da Application para `400 validacao` com o campo em `errors`. Mesma exceção (`ArgumentException` com `ParamName`), mesma resposta do contrato §17.
+- Testes do desenvolvedor corrigidos para o analisador: `DateOnly.ToString` com `InvariantCulture` (helper `Dia` em `AcoesNebrysTests`; CA1305) e `JsonSerializerOptions` em campo estático em `LiberacaoDocumentosTests` (CA1869).
+- Migration `DemonstracaoDaEmpresa` gerada localmente (convenções §1 aceita o comando do cabeçalho do workflow); `.github/migration-request` apagado. Só acrescenta `tenants.demonstracao boolean not null default false`.
+- OpenAPI regenerado com `ACORDU_ATUALIZAR_OPENAPI=1`: idêntico ao escrito à mão; `pnpm api:tipos` sem diferença.
+- Ficam 3 erros de compilação em linhas do testador em `AcoesNebrysTests` (CA1305 nas linhas 367 e 385; `GetTestClient` sem `using Microsoft.AspNetCore.TestHost;`, linha 408). Os funcionais rodaram numa cópia fora do repositório com essas 3 correções mínimas: 664 de 664 passaram.
