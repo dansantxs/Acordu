@@ -33,6 +33,8 @@ internal sealed class TenantConfiguration : IEntityTypeConfiguration<Tenant>
         builder.Property(t => t.CanceladaEm);
         // Última saída do só leitura (F14d lê nas recorrências; F14l grava nas ações da área da Nebrys).
         builder.Property(t => t.GravavelDesde);
+        // Marca da empresa de demonstração (D1 a1): fora das transições (F14l); criada pela área no F14s.
+        builder.Property(t => t.Demonstracao);
         // CPF ou CNPJ normalizado (F14g); anulável pelas empresas anteriores. O registro global guarda só o HMAC (D8).
         builder.Property(t => t.Documento).HasMaxLength(Tenant.TamanhoDocumento);
         // Marcas dos avisos de situação aos Donos (F14j, design D7), gravadas pelo passo avisos-situacao do diário.

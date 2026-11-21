@@ -1,4 +1,5 @@
 using Acordu.Application.Cadastro;
+using Acordu.Application.Nebrys;
 using Acordu.Domain.Entities;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
@@ -33,11 +34,12 @@ internal sealed class DocumentoTesteConfiguration : IEntityTypeConfiguration<Doc
 }
 
 /// <summary>
-/// Registro global de "um teste por documento" (RF-AUT-09, design do F14, D8), usado pelo cadastro: sem filtro de tenant
-/// (não é dado do prestador) e gravado na mesma transação da empresa nova, pelo <c>SaveChanges</c> do cadastro. Não guarda
-/// o documento: só o HMAC dele (<see cref="ProtecaoDocumento"/>).
+/// Registro global de "um teste por documento" (RF-AUT-09, design do F14, D8), usado pelo cadastro e pela liberação da
+/// área da Nebrys (<see cref="IDocumentosTeste"/>, F14l): sem filtro de tenant (não é dado do prestador) e gravado na
+/// mesma transação de quem chama (a empresa nova do cadastro; a trilha da liberação). Não guarda o documento: só o HMAC
+/// dele (<see cref="ProtecaoDocumento"/>).
 /// </summary>
-public sealed class RegistroDocumentos
+public sealed class RegistroDocumentos : IDocumentosTeste
 {
     private const string ChavePrimaria = "pk_documentos_teste";
 
@@ -72,6 +74,17 @@ public sealed class RegistroDocumentos
 
         registro.UsarLiberacao(agora);
         return true;
+    }
+
+    /// <summary>
+    /// O registro do documento (já normalizado), achado pelo HMAC e rastreado, para a liberação da Nebrys (F14-71, F14-108):
+    /// vale também para o documento de uma empresa já expurgada, da qual só ficou esta linha. Nulo se o documento nunca
+    /// teve teste. O documento digitado não é guardado.
+    /// </summary>
+    public Task<DocumentoTeste?> ObterAsync(string documentoNormalizado, CancellationToken cancellationToken = default)
+    {
+        var hash = _protecao.Hash(documentoNormalizado);
+        return _db.Set<DocumentoTeste>().SingleOrDefaultAsync(d => d.Hash == hash, cancellationToken);
     }
 
     /// <summary>
