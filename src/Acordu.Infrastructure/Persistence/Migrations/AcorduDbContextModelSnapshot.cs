@@ -1231,6 +1231,10 @@ namespace Acordu.Infrastructure.Persistence.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("criado_por_usuario_id");
 
+                    b.Property<bool>("Demonstracao")
+                        .HasColumnType("boolean")
+                        .HasColumnName("demonstracao");
+
                     b.Property<int>("DiasFechamentoAutomatico")
                         .HasColumnType("integer")
                         .HasColumnName("dias_fechamento_automatico");
