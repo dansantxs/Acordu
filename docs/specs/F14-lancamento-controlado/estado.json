@@ -2,9 +2,9 @@
   "marco": "F14",
   "issue": 182,
   "etapa": "AGUARDANDO_MERGE",
-  "branch": "feat/F14k-area-nebrys",
+  "branch": "feat/F14l-acoes-nebrys",
   "pr": {
-    "id": "F14k",
+    "id": "F14l",
     "numero": null
   },
   "feitos": [
@@ -47,11 +47,15 @@
     {
       "id": "F14h",
       "pr": 202
+    },
+    {
+      "id": "F14k",
+      "pr": 203
     }
   ],
   "contadores": {
     "devolucoesNaEtapa": 0,
-    "rodadasNoPr": 1
+    "rodadasNoPr": 0
   },
   "verificacao": [
     "node scripts/conferir-specs.mjs",
@@ -72,17 +76,22 @@
       "PR #195 mesclado (F14g)",
       "PR #199 mesclado (F14i; F14-104 \"Só apagar a linha\", 18/11)",
       "PR #200 mesclado (F14j)",
-      "PR #202 mesclado (F14h; coluna Forma e ciente sem corpo mantidos)"
+      "PR #202 mesclado (F14h; coluna Forma e ciente sem corpo mantidos)",
+      "PR #203 mesclado (F14k)"
     ],
     "G2_F14h": "PR #201 mesclado (18/11), sem comentário nas perguntas: valem as recomendações da D16 (variável única conferida no deploy.yml; ciente 404; pendentes sem migration; nenhum campo novo; convenção §4) e o risco da janela da virada aceito"
   },
   "ressalvas": [
-    "Políticas Equipe e Usuario passam a exigir tenant_id",
-    "Bloqueio provocado da conta do operador e diferença residual de tempo: risco aceito (segurança §5.5)",
-    "nao-operador e email-nao-confirmado sem teste próprio de contagem de hash (já vêm depois da senha real)"
+    "Testador: nada de .NET rodado na sessão (sem SDK); validação na CI",
+    "Fuso diferente do padrão na prorrogação só com teste de unidade",
+    "Sem teste do IP gravado na trilha das ações",
+    "Marca Tenant.Demonstracao adiantada do F14s para o F14-69 (migration DemonstracaoDaEmpresa)",
+    "openapi/nebrys.json escrito à mão; regenerar se o ContratoOpenApiTests acusar diferença",
+    "Revisor: liberação repetida e documento sem teste → 422; ativar/reativar limpam as datas do ciclo; prorrogar TESTE para antes do fim atual aceito (para o Daniel decidir)",
+    "Revisor: sugere teste de arquitetura garantindo que só SituacaoDasEmpresas chama PermitirMudancaDeSituacao"
   ],
   "bloqueios": [],
-  "atualizadoEm": "2026-11-18",
+  "atualizadoEm": "2026-11-21",
   "decisoes": [
     "18/11 F14-104: \"Só apagar a linha\" (Daniel, no chat): a liberação usada pelo cadastro abandonado não volta",
     "18/11 F14h: \"Pôr o aceite atrás da TEXTOS_LEGAIS_PUBLICADOS\" (Daniel, no chat); cenários do estado desligado pedem PR de spec e design (G2 só da mudança) antes do F14h"

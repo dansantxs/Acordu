@@ -629,7 +629,7 @@ Decidido no marco 15 (14/10):
   "pagina": 1, "tamanhoPagina": 50, "total": 1 }
 ```
 - `de`/`ate`: datas no fuso do tenant, inclusivas. `usuario` nulo: o sistema (job) ou uma sessão de link do portal.
-- Ações (`acao`, alvo, `dados`). Login com falha não aparece (fica sem tenant), nem as ações da área da Nebrys (`nebrys.*`, sem tenant, só para a operação; §17): `nebrys.sessao` (o operador em `usuario`) e `nebrys.sessao.falha` (`dados`: `email` digitado e `motivo`).
+- Ações (`acao`, alvo, `dados`). Login com falha não aparece (fica sem tenant), nem as ações da área da Nebrys (`nebrys.*`, sem tenant, só para a operação; §17): `nebrys.sessao` (o operador em `usuario`), `nebrys.sessao.falha` (`dados`: `email` digitado e `motivo`), as ações sobre a situação da empresa (`nebrys.empresa.ativacao`, `.prorrogacao`, `.cancelamento`, `.reativacao`) e a liberação de documento (`nebrys.documento.liberacao`), com o operador em `usuario` e o antes e o depois em `dados`.
 
 | Área | Ações | Alvo | `dados` |
 |---|---|---|---|
@@ -934,6 +934,11 @@ Operação da Nebrys sobre as empresas (RF-NEB-01): só os dados da relação co
 |---|---|---|
 | GET | `/nebrys/empresas` | Empresas, criadas por último primeiro (`?situacao=TESTE\|ATIVA\|VENCIDA\|CANCELADA&pagina=&tamanhoPagina=`; situação inválida → `400`). F14-61. |
 | GET | `/nebrys/empresas/{id}` | Uma empresa, com a `versao`. Inexistente → `404`. F14-62. |
+| POST | `/nebrys/empresas/{id}/ativacao` | TESTE ou VENCIDA → ATIVA, sem fim de teste. F14-65. |
+| POST | `/nebrys/empresas/{id}/prorrogacao` | TESTE ou VENCIDA → TESTE até o fim do dia `ate`. F14-66. |
+| POST | `/nebrys/empresas/{id}/cancelamento` | TESTE, ATIVA ou VENCIDA → CANCELADA (só leitura). F14-67. |
+| POST | `/nebrys/empresas/{id}/reativacao` | CANCELADA → ATIVA. F14-68. |
+| POST | `/nebrys/documentos/liberacao` | Libera um CPF ou CNPJ que já teve teste para um novo cadastro. F14-71, F14-108. |
 
 ```json
 // GET /nebrys/empresas/{id} → 200 (a linha da lista é igual, sem "versao")
@@ -947,3 +952,39 @@ Operação da Nebrys sobre as empresas (RF-NEB-01): só os dados da relação co
 - `criador`: nome e e-mail da conta que criou a empresa; nulo se a conta não existe mais. `pessoasNaEquipe`: vínculos da equipe, sem os contatos do portal.
 - `versao`: a do `Tenant` (`xmin`), para o `If-Match` das ações sobre a empresa (F14l, design D5).
 - **Sem dado de negócio:** nem campo nem rota para clientes, contatos, solicitações, tarefas, horas, contratos ou anexos (F14-62). As consultas leem só o `Tenant`, a conta de quem o criou e a contagem da equipe (read side, "Área da Nebrys").
+
+**Ações sobre a situação (F14l; modelo de domínio §4.11.3; design do F14, D5).** Transições de estado como sub-recursos de ação (§1), sem corpo, menos a prorrogação:
+
+```json
+// POST /nebrys/empresas/{id}/prorrogacao   (If-Match: "1043")
+{ "ate": "2026-12-15" }
+// 200: o detalhe da empresa, com a versão nova
+{ "id": "01a1...", "situacao": "TESTE", "fimDoTeste": "2026-12-16T03:00:00Z", "somenteLeituraDesde": null, ..., "versao": "1051" }
+```
+
+| De \ Ação | `ativacao` | `prorrogacao` | `cancelamento` | `reativacao` |
+|---|---|---|---|---|
+| TESTE | ATIVA | TESTE (novo fim) | CANCELADA | `422` |
+| VENCIDA | ATIVA | TESTE (novo fim) | CANCELADA | `422` |
+| ATIVA | `422` | `422` | CANCELADA | `422` |
+| CANCELADA | `422` | `422` | `422` | ATIVA |
+
+- Todas respondem `200` com o detalhe (o mesmo do `GET`), com a `versao` nova. A volta a gravar vale na requisição seguinte da equipe (a situação é lida do banco a cada escopo, ADR 0015).
+- **`If-Match`** com a `versao` do detalhe (§1): a versão é conferida **antes** da regra, e a divergente dá `409 conflito-versao` mesmo quando a ação também não valeria no estado novo (o diário ou outra ação mudou a empresa depois da leitura, F14-107): a área recarrega e decide de novo. Sem o cabeçalho, não há conferência (convenções §5); `If-Match` que não é uma versão → `400`.
+- `ativacao`: sem fim de teste (`fimDoTeste` nulo). `prorrogacao`: `ate` é o último dia do teste, data civil no fuso da empresa (o calendário dela); o fim gravado é o início do dia seguinte nesse fuso. Hoje vale (o teste vai até o fim do dia); dia já passado → `422`; sem `ate` → `400` em `errors.ate`. `cancelamento`: `canceladaEm` = agora; o só leitura começa agora, ou continua contando do vencimento na VENCIDA (a data do expurgo não muda). `reativacao`: sai do só leitura, com `canceladaEm`, `somenteLeituraDesde` e `fimDoTeste` nulos.
+- A saída do só leitura (VENCIDA ativada ou prorrogada, CANCELADA reativada) grava o instante da volta: as recorrências não geram as datas que passaram no só leitura (F14-24).
+- Transição que não vale (tabela acima, e qualquer uma na empresa de demonstração) → `422 transicao-invalida`, com a explicação em `detail`; nada muda (F14-69). Empresa inexistente ou já expurgada → `404` (F14-106).
+
+**Liberação de documento (F14-71, F14-108).**
+
+```json
+// POST /nebrys/documentos/liberacao
+{ "documento": "529.982.247-25" }
+// 204
+```
+
+- O documento é normalizado como no cadastro (com ou sem pontuação, CNPJ alfanumérico em qualquer caixa); vazio ou inválido → `400` em `errors.documento`. O registro é achado pelo HMAC (segurança §4), inclusive o de uma empresa já expurgada, da qual só ficou o registro. O documento digitado não é guardado nem vai para a trilha.
+- O próximo cadastro com o documento passa e usa a liberação (§2, F14-59); ela vale para um cadastro só. Uma liberação já usada é substituída por uma nova; a usada não volta sozinha (nem pelo expurgo do cadastro abandonado).
+- Documento que nunca teve teste (o cadastro já passa) ou com uma liberação ainda não usada → `422 transicao-invalida`, sem gravar nada.
+
+**Trilha (ADR 0014, item 6; design D14).** Toda ação vai para a trilha **sem tenant**, com o operador em `usuario` (§11a): `nebrys.empresa.ativacao`, `nebrys.empresa.prorrogacao`, `nebrys.empresa.cancelamento` e `nebrys.empresa.reativacao` (alvo `empresa`, `dados` com `antes` e `depois`: `situacao`, `fimDoTeste`, `somenteLeituraDesde`, `canceladaEm`); `nebrys.documento.liberacao` (alvo `documento` sem id, `dados` com `antes` e `depois`: `liberadoEm`, `liberacaoUsadaEm`; nunca o documento nem o HMAC). A empresa não vê essas linhas no `GET /auditoria`.

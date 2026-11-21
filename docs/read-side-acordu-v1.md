@@ -198,6 +198,8 @@ A sessão de operação não tem tenant (segurança §5.5): com o contexto vazio
 - projeta só os campos da relação com a Nebrys (contrato §17): nome, documento, situação, criada em, fim do teste, início do só leitura, cancelamento, expurgo previsto (calculado como no `/auth/eu`: início do só leitura + `Empresas__DiasAteExpurgo`, nulo fora do só leitura), criador, pessoas na equipe e, no detalhe, a `versao` (`xmin`) para o `If-Match` das ações (F14l);
 - lista as criadas por último primeiro (`criado_em desc, id desc`), com o filtro opcional de situação e a paginação do contrato §1. Uma consulta por página, com o criador e a contagem como subconsultas; sem índice novo (a lista é da operação, com poucas empresas no nível 0).
 
+As ações sobre a situação (F14l, contrato §17) respondem com a mesma consulta do detalhe, lida depois do commit (a `versao` já é a nova). A gravação delas não passa por aqui: roda num escopo próprio com o tenant fixado (`ISituacaoDasEmpresas`, segurança §5.5), que lê só o `Tenant` e o fuso do calendário dele. A liberação de documento não lê o read side: acha o registro global pelo HMAC (`IDocumentosTeste`).
+
 ---
 
 ## 9. Onde vive no código
