@@ -43,6 +43,80 @@ export interface paths {
         patch?: never
         trace?: never
     }
+    '/api/v1/auth/cadastro': {
+        parameters: {
+            query?: never
+            header?: never
+            path?: never
+            cookie?: never
+        }
+        get: {
+            parameters: {
+                query?: never
+                header?: never
+                path?: never
+                cookie?: never
+            }
+            requestBody?: never
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown
+                    }
+                    content: {
+                        'application/json': components['schemas']['CadastroInfo']
+                    }
+                }
+            }
+        }
+        put?: never
+        post?: never
+        delete?: never
+        options?: never
+        head?: never
+        patch?: never
+        trace?: never
+    }
+    '/api/v1/auth/registro/convite/consulta': {
+        parameters: {
+            query?: never
+            header?: never
+            path?: never
+            cookie?: never
+        }
+        get?: never
+        put?: never
+        post: {
+            parameters: {
+                query?: never
+                header?: never
+                path?: never
+                cookie?: never
+            }
+            requestBody: {
+                content: {
+                    'application/json': components['schemas']['ConsultaConviteRequest']
+                }
+            }
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown
+                    }
+                    content: {
+                        'application/json': components['schemas']['ConviteEmpresaInfo']
+                    }
+                }
+            }
+        }
+        delete?: never
+        options?: never
+        head?: never
+        patch?: never
+        trace?: never
+    }
     '/api/v1/auth/login': {
         parameters: {
             query?: never
@@ -5235,6 +5309,9 @@ export interface components {
             cliente: null | components['schemas']['Referencia']
             detalhe: null | components['schemas']['DetalheAtividadeDto']
         }
+        CadastroInfo: {
+            modo: components['schemas']['ModoCadastro']
+        }
         CalendarioDto: {
             fusoHorario: string
             expediente: components['schemas']['JanelaDto'][]
@@ -5463,6 +5540,10 @@ export interface components {
             /** Format: int32 */
             franquiaMinutos: null | number | string
             status: components['schemas']['StatusContrato']
+        }
+        ConviteEmpresaInfo: {
+            email: string
+            temConta: boolean
         }
         ConviteEquipeDto: {
             /** Format: uuid */
@@ -5760,6 +5841,8 @@ export interface components {
             visivelCliente: boolean
             checklist: null | string[]
         }
+        /** @enum {unknown} */
+        ModoCadastro: 'CONVITE' | 'ABERTO'
         MotivoRequest: {
             motivo: string
         }
@@ -6059,6 +6142,7 @@ export interface components {
             versaoTermos?: '1' | null
             /** @enum {null|string} */
             versaoPrivacidade?: '1' | null
+            convite?: null | string
         }
         RegraRecorrenciaDto: {
             periodicidade: components['schemas']['Periodicidade']

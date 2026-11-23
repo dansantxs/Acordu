@@ -1,6 +1,7 @@
 using Acordu.Api.Erros;
 using Acordu.Application.Abstractions;
 using Acordu.Application.Autenticacao;
+using Acordu.Application.Cadastro;
 using Acordu.Application.Common;
 
 namespace Acordu.Api.Seguranca;
@@ -34,11 +35,28 @@ internal static class AuthEndpoints
 
             var sessao = await servico.RegistrarAsync(
                 corpo.Nome, corpo.Email, corpo.Senha, corpo.NomeEmpresa, corpo.Documento, corpo.VersaoTermos,
-                corpo.VersaoPrivacidade, cancellationToken);
+                corpo.VersaoPrivacidade, corpo.Convite, cancellationToken);
             return Results.Created("/api/v1/auth/eu", Responder(sessao, jwt, relogio, resposta));
         })
             .RequireRateLimiting(ComposicaoSeguranca.LimiteRegistro)
             .Produces<TokenDeAcesso>(StatusCodes.Status201Created);
+
+        // Como o cadastro abre (design do F14, D11): a tela mostra o formulário ou o pedido de convite. Sem consultar o banco.
+        publicas.MapGet("/cadastro", (OpcoesCadastro cadastro) => Results.Ok(new CadastroInfo(cadastro.Modo)))
+            .Produces<CadastroInfo>();
+
+        // O convite de empresa do link (F14-46): o e-mail que a tela fixa. Token que não vale → 401, sem distinguir, como os
+        // outros convites.
+        publicas.MapPost("/registro/convite/consulta", async (
+            ConsultaConviteRequest corpo, IServicoAutenticacao servico, CancellationToken cancellationToken) =>
+        {
+            var convite = await servico.ConsultarConviteEmpresaAsync(corpo.Token, cancellationToken);
+            return convite is null
+                ? NaoAutenticado("Convite inválido, vencido ou já usado. Peça um novo convite à Nebrys.")
+                : Results.Ok(convite);
+        })
+            .RequireRateLimiting(ComposicaoSeguranca.LimiteAuth)
+            .Produces<ConviteEmpresaInfo>();
 
         publicas.MapPost("/login", async (
             LoginRequest corpo, IServicoAutenticacao servico, ConfiguracaoJwt jwt, TimeProvider relogio, HttpResponse resposta,

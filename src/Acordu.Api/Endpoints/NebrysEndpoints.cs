@@ -8,9 +8,9 @@ namespace Acordu.Api.Endpoints;
 
 /// <summary>
 /// Área da Nebrys (contrato §17, ADR 0014): sessão de operação sem tenant, lista e detalhe das empresas, só com os campos
-/// da relação com a Nebrys (RNF-PRIV-01), ações sobre a situação delas e liberação de documento (F14l). Quem não tem a
-/// sessão de operação recebe <c>404</c> antes de chegar aqui (<see cref="AreaNebrys"/>). Documento OpenAPI próprio
-/// (<c>openapi/nebrys.json</c>).
+/// da relação com a Nebrys (RNF-PRIV-01), ações sobre a situação delas e liberação de documento (F14l), e convites de
+/// empresa (F14n). Quem não tem a sessão de operação recebe <c>404</c> antes de chegar aqui (<see cref="AreaNebrys"/>).
+/// Documento OpenAPI próprio (<c>openapi/nebrys.json</c>).
 /// </summary>
 internal static class NebrysEndpoints
 {
@@ -72,7 +72,47 @@ internal static class NebrysEndpoints
             return Results.NoContent();
         })
             .Produces(StatusCodes.Status204NoContent);
+
+        // Convites de empresa (F14-72 a F14-74, design D12): o e-mail sai na requisição, depois do commit; a falha volta em
+        // emailEnviado. Nunca o token na resposta.
+        area.MapGet("/convites", async (
+            int? pagina, int? tamanhoPagina, IConsultasNebrys consultas, CancellationToken cancellationToken) =>
+            Results.Ok(await consultas.ListarConvitesAsync(new Paginacao(pagina, tamanhoPagina), cancellationToken)))
+            .Produces<ResultadoPaginado<ConviteEmpresaNebrysDto>>();
+
+        area.MapGet("/convites/{id:guid}", async (Guid id, IConsultasNebrys consultas, CancellationToken cancellationToken) =>
+            Results.Ok(await ConviteAsync(consultas, id, cancellationToken)))
+            .Produces<ConviteEmpresaNebrysDto>();
+
+        area.MapPost("/convites", async (
+            ConviteEmpresaRequest corpo, ConvitesEmpresaNebrys convites, IConsultasNebrys consultas, CancellationToken cancellationToken) =>
+        {
+            var enviado = await convites.EmitirAsync(corpo, cancellationToken);
+            return Results.Created(
+                $"/api/v1/nebrys/convites/{enviado.Id}",
+                new EnvioConviteEmpresaDto(await ConviteAsync(consultas, enviado.Id, cancellationToken), enviado.EmailEnviado));
+        })
+            .Produces<EnvioConviteEmpresaDto>(StatusCodes.Status201Created);
+
+        area.MapPost("/convites/{id:guid}/reenvio", async (
+            Guid id, ConvitesEmpresaNebrys convites, IConsultasNebrys consultas, CancellationToken cancellationToken) =>
+        {
+            var enviado = await convites.ReenviarAsync(id, cancellationToken);
+            return Results.Ok(new EnvioConviteEmpresaDto(await ConviteAsync(consultas, id, cancellationToken), enviado.EmailEnviado));
+        })
+            .Produces<EnvioConviteEmpresaDto>();
+
+        area.MapPost("/convites/{id:guid}/revogacao", async (
+            Guid id, ConvitesEmpresaNebrys convites, IConsultasNebrys consultas, CancellationToken cancellationToken) =>
+        {
+            await convites.RevogarAsync(id, cancellationToken);
+            return Results.Ok(await ConviteAsync(consultas, id, cancellationToken));
+        })
+            .Produces<ConviteEmpresaNebrysDto>();
     }
+
+    private static async Task<ConviteEmpresaNebrysDto> ConviteAsync(IConsultasNebrys consultas, Guid id, CancellationToken cancellationToken) =>
+        await consultas.ObterConviteAsync(id, cancellationToken) ?? throw new NaoEncontradoException("Convite não encontrado.");
 
     /// <summary>Ação de situação sem corpo: <c>If-Match</c> opcional (D5), devolve o detalhe atualizado.</summary>
     private static void MapAcao(
