@@ -78,3 +78,13 @@ test('F14-121: o deploy normaliza TEXTOS_LEGAIS_PUBLICADOS uma vez e leva o mesm
     // O passo do SPA vem depois do passo que escreve a saída.
     assert.ok(deploy.indexOf('- name: Variáveis da API') < deploy.indexOf('- name: SPA (build)'));
 });
+
+test('F14n (design do F14, D11): o deploy exige CADASTRO_MODO, convite ou aberto, antes de publicar, e o leva à API', () => {
+    const deploy = ler('.github/workflows/deploy.yml').replace(/\r\n/g, '\n');
+    assert.match(deploy, /CADASTRO_MODO: \$\{\{ vars\.CADASTRO_MODO \}\}/);
+    assert.match(deploy, /modo_cadastro = os\.environ\.get\("CADASTRO_MODO", ""\)\.strip\(\)\.lower\(\)\n/);
+    // Sem a variável o modo fica vazio e cai na recusa: nenhum padrão abre ou fecha o cadastro em silêncio.
+    assert.match(deploy, /if modo_cadastro not in \("convite", "aberto"\):\n\s+faltam\.append\("CADASTRO_MODO/);
+    assert.match(deploy, /variaveis\["Cadastro__Modo"\] = modo_cadastro\n/);
+    assert.ok(deploy.indexOf('CADASTRO_MODO (variável obrigatória') < deploy.indexOf('- name: Nova revisão'));
+});

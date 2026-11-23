@@ -106,6 +106,34 @@ public sealed class OperacaoTests
         propriedades.Should().BeEquivalentTo(["UsuarioId", "Texto", "Versao", "Forma", "RegistradoEm"]);
     }
 
+    [Fact] // Design do F14, D4 e D12 (F14n)
+    public void ConviteEmpresa_SoOCadastroEAAreaDaNebrysUsam()
+    {
+        const string convite = "Acordu.Domain.Entities.ConviteEmpresa";
+        Camadas.Domain.GetType(convite).Should().NotBeNull("o teste perde o sentido se o tipo mudar de nome");
+        var fora = Types.InAssemblies([Camadas.Api, Camadas.Application, Camadas.Infrastructure])
+            .That().DoNotResideInNamespace("Acordu.Infrastructure.Persistence.ConvitesEmpresa")
+            .And().DoNotResideInNamespace("Acordu.Application.Nebrys")
+            .And().DoNotResideInNamespace("Acordu.Infrastructure.Persistence.Nebrys")
+            .And().DoNotResideInNamespace("Acordu.Infrastructure.Persistence.Migrations")
+            .ShouldNot().HaveDependencyOn(convite)
+            .GetResult();
+
+        fora.IsSuccessful.Should().BeTrue(
+            "a tabela global dos convites de empresa é do registro dos convites e da área da Nebrys; o cadastro usa o registro "
+            + "(ADR 0014, item 7); violações: {0}",
+            string.Join(", ", fora.FailingTypeNames ?? []));
+    }
+
+    [Fact] // Design do F14, D12: o convite de empresa não tem referência a empresa (ela ainda não existe) nem a tenant
+    public void ConviteEmpresa_SemReferenciaAEmpresa()
+    {
+        var propriedades = Camadas.Domain.GetType("Acordu.Domain.Entities.ConviteEmpresa")!.GetProperties().Select(p => p.Name);
+
+        propriedades.Should().BeEquivalentTo(
+            ["Id", "Email", "CriadoEm", "TokenHash", "EnviadoEm", "ExpiraEm", "UsadoEm", "RevogadoEm", "Pendente"]);
+    }
+
     [Fact] // Design do F14, D8: o registro do documento não tem referência à empresa nem à pessoa
     public void DocumentoTeste_SemReferenciaAEmpresaNemAPessoa()
     {
