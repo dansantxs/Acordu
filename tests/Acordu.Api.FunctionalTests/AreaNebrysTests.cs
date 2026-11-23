@@ -209,6 +209,8 @@ public sealed partial class AreaNebrysTests(ApiFixture api)
                 "/api/v1/nebrys/empresas/{id}/ativacao", "/api/v1/nebrys/empresas/{id}/prorrogacao",
                 "/api/v1/nebrys/empresas/{id}/cancelamento", "/api/v1/nebrys/empresas/{id}/reativacao",
                 "/api/v1/nebrys/documentos/liberacao",
+                "/api/v1/nebrys/convites", "/api/v1/nebrys/convites/{id}",
+                "/api/v1/nebrys/convites/{id}/reenvio", "/api/v1/nebrys/convites/{id}/revogacao",
             ]);
         interno.Should().NotContain("/api/v1/nebrys");
     }
@@ -228,6 +230,12 @@ public sealed partial class AreaNebrysTests(ApiFixture api)
         { "POST", "/api/v1/nebrys/documentos/liberacao" },
         { "GET", "/api/v1/nebrys/documentos/liberacao" },
         { "GET", "/api/v1/nebrys/sessao" },
+        // F14n: convites de empresa. O {tenant} é só um Guid qualquer para o {id} do convite.
+        { "GET", "/api/v1/nebrys/convites" },
+        { "POST", "/api/v1/nebrys/convites" },
+        { "GET", "/api/v1/nebrys/convites/{tenant}" },
+        { "POST", "/api/v1/nebrys/convites/{tenant}/reenvio" },
+        { "POST", "/api/v1/nebrys/convites/{tenant}/revogacao" },
         { "GET", "/api/v1/nebrys" },
         { "GET", "/api/v1/nebrys/qualquer-coisa" },
         { "GET", "/API/V1/NEBRYS/EMPRESAS" },
