@@ -1,7 +1,7 @@
 {
   "marco": "F14",
   "issue": 182,
-  "etapa": "IMPLEMENTANDO",
+  "etapa": "AGUARDANDO_MERGE",
   "branch": "feat/F14n-convite-empresa",
   "pr": {
     "id": "F14n",
@@ -91,7 +91,16 @@
     ],
     "G2_F14h": "PR #201 mesclado (18/11), sem comentário nas perguntas: valem as recomendações da D16 (variável única conferida no deploy.yml; ciente 404; pendentes sem migration; nenhum campo novo; convenção §4) e o risco da janela da virada aceito"
   },
-  "ressalvas": [],
+  "ressalvas": [
+    "Testador: ordem da lista de convites (últimos primeiro) só por leitura; relógio fixo empata criado_em",
+    "Testador: isolamento entre tenants não se aplica (convites_empresa sem tenant, D14); 404 da área testado",
+    "Testador: teste de senha curta assume errors.senha; confirmar na CI",
+    "Revisor: ERS (RF-AUT-06/07) sem a exceção da conta por convite fora do expurgo; acrescentar se o Daniel confirmar a premissa",
+    "Revisor: testes de integração e funcionais dependem da migration ConvitesDeEmpresa do bot",
+    "Revisor: falha de envio do convite engolida sem log (a resposta traz emailEnviado:false)",
+    "Revisor: sem teste de emailEnviado:false no reenvio nem de Cadastro__DiasConvite diferente de 7",
+    "Revisor: ConviteEmpresa sem a entrada de origem do D12 (F14o atualiza o teste de propriedades)"
+  ],
   "bloqueios": [],
   "atualizadoEm": "2026-11-23",
   "decisoes": [
