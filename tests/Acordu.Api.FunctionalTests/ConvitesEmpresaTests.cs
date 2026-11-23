@@ -304,8 +304,9 @@ public sealed class ConvitesEmpresaTests(ApiFixture api)
 
         resultados.Count(s => s == HttpStatusCode.Created).Should().Be(1);
         resultados.Where(s => s != HttpStatusCode.Created).Should().AllSatisfy(s => s.Should().Be(HttpStatusCode.BadRequest));
+        var normalizado = email.ToUpperInvariant();
         await using var db = api.DaEquipe(Guid.NewGuid());
-        (await db.Users.CountAsync(u => u.NormalizedEmail == email.ToUpperInvariant())).Should().Be(1);
+        (await db.Users.CountAsync(u => u.NormalizedEmail == normalizado)).Should().Be(1);
     }
 
     // ---------- F14-49: outro e-mail ----------
@@ -585,8 +586,9 @@ public sealed class ConvitesEmpresaTests(ApiFixture api)
             r.Status.Should().Be(HttpStatusCode.BadRequest);
             Erro(r.Corpo, "email").Should().Be("Este e-mail já tem cadastro.");
         });
+        var normalizado = email.ToUpperInvariant();
         await using var db = api.DaEquipe(Guid.NewGuid());
-        (await db.Users.CountAsync(u => u.NormalizedEmail == email.ToUpperInvariant())).Should().Be(1);
+        (await db.Users.CountAsync(u => u.NormalizedEmail == normalizado)).Should().Be(1);
     }
 
     [Fact]
