@@ -35,6 +35,15 @@ public static class AcoesAuditoria
     /// </summary>
     public const string NebrysDocumentoLiberacao = "nebrys.documento.liberacao";
 
+    /// <summary>
+    /// Convites de empresa da Nebrys (F14-72 a F14-74): sem tenant, o operador em <c>usuario</c>, o convite no alvo e, em
+    /// <c>dados</c>, o e-mail convidado e a situação e a validade antes e depois (nunca o token).
+    /// </summary>
+    public const string NebrysConviteEmissao = "nebrys.convite.emissao";
+
+    public const string NebrysConviteReenvio = "nebrys.convite.reenvio";
+    public const string NebrysConviteRevogacao = "nebrys.convite.revogacao";
+
     public const string EquipeConvite = "equipe.convite";
     public const string EquipeConviteRevogacao = "equipe.convite.revogacao";
     public const string EquipePapelTroca = "equipe.papel.troca";

@@ -16,6 +16,15 @@ public interface IConsultasNebrys
 
     /// <summary>Uma empresa, com a versão para o <c>If-Match</c> das ações (D5); nula se não existe (F14-62).</summary>
     Task<EmpresaNebrysDto?> ObterEmpresaAsync(Guid id, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Convites de empresa, os emitidos por último primeiro, com a situação no instante da leitura (F14-72). Tabela global,
+    /// fora dos tenants (design D12).
+    /// </summary>
+    Task<ResultadoPaginado<ConviteEmpresaNebrysDto>> ListarConvitesAsync(Paginacao paginacao, CancellationToken cancellationToken = default);
+
+    /// <summary>Um convite de empresa; nulo se não existe.</summary>
+    Task<ConviteEmpresaNebrysDto?> ObterConviteAsync(Guid id, CancellationToken cancellationToken = default);
 }
 
 /// <summary>
