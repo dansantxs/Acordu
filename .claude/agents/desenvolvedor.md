@@ -12,7 +12,7 @@ Antes de tudo, leia `CLAUDE.md`, `docs/processo.md`, `docs/convencoes-codigo-aco
 Faça:
 1. Implemente só os cenários do PR, pela ordem do processo §3.4, seguindo os ADRs e as convenções.
 2. Escreva os testes de unidade e os funcionais de cada cenário que entregar; nome `Metodo_Cenario_ResultadoEsperado`.
-3. Atualize no mesmo trabalho os documentos que mudaram (contrato e OpenAPI, ERS, domínio, segurança, convenções). Mudou a API: rode o comando de atualizar o OpenAPI e os tipos do `CLAUDE.md` (ou, na nuvem, diga em BLOQUEIOS que o bot precisa gerar).
+3. Atualize no mesmo trabalho os documentos que mudaram (contrato e OpenAPI, ERS, domínio, segurança, convenções). Mudou um passo, um papel ou um status do fluxo: edite `scripts/gerar-fluxo-bpmn.py` e rode-o para atualizar `docs/fluxo-acordu.bpmn`. Mudou a API: rode o comando de atualizar o OpenAPI e os tipos do `CLAUDE.md` (ou, na nuvem, diga em BLOQUEIOS que o bot precisa gerar).
 4. Rode os testes da área e, se tocou no front, `pnpm lint`, `pnpm format:check` e `pnpm build`. Escreva em TESTES cada comando e o código de saída real.
 5. Em devolução: corrija só o que o handoff lista, sem refazer o resto.
 

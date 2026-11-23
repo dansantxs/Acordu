@@ -4,6 +4,7 @@ Visão geral curta, atualizada por cada PR (`docs/processo.md` §1). O históric
 
 ## Em revisão
 
+- **Fluxo do sistema em BPMN**: `docs/fluxo-acordu.bpmn`, gerado por `scripts/gerar-fluxo-bpmn.py`, com a regra de atualizar quando o fluxo mudar (processo §1).
 - **F14m — área da Nebrys no front** (#182): entrada, lista e detalhe das empresas, ações de situação e liberação de documento em `/nebrys`, com sessão de operação só em memória; quem está logado numa empresa não vê a área. F14k (#203) e F14l (#205) na `main`: para usar, secret `API_NEBRYS_OPERADORES` com o e-mail de uma conta confirmada e um deploy.
 
 ## Marco em andamento
