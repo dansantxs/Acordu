@@ -308,10 +308,201 @@ export interface paths {
         patch?: never
         trace?: never
     }
+    '/api/v1/nebrys/convites': {
+        parameters: {
+            query?: never
+            header?: never
+            path?: never
+            cookie?: never
+        }
+        get: {
+            parameters: {
+                query?: {
+                    pagina?: number | string
+                    tamanhoPagina?: number | string
+                }
+                header?: never
+                path?: never
+                cookie?: never
+            }
+            requestBody?: never
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown
+                    }
+                    content: {
+                        'application/json': components['schemas']['ResultadoPaginadoOfConviteEmpresaNebrysDto']
+                    }
+                }
+            }
+        }
+        put?: never
+        post: {
+            parameters: {
+                query?: never
+                header?: never
+                path?: never
+                cookie?: never
+            }
+            requestBody: {
+                content: {
+                    'application/json': components['schemas']['ConviteEmpresaRequest']
+                }
+            }
+            responses: {
+                /** @description Created */
+                201: {
+                    headers: {
+                        [name: string]: unknown
+                    }
+                    content: {
+                        'application/json': components['schemas']['EnvioConviteEmpresaDto']
+                    }
+                }
+            }
+        }
+        delete?: never
+        options?: never
+        head?: never
+        patch?: never
+        trace?: never
+    }
+    '/api/v1/nebrys/convites/{id}': {
+        parameters: {
+            query?: never
+            header?: never
+            path?: never
+            cookie?: never
+        }
+        get: {
+            parameters: {
+                query?: never
+                header?: never
+                path: {
+                    id: string
+                }
+                cookie?: never
+            }
+            requestBody?: never
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown
+                    }
+                    content: {
+                        'application/json': components['schemas']['ConviteEmpresaNebrysDto']
+                    }
+                }
+            }
+        }
+        put?: never
+        post?: never
+        delete?: never
+        options?: never
+        head?: never
+        patch?: never
+        trace?: never
+    }
+    '/api/v1/nebrys/convites/{id}/reenvio': {
+        parameters: {
+            query?: never
+            header?: never
+            path?: never
+            cookie?: never
+        }
+        get?: never
+        put?: never
+        post: {
+            parameters: {
+                query?: never
+                header?: never
+                path: {
+                    id: string
+                }
+                cookie?: never
+            }
+            requestBody?: never
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown
+                    }
+                    content: {
+                        'application/json': components['schemas']['EnvioConviteEmpresaDto']
+                    }
+                }
+            }
+        }
+        delete?: never
+        options?: never
+        head?: never
+        patch?: never
+        trace?: never
+    }
+    '/api/v1/nebrys/convites/{id}/revogacao': {
+        parameters: {
+            query?: never
+            header?: never
+            path?: never
+            cookie?: never
+        }
+        get?: never
+        put?: never
+        post: {
+            parameters: {
+                query?: never
+                header?: never
+                path: {
+                    id: string
+                }
+                cookie?: never
+            }
+            requestBody?: never
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown
+                    }
+                    content: {
+                        'application/json': components['schemas']['ConviteEmpresaNebrysDto']
+                    }
+                }
+            }
+        }
+        delete?: never
+        options?: never
+        head?: never
+        patch?: never
+        trace?: never
+    }
 }
 export type webhooks = Record<string, never>
 export interface components {
     schemas: {
+        ConviteEmpresaNebrysDto: {
+            /** Format: uuid */
+            id: string
+            email: string
+            situacao: components['schemas']['SituacaoConviteEmpresa']
+            /** Format: date-time */
+            criadoEm: string
+            /** Format: date-time */
+            enviadoEm: string
+            /** Format: date-time */
+            expiraEm: string
+            /** Format: date-time */
+            usadoEm: null | string
+            /** Format: date-time */
+            revogadoEm: null | string
+        }
+        ConviteEmpresaRequest: {
+            email: null | string
+        }
         CriadorEmpresaDto: {
             nome: string
             email: null | string
@@ -357,12 +548,25 @@ export interface components {
             /** Format: int32 */
             pessoasNaEquipe: number | string
         }
+        EnvioConviteEmpresaDto: {
+            convite: components['schemas']['ConviteEmpresaNebrysDto']
+            emailEnviado: boolean
+        }
         LiberacaoDocumentoRequest: {
             documento: null | string
         }
         ProrrogacaoTesteRequest: {
             /** Format: date */
             ate: null | string
+        }
+        ResultadoPaginadoOfConviteEmpresaNebrysDto: {
+            itens: components['schemas']['ConviteEmpresaNebrysDto'][]
+            /** Format: int32 */
+            pagina: number | string
+            /** Format: int32 */
+            tamanhoPagina: number | string
+            /** Format: int32 */
+            total: number | string
         }
         ResultadoPaginadoOfEmpresaResumoNebrysDto: {
             itens: components['schemas']['EmpresaResumoNebrysDto'][]
@@ -377,6 +581,8 @@ export interface components {
             email: string
             senha: string
         }
+        /** @enum {unknown} */
+        SituacaoConviteEmpresa: 'PENDENTE' | 'VENCIDO' | 'USADO' | 'REVOGADO'
         /** @enum {unknown} */
         SituacaoEmpresa: 'TESTE' | 'ATIVA' | 'VENCIDA' | 'CANCELADA'
         TokenDeOperacao: {

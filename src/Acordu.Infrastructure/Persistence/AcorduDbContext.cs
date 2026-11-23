@@ -191,6 +191,7 @@ public sealed class AcorduDbContext : IdentityUserContext<Usuario, Guid>
         Sugestoes.SugestaoConfiguration.Aplicar(builder);
         Documentos.DocumentoTesteConfiguration.Aplicar(builder);
         Aceites.AceiteTextoConfiguration.Aplicar(builder);
+        ConvitesEmpresa.ConviteEmpresaConfiguration.Aplicar(builder);
 
         AplicarFiltros(builder);
     }

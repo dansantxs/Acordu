@@ -98,6 +98,8 @@ public sealed class ApiFixture : IAsyncLifetime
             ["Nebrys:Operadores"] = $"{Apoio.OperadorNebrys.Email}, {Apoio.OperadorNebrys.EmailSemConfirmar}",
             // Textos legais publicados (design do F14, §1.2 e D16): os testes do estado desligado desligam no próprio teste.
             ["TextosLegais:Publicados"] = "true",
+            // Cadastro aberto (design do F14, D11): os testes do modo convite sobem outra Api com "convite" ou sem o modo.
+            ["Cadastro:Modo"] = "aberto",
             ["RateLimit:Auth:PorMinuto"] = "100000",
             ["RateLimit:Refresh:PorMinuto"] = "100000",
             ["RateLimit:Portal:PorMinuto"] = "100000",

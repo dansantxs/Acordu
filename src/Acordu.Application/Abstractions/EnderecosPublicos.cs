@@ -74,6 +74,13 @@ public sealed class EnderecosPublicos
         return new Uri(_base, $"convite/{token}");
     }
 
+    /// <summary>Cadastro pelo convite de empresa da Nebrys (F14n; a tela é do F14q).</summary>
+    public Uri ConviteEmpresa(string token)
+    {
+        ArgumentException.ThrowIfNullOrEmpty(token);
+        return new Uri(_base, $"cadastro/convite/{token}");
+    }
+
     /// <summary>Página de aceite do convite do portal.</summary>
     public Uri ConvitePortal(string token)
     {

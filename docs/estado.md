@@ -1,10 +1,10 @@
 # Acordu — Estado
 
-Visão geral curta, atualizada por cada PR (`docs/processo.md` §1). O histórico está no git, nos PRs e no registro dos designs. Atualizado em 21/11/2026 (F14m, área da Nebrys no front).
+Visão geral curta, atualizada por cada PR (`docs/processo.md` §1). O histórico está no git, nos PRs e no registro dos designs. Atualizado em 23/11/2026 (F14n, convite de empresa e modo do cadastro).
 
 ## Em revisão
 
-- **F14m — área da Nebrys no front** (#182): entrada, lista e detalhe das empresas, ações de situação e liberação de documento em `/nebrys`, com sessão de operação só em memória; quem está logado numa empresa não vê a área. F14k (#203) e F14l (#205) na `main`: para usar, secret `API_NEBRYS_OPERADORES` com o e-mail de uma conta confirmada e um deploy.
+- **F14n — convite de empresa e modo do cadastro** (#182): a área da Nebrys emite, reenvia e revoga convites de empresa (API; as telas são do F14q); `Cadastro__Modo` (`convite` ou `aberto`, sem ela `convite`); o registro aceita o convite, com o e-mail dele e uso único. Migration `ConvitesDeEmpresa` pelo bot. **Antes do próximo deploy, criar a variável `CADASTRO_MODO`** (runbook, "Segredos do GitHub"; próximos passos, item 1): sem ela o deploy para.
 
 ## Marco em andamento
 
@@ -17,7 +17,7 @@ Visão geral curta, atualizada por cada PR (`docs/processo.md` §1). O históric
 
 ## Próximos passos
 
-1. Merge do F14m. Depois o `/marco F14 182` segue pelo F14n (convite de empresa na área, modo do cadastro). Ligar `TEXTOS_LEGAIS_PUBLICADOS` só depois da #194, num deploy fora do horário de uso (deploy-ci §7). Email Routing de `contato@acordu.app.br` ativo e testado pelo Daniel em 16/11.
+1. Merge do F14n (F14m na `main`, #206). Depois o `/marco F14 182` segue pelo F14o (lista de espera). Criar `CADASTRO_MODO` antes do próximo deploy: `convite` fecha o cadastro de produção já (a tela do convite e da lista de espera é do F14q; até lá, quem abre `/cadastro` recebe a recusa no envio); `aberto` mantém o cadastro de hoje até o F14q. Ligar `TEXTOS_LEGAIS_PUBLICADOS` só depois da #194, num deploy fora do horário de uso (deploy-ci §7). Email Routing de `contato@acordu.app.br` ativo e testado pelo Daniel em 16/11.
 2. Conferências que faltam da produção:
    - deploy: F8-27 e F8-28 (rollback por migration e por health), F8-29 (jobs do Scheduler), hostname do Turnstile;
    - backup: F8-30 e F13-32 na primeira madrugada com o `BACKUP_ATIVO`; F8-31 (restore) antes do primeiro cliente;

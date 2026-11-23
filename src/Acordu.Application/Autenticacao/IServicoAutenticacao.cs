@@ -15,6 +15,12 @@ public interface IServicoAutenticacao
     /// Com os textos legais publicados, <paramref name="versaoTermos"/> e <paramref name="versaoPrivacidade"/> precisam ser as
     /// vigentes (F14-80) e o aceite é gravado na mesma transação (F14-81); sem eles publicados, são ignorados (F14-115,
     /// F14-116).
+    /// O <paramref name="convite"/> é o token do convite de empresa (F14n, design D11): no modo convite
+    /// (<c>Cadastro__Modo</c>), sem ele → <see cref="ArgumentException"/> no campo <c>convite</c> (F14-45). Presente, em
+    /// qualquer modo: inexistente, vencido, usado ou revogado → o mesmo campo, sem distinguir (F14-45, F14-48); de outro
+    /// e-mail → campo <c>email</c> (F14-49). Usado na mesma transação da empresa (F14-47), e qualquer recusa o deixa
+    /// valendo (F14-105). Pelo convite, a conta nasce com o e-mail confirmado e a empresa liberada para enviar (o token
+    /// chegou pelo e-mail), sem e-mail de confirmação.
     /// </summary>
     Task<Sessao> RegistrarAsync(
         string nome,
@@ -24,7 +30,14 @@ public interface IServicoAutenticacao
         string? documento,
         string? versaoTermos = null,
         string? versaoPrivacidade = null,
+        string? convite = null,
         CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// O convite de empresa do token, para a tela de cadastro (F14-46): o e-mail dele e se já tem conta. Nulo se o token não
+    /// vale (inexistente, vencido, usado ou revogado), sem dizer o motivo.
+    /// </summary>
+    Task<ConviteEmpresaInfo?> ConsultarConviteEmpresaAsync(string token, CancellationToken cancellationToken = default);
 
     /// <summary>Nulo para credenciais inválidas, conta bloqueada ou usuário sem vínculo, sem distinguir o motivo.</summary>
     Task<Sessao?> EntrarAsync(string email, string senha, CancellationToken cancellationToken = default);

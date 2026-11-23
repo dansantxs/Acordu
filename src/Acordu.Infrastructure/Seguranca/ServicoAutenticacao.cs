@@ -15,10 +15,12 @@ using Acordu.Infrastructure.MultiTenancy;
 using Acordu.Infrastructure.Persistence;
 using Acordu.Infrastructure.Persistence.Aceites;
 using Acordu.Infrastructure.Persistence.Auditoria;
+using Acordu.Infrastructure.Persistence.ConvitesEmpresa;
 using Acordu.Infrastructure.Persistence.Documentos;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
+using Npgsql;
 
 namespace Acordu.Infrastructure.Seguranca;
 
@@ -48,6 +50,8 @@ public sealed partial class ServicoAutenticacao : IServicoAutenticacao
     private readonly OpcoesNebrys _nebrys;
     private readonly RegistroAceites _aceites;
     private readonly OpcoesTextosLegais _textos;
+    private readonly OpcoesCadastro _cadastro;
+    private readonly RegistroConvitesEmpresa _convitesEmpresa;
 
     public ServicoAutenticacao(
         AcorduDbContext db,
@@ -62,8 +66,14 @@ public sealed partial class ServicoAutenticacao : IServicoAutenticacao
         RegistroDocumentos documentos,
         OpcoesNebrys nebrys,
         RegistroAceites aceites,
-        OpcoesTextosLegais textos)
+        OpcoesTextosLegais textos,
+        OpcoesCadastro cadastro,
+        RegistroConvitesEmpresa convitesEmpresa)
     {
+        ArgumentNullException.ThrowIfNull(cadastro);
+        ArgumentNullException.ThrowIfNull(convitesEmpresa);
+        _cadastro = cadastro;
+        _convitesEmpresa = convitesEmpresa;
         ArgumentNullException.ThrowIfNull(aceites);
         ArgumentNullException.ThrowIfNull(textos);
         _aceites = aceites;
@@ -100,14 +110,15 @@ public sealed partial class ServicoAutenticacao : IServicoAutenticacao
         string? documento,
         string? versaoTermos = null,
         string? versaoPrivacidade = null,
+        string? convite = null,
         CancellationToken cancellationToken = default)
     {
-        // Primeiro o que não consulta o banco; depois a conta (e-mail em uso) e o documento (design do F14, §1.2).
+        // Primeiro o que não consulta o banco; depois o convite, a conta (e-mail em uso) e o documento (design do F14, §1.2).
         var nomeValido = Obrigatorio(nome, Usuario.TamanhoNome, nameof(nome));
         var empresaValida = Obrigatorio(nomeEmpresa, LimitesTexto.Nome, nameof(nomeEmpresa));
         var emailValido = Obrigatorio(email, LimitesTexto.Email, nameof(email));
         // Mesmo formato dos contatos e convites (sem acento antes do @): a confirmação precisa chegar.
-        _ = Domain.Common.Email.Normalizar(emailValido, nameof(email));
+        var emailNormalizado = Domain.Common.Email.Normalizar(emailValido, nameof(email));
         if (string.IsNullOrEmpty(senha))
             throw new ArgumentException("A senha é obrigatória.", nameof(senha));
         // CPF ou CNPJ obrigatório no cadastro (RF-AUT-09, F14-56), normalizado pelo domínio: com e sem pontuação, e o CNPJ
@@ -117,14 +128,37 @@ public sealed partial class ServicoAutenticacao : IServicoAutenticacao
         // Aceite dos textos legais (RF-AUT-11, F14-80): só com os textos publicados (D16); sem eles, o que vier é ignorado e
         // nada é gravado (F14-115, F14-116). Ainda sem consultar o banco.
         var gravarAceite = AceiteDosTextos.Conferir(_textos, versaoTermos, versaoPrivacidade);
+        // Modo do cadastro (RF-AUT-08, design D11): no modo convite, sem convite é recusado sem consultar o banco (F14-45).
+        // Presente, o convite vale em qualquer modo, com o e-mail dele (F14-47, F14-49).
+        var tokenConvite = string.IsNullOrWhiteSpace(convite) ? null : convite.Trim();
+        if (tokenConvite is null && _cadastro.Modo == ModoCadastro.Convite)
+            throw ErroDeCampo.Criar(MensagensDeCadastro.CampoConvite, MensagensDeCadastro.SoPorConvite(_nebrys));
 
         var tenantId = Guid.CreateVersion7();
         var agora = _relogio.GetUtcNow();
         _contexto.DefinirEquipe(tenantId);
 
         await using var transacao = await _db.Database.BeginTransactionAsync(cancellationToken);
-        var usuario = new Usuario(emailValido, nomeValido);
-        var criacao = await _usuarios.CreateAsync(usuario, senha);
+        // O convite antes da conta: quem não tem um convite que vale não descobre se o e-mail tem conta. O convite válido
+        // para um e-mail que já tem conta cai na recusa do e-mail em uso, logo abaixo, sem ser usado (F14-105).
+        if (tokenConvite is not null)
+            await ConferirConviteAsync(tokenConvite, emailNormalizado, agora, cancellationToken);
+
+        // Conta de quem chegou pelo convite: o token veio por este e-mail, então ele já nasce confirmado, como nos convites
+        // da equipe e do portal (segurança §4); a empresa sai liberada para enviar (RF-AUT-06) e não recebe a confirmação.
+        var usuario = new Usuario(emailValido, nomeValido) { EmailConfirmed = tokenConvite is not null };
+        IdentityResult criacao;
+        try
+        {
+            criacao = await _usuarios.CreateAsync(usuario, senha);
+        }
+        catch (DbUpdateException excecao) when (excecao.InnerException is PostgresException { SqlState: PostgresErrorCodes.UniqueViolation })
+        {
+            // Dois cadastros com o mesmo e-mail ao mesmo tempo (como os que chegam com o mesmo convite, F14-48): o índice
+            // único da conta barra o segundo, que recebe a mesma recusa do e-mail em uso, sem nada criado.
+            throw new ArgumentException("Este e-mail já tem cadastro.", nameof(email));
+        }
+
         if (!criacao.Succeeded)
         {
             // Mensagens próprias, em português, no campo do formulário.
@@ -144,6 +178,10 @@ public sealed partial class ServicoAutenticacao : IServicoAutenticacao
         // ExpurgoEmpresasTests.Registro_DocumentoNovo_RegistroEEmpresaComOMesmoInstante confere.
         if (!await _documentos.ReservarTesteAsync(documentoValido, agora, cancellationToken))
             throw DocumentoJaTeveTeste();
+
+        // O convite fica usado na mesma transação da empresa (F14-47): recusa depois daqui o deixa valendo (F14-49, F14-105).
+        if (tokenConvite is not null && !await _convitesEmpresa.UsarAsync(tokenConvite, emailNormalizado, agora, cancellationToken))
+            throw ConviteInvalido();
 
         var papeis = Papel.Padroes(tenantId);
         var dono = papeis.Single(p => p.Nome == Papel.NomeDono);
@@ -167,15 +205,47 @@ public sealed partial class ServicoAutenticacao : IServicoAutenticacao
             // Outro cadastro com o mesmo documento passou na frente: a transação volta inteira (nada criado).
             throw DocumentoJaTeveTeste();
         }
+        catch (DbUpdateException excecao) when (RegistroConvitesEmpresa.Disputa(excecao))
+        {
+            // Outro cadastro usou o mesmo convite, ou a Nebrys o reenviou ou revogou, no meio: nada criado (F14-48).
+            throw ConviteInvalido();
+        }
 
+        if (tokenConvite is not null)
+            await LiberarEmpresasCriadasAsync(usuario.Id, agora, cancellationToken);
         await transacao.CommitAsync(cancellationToken);
 
-        await EnviarConfirmacaoAsync(usuario, cancellationToken);
+        if (tokenConvite is null)
+            await EnviarConfirmacaoAsync(usuario, cancellationToken);
         return sessao;
     }
 
     private ArgumentException DocumentoJaTeveTeste() =>
         new(MensagensDeCadastro.DocumentoJaTeveTeste(_nebrys), MensagensDeCadastro.CampoDocumento);
+
+    private ArgumentException ConviteInvalido() =>
+        ErroDeCampo.Criar(MensagensDeCadastro.CampoConvite, MensagensDeCadastro.ConviteInvalido(_nebrys));
+
+    /// <summary>
+    /// O convite de empresa do cadastro (F14-45, F14-48, F14-49): inexistente, vencido, usado ou revogado → <c>400</c> no
+    /// campo <c>convite</c>, sem distinguir; de outro e-mail → <c>400</c> no <c>email</c>, sem dizer qual é o do convite.
+    /// </summary>
+    private async Task ConferirConviteAsync(string token, string emailNormalizado, DateTimeOffset agora, CancellationToken cancellationToken)
+    {
+        var conferencia = await _convitesEmpresa.ConferirAsync(token, emailNormalizado, agora, cancellationToken);
+        if (conferencia == ConferenciaConvite.Invalido)
+            throw ConviteInvalido();
+        if (conferencia == ConferenciaConvite.OutroEmail)
+            throw ErroDeCampo.Criar(MensagensDeCadastro.CampoEmail, MensagensDeCadastro.EmailDiferenteDoConvite);
+    }
+
+    public async Task<ConviteEmpresaInfo?> ConsultarConviteEmpresaAsync(string token, CancellationToken cancellationToken = default)
+    {
+        var email = await _convitesEmpresa.EmailDoConviteValidoAsync(token, _relogio.GetUtcNow(), cancellationToken);
+        if (email is null)
+            return null;
+        return new ConviteEmpresaInfo(email, await _usuarios.FindByEmailAsync(email) is not null);
+    }
 
     public async Task<Sessao?> EntrarAsync(string email, string senha, CancellationToken cancellationToken = default)
     {

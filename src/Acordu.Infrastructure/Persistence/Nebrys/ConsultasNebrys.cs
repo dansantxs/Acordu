@@ -2,6 +2,7 @@ using System.Globalization;
 using Acordu.Application.Common;
 using Acordu.Application.Empresas;
 using Acordu.Application.Nebrys;
+using Acordu.Domain.Entities;
 using Acordu.Domain.Enums;
 using Acordu.Infrastructure.MultiTenancy;
 using Acordu.Infrastructure.Persistence.Configurations;
@@ -13,7 +14,8 @@ namespace Acordu.Infrastructure.Persistence.Nebrys;
 /// Consultas da área da Nebrys (ADR 0014, item 3; read side "Área da Nebrys"). A sessão de operação não tem tenant, então
 /// os filtros globais não devolvem nada: este é um ponto revisado de <c>IgnoreQueryFilters</c> (convenções §1), que lê só
 /// o <c>Tenant</c>, a conta de quem o criou e a contagem dos vínculos da equipe, e projeta só os campos da relação com a
-/// Nebrys. Nenhuma entidade de negócio do prestador é lida aqui (teste de arquitetura).
+/// Nebrys. Nenhuma entidade de negócio do prestador é lida aqui (teste de arquitetura). Os convites de empresa (F14n) são
+/// de uma tabela global, sem filtro: a leitura deles não precisa de exceção.
 /// </summary>
 public sealed class ConsultasNebrys : IConsultasNebrys
 {
@@ -21,13 +23,16 @@ public sealed class ConsultasNebrys : IConsultasNebrys
 
     private readonly AcorduDbContext _db;
     private readonly OpcoesEmpresas _empresas;
+    private readonly TimeProvider _relogio;
 
-    public ConsultasNebrys(AcorduDbContext db, OpcoesEmpresas empresas)
+    public ConsultasNebrys(AcorduDbContext db, OpcoesEmpresas empresas, TimeProvider relogio)
     {
         ArgumentNullException.ThrowIfNull(db);
         ArgumentNullException.ThrowIfNull(empresas);
+        ArgumentNullException.ThrowIfNull(relogio);
         _db = db;
         _empresas = empresas;
+        _relogio = relogio;
     }
 
     public async Task<ResultadoPaginado<EmpresaResumoNebrysDto>> ListarEmpresasAsync(
@@ -63,6 +68,32 @@ public sealed class ConsultasNebrys : IConsultasNebrys
                 l.Id, l.Nome, l.Documento, l.Situacao, l.CriadoEm, l.FimDoTeste, l.SomenteLeituraDesde, l.CanceladaEm,
                 ExpurgoPrevistoEm(l), Criador(l), l.PessoasNaEquipe, l.Versao.ToString(CultureInfo.InvariantCulture));
     }
+
+    public async Task<ResultadoPaginado<ConviteEmpresaNebrysDto>> ListarConvitesAsync(
+        Paginacao paginacao, CancellationToken cancellationToken = default)
+    {
+        var convites = _db.Set<ConviteEmpresa>().AsNoTracking();
+        var total = await convites.CountAsync(cancellationToken);
+        var pagina = await convites
+            .OrderByDescending(c => c.CriadoEm)
+            .ThenByDescending(c => c.Id)
+            .Skip(paginacao.Pular)
+            .Take(paginacao.TamanhoPagina)
+            .ToListAsync(cancellationToken);
+        var agora = _relogio.GetUtcNow();
+        return new ResultadoPaginado<ConviteEmpresaNebrysDto>(
+            pagina.Select(c => Convite(c, agora)).ToList(), paginacao.Pagina, paginacao.TamanhoPagina, total);
+    }
+
+    public async Task<ConviteEmpresaNebrysDto?> ObterConviteAsync(Guid id, CancellationToken cancellationToken = default)
+    {
+        var convite = await _db.Set<ConviteEmpresa>().AsNoTracking().SingleOrDefaultAsync(c => c.Id == id, cancellationToken);
+        return convite is null ? null : Convite(convite, _relogio.GetUtcNow());
+    }
+
+    /// <summary>Só o e-mail, a situação e as datas: nunca o hash do token.</summary>
+    private static ConviteEmpresaNebrysDto Convite(ConviteEmpresa c, DateTimeOffset agora) =>
+        new(c.Id, c.Email, c.SituacaoEm(agora), c.CriadoEm, c.EnviadoEm, c.ExpiraEm, c.UsadoEm, c.RevogadoEm);
 
     /// <summary>
     /// Os campos da relação, numa consulta só: a conta de quem criou (nome e e-mail) e as pessoas da equipe (vínculos sem

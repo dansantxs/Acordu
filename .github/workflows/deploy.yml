@@ -123,6 +123,9 @@ jobs:
           # Opcional (F14f, F14h; design do F14, D16): uma variável só liga as páginas, os links e o aceite no SPA e o aceite
           # na API. Normalizada aqui e passada aos dois com o mesmo valor (F14-121).
           TEXTOS_LEGAIS_PUBLICADOS: ${{ vars.TEXTOS_LEGAIS_PUBLICADOS }}
+          # Modo do cadastro (F14n, design D11): obrigatória, convite ou aberto. Sem ela a API trataria como convite, mas
+          # abrir ou fechar o cadastro é uma decisão: o deploy para antes de publicar sem a variável ou com outro valor.
+          CADASTRO_MODO: ${{ vars.CADASTRO_MODO }}
           Armazenamento__Endpoint: ${{ secrets.R2_ENDPOINT }}
           Armazenamento__ChaveAcesso: ${{ secrets.API_R2_CHAVE_ACESSO }}
           Armazenamento__ChaveSecreta: ${{ secrets.API_R2_CHAVE_SECRETA }}
@@ -177,6 +180,10 @@ jobs:
           textos = os.environ.get("TEXTOS_LEGAIS_PUBLICADOS", "").strip().lower() or "false"
           if textos not in ("true", "false"):
               faltam.append("TEXTOS_LEGAIS_PUBLICADOS (variável inválida: use true ou false)")
+          # Modo do cadastro (F14n, D11): convite ou aberto, sem diferenciar maiúsculas; ausente ou outro valor para o deploy.
+          modo_cadastro = os.environ.get("CADASTRO_MODO", "").strip().lower()
+          if modo_cadastro not in ("convite", "aberto"):
+              faltam.append("CADASTRO_MODO (variável obrigatória: convite ou aberto)")
           # Operadores da Nebrys (F14k): a API não sobe com um item que não é e-mail (OperadoresNebrys); sem o e-mail no log.
           operadores = [e.strip() for e in os.environ.get("Nebrys__Operadores", "").replace(";", ",").split(",") if e.strip()]
           if any("@" not in e or any(c.isspace() for c in e) for e in operadores):
@@ -190,6 +197,7 @@ jobs:
           variaveis["Nebrys__Contato"] = os.environ["CONTATO_NEBRYS"].strip()
           # O mesmo valor normalizado vai à API e, pela saída do passo, ao build do SPA (F14-121).
           variaveis["TextosLegais__Publicados"] = textos
+          variaveis["Cadastro__Modo"] = modo_cadastro
           if operadores:
               variaveis["Nebrys__Operadores"] = ",".join(operadores)
           with open(os.environ["GITHUB_OUTPUT"], "a") as saida:

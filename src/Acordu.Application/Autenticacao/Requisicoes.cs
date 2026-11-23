@@ -6,6 +6,8 @@ namespace Acordu.Application.Autenticacao;
 /// do Cloudflare (RNF-SEG-10), exigido só com o Turnstile ligado no servidor. <see cref="VersaoTermos"/> e
 /// <see cref="VersaoPrivacidade"/>: as versões dos textos legais que a pessoa aceitou (F14h, design D10 e D16), opcionais
 /// no contrato porque só são exigidas com os textos publicados (<c>TextosLegais__Publicados</c>); sem eles, ignoradas.
+/// <see cref="Convite"/>: o token do convite de empresa (F14n, design D11), obrigatório no modo convite
+/// (<c>Cadastro__Modo</c>); presente, vale em qualquer modo, com o e-mail do convite (F14-47 a F14-49).
 /// </summary>
 public sealed record RegistroRequest(
     string Nome,
@@ -15,7 +17,17 @@ public sealed record RegistroRequest(
     string Documento,
     string? TokenTurnstile = null,
     string? VersaoTermos = null,
-    string? VersaoPrivacidade = null);
+    string? VersaoPrivacidade = null,
+    string? Convite = null);
+
+/// <summary>Resposta do <c>GET /auth/cadastro</c> (público, design D11): como o cadastro abre, para a tela.</summary>
+public sealed record CadastroInfo(Cadastro.ModoCadastro Modo);
+
+/// <summary>
+/// Resposta do <c>POST /auth/registro/convite/consulta</c> (F14n): o e-mail do convite de empresa, que a tela de cadastro
+/// mostra sem deixar trocar (F14-46, decisão 7 do G2), e se ele já tem conta no Acordu (o cadastro recusa, F14-105).
+/// </summary>
+public sealed record ConviteEmpresaInfo(string Email, bool TemConta);
 
 /// <summary>Corpo do <c>POST /auth/login</c>.</summary>
 public sealed record LoginRequest(string Email, string Senha);

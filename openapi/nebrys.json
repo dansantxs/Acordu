@@ -267,10 +267,237 @@
           }
         }
       }
+    },
+    "/api/v1/nebrys/convites": {
+      "get": {
+        "tags": [
+          "Nebrys"
+        ],
+        "parameters": [
+          {
+            "name": "pagina",
+            "in": "query",
+            "schema": {
+              "pattern": "^-?(?:0|[1-9]\\d*)$",
+              "type": [
+                "integer",
+                "string"
+              ],
+              "format": "int32"
+            }
+          },
+          {
+            "name": "tamanhoPagina",
+            "in": "query",
+            "schema": {
+              "pattern": "^-?(?:0|[1-9]\\d*)$",
+              "type": [
+                "integer",
+                "string"
+              ],
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultadoPaginadoOfConviteEmpresaNebrysDto"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Nebrys"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ConviteEmpresaRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EnvioConviteEmpresaDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/nebrys/convites/{id}": {
+      "get": {
+        "tags": [
+          "Nebrys"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConviteEmpresaNebrysDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/nebrys/convites/{id}/reenvio": {
+      "post": {
+        "tags": [
+          "Nebrys"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EnvioConviteEmpresaDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/nebrys/convites/{id}/revogacao": {
+      "post": {
+        "tags": [
+          "Nebrys"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConviteEmpresaNebrysDto"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
     "schemas": {
+      "ConviteEmpresaNebrysDto": {
+        "required": [
+          "id",
+          "email",
+          "situacao",
+          "criadoEm",
+          "enviadoEm",
+          "expiraEm",
+          "usadoEm",
+          "revogadoEm"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "email": {
+            "type": "string"
+          },
+          "situacao": {
+            "$ref": "#/components/schemas/SituacaoConviteEmpresa"
+          },
+          "criadoEm": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "enviadoEm": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "expiraEm": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "usadoEm": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "revogadoEm": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          }
+        }
+      },
+      "ConviteEmpresaRequest": {
+        "required": [
+          "email"
+        ],
+        "type": "object",
+        "properties": {
+          "email": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
       "CriadorEmpresaDto": {
         "required": [
           "nome",
@@ -461,6 +688,21 @@
           }
         }
       },
+      "EnvioConviteEmpresaDto": {
+        "required": [
+          "convite",
+          "emailEnviado"
+        ],
+        "type": "object",
+        "properties": {
+          "convite": {
+            "$ref": "#/components/schemas/ConviteEmpresaNebrysDto"
+          },
+          "emailEnviado": {
+            "type": "boolean"
+          }
+        }
+      },
       "LiberacaoDocumentoRequest": {
         "required": [
           "documento"
@@ -487,6 +729,47 @@
               "string"
             ],
             "format": "date"
+          }
+        }
+      },
+      "ResultadoPaginadoOfConviteEmpresaNebrysDto": {
+        "required": [
+          "itens",
+          "pagina",
+          "tamanhoPagina",
+          "total"
+        ],
+        "type": "object",
+        "properties": {
+          "itens": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ConviteEmpresaNebrysDto"
+            }
+          },
+          "pagina": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "tamanhoPagina": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "total": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
           }
         }
       },
@@ -545,6 +828,14 @@
             "type": "string"
           }
         }
+      },
+      "SituacaoConviteEmpresa": {
+        "enum": [
+          "PENDENTE",
+          "VENCIDO",
+          "USADO",
+          "REVOGADO"
+        ]
       },
       "SituacaoEmpresa": {
         "enum": [
