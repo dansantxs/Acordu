@@ -44,7 +44,7 @@ areas_de() {
             .github/actions/avisar-discord/* | .github/workflows/ci.yml) acoes=true ;;
         esac
         case "$arquivo" in
-            docs/specs/* | scripts/conferir-* | scripts/rotulos* | scripts/ci-local* | docs/processo.md | .claude/* | .github/workflows/ci.yml | .github/workflows/deploy.yml)
+            docs/specs/* | scripts/conferir-* | scripts/rotulos* | scripts/ci-local* | docs/processo.md | docs/fluxo-acordu.bpmn | scripts/gerar-fluxo-bpmn.py | .claude/* | .github/workflows/ci.yml | .github/workflows/deploy.yml)
                 specs=true ;;
         esac
         case "$arquivo" in
@@ -135,7 +135,8 @@ specs() {
     node --test scripts/conferir-specs.test.mjs scripts/conferir-fabrica.test.mjs &&
         bash scripts/rotulos.test.sh &&
         bash scripts/ci-local.test.sh &&
-        node scripts/conferir-specs.mjs
+        node scripts/conferir-specs.mjs &&
+        python3 scripts/gerar-fluxo-bpmn.py --conferir
 }
 
 borda() {

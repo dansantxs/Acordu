@@ -82,6 +82,9 @@ jobs:
               - scripts/rotulos*
               - scripts/ci-local*
               - docs/processo.md
+              # Fluxo BPMN em sincronia com o gerador (processo §1).
+              - docs/fluxo-acordu.bpmn
+              - scripts/gerar-fluxo-bpmn.py
               - .claude/**
               - .github/workflows/ci.yml
               # O conferir-fabrica confere a normalização de TEXTOS_LEGAIS_PUBLICADOS no deploy (F14-121).
@@ -117,6 +120,7 @@ jobs:
           sparse-checkout: |
             docs/specs
             docs/processo.md
+            docs/fluxo-acordu.bpmn
             scripts
             .claude
             .github/workflows
@@ -132,6 +136,8 @@ jobs:
         run: bash scripts/ci-local.test.sh
       - name: Estrutura das specs
         run: node scripts/conferir-specs.mjs
+      - name: Fluxo BPMN em sincronia com o gerador
+        run: python3 scripts/gerar-fluxo-bpmn.py --conferir
 
   backend:
     name: Backend (.NET)
