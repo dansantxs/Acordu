@@ -3,7 +3,7 @@
 | | |
 |---|---|
 | **Versão** | 0.1 |
-| **Última atualização** | 06/10/2026 |
+| **Última atualização** | 21/11/2026 |
 | **Stack** | .NET 10 · EF Core + Npgsql · PostgreSQL 17 · React + Vite (TS) · Cloud Run + Neon + Cloudflare (ADR 0010) |
 | **Base** | ADR 0001 (decisões de engenharia base); projetos com prefixo `Acordu.*`. |
 
@@ -206,7 +206,8 @@ Testes obrigatórios nos níveis de integração **e** API: cross-tenant (RNF-SE
 ## 6. Frontend
 
 - `apps/web`: uma SPA com **duas áreas**: app interno (`features/`) e portal (`portal/`, rota `/portal`, layout mobile-first).
-- Tipos gerados do OpenAPI em `shared/api/interno.d.ts` e `shared/api/portal.d.ts`, a partir de `openapi/*.json` na raiz (contrato versionado, convenções §4); o portal consome só os tipos das rotas `/portal`. A área da Nebrys tem o seu `openapi/nebrys.json` (F14k), e os tipos dele nascem com `src/nebrys` (F14m).
+- **(F14m)** `src/nebrys`: área da Nebrys (rota `/nebrys`, rotas em `src/routes/nebrys`, ADR 0014), carregada sob demanda, com cliente próprio (`nebrys/api.ts`) e a sessão de operação em `shared/sessao/sessaoOperacao.ts`. Não importa `features/` nem é importada por elas (convenções §4).
+- Tipos gerados do OpenAPI em `shared/api/interno.d.ts` e `shared/api/portal.d.ts`, a partir de `openapi/*.json` na raiz (contrato versionado, convenções §4); o portal consome só os tipos das rotas `/portal`. A área da Nebrys tem o seu `openapi/nebrys.json` (F14k), com os tipos em `shared/api/nebrys.d.ts` (F14m), usados só por `src/nebrys`.
 - **(F1)** pnpm, `pnpm dev` (proxy de `/api` para a API em `http://localhost:5080`), `pnpm test`, `pnpm build`. Rotas por arquivo em `src/routes`.
 - **(F14f)** `features/legal`: os textos legais em Markdown (`textos/termos.md`, `textos/privacidade.md`) com a versão na constante `versoes.ts` (convenções §4), e as páginas públicas `/termos` e `/privacidade` (rotas `src/routes/termos.tsx` e `privacidade.tsx`, fora das guardas de sessão).
 - Separar em dois apps só se o bundle do portal ficar pesado para o cliente final — medir antes.
