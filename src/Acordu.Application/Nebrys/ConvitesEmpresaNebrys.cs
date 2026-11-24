@@ -98,8 +98,12 @@ public sealed class ConvitesEmpresaNebrys
         _convites.Adicionar(convite);
         if (origem is null)
         {
+            // O convite não existia: o antes é nulo (toda ação da área leva o antes e o depois, F14-70).
             _trilha.Registrar(
-                AcoesAuditoria.NebrysConviteEmissao, AlvoConvite, convite.Id, new { convite.Email, depois = Estado(convite, agora) });
+                AcoesAuditoria.NebrysConviteEmissao,
+                AlvoConvite,
+                convite.Id,
+                new { convite.Email, antes = (object?)null, depois = Estado(convite, agora) });
         }
         else
         {
@@ -107,7 +111,7 @@ public sealed class ConvitesEmpresaNebrys
                 AcoesAuditoria.NebrysConviteEmissao,
                 AlvoConvite,
                 convite.Id,
-                new { convite.Email, entradaListaEspera = origem.Id, depois = Estado(convite, agora) });
+                new { convite.Email, entradaListaEspera = origem.Id, antes = (object?)null, depois = Estado(convite, agora) });
             _trilha.Registrar(
                 AcoesAuditoria.NebrysListaConvite,
                 ListaEsperaNebrys.AlvoEntrada,

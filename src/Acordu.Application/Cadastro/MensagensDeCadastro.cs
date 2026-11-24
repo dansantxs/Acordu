@@ -1,3 +1,4 @@
+using Acordu.Application.Common;
 using Acordu.Application.Empresas;
 
 namespace Acordu.Application.Cadastro;
@@ -15,6 +16,24 @@ public static class MensagensDeCadastro
 
     /// <summary>Campo do e-mail no corpo do <c>POST /auth/registro</c>.</summary>
     public const string CampoEmail = "email";
+
+    /// <summary>
+    /// E-mail de domínio descartável (RF-AUT-10, F14-60; design D9), no cadastro e na lista de espera: <c>400</c> no campo do
+    /// e-mail, com o mesmo texto nos dois.
+    /// </summary>
+    public const string EmailDescartavel =
+        "Use um e-mail que você vai continuar usando: endereços de e-mail temporário (descartável) não são aceitos.";
+
+    /// <summary>
+    /// Recusa o e-mail de domínio descartável com <c>400</c> no <paramref name="campo"/>, antes de gravar qualquer coisa
+    /// (F14-60). O e-mail já vem com o formato conferido.
+    /// </summary>
+    public static void RecusarDescartavel(IDominiosDescartaveis dominios, string email, string campo)
+    {
+        ArgumentNullException.ThrowIfNull(dominios);
+        if (dominios.EhDescartavel(email))
+            throw ErroDeCampo.Criar(campo, EmailDescartavel);
+    }
 
     /// <summary>O convite é de outro e-mail (F14-49, decisão 7 do G2): o link não passa adiante. Não diz qual é o e-mail.</summary>
     public const string EmailDiferenteDoConvite = "Use o e-mail que recebeu o convite: o cadastro por convite vale só para ele.";
