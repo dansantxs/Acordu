@@ -109,6 +109,7 @@
     "18/11 F14-104: \"Só apagar a linha\" (Daniel, no chat): a liberação usada pelo cadastro abandonado não volta",
     "18/11 F14h: \"Pôr o aceite atrás da TEXTOS_LEGAIS_PUBLICADOS\" (Daniel, no chat); cenários do estado desligado pedem PR de spec e design (G2 só da mudança) antes do F14h",
     "21/11 F14l: \"aceito as recomendações\" (Daniel, no chat) para as três premissas do \"Para o Daniel decidir\" do PR #205",
-    "23/11 F14n: \"aceito as recomendações\" (Daniel, no chat): conta por convite nasce confirmada e fora do expurgo (exceção no RF-AUT-06); um convite em aberto por e-mail (422); retenção dos e-mails dos convites em issue própria"
+    "23/11 F14n: \"aceito as recomendações\" (Daniel, no chat): conta por convite nasce confirmada e fora do expurgo (exceção no RF-AUT-06); um convite em aberto por e-mail (422); retenção dos e-mails dos convites em issue própria",
+    "24/11 F14o: \"aceito as recomendações, ajusta a política na #194\" (Daniel, no chat): a entrada convidada fica até o descarte e a frase da política muda na #194; e-mail repetido não atualiza a entrada"
   ]
 }
