@@ -14,7 +14,8 @@ namespace Acordu.Application.Nebrys;
 /// <c>Cadastro__DiasConvite</c> dias (7) a partir do envio, para um cadastro só e com o e-mail do convite. O e-mail sai na
 /// própria requisição, depois do commit, como os da conta: não há tenant para a outbox, e o token não pode ficar em claro
 /// em lugar nenhum. A falha no envio não desfaz a ação e volta como <c>emailEnviado: false</c> (a Nebrys reenvia). Toda
-/// ação vai para a trilha sem tenant, com o operador e o e-mail afetado (D14), nunca o token.
+/// ação vai para a trilha sem tenant, com o operador e o e-mail afetado (D14), nunca o token. O convite pode sair de uma
+/// entrada da lista de espera (F14-76, F14o), que fica guardada nele como origem.
 /// </summary>
 public sealed class ConvitesEmpresaNebrys
 {
@@ -64,11 +65,30 @@ public sealed class ConvitesEmpresaNebrys
     /// <c>400</c> no campo <c>email</c>; e-mail que já tem um convite em aberto (nem usado nem revogado, vencido ou não) →
     /// <c>422 transicao-invalida</c>: a Nebrys reenvia ou revoga o que existe.
     /// </summary>
-    public async Task<ConviteEnviado> EmitirAsync(ConviteEmpresaRequest corpo, CancellationToken cancellationToken = default)
+    public Task<ConviteEnviado> EmitirAsync(ConviteEmpresaRequest corpo, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(corpo);
+        return EmitirParaAsync(corpo.Email ?? string.Empty, origem: null, cancellationToken);
+    }
+
+    /// <summary>
+    /// Emite o convite a partir de uma entrada da lista de espera (F14-76, por <see cref="ListaEsperaNebrys"/>): para o
+    /// e-mail dela, com a entrada de origem no convite, e a entrada fica convidada na mesma gravação, com a trilha das duas.
+    /// Entrada já convidada, ou e-mail com convite em aberto → <c>422 transicao-invalida</c>, sem gravar nem enviar.
+    /// </summary>
+    public Task<ConviteEnviado> EmitirDaListaAsync(EntradaListaEspera entrada, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(entrada);
+        return EmitirParaAsync(entrada.Email, entrada, cancellationToken);
+    }
+
+    private async Task<ConviteEnviado> EmitirParaAsync(string email, EntradaListaEspera? origem, CancellationToken cancellationToken)
+    {
         var agora = _relogio.GetUtcNow();
-        var (convite, token) = ConviteEmpresa.Emitir(Guid.CreateVersion7(), corpo.Email ?? string.Empty, _cadastro.ValidadeConvite, agora);
+        var situacaoDaOrigem = origem?.Situacao;
+        // A entrada primeiro: a já convidada recebe a explicação dela, e não a do convite em aberto que saiu dela.
+        origem?.Convidar(agora);
+        var (convite, token) = ConviteEmpresa.Emitir(Guid.CreateVersion7(), email, _cadastro.ValidadeConvite, agora, origem?.Id);
         if (await _convites.HaEmAbertoAsync(convite.Email, cancellationToken))
         {
             throw new TransicaoInvalidaException(
@@ -76,8 +96,30 @@ public sealed class ConvitesEmpresaNebrys
         }
 
         _convites.Adicionar(convite);
-        _trilha.Registrar(
-            AcoesAuditoria.NebrysConviteEmissao, AlvoConvite, convite.Id, new { convite.Email, depois = Estado(convite, agora) });
+        if (origem is null)
+        {
+            _trilha.Registrar(
+                AcoesAuditoria.NebrysConviteEmissao, AlvoConvite, convite.Id, new { convite.Email, depois = Estado(convite, agora) });
+        }
+        else
+        {
+            _trilha.Registrar(
+                AcoesAuditoria.NebrysConviteEmissao,
+                AlvoConvite,
+                convite.Id,
+                new { convite.Email, entradaListaEspera = origem.Id, depois = Estado(convite, agora) });
+            _trilha.Registrar(
+                AcoesAuditoria.NebrysListaConvite,
+                ListaEsperaNebrys.AlvoEntrada,
+                origem.Id,
+                new
+                {
+                    origem.Email,
+                    antes = new { situacao = situacaoDaOrigem },
+                    depois = new { situacao = origem.Situacao, origem.ConvidadaEm, conviteId = convite.Id },
+                });
+        }
+
         await _unidade.SalvarAsync(cancellationToken);
         return new ConviteEnviado(convite.Id, await EnviarAsync(convite, token, cancellationToken));
     }

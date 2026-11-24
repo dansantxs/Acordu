@@ -44,6 +44,14 @@ public static class AcoesAuditoria
     public const string NebrysConviteReenvio = "nebrys.convite.reenvio";
     public const string NebrysConviteRevogacao = "nebrys.convite.revogacao";
 
+    /// <summary>
+    /// Lista de espera na área da Nebrys (F14-76, F14-77): sem tenant, o operador em <c>usuario</c>, a entrada no alvo e, em
+    /// <c>dados</c>, o e-mail dela e a situação antes e depois (no convite, o convite emitido; no descarte, só o antes).
+    /// </summary>
+    public const string NebrysListaConvite = "nebrys.lista.convite";
+
+    public const string NebrysListaDescarte = "nebrys.lista.descarte";
+
     public const string EquipeConvite = "equipe.convite";
     public const string EquipeConviteRevogacao = "equipe.convite.revogacao";
     public const string EquipePapelTroca = "equipe.papel.troca";
