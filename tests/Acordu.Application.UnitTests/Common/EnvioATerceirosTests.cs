@@ -95,6 +95,43 @@ public sealed class EnvioATerceirosTests
         await envio.Invoking(e => e.GarantirLiberadoAsync()).Should().ThrowAsync<EmailNaoConfirmadoException>();
     }
 
+    [Fact]
+    public async Task PodeAvisar_EmpresaDeDemonstracao_DescartaERegistraMesmoParaOCriador() // F14-89
+    {
+        var demonstracao = Tenant.CriarDemonstracao(Guid.NewGuid(), "Estúdio Aurora", Criacao, Criador);
+        var (envio, bloqueados) = Montar(demonstracao, ocorridoEm: Criacao.AddHours(1));
+
+        (await envio.PodeAvisarAsync("aviso-recebida", null)).Should().BeFalse("nada sai da demonstração para o contato");
+        (await envio.PodeAvisarAsync("aviso-consumo", Criador)).Should().BeFalse("nem para a equipe");
+        (await envio.PodeAvisarAsync("aviso-atribuicao", Guid.NewGuid())).Should().BeFalse();
+        bloqueados.Categorias.Should().Equal("aviso-recebida", "aviso-consumo", "aviso-atribuicao");
+    }
+
+    [Fact]
+    public async Task GarantirLiberado_DemonstracaoComEmail_RecusaSemEnvio() // F14-89
+    {
+        var (envio, _) = Montar(Tenant.CriarDemonstracao(Guid.NewGuid(), "Estúdio Aurora", Criacao, Criador), ocorridoEm: null);
+
+        await envio.Invoking(e => e.GarantirLiberadoAsync()).Should().ThrowAsync<DemonstracaoSemEnvioException>();
+        await envio.Invoking(e => e.GarantirLiberadoAsync(comEmail: true)).Should().ThrowAsync<DemonstracaoSemEnvioException>();
+    }
+
+    [Fact]
+    public async Task GarantirLiberado_DemonstracaoSemEmail_Passa() // F14-89: o link sem e-mail é emitido
+    {
+        var (envio, _) = Montar(Tenant.CriarDemonstracao(Guid.NewGuid(), "Estúdio Aurora", Criacao, Criador), ocorridoEm: null);
+
+        await envio.Invoking(e => e.GarantirLiberadoAsync(comEmail: false)).Should().NotThrowAsync();
+    }
+
+    [Fact]
+    public async Task GarantirLiberado_NaoLiberadaSemEmail_RecusaComoAntes()
+    {
+        var (envio, _) = Montar(Tenant.Criar(Guid.NewGuid(), "Estúdio", Criacao, Criador, TimeSpan.FromDays(30)), ocorridoEm: null);
+
+        await envio.Invoking(e => e.GarantirLiberadoAsync(comEmail: false)).Should().ThrowAsync<EmailNaoConfirmadoException>();
+    }
+
     /// <summary>A liberação é gravada pela Infrastructure (não há método no domínio); aqui, direto na propriedade.</summary>
     private static Tenant Liberada(DateTimeOffset em)
     {

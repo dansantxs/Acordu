@@ -13,7 +13,7 @@ namespace Acordu.Api.FunctionalTests;
 
 /// <summary>
 /// Spec do F14, F14-70 (F14p; design D14; ADR 0014, item 6; ADR 0008): toda ação da Nebrys na área (situação, convite,
-/// lista de espera, liberação de documento) fica na trilha sem tenant, com quem (o operador), quando, a empresa ou o e-mail
+/// lista de espera, liberação de documento, demonstração) fica na trilha sem tenant, com quem (o operador), quando, a empresa ou o e-mail
 /// afetado e o antes e o depois. A conferência cobre todas as ações: uma ação <c>nebrys.*</c> ou uma rota de ação nova da
 /// área sem caso aqui quebra os testes de cobertura.
 /// </summary>
@@ -36,6 +36,10 @@ public sealed class TrilhaNebrysTests(ApiFixture api)
         AcoesAuditoria.NebrysConviteRevogacao,
         AcoesAuditoria.NebrysListaConvite,
         AcoesAuditoria.NebrysListaDescarte,
+        AcoesAuditoria.NebrysDemonstracaoCriacao,
+        AcoesAuditoria.NebrysDemonstracaoRestauracao,
+        AcoesAuditoria.NebrysDemonstracaoIndicacao,
+        AcoesAuditoria.NebrysDemonstracaoRetirada,
     };
 
     /// <summary>A rota (método e caminho do OpenAPI da área) de cada ação conferida aqui.</summary>
@@ -51,6 +55,10 @@ public sealed class TrilhaNebrysTests(ApiFixture api)
         [AcoesAuditoria.NebrysConviteRevogacao] = "POST /api/v1/nebrys/convites/{id}/revogacao",
         [AcoesAuditoria.NebrysListaConvite] = "POST /api/v1/nebrys/lista-espera/{id}/convite",
         [AcoesAuditoria.NebrysListaDescarte] = "DELETE /api/v1/nebrys/lista-espera/{id}",
+        [AcoesAuditoria.NebrysDemonstracaoCriacao] = "POST /api/v1/nebrys/demonstracao",
+        [AcoesAuditoria.NebrysDemonstracaoRestauracao] = "POST /api/v1/nebrys/demonstracao/restauracao",
+        [AcoesAuditoria.NebrysDemonstracaoIndicacao] = "POST /api/v1/nebrys/demonstracao/indicacoes",
+        [AcoesAuditoria.NebrysDemonstracaoRetirada] = "DELETE /api/v1/nebrys/demonstracao/indicacoes/{usuarioId}",
     };
 
     // ---------- F14-70: cada ação, na trilha ----------
@@ -148,8 +156,11 @@ public sealed class TrilhaNebrysTests(ApiFixture api)
 
     // ---------- apoio ----------
 
-    /// <summary>O alvo da ação: a empresa, o convite ou a entrada (com o e-mail), ou o documento (sem id).</summary>
-    private sealed record Alvo(Guid Id, string? Email = null, string? Documento = null);
+    /// <summary>
+    /// O alvo da ação: a empresa, o convite ou a entrada (com o e-mail), ou o documento (sem id). Na demonstração, a
+    /// empresa dela, com o e-mail e a conta da pessoa indicada.
+    /// </summary>
+    private sealed record Alvo(Guid Id, string? Email = null, string? Documento = null, Guid? Usuario = null);
 
     /// <summary>Cria o alvo no estado em que a ação vale, sem deixar linha depois da foto da trilha.</summary>
     private async Task<Alvo> PrepararAsync(string acao, string token)
@@ -200,6 +211,22 @@ public sealed class TrilhaNebrysTests(ApiFixture api)
                 return new Alvo(await db.Set<EntradaListaEspera>().Where(e => e.Email == email).Select(e => e.Id).SingleAsync(), email);
             }
 
+            case AcoesAuditoria.NebrysDemonstracaoCriacao:
+                await Demonstracoes.ApagarAsync(api);
+                return new Alvo(Guid.Empty);
+            case AcoesAuditoria.NebrysDemonstracaoRestauracao:
+                return new Alvo(await Demonstracoes.GarantirAsync(api, token));
+            case AcoesAuditoria.NebrysDemonstracaoIndicacao or AcoesAuditoria.NebrysDemonstracaoRetirada:
+            {
+                var demonstracao = await Demonstracoes.GarantirAsync(api, token);
+                var pessoa = await Equipe.CriarAsync(api);
+                using var eu = await pessoa.GetAsync("/api/v1/auth/eu");
+                var usuario = (await Equipe.JsonAsync(eu)).GetProperty("usuarioId").GetGuid();
+                if (acao == AcoesAuditoria.NebrysDemonstracaoRetirada)
+                    await Demonstracoes.IndicarAsync(api, token, pessoa.EmailDono);
+                return new Alvo(demonstracao, pessoa.EmailDono, Usuario: usuario);
+            }
+
             default:
                 throw new ArgumentOutOfRangeException(nameof(acao), acao, "Ação sem preparo na conferência da trilha.");
         }
@@ -221,6 +248,11 @@ public sealed class TrilhaNebrysTests(ApiFixture api)
             AcoesAuditoria.NebrysListaConvite => await PostAsync(token, $"{Area}/lista-espera/{alvo.Id}/convite"),
             AcoesAuditoria.NebrysListaDescarte => await OperadorNebrys.EnviarAsync(
                 api.NovoHttp(), HttpMethod.Delete, $"{Area}/lista-espera/{alvo.Id}", token),
+            AcoesAuditoria.NebrysDemonstracaoCriacao => await PostAsync(token, $"{Area}/demonstracao"),
+            AcoesAuditoria.NebrysDemonstracaoRestauracao => await PostAsync(token, $"{Area}/demonstracao/restauracao"),
+            AcoesAuditoria.NebrysDemonstracaoIndicacao => await PostAsync(token, $"{Area}/demonstracao/indicacoes", new { email = alvo.Email }),
+            AcoesAuditoria.NebrysDemonstracaoRetirada => await OperadorNebrys.EnviarAsync(
+                api.NovoHttp(), HttpMethod.Delete, $"{Area}/demonstracao/indicacoes/{alvo.Usuario}", token),
             _ => throw new ArgumentOutOfRangeException(nameof(acao), acao, "Ação sem rota na conferência da trilha."),
         };
         resposta.IsSuccessStatusCode.Should().BeTrue("{0} → {1}: {2}", acao, resposta.StatusCode, await resposta.Content.ReadAsStringAsync());
@@ -235,6 +267,38 @@ public sealed class TrilhaNebrysTests(ApiFixture api)
             linha.AlvoId.Should().Be(alvo.Id);
             dados.GetProperty("antes").GetProperty("situacao").ValueKind.Should().Be(JsonValueKind.String);
             dados.GetProperty("depois").GetProperty("situacao").ValueKind.Should().Be(JsonValueKind.String);
+            return;
+        }
+
+        if (acao.StartsWith("nebrys.demonstracao.", StringComparison.Ordinal))
+        {
+            linha.AlvoTipo.Should().Be("empresa", "a demonstração é a empresa afetada");
+            if (alvo.Id != Guid.Empty)
+                linha.AlvoId.Should().Be(alvo.Id);
+            else
+                linha.AlvoId.Should().NotBeNull("a demonstração criada");
+            switch (acao)
+            {
+                case AcoesAuditoria.NebrysDemonstracaoCriacao:
+                    dados.GetProperty("antes").ValueKind.Should().Be(JsonValueKind.Null, "a demonstração não existia");
+                    dados.GetProperty("depois").GetProperty("situacao").GetString().Should().Be("ATIVA");
+                    break;
+                case AcoesAuditoria.NebrysDemonstracaoRestauracao:
+                    dados.GetProperty("antes").GetProperty("nome").ValueKind.Should().Be(JsonValueKind.String);
+                    dados.GetProperty("depois").GetProperty("clientes").GetInt32().Should().BePositive();
+                    break;
+                case AcoesAuditoria.NebrysDemonstracaoIndicacao:
+                    dados.GetProperty("email").GetString().Should().Be(alvo.Email, "o e-mail afetado");
+                    dados.GetProperty("antes").ValueKind.Should().Be(JsonValueKind.Null, "a pessoa não estava na demonstração");
+                    dados.GetProperty("depois").GetProperty("papel").GetString().Should().Be("Dono");
+                    break;
+                case AcoesAuditoria.NebrysDemonstracaoRetirada:
+                    dados.GetProperty("email").GetString().Should().Be(alvo.Email, "o e-mail afetado");
+                    dados.GetProperty("antes").GetProperty("papel").GetString().Should().Be("Dono");
+                    dados.GetProperty("depois").ValueKind.Should().Be(JsonValueKind.Null, "a pessoa saiu da demonstração");
+                    break;
+            }
+
             return;
         }
 
