@@ -5,7 +5,7 @@
   "branch": "feat/F14p-descartavel",
   "pr": {
     "id": "F14p",
-    "numero": null
+    "numero": 217
   },
   "feitos": [
     {
@@ -71,7 +71,7 @@
   ],
   "contadores": {
     "devolucoesNaEtapa": 0,
-    "rodadasNoPr": 0
+    "rodadasNoPr": 1
   },
   "verificacao": [
     "node scripts/conferir-specs.mjs",

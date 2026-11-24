@@ -127,7 +127,8 @@ public sealed class TrilhaNebrysTests(ApiFixture api)
             .Where(a => a.StartsWith("nebrys.", StringComparison.Ordinal))
             .Except([AcoesAuditoria.NebrysSessao, AcoesAuditoria.NebrysSessaoFalha]);
 
-        Acoes.Select(a => (string)a[0]).Should().BeEquivalentTo(
+        // TheoryData<T> do xUnit 2.9 enumera mais de um tipo de linha; a vista de object[] é a que o MemberData lê.
+        ((IEnumerable<object[]>)Acoes).Select(linha => (string)linha[0]).Should().BeEquivalentTo(
             declaradas, "toda ação nova da área ganha um caso em Acao_Feita_TrilhaSemTenantComOperadorInstanteAfetadoEAntesEDepois");
     }
 
