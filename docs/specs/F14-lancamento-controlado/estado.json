@@ -1,11 +1,11 @@
 {
   "marco": "F14",
   "issue": 182,
-  "etapa": "AGUARDANDO_MERGE",
-  "branch": "feat/F14q-telas-convite",
+  "etapa": "IMPLEMENTANDO",
+  "branch": "feat/F14r-dados-exemplo",
   "pr": {
-    "id": "F14q",
-    "numero": 218
+    "id": "F14r",
+    "numero": null
   },
   "feitos": [
     {
@@ -71,11 +71,15 @@
     {
       "id": "F14p",
       "pr": 217
+    },
+    {
+      "id": "F14q",
+      "pr": 218
     }
   ],
   "contadores": {
     "devolucoesNaEtapa": 0,
-    "rodadasNoPr": 1
+    "rodadasNoPr": 0
   },
   "verificacao": [
     "node scripts/conferir-specs.mjs",
@@ -102,17 +106,12 @@
       "PR #206 mesclado (F14m)",
       "PR #212 mesclado (F14n; recomendações aceitas: conta por convite confirmada, um convite em aberto por e-mail, retenção na #213)",
       "PR #215 mesclado (F14o; retenção da lista na #194, e-mail repetido não atualiza)",
-      "PR #217 mesclado (F14p; sem comentário: emissão de convite para e-mail descartável fica para depois)"
+      "PR #217 mesclado (F14p; sem comentário: emissão de convite para e-mail descartável fica para depois)",
+      "PR #218 mesclado (F14q; sem comentário: link do temConta fica, modo convite conferido à mão depois do deploy)"
     ],
     "G2_F14h": "PR #201 mesclado (18/11), sem comentário nas perguntas: valem as recomendações da D16 (variável única conferida no deploy.yml; ciente 404; pendentes sem migration; nenhum campo novo; convenção §4) e o risco da janela da virada aceito"
   },
-  "ressalvas": [
-    "Testador: lerSessaoOperacao testado direto, não pela renderização da CascaNebrys com sessão vencida",
-    "Testador: sem E2E do modo convite (precisaria de operadora da Nebrys na E2E)",
-    "Teste das capturas falha até o bot gerar cadastro-convite.webp e lista-espera.webp",
-    "Revisor: no ramo temConta, \"Entrar com a conta que já existe\" vai a /entrar, que manda quem já está logado para / (limitação de UX, decisão do Daniel)",
-    "Revisor: DetalheConvite trata 404 como \"não existe\" sem encerrar a sessão (igual ao DetalheEmpresa do F14m)"
-  ],
+  "ressalvas": [],
   "bloqueios": [],
   "atualizadoEm": "2026-11-24",
   "decisoes": [
