@@ -45,7 +45,7 @@ Sessão (Acordu, formalizado no ADR 0007):
 - **Aceite dos textos legais (RF-AUT-11, F14h; design do F14, D10 e D16):** `versaoTermos` e `versaoPrivacidade` são as versões dos termos de uso e da política de privacidade que a pessoa aceitou; no OpenAPI são opcionais, com o `enum` da versão vigente (a constante `TextosLegais` da API, a mesma do arquivo do texto no SPA). Tudo depende de `TextosLegais__Publicados` (padrão desligado; deploy-ci §7). **Publicados:** os dois são obrigatórios e precisam ser a versão vigente; faltando um ou com outra versão → `400 validacao` em `errors.versaoTermos` ou `errors.versaoPrivacidade` (nessa ordem), conferido junto do que não consulta o banco (depois do formato do documento, antes do e-mail em uso), e nada é criado. Aceito, a conta guarda, para cada texto, a versão e a data, na mesma transação do cadastro. **Não publicados:** os dois campos são ignorados (até uma versão que não é a vigente), nada de aceite é gravado e o cadastro segue as demais regras. O aceite de convite da equipe (`POST /auth/convite`, §3) segue a mesma regra; o do portal não tem esses campos e nunca grava aceite.
 - **Textos pendentes e "ciente" (F14-83, F14-119):** `/auth/eu` traz `textosPendentes`: `[{ texto, versao }]`, com `texto` `TERMOS` ou `PRIVACIDADE` e a versão vigente, para cada texto que a conta ainda não aceitou nessa versão (quem não tem aceite nenhum, como a conta criada com os textos não publicados, recebe os dois). Lista vazia com os textos não publicados e para o contato do portal (`/portal/eu` não tem o campo). A SPA mostra o aviso com os links até o `POST /auth/textos/ciente` (sem corpo, sessão da equipe) → `204`, que grava a versão vigente de cada texto pendente, com a data; nada pendente, `204` sem gravar. O uso não é bloqueado, e o "ciente" é da pessoa: segue numa empresa só leitura. Textos não publicados → `404 nao-encontrado`, sem gravar (a rota continua no OpenAPI). Contato do portal ou sessão de link → `403`; sem sessão, `401`.
 - **Proteção do cadastro (RNF-SEG-10, F9c):** com o Turnstile ligado no servidor (`Turnstile__Segredo`), o corpo leva `tokenTurnstile`, conferido antes de tudo no `siteverify` do Cloudflare (sucesso, ação `registro` e o hostname de `App__UrlPublica`). Ausente ou recusado → `400` em `errors.tokenTurnstile`; Cloudflare sem resposta em 5 s ou com erro → o mesmo `400`, pedindo nova tentativa (fail-closed). Sem o segredo (dev, testes), o campo é ignorado. Limite próprio por IP (IPv6 por /64): 3 cadastros por hora (`RateLimit__Registro__PorHora`), separado do limite das demais rotas de `/auth`; tentativas recusadas também contam; passou → `429 limite-requisicoes`. Segredo do servidor recusado pelo Cloudflare conta como indisponível (e vai para o log).
-- **Modo do cadastro e convite de empresa (RF-AUT-08, F14n; design do F14, D11 e D12):** `Cadastro__Modo` é `convite` ou `aberto` (deploy-ci §7); **sem a variável, vale `convite`** (o cadastro nunca abre por esquecimento). `GET /auth/cadastro` (público, sem consultar o banco) → `200 { "modo": "CONVITE" | "ABERTO" }`, para a tela.
+- **Modo do cadastro e convite de empresa (RF-AUT-08, F14n; design do F14, D11 e D12):** `Cadastro__Modo` é `convite` ou `aberto` (deploy-ci §7); **sem a variável, vale `convite`** (o cadastro nunca abre por esquecimento). `GET /auth/cadastro` (público, sem consultar o banco) → `200 { "modo": "CONVITE" | "ABERTO" }`, para a tela (no modo convite, ela oferece a lista de espera, `POST /lista-espera`, §16).
   - `convite` é o token do link do convite de empresa que a Nebrys emitiu (§17), `{App__UrlPublica}/cadastro/convite/{token}`. **Modo convite:** sem ele (ausente ou em branco) → `400` em `errors.convite` ("No momento, o cadastro no Acordu é só por convite. Para pedir um, fale com a Nebrys: {canal}."), conferido junto do que não consulta o banco, e nada é criado (F14-45). **Presente, em qualquer modo:** inexistente, vencido, já usado ou revogado → `400` em `errors.convite` ("Este convite não vale mais: venceu, já foi usado ou foi revogado. Para pedir outro, fale com a Nebrys: {canal}."), sem distinguir o motivo (F14-45, F14-48); de outro e-mail → `400` em `errors.email` ("Use o e-mail que recebeu o convite…", sem dizer qual é), e o convite continua valendo (F14-49). O convite é conferido antes do e-mail em uso, da senha e do documento (quem não tem um convite que vale não descobre se o e-mail tem conta); um convite válido para um e-mail que já tem conta cai no `400` do e-mail em uso, e o convite continua valendo (F14-105, decisão 18 do G2).
   - Passou: `201`, a empresa nasce em TESTE e o convite fica usado na mesma transação (F14-47); outro cadastro com ele é recusado (F14-48), inclusive ao mesmo tempo (um passa). Pelo convite, a conta nasce com o **e-mail confirmado** e a empresa **liberada para enviar** (o token chegou por esse e-mail, como nos convites da equipe e do portal), e a confirmação de e-mail não é enviada. **Modo aberto** sem convite: como antes (F14-50).
   - O Turnstile e o limite de cadastros por IP valem nos dois modos, com ou sem convite, e vêm antes do convite (F14-51): a recusa deles não gasta o convite.
@@ -636,7 +636,7 @@ Decidido no marco 15 (14/10):
   "pagina": 1, "tamanhoPagina": 50, "total": 1 }
 ```
 - `de`/`ate`: datas no fuso do tenant, inclusivas. `usuario` nulo: o sistema (job) ou uma sessão de link do portal.
-- Ações (`acao`, alvo, `dados`). Login com falha não aparece (fica sem tenant), nem as ações da área da Nebrys (`nebrys.*`, sem tenant, só para a operação; §17): `nebrys.sessao` (o operador em `usuario`), `nebrys.sessao.falha` (`dados`: `email` digitado e `motivo`), as ações sobre a situação da empresa (`nebrys.empresa.ativacao`, `.prorrogacao`, `.cancelamento`, `.reativacao`) a liberação de documento (`nebrys.documento.liberacao`) e os convites de empresa (`nebrys.convite.emissao`, `.reenvio`, `.revogacao`, com o e-mail convidado), com o operador em `usuario` e o antes e o depois em `dados`.
+- Ações (`acao`, alvo, `dados`). Login com falha não aparece (fica sem tenant), nem as ações da área da Nebrys (`nebrys.*`, sem tenant, só para a operação; §17): `nebrys.sessao` (o operador em `usuario`), `nebrys.sessao.falha` (`dados`: `email` digitado e `motivo`), as ações sobre a situação da empresa (`nebrys.empresa.ativacao`, `.prorrogacao`, `.cancelamento`, `.reativacao`) a liberação de documento (`nebrys.documento.liberacao`) os convites de empresa (`nebrys.convite.emissao`, `.reenvio`, `.revogacao`, com o e-mail convidado) e a lista de espera (`nebrys.lista.convite`, `nebrys.lista.descarte`, com o e-mail da entrada), com o operador em `usuario` e o antes e o depois em `dados`.
 
 | Área | Ações | Alvo | `dados` |
 |---|---|---|---|
@@ -867,7 +867,7 @@ Tipos (`type`) do v1: `validacao` (com `errors` por campo), `transicao-invalida`
 | `409` | Versão divergente (`If-Match`); cronômetro já ativo; solicitação encerrada (RF-SOL-13). |
 | `413` | Anexo acima do limite; relato de erro do app acima de 16 KB. |
 | `422` | Regra de negócio violada. |
-| `429` | Rate limit (login, portal, link, relato de erro do app); limite de sugestões por hora. |
+| `429` | Rate limit (login, portal, link, relato de erro do app, cadastro, lista de espera); limite de sugestões por hora. |
 
 ---
 
@@ -898,6 +898,21 @@ Pública (sem login, sem cookie): pega erros também na tela de entrar, no cadas
 - Responde `204`. O erro vira uma linha `ERROR` do serviço `acordu-web` no log (Error Reporting) e passa pelos avisos de #alertas, com a impressão digital da mensagem sem números, do primeiro quadro sem o hash do arquivo e da rota modelo.
 - A versão do relato vai no `serviceContext` do Error Reporting (uma aba com o SPA antigo mostra a dela). Também saem antes de registrar: tokens base64url de 32 caracteres ou mais (`[token]`), números formatados como CPF, CNPJ ou telefone (`#`) e crases (viram `'`, para não abrir código no Discord). A query só sai de URLs; linha e coluna da pilha ficam.
 - O app só relata em produção (`VITE_VERSAO`), uma vez por erro e por carga de página (no máximo 10 por carga), e nunca uma resposta da API, uma falha de rede, `Script error.`, `AbortError` ou um chunk que sumiu depois de um deploy. Manda como `text/plain` (requisição simples, sem preflight do CORS); a API lê o corpo como JSON.
+
+### `POST /api/v1/lista-espera` — lista de espera (RF-AUT-08, F14o; design do F14, D12)
+
+Pública (sem login): quem quer usar o Acordu enquanto o cadastro é só por convite (§2, `Cadastro__Modo`) deixa os dados, e a Nebrys escolhe a quem convidar na área (§17). Um `Bearer` enviado junto é ignorado.
+
+```json
+// requisição
+{ "nome": "Ana Souza", "email": "ana@estudiotraco.com.br", "nomeEmpresa": "Estúdio Traço",
+  "mensagem": "Organizar o atendimento dos clientes.", "tokenTurnstile": "0.Ab..." }
+// 202, sem corpo
+```
+
+- **Turnstile e limite (F14-54):** como no cadastro (§2): com `Turnstile__Segredo`, o `tokenTurnstile` é conferido antes de tudo no `siteverify`, agora com a ação `lista-espera` (o token do cadastro, de ação `registro`, não vale aqui, nem o daqui lá); ausente ou recusado → `400` em `errors.tokenTurnstile`; Cloudflare fora do ar → o mesmo `400`, pedindo nova tentativa. Sem o segredo, o campo é ignorado. Limite próprio por IP (IPv6 por /64): 3 por hora (`RateLimit__ListaEspera__PorHora`), separado do cadastro; as tentativas recusadas também contam; passou → `429`.
+- **Campos (F14-55):** `nome`, `email` e `nomeEmpresa` obrigatórios (até 200, 254 e 200 caracteres); `mensagem` opcional, até 1.000. Faltando um, ou e-mail inválido (a regra dos outros e-mails, convenções §2) → `400 validacao` com o campo em `errors` (o primeiro, na ordem do formulário), e nada é gravado.
+- **Resposta (F14-52, F14-53):** `202` sem corpo. A entrada é gravada fora dos tenants, com a data de chegada, e aparece na área como `AGUARDANDO`. O e-mail que já está na lista (comparado normalizado) **não duplica** e não muda a entrada que existe, e a resposta é a mesma `202`: a rota não revela quem está na lista. Dois envios ao mesmo tempo com o mesmo e-mail também ficam numa entrada só. Nenhum e-mail sai.
 
 ### `POST /api/v1/sugestoes` — "Sugerir melhoria" (RF-SUG-01, F13e)
 
@@ -951,6 +966,9 @@ Operação da Nebrys sobre as empresas (RF-NEB-01): só os dados da relação co
 | POST | `/nebrys/convites` | Emite um convite de empresa para um e-mail e envia o link. F14-72. |
 | POST | `/nebrys/convites/{id}/reenvio` | Link novo, validade reiniciada; o anterior para de valer. F14-73. |
 | POST | `/nebrys/convites/{id}/revogacao` | O link para de valer. F14-74. |
+| GET | `/nebrys/lista-espera` | Lista de espera por ordem de chegada (`?pagina=&tamanhoPagina=`). F14-75. |
+| POST | `/nebrys/lista-espera/{id}/convite` | Emite um convite de empresa para o e-mail da entrada, que fica convidada. F14-76. |
+| DELETE | `/nebrys/lista-espera/{id}` | Descarta a entrada: ela é apagada. F14-77. |
 
 ```json
 // GET /nebrys/empresas/{id} → 200 (a linha da lista é igual, sem "versao")
@@ -1016,4 +1034,19 @@ Operação da Nebrys sobre as empresas (RF-NEB-01): só os dados da relação co
 - `POST /nebrys/convites`: e-mail vazio ou inválido → `400` em `errors.email` (normalizado como os outros convites); e-mail que já tem um convite em aberto (nem usado nem revogado, vencido ou não) → `422 transicao-invalida` (reenviar ou revogar o que existe). O e-mail que já tem conta não é recusado aqui: o cadastro recusa (F14-105).
 - `reenvio` → `200` com o mesmo corpo da emissão: token novo e validade reiniciada; o link anterior para de valer (F14-73). Vale para o convite pendente ou vencido. `revogacao` → `200` com o convite: o link para de valer, e o cadastro com ele recebe o `400` do convite (F14-74). Nas duas, convite usado ou revogado → `422 transicao-invalida`; inexistente → `404`. Sem `If-Match`: a ação sobre um convite que já mudou cai na regra (`422`).
 
-**Trilha (ADR 0014, item 6; design D14).** Toda ação vai para a trilha **sem tenant**, com o operador em `usuario` (§11a): `nebrys.empresa.ativacao`, `nebrys.empresa.prorrogacao`, `nebrys.empresa.cancelamento` e `nebrys.empresa.reativacao` (alvo `empresa`, `dados` com `antes` e `depois`: `situacao`, `fimDoTeste`, `somenteLeituraDesde`, `canceladaEm`); `nebrys.documento.liberacao` (alvo `documento` sem id, `dados` com `antes` e `depois`: `liberadoEm`, `liberacaoUsadaEm`; nunca o documento nem o HMAC); `nebrys.convite.emissao`, `nebrys.convite.reenvio` e `nebrys.convite.revogacao` (alvo `convite`, `dados` com o `email` convidado e, de cada lado, `situacao` e `expiraEm`; a emissão só com o `depois`; nunca o token). A empresa não vê essas linhas no `GET /auditoria`.
+**Lista de espera (RF-AUT-08, F14-75 a F14-77; design do F14, D12; decisão 5 do G2).** As entradas chegam pela rota pública (§16); a conversão em convite é manual.
+
+```json
+// GET /nebrys/lista-espera → 200
+{ "itens": [ { "id": "01c3...", "nome": "Ana Souza", "email": "ana@estudiotraco.com.br", "nomeEmpresa": "Estúdio Traço",
+               "mensagem": "Organizar o atendimento dos clientes.", "situacao": "AGUARDANDO",
+               "criadaEm": "2026-11-23T15:00:00Z", "convidadaEm": null, "conviteId": null } ],
+  "pagina": 1, "tamanhoPagina": 50, "total": 1 }
+```
+
+- A lista é por ordem de chegada (`criadaEm`, a mais antiga primeiro). `situacao` é calculada: `AGUARDANDO` ou `CONVIDADA` (com `convidadaEm`). `conviteId` é o convite que saiu da entrada, nulo se ela aguarda ou se o convite não existe mais.
+- `POST …/{id}/convite` (sem corpo) → `201` com o mesmo corpo e `Location` da emissão (`{ convite, emailEnviado }`): o convite de empresa sai para o e-mail da entrada pelo mesmo caminho do `POST /nebrys/convites` (validade, link, e-mail na requisição, `emailEnviado: false` na falha) e guarda a entrada de origem; a entrada fica `CONVIDADA` na mesma gravação. Entrada já convidada, ou e-mail que já tem um convite em aberto → `422 transicao-invalida`, sem convite nem e-mail, e a entrada não muda; inexistente → `404`. O cadastro com esse convite segue o §2 (F14-47).
+- `DELETE …/{id}` → `204`: a entrada é apagada, aguardando ou convidada (não fica guardada sem motivo). O convite que saiu dela continua valendo, sem a origem. Depois disso, o mesmo e-mail pode entrar de novo pela rota pública. Inexistente → `404`.
+- Convidar e descartar a mesma entrada ao mesmo tempo: a segunda ação falha na versão → `409 conflito-versao`.
+
+**Trilha (ADR 0014, item 6; design D14).** Toda ação vai para a trilha **sem tenant**, com o operador em `usuario` (§11a): `nebrys.empresa.ativacao`, `nebrys.empresa.prorrogacao`, `nebrys.empresa.cancelamento` e `nebrys.empresa.reativacao` (alvo `empresa`, `dados` com `antes` e `depois`: `situacao`, `fimDoTeste`, `somenteLeituraDesde`, `canceladaEm`); `nebrys.documento.liberacao` (alvo `documento` sem id, `dados` com `antes` e `depois`: `liberadoEm`, `liberacaoUsadaEm`; nunca o documento nem o HMAC); `nebrys.convite.emissao`, `nebrys.convite.reenvio` e `nebrys.convite.revogacao` (alvo `convite`, `dados` com o `email` convidado e, de cada lado, `situacao` e `expiraEm`; a emissão só com o `depois`, e a que sai da lista de espera também com a `entradaListaEspera`; nunca o token); `nebrys.lista.convite` (alvo `lista-espera`, `dados` com o `email` da entrada, `antes.situacao` e `depois` com `situacao`, `convidadaEm` e `conviteId`) e `nebrys.lista.descarte` (alvo `lista-espera`, `dados` só com o `email` e o `antes`: `situacao`, `criadaEm`, `convidadaEm`; o nome, a empresa e a mensagem não ficam na trilha). A empresa não vê essas linhas no `GET /auditoria`.

@@ -1,7 +1,7 @@
 {
   "marco": "F14",
   "issue": 182,
-  "etapa": "IMPLEMENTANDO",
+  "etapa": "AGUARDANDO_MERGE",
   "branch": "feat/F14o-lista-espera",
   "pr": {
     "id": "F14o",
@@ -96,9 +96,15 @@
     ],
     "G2_F14h": "PR #201 mesclado (18/11), sem comentário nas perguntas: valem as recomendações da D16 (variável única conferida no deploy.yml; ciente 404; pendentes sem migration; nenhum campo novo; convenção §4) e o risco da janela da virada aceito"
   },
-  "ressalvas": [],
+  "ressalvas": [
+    "Política de privacidade diz que a entrada some ao convidar, mas a convidada fica até o descarte (decisão do Daniel antes de ligar TEXTOS_LEGAIS_PUBLICADOS)",
+    "E-mail repetido na lista não atualiza a entrada (confirmar)",
+    "Mensagem do 422 de entrada já convidada não cita emitir convite novo quando o anterior foi revogado",
+    "EmitirAsync deixou de ser async: ArgumentNullException síncrono",
+    "Testes de banco dependem da migration ListaDeEspera do bot; ContratoOpenApiTests confere o OpenAPI escrito à mão"
+  ],
   "bloqueios": [],
-  "atualizadoEm": "2026-11-23",
+  "atualizadoEm": "2026-11-24",
   "decisoes": [
     "18/11 F14-104: \"Só apagar a linha\" (Daniel, no chat): a liberação usada pelo cadastro abandonado não volta",
     "18/11 F14h: \"Pôr o aceite atrás da TEXTOS_LEGAIS_PUBLICADOS\" (Daniel, no chat); cenários do estado desligado pedem PR de spec e design (G2 só da mudança) antes do F14h",
