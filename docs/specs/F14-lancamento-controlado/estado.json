@@ -5,7 +5,7 @@
   "branch": "feat/F14s-demonstracao",
   "pr": {
     "id": "F14s",
-    "numero": null
+    "numero": 220
   },
   "feitos": [
     {
@@ -83,7 +83,7 @@
   ],
   "contadores": {
     "devolucoesNaEtapa": 0,
-    "rodadasNoPr": 1
+    "rodadasNoPr": 2
   },
   "verificacao": [
     "node scripts/conferir-specs.mjs",

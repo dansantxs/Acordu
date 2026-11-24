@@ -93,13 +93,16 @@ public sealed class DemonstracaoTests(ApiFixture api) : IAsyncLifetime
 
         await using var escopo = api.App.Services.CreateAsyncScope();
         var usuarios = escopo.ServiceProvider.GetRequiredService<UserManager<Usuario>>();
-        foreach (var email in EmailsFicticios())
+        foreach (var email in ContasFicticias())
         {
             var conta = await usuarios.FindByEmailAsync(email);
             conta.Should().NotBeNull(email);
             conta!.PasswordHash.Should().BeNull("ninguém entra com a conta fictícia ({0})", email);
             email.Should().EndWith(".invalid");
         }
+
+        foreach (var email in EmailsFicticios().Except(ContasFicticias(), StringComparer.OrdinalIgnoreCase))
+            (await usuarios.FindByEmailAsync(email)).Should().BeNull("o contato sem portal não ganha conta ({0})", email);
 
         using var http = api.NovoHttp();
         using var login = await http.PostAsJsonAsync(
@@ -525,6 +528,10 @@ public sealed class DemonstracaoTests(ApiFixture api) : IAsyncLifetime
     /// <summary>Os e-mails das contas e dos contatos fictícios.</summary>
     private static IEnumerable<string> EmailsFicticios() =>
         Dados.Pessoas.Select(p => p.Email).Concat(Dados.Clientes.Select(c => c.Contato.Email));
+
+    /// <summary>Os e-mails que ganham conta fictícia: a equipe e o contato com acesso ao portal (os outros contatos, não).</summary>
+    private static IEnumerable<string> ContasFicticias() =>
+        Dados.Pessoas.Select(p => p.Email).Concat(Dados.Clientes.Where(c => c.Chave == Dados.Portal?.Cliente).Select(c => c.Contato.Email));
 
     /// <summary>Demonstração criada, uma pessoa indicada e a sessão dela lá.</summary>
     private async Task<(Guid Demonstracao, Equipe Pessoa, string Sessao)> NaDemonstracaoAsync()

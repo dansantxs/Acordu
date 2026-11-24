@@ -46,3 +46,8 @@ Premissas técnicas do F14s (F14-87 a F14-90, F14-110; RF-NEB-02; D1 a1, D13, D1
 ## Devolução, rodada 1
 
 - Ressalvas do revisor: as quatro escolhas fora do design no `docs/estado.md` ("Para o Daniel confirmar"); teste do front renomeado para `Indicar_ContaQueExiste_IndicaEMostraNaLista` (nenhum e-mail sai) e a spec do F14-90 atualizada; `cancelada_em` com tipo explícito (`(DateTimeOffset?)null`) no `ExecuteSqlAsync`; `Interacao_ExternaNaDemonstracao_NaoAvisaOContato` e `AlertasSla_NaDemonstracao_…` ganharam o controle numa `Equipe` comum (a mesma interação externa manda `aviso-mensagem` ao contato; o mesmo tick manda `aviso-sla-violado` ao Dono), para a ausência provar que vem da demonstração.
+
+## Devolução, rodada 2 (CI vermelha)
+
+- `DemonstracaoTests.Criar_ContasFicticias_SemSenhaNinguemEntra` falhou em `helena.prado@advocacia.exemplo.invalid`. **Causa: defeito do teste, não de produção.** O teste percorria `EmailsFicticios()`, que junta os e-mails da equipe e de **todos** os contatos dos clientes (certo para "nenhum e-mail sai"), e esperava uma conta para cada um. Pelo design e pela criação (`EmpresaDeDemonstracao.ContasFicticiasAsync`), só ganham conta as pessoas da equipe e o contato com acesso ao portal (o da padaria, Sérgio, que passou); Helena é contato da advocacia, sem portal, e não tem conta, como deve. Não era isolamento: a coleção `ColecaoApi` não roda em paralelo e o teste começa sem demonstração; a busca usa `UserManager.FindByEmailAsync`, que normaliza o e-mail.
+- Correção: o teste confere conta sem senha só em `ContasFicticias()` (equipe e contato do portal, tirado de `Dados.Portal`) e passou a conferir que os outros contatos **não** ganham conta. Nada mudou na produção.
