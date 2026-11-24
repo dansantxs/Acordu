@@ -21,6 +21,8 @@ export async function cadastrar(
         nomeEmpresa: string
         documento: string
         tokenTurnstile?: string | null
+        /** Token do link do convite de empresa (F14-46, F14-47); sem convite, o campo não vai. */
+        convite?: string
     } & VersoesAceitas,
 ) {
     const { data } = await api.POST('/api/v1/auth/registro', { body: corpo })
