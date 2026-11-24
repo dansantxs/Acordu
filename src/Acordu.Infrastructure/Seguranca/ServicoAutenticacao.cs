@@ -52,6 +52,7 @@ public sealed partial class ServicoAutenticacao : IServicoAutenticacao
     private readonly OpcoesTextosLegais _textos;
     private readonly OpcoesCadastro _cadastro;
     private readonly RegistroConvitesEmpresa _convitesEmpresa;
+    private readonly IDominiosDescartaveis _descartaveis;
 
     public ServicoAutenticacao(
         AcorduDbContext db,
@@ -68,8 +69,11 @@ public sealed partial class ServicoAutenticacao : IServicoAutenticacao
         RegistroAceites aceites,
         OpcoesTextosLegais textos,
         OpcoesCadastro cadastro,
-        RegistroConvitesEmpresa convitesEmpresa)
+        RegistroConvitesEmpresa convitesEmpresa,
+        IDominiosDescartaveis descartaveis)
     {
+        ArgumentNullException.ThrowIfNull(descartaveis);
+        _descartaveis = descartaveis;
         ArgumentNullException.ThrowIfNull(cadastro);
         ArgumentNullException.ThrowIfNull(convitesEmpresa);
         _cadastro = cadastro;
@@ -119,6 +123,9 @@ public sealed partial class ServicoAutenticacao : IServicoAutenticacao
         var emailValido = Obrigatorio(email, LimitesTexto.Email, nameof(email));
         // Mesmo formato dos contatos e convites (sem acento antes do @): a confirmação precisa chegar.
         var emailNormalizado = Domain.Common.Email.Normalizar(emailValido, nameof(email));
+        // E-mail de domínio descartável (RF-AUT-10, F14-60; design D9): recusado sem consultar o banco, antes do convite,
+        // com ou sem ele e em qualquer modo.
+        MensagensDeCadastro.RecusarDescartavel(_descartaveis, emailNormalizado, MensagensDeCadastro.CampoEmail);
         if (string.IsNullOrEmpty(senha))
             throw new ArgumentException("A senha é obrigatória.", nameof(senha));
         // CPF ou CNPJ obrigatório no cadastro (RF-AUT-09, F14-56), normalizado pelo domínio: com e sem pontuação, e o CNPJ

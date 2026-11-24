@@ -142,6 +142,8 @@ public static class DependencyInjection
         services.AddScoped<Persistence.ListaEspera.RegistroListaEspera>();
         services.AddScoped<Application.ListaEspera.IInscricoesListaEspera>(sp => sp.GetRequiredService<Persistence.ListaEspera.RegistroListaEspera>());
         services.AddScoped<Application.Nebrys.IListaEspera>(sp => sp.GetRequiredService<Persistence.ListaEspera.RegistroListaEspera>());
+        // E-mail descartável (F14p, design D9): o cadastro e a lista de espera recusam; o arquivo versionado é lido uma vez.
+        services.AddSingleton<Application.Cadastro.IDominiosDescartaveis>(_ => DominiosDescartaveis.DaListaVersionada());
         services.AddScoped<IServicoAutenticacao, ServicoAutenticacao>();
         // Sessão de operação da Nebrys (ADR 0014): depende de OperadoresNebrys, que a Api lê da configuração.
         services.AddScoped<Application.Nebrys.IServicoOperacao, ServicoOperacao>();

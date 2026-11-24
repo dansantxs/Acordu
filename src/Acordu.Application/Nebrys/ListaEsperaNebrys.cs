@@ -53,7 +53,13 @@ public sealed class ListaEsperaNebrys
             AcoesAuditoria.NebrysListaDescarte,
             AlvoEntrada,
             entrada.Id,
-            new { entrada.Email, antes = new { situacao = entrada.Situacao, entrada.CriadaEm, entrada.ConvidadaEm } });
+            new
+            {
+                entrada.Email,
+                antes = new { situacao = entrada.Situacao, entrada.CriadaEm, entrada.ConvidadaEm },
+                // A entrada é apagada: não há depois (F14-70, o antes e o depois em toda ação da área).
+                depois = (object?)null,
+            });
         _lista.Remover(entrada);
         await _unidade.SalvarAsync(cancellationToken);
     }

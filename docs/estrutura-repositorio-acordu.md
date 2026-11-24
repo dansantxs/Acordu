@@ -114,7 +114,7 @@ acordu/
 │  │  ├─ Email/                        # Resend + outbox
 │  │  ├─ Agendamento/                  # jobs idempotentes: recorrências, fechamento automático, alertas de SLA
 │  │  ├─ Operacao/                     # avisos ao Discord, ocorrências de erro (fora dos tenants, ADR 0012)
-│  │  ├─ Seguranca/                    # Identity, JWT, tokens de link
+│  │  ├─ Seguranca/                    # Identity, JWT, tokens de link, lista de e-mails descartáveis (dominios-descartaveis.txt, embutida)
 │  │  └─ DependencyInjection.cs
 │  ├─ Acordu.Api/                      # COMPOSITION ROOT
 │  │  ├─ Endpoints/                    # minimal API por feature
