@@ -27,6 +27,26 @@ public sealed class ConviteEmpresaTests
         convite.Validar(token, Agora).Should().BeTrue();
     }
 
+    [Fact] // F14-76: o convite guarda a entrada da lista de espera de onde saiu
+    public void Emitir_DaListaDeEspera_GuardaAEntradaDeOrigem()
+    {
+        var entrada = Guid.NewGuid();
+
+        var (convite, _) = ConviteEmpresa.Emitir(Guid.NewGuid(), "ana@estudio.com", Validade, Agora, entrada);
+        var (direto, _) = ConviteEmpresa.Emitir(Guid.NewGuid(), "bia@estudio.com", Validade, Agora);
+
+        convite.EntradaListaEsperaId.Should().Be(entrada);
+        direto.EntradaListaEsperaId.Should().BeNull();
+    }
+
+    [Fact]
+    public void Emitir_EntradaDeOrigemVazia_Lanca()
+    {
+        var acao = () => ConviteEmpresa.Emitir(Guid.NewGuid(), "ana@estudio.com", Validade, Agora, Guid.Empty);
+
+        acao.Should().Throw<ArgumentException>().Which.ParamName.Should().Be("entradaListaEsperaId");
+    }
+
     [Theory]
     [InlineData("")]
     [InlineData("sem-arroba")]

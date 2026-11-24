@@ -211,6 +211,7 @@ public sealed partial class AreaNebrysTests(ApiFixture api)
                 "/api/v1/nebrys/documentos/liberacao",
                 "/api/v1/nebrys/convites", "/api/v1/nebrys/convites/{id}",
                 "/api/v1/nebrys/convites/{id}/reenvio", "/api/v1/nebrys/convites/{id}/revogacao",
+                "/api/v1/nebrys/lista-espera", "/api/v1/nebrys/lista-espera/{id}/convite", "/api/v1/nebrys/lista-espera/{id}",
             ]);
         interno.Should().NotContain("/api/v1/nebrys");
     }
@@ -236,6 +237,11 @@ public sealed partial class AreaNebrysTests(ApiFixture api)
         { "GET", "/api/v1/nebrys/convites/{tenant}" },
         { "POST", "/api/v1/nebrys/convites/{tenant}/reenvio" },
         { "POST", "/api/v1/nebrys/convites/{tenant}/revogacao" },
+        // F14o: lista de espera. O {tenant} é só um Guid qualquer para o {id} da entrada.
+        { "GET", "/api/v1/nebrys/lista-espera" },
+        { "POST", "/api/v1/nebrys/lista-espera/{tenant}/convite" },
+        { "DELETE", "/api/v1/nebrys/lista-espera/{tenant}" },
+        { "GET", "/api/v1/nebrys/lista-espera/{tenant}" },
         { "GET", "/api/v1/nebrys" },
         { "GET", "/api/v1/nebrys/qualquer-coisa" },
         { "GET", "/API/V1/NEBRYS/EMPRESAS" },

@@ -19,6 +19,7 @@ public sealed class LimiteRenovacaoTests(ApiFixture api)
     [InlineData("/api/v1/auth/login", ComposicaoSeguranca.LimiteAuth)]
     [InlineData("/api/v1/auth/registro", ComposicaoSeguranca.LimiteRegistro)]
     [InlineData("/api/v1/auth/senha/esqueci", ComposicaoSeguranca.LimiteAuth)]
+    [InlineData("/api/v1/lista-espera", ComposicaoSeguranca.LimiteListaEspera)]
     public void Rota_UsaOLimiteCerto(string rota, string politica)
     {
         var endpoints = api.App.Services.GetRequiredService<EndpointDataSource>().Endpoints.OfType<RouteEndpoint>();

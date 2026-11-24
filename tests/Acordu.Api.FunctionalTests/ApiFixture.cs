@@ -105,6 +105,7 @@ public sealed class ApiFixture : IAsyncLifetime
             ["RateLimit:Portal:PorMinuto"] = "100000",
             ["RateLimit:Registro:PorHora"] = "100000",
             ["RateLimit:ErrosWeb:PorMinuto"] = "100000",
+            ["RateLimit:ListaEspera:PorHora"] = "100000",
         };
         foreach (var (chave, valor) in extras)
             configuracao[chave] = valor;
