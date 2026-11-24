@@ -13,6 +13,10 @@ import { encerrarSessaoOperacao, sessaoOperacao } from '@/shared/sessao/sessaoOp
 export type EmpresaResumo = components['schemas']['EmpresaResumoNebrysDto']
 export type Empresa = components['schemas']['EmpresaNebrysDto']
 export type SituacaoEmpresa = components['schemas']['SituacaoEmpresa']
+export type Convite = components['schemas']['ConviteEmpresaNebrysDto']
+export type SituacaoConvite = components['schemas']['SituacaoConviteEmpresa']
+export type EnvioConvite = components['schemas']['EnvioConviteEmpresaDto']
+export type EntradaListaEspera = components['schemas']['EntradaListaEsperaNebrysDto']
 
 /** Recusa local: a sessão de operação acabou (prazo) antes de a requisição sair. */
 export class SessaoOperacaoEncerrada extends Error {
@@ -49,7 +53,17 @@ export function ehSessaoRecusada(erro: unknown): boolean {
     return erro instanceof SessaoOperacaoEncerrada || (erro instanceof ErroApi && erro.status === 404)
 }
 
-/** Encerra a sessão quando a lista (que só a barreira recusa com `404`) foi recusada. */
+/** Encerra a sessão quando uma lista (que só a barreira recusa com `404`) foi recusada. */
 export function encerrarSeRecusada(erro: unknown): void {
     if (ehSessaoRecusada(erro)) encerrarSessaoOperacao('expirada')
+}
+
+/**
+ * Repetição das consultas da área: uma vez, só para falha de rede ou do servidor. Recusa da API (`4xx`: a barreira, o
+ * item que não existe) e sessão encerrada não mudam ao repetir (ressalva do revisor no F14m sobre o `retry: 1` global).
+ */
+export function repetirConsulta(falhas: number, erro: unknown): boolean {
+    if (erro instanceof SessaoOperacaoEncerrada) return false
+    if (erro instanceof ErroApi && erro.status < 500) return false
+    return falhas < 1
 }
