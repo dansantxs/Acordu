@@ -4,11 +4,21 @@ using Acordu.Domain.ValueObjects;
 
 namespace Acordu.Application.Clientes;
 
-/// <summary>Item da listagem de clientes.</summary>
+/// <summary>Item da listagem de clientes. <see cref="Exemplo"/>: cliente dos dados de exemplo (F14r).</summary>
 public sealed record ClienteResumoDto(
-    Guid Id, string Nome, string? Documento, bool Ativo, string? RazaoSocial, Referencia? Responsavel, IReadOnlyList<string> Etiquetas);
+    Guid Id,
+    string Nome,
+    string? Documento,
+    bool Ativo,
+    string? RazaoSocial,
+    Referencia? Responsavel,
+    IReadOnlyList<string> Etiquetas,
+    bool Exemplo);
 
-/// <summary>Detalhe do cliente, com contatos (contrato §4.1; cadastro ampliado em 16/10).</summary>
+/// <summary>
+/// Detalhe do cliente, com contatos (contrato §4.1; cadastro ampliado em 16/10). <see cref="Exemplo"/>: cliente dos dados
+/// de exemplo (F14r).
+/// </summary>
 public sealed record ClienteDto(
     Guid Id,
     string Nome,
@@ -23,7 +33,8 @@ public sealed record ClienteDto(
     string? Telefone,
     EnderecoDto? Endereco,
     Referencia? Responsavel,
-    IReadOnlyList<string> Etiquetas);
+    IReadOnlyList<string> Etiquetas,
+    bool Exemplo);
 
 /// <summary>Endereço no corpo e na resposta; CEP, logradouro, cidade e UF obrigatórios quando há endereço.</summary>
 public sealed record EnderecoDto(string Cep, string Logradouro, string? Numero, string? Complemento, string? Bairro, string Cidade, string Uf)

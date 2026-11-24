@@ -81,4 +81,12 @@ public static class AcoesAuditoria
     public const string SolicitacaoStatus = "solicitacao.status";
     public const string SolicitacaoResponsavel = "solicitacao.responsavel";
     public const string SolicitacaoContrato = "solicitacao.contrato";
+
+    /// <summary>
+    /// Dados de exemplo carregados ou apagados pelo Dono (RF-EMP-05, F14r): a empresa no alvo e, em <c>dados</c>, quantos
+    /// clientes de exemplo entraram ou saíram.
+    /// </summary>
+    public const string ExemplosCarga = "exemplos.carga";
+
+    public const string ExemplosRemocao = "exemplos.remocao";
 }

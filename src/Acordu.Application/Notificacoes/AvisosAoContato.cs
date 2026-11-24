@@ -171,6 +171,9 @@ public sealed class AvisosAoContato :
         var contato = cliente?.Contatos.FirstOrDefault(c => c.Id == contatoId);
         if (cliente is null || contato is null || !cliente.Ativo || !contato.Ativo)
             return;
+        // Cliente dos dados de exemplo (F14r, RF-EMP-05): o contato é fictício (e-mail .invalid), nenhum e-mail sai.
+        if (cliente.Exemplo)
+            return;
         // Empresa não liberada (RF-AUT-06, F9b): nem e-mail nem link de acesso; a operação que causou o aviso segue.
         if (!await _envio.PodeAvisarAsync(categoria, null, cancellationToken))
             return;
