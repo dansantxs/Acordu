@@ -10,7 +10,8 @@ internal sealed class ConviteEmpresaConfiguration : IEntityTypeConfiguration<Con
 {
     /// <summary>
     /// Pelo modelo do <c>AcorduDbContext</c>, sem que ele dependa do tipo (design do F14, D4 e D12: só esta feature, a área
-    /// da Nebrys e as consultas dela usam a tabela; teste de arquitetura).
+    /// da Nebrys e as consultas dela usam a tabela; teste de arquitetura). Conhece a entrada da lista de espera só pela chave
+    /// estrangeira da origem.
     /// </summary>
     public static void Aplicar(ModelBuilder modelo) => modelo.ApplyConfiguration(new ConviteEmpresaConfiguration());
 
@@ -27,6 +28,10 @@ internal sealed class ConviteEmpresaConfiguration : IEntityTypeConfiguration<Con
         builder.Property(c => c.UsadoEm);
         builder.Property(c => c.RevogadoEm);
         builder.Ignore(c => c.Pendente);
+        // A entrada da lista de espera de onde o convite saiu (F14-76, design D12). Descartada a entrada (F14-77), o banco
+        // apaga a referência e o convite fica: a entrada não fica guardada sem motivo.
+        builder.Property(c => c.EntradaListaEsperaId);
+        builder.HasOne<EntradaListaEspera>().WithMany().HasForeignKey(c => c.EntradaListaEsperaId).OnDelete(DeleteBehavior.SetNull);
         // O cadastro acha o convite pelo hash do token (único, como os outros tokens; convenções §1).
         builder.HasIndex(c => c.TokenHash).IsUnique();
         // A área confere se o e-mail já tem um convite em aberto antes de emitir outro.
