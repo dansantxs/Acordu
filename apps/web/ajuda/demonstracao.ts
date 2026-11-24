@@ -1,16 +1,97 @@
 /**
- * Empresa de demonstração das capturas do manual (M2). Tudo é fictício e criado pela API pública, como faria um
- * usuário: conta, equipe (convites aceitos pelo e-mail do Mailpit), clientes, contratos, solicitações, tarefas,
- * projeto, recorrências e horas. As datas saem do dia da execução (fuso de São Paulo), para a Agenda e o Hoje terem o
- * que mostrar em qualquer semana.
+ * Empresa de demonstração das capturas do manual (M2). Tudo é fictício e vem do conjunto único de dados fictícios do
+ * Acordu, `src/Acordu.Application/Exemplos/demonstracao.json` (design do F14, D13; convenções §4), o mesmo que a API
+ * usa nos dados de exemplo: aqui ele é lido e criado pela API pública, como faria um usuário (conta, equipe com os
+ * convites aceitos pelo e-mail do Mailpit, clientes, contratos, solicitações, tarefas, projeto, recorrências e horas).
+ * As datas saem do dia da execução (fuso de São Paulo), com a mesma conta da API (`DiasRelativos`), para a Agenda e o
+ * Hoje terem o que mostrar em qualquer semana.
  */
 
+import { readFileSync } from 'node:fs'
+import { fileURLToPath } from 'node:url'
 import { cnpjNovo } from '../e2e/documentoDeTeste'
 
 const API = process.env.ACORDU_API ?? 'http://localhost:5080'
 const MAILPIT = process.env.ACORDU_MAILPIT ?? 'http://localhost:8025'
 const SENHA = 'demonstracao-do-manual'
 const sufixo = Date.now().toString(36)
+
+/** O formato do `demonstracao.json` (o mesmo dos records de `DadosFicticios.cs`). */
+interface DadosFicticios {
+    empresa: { nome: string }
+    pessoas: { chave: string; nome: string; email: string; papel: string; capacidadeSemanalMinutos: number }[]
+    categorias: { chave: string; nome: string }[]
+    clientes: {
+        chave: string
+        nome: string
+        etiquetas?: string[] | null
+        responsavel?: string | null
+        email?: string | null
+        razaoSocial?: string | null
+        telefone?: string | null
+        observacoes?: string | null
+        endereco?: Record<string, string | null> | null
+        contato: { nome: string; email: string }
+        contrato: { tipo: string; inicioMeses: number; franquiaMinutos: number | null }
+    }[]
+    solicitacoes: {
+        chave: string
+        cliente: string
+        titulo: string
+        descricao: string | null
+        prioridade: string
+        responsavel: string | null
+        categoria: string | null
+        passos?: {
+            acao: 'inicio' | 'interacao' | 'aguardando-cliente' | 'resolucao'
+            por: string
+            visibilidade?: string
+            texto?: string
+            solucao?: { texto: string; problema: string | null; causa: string | null }
+        }[]
+    }[]
+    projetos: {
+        chave: string
+        cliente: string
+        nome: string
+        inicio: number
+        prazo: number
+        estimativaMinutos: number | null
+    }[]
+    tarefas: {
+        chave: string
+        titulo: string
+        responsavel: string
+        solicitacao?: string
+        projeto?: string
+        cliente?: string
+        dia: number
+        estimativaMinutos: number | null
+        status: 'A_FAZER' | 'FAZENDO' | 'CONCLUIDA'
+        checklist?: { texto: string; feito: boolean }[]
+    }[]
+    apontamentos: {
+        por: string
+        tarefa: string
+        dia: number
+        minutos: number
+        descricao: string
+        limite?: 'semana' | 'mes'
+    }[]
+    recorrencias: {
+        cliente: string
+        titulo: string
+        responsavel: string
+        periodicidade: string
+        diaReferencia: number
+        antecedenciaDias: number
+    }[]
+    cronometro: { por: string; tarefa: string } | null
+    portal: { cliente: string; escopo: string } | null
+}
+
+const ARQUIVO = fileURLToPath(new URL('../../../src/Acordu.Application/Exemplos/demonstracao.json', import.meta.url))
+const DADOS = JSON.parse(readFileSync(ARQUIVO, 'utf8')) as DadosFicticios
 
 export interface Demonstracao {
     email: string
@@ -52,12 +133,13 @@ async function chamar<T = Record<string, unknown>>(
 }
 
 const id = (r: Record<string, unknown>) => r.id as string
-/** E-mail só com ASCII ("Sérgio" → "sergio"): endereço com acento não chega ao Mailpit. */
-const semAcento = (t: string) =>
-    t
-        .normalize('NFD')
-        .replace(/[\u0300-\u036f]/g, '')
-        .toLowerCase()
+/** As contas são globais: cada execução usa e-mails novos (o banco local fica entre uma execução e outra). */
+const comSufixo = (email: string) => email.replace('@', `.${sufixo}@`)
+const daChave = <T>(mapa: Map<string, T>, chave: string): T => {
+    const valor = mapa.get(chave)
+    if (valor === undefined) throw new Error(`Chave ${chave} ausente dos dados fictícios.`)
+    return valor
+}
 
 /** Espera o e-mail chegar ao Mailpit (a outbox envia depois do commit) e devolve o token do link. */
 async function tokenDoEmail(para: string, caminho: string): Promise<string> {
@@ -75,7 +157,7 @@ async function tokenDoEmail(para: string, caminho: string): Promise<string> {
     throw new Error(`O e-mail com /${caminho}/ para ${para} não chegou ao Mailpit.`)
 }
 
-// Datas no fuso da empresa (o padrão do calendário é America/Sao_Paulo).
+// Datas no fuso da empresa (o padrão do calendário é America/Sao_Paulo), com a conta de `DiasRelativos` da API.
 const hojeIso = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Sao_Paulo' }).format(new Date())
 const somarDias = (iso: string, dias: number) => {
     const d = new Date(`${iso}T12:00:00Z`)
@@ -83,7 +165,7 @@ const somarDias = (iso: string, dias: number) => {
     return d.toISOString().slice(0, 10)
 }
 const diaDaSemana = (iso: string) => new Date(`${iso}T12:00:00Z`).getUTCDay()
-/** Soma dias úteis (negativo volta), pulando sábado e domingo. */
+/** Soma dias úteis (negativo volta), pulando sábado e domingo; 0 é hoje. */
 const util = (n: number) => {
     let d = hojeIso
     let falta = Math.abs(n)
@@ -100,6 +182,14 @@ const inicioDoMes = (meses: number) => {
     d.setUTCMonth(d.getUTCMonth() + meses)
     return d.toISOString().slice(0, 10)
 }
+const segunda = (iso: string) => somarDias(iso, -((diaDaSemana(iso) + 6) % 7))
+/** O dia do apontamento, ou nulo quando ele fica de fora (`limite: semana` fora da semana do último dia útil). */
+const diaDoApontamento = (a: DadosFicticios['apontamentos'][number]) => {
+    const dia = a.dia === 0 ? ultimoUtil() : util(a.dia)
+    if (a.limite === 'mes') return dia < inicioDoMes(0) ? ultimoUtil() : dia
+    if (a.limite === 'semana') return dia < ultimoUtil() && dia >= segunda(ultimoUtil()) ? dia : null
+    return dia
+}
 
 async function convidar(dono: string, papelId: string, nome: string, email: string): Promise<Pessoa> {
     await chamar(dono, 'POST', '/convites', { email, papelId })
@@ -114,399 +204,229 @@ async function convidar(dono: string, papelId: string, nome: string, email: stri
 }
 
 export async function criarDemonstracao(): Promise<Demonstracao> {
-    const email = `marina.${sufixo}@exemplo.com`
+    // A conta e a equipe.
+    const quemRegistra = DADOS.pessoas.find((p) => p.papel === 'Dono')!
+    const email = comSufixo(quemRegistra.email)
     const { accessToken: dono } = await chamar<{ accessToken: string }>(null, 'POST', '/auth/registro', {
-        nome: 'Marina Duarte',
+        nome: quemRegistra.nome,
         email,
         senha: SENHA,
-        nomeEmpresa: 'Estúdio Aurora',
+        nomeEmpresa: DADOS.empresa.nome,
         documento: cnpjNovo(),
     })
     await chamar(null, 'POST', '/auth/confirmacao-email', {
         token: await tokenDoEmail(email, 'conta/confirmacao'),
     })
-    const marina: Pessoa = { token: dono, id: (await chamar<{ usuarioId: string }>(dono, 'GET', '/auth/eu')).usuarioId }
-
+    const pessoas = new Map<string, Pessoa>([
+        [
+            quemRegistra.chave,
+            { token: dono, id: (await chamar<{ usuarioId: string }>(dono, 'GET', '/auth/eu')).usuarioId },
+        ],
+    ])
     const papeis = await chamar<{ id: string; nome: string }[]>(dono, 'GET', '/papeis')
-    const membro = papeis.find((p) => p.nome === 'Membro')!.id
-    const rafael = await convidar(dono, membro, 'Rafael Nunes', `rafael.${sufixo}@exemplo.com`)
-    const clara = await convidar(dono, membro, 'Clara Moreira', `clara.${sufixo}@exemplo.com`)
-    await chamar(dono, 'PUT', `/usuarios/${marina.id}/capacidade`, { capacidadeSemanalMinutos: 30 * 60 })
-    await chamar(dono, 'PUT', `/usuarios/${rafael.id}/capacidade`, { capacidadeSemanalMinutos: 40 * 60 })
-    await chamar(dono, 'PUT', `/usuarios/${clara.id}/capacidade`, { capacidadeSemanalMinutos: 30 * 60 })
+    for (const p of DADOS.pessoas.filter((outra) => outra !== quemRegistra)) {
+        const papel = papeis.find((x) => x.nome === p.papel)!.id
+        pessoas.set(p.chave, await convidar(dono, papel, p.nome, comSufixo(p.email)))
+    }
+    for (const p of DADOS.pessoas) {
+        await chamar(dono, 'PUT', `/usuarios/${daChave(pessoas, p.chave).id}/capacidade`, {
+            capacidadeSemanalMinutos: p.capacidadeSemanalMinutos,
+        })
+    }
+    const pessoa = (chave: string) => daChave(pessoas, chave)
+    const mencoes = (texto: string) =>
+        texto.replace(/@\{([a-zA-Z]+)\}/g, (_, chave: string) => `@{${pessoa(chave).id}}`)
 
-    const [suporte, melhoria] = await Promise.all(
-        ['Suporte', 'Melhoria', 'Infraestrutura'].map((nome) =>
-            chamar(dono, 'POST', '/categorias', { nome, ativa: true }),
-        ),
-    ).then((cs) => cs.map(id))
+    const categorias = new Map<string, string>()
+    for (const c of DADOS.categorias)
+        categorias.set(c.chave, id(await chamar(dono, 'POST', '/categorias', { nome: c.nome, ativa: true })))
 
-    // Clientes, cada um com um contato e um contrato.
-    const cliente = async (
-        nome: string,
-        contato: string,
-        etiquetas: string[],
-        cadastro: Record<string, unknown> = {},
-    ) => {
-        const c = id(
+    // Clientes, cada um com um contato e um contrato com o SLA sugerido da empresa.
+    const { slaPadrao } = await chamar<{ slaPadrao: unknown[] }>(dono, 'GET', '/configuracoes/empresa')
+    const clientes = new Map<string, { id: string; contato: string; email: string; contrato: string }>()
+    for (const c of DADOS.clientes) {
+        const clienteId = id(
             await chamar(dono, 'POST', '/clientes', {
-                nome,
+                nome: c.nome,
                 documento: null,
-                observacoes: null,
-                etiquetas,
-                responsavelId: marina.id,
-                email: `contato@${semAcento(nome.split(' ')[0]!)}.exemplo.com`,
-                ...cadastro,
+                observacoes: c.observacoes ?? null,
+                etiquetas: c.etiquetas ?? [],
+                responsavelId: c.responsavel ? pessoa(c.responsavel).id : null,
+                email: c.email ?? null,
+                razaoSocial: c.razaoSocial ?? null,
+                telefone: c.telefone ?? null,
+                endereco: c.endereco ?? null,
             }),
         )
-        const emailContato = `${semAcento(contato.split(' ')[0]!)}.${sufixo}@cliente.exemplo.com`
-        const ct = id(
-            await chamar(dono, 'POST', `/clientes/${c}/contatos`, {
-                nome: contato,
+        const emailContato = comSufixo(c.contato.email)
+        const contato = id(
+            await chamar(dono, 'POST', `/clientes/${clienteId}/contatos`, {
+                nome: c.contato.nome,
                 email: emailContato,
                 telefone: null,
                 cargo: null,
             }),
         )
-        return { id: c, contato: ct, email: emailContato }
-    }
-    const padaria = await cliente('Padaria Grão Dourado', 'Sérgio Almeida', ['varejo', 'delivery'], {
-        razaoSocial: 'Grão Dourado Panificadora Ltda.',
-        telefone: '(14) 3222-0101',
-        observacoes: 'Abre às 6h; chamados do caixa são sempre urgentes.',
-        endereco: {
-            cep: '17012-000',
-            logradouro: 'Rua das Acácias',
-            numero: '410',
-            complemento: null,
-            bairro: 'Centro',
-            cidade: 'Bauru',
-            uf: 'SP',
-        },
-    })
-    const advocacia = await cliente('Lima & Prado Advocacia', 'Helena Prado', ['escritório'])
-    const casaVerde = await cliente('Casa Verde Plantas', 'Joana Ribeiro', ['varejo', 'site'])
-    const academia = await cliente('Academia Movimento', 'Paulo Teixeira', ['academia'])
-
-    // Os prazos que a tela de contrato sugere (horas úteis).
-    const SLA = [
-        { prioridade: 'URGENTE', primeiraRespostaMinutos: 60, resolucaoMinutos: 4 * 60 },
-        { prioridade: 'ALTA', primeiraRespostaMinutos: 2 * 60, resolucaoMinutos: 16 * 60 },
-        { prioridade: 'MEDIA', primeiraRespostaMinutos: 4 * 60, resolucaoMinutos: 32 * 60 },
-        { prioridade: 'BAIXA', primeiraRespostaMinutos: 8 * 60, resolucaoMinutos: 80 * 60 },
-    ]
-    const contrato = async (clienteId: string, tipo: string, franquiaMinutos: number | null) =>
-        id(
+        const contrato = id(
             await chamar(dono, 'POST', '/contratos', {
                 clienteId,
-                tipo,
-                inicio: inicioDoMes(-3),
+                tipo: c.contrato.tipo,
+                inicio: inicioDoMes(c.contrato.inicioMeses),
                 fim: null,
-                franquiaMinutos,
-                sla: SLA,
+                franquiaMinutos: c.contrato.franquiaMinutos,
+                sla: slaPadrao,
             }),
         )
-    const cPadaria = await contrato(padaria.id, 'BANCO_HORAS', 20 * 60)
-    const cAdvocacia = await contrato(advocacia.id, 'MENSAL_FIXO', 30 * 60)
-    const cCasaVerde = await contrato(casaVerde.id, 'AVULSO', null)
-    const cAcademia = await contrato(academia.id, 'BANCO_HORAS', 10 * 60)
+        clientes.set(c.chave, { id: clienteId, contato, email: emailContato, contrato })
+    }
 
-    // Solicitações em vários estados.
-    const solicitacao = async (
-        c: { id: string; contato: string },
-        contratoId: string,
-        titulo: string,
-        prioridade: string,
-        responsavelId: string | null,
-        categoriaId: string | null,
-        descricao: string,
-    ) =>
-        id(
+    // Solicitações em vários estados, cada passo feito por quem o arquivo diz.
+    const solicitacoes = new Map<string, string>()
+    for (const s of DADOS.solicitacoes) {
+        const cliente = daChave(clientes, s.cliente)
+        const solicitacao = id(
             await chamar(dono, 'POST', '/solicitacoes', {
-                clienteId: c.id,
-                contatoId: c.contato,
-                contratoId,
-                titulo,
-                descricao,
-                prioridade,
-                categoriaId,
-                responsavelId,
+                clienteId: cliente.id,
+                contatoId: cliente.contato,
+                contratoId: cliente.contrato,
+                titulo: s.titulo,
+                descricao: s.descricao,
+                prioridade: s.prioridade,
+                categoriaId: s.categoria ? daChave(categorias, s.categoria) : null,
+                responsavelId: s.responsavel ? pessoa(s.responsavel).id : null,
             }),
         )
-    const sPdv = await solicitacao(
-        padaria,
-        cPadaria,
-        'Caixa não imprime o cupom desde ontem',
-        'URGENTE',
-        rafael.id,
-        suporte,
-        'A impressora do caixa 2 liga, mas o cupom sai em branco. O caixa 1 está normal.',
-    )
-    await chamar(rafael.token, 'POST', `/solicitacoes/${sPdv}/inicio`)
-    await chamar(rafael.token, 'POST', `/solicitacoes/${sPdv}/interacoes`, {
-        texto: 'Oi, Sérgio! Já estou vendo. Pode me mandar uma foto do cupom em branco?',
-        visibilidade: 'EXTERNA',
-    })
-    await chamar(rafael.token, 'POST', `/solicitacoes/${sPdv}/interacoes`, {
-        texto: `Parece a cabeça térmica. @{${marina.id}}, temos uma impressora reserva para emprestar?`,
-        visibilidade: 'INTERNA',
-    })
-
-    const sCardapio = await solicitacao(
-        padaria,
-        cPadaria,
-        'Atualizar os preços do cardápio no site',
-        'MEDIA',
-        clara.id,
-        melhoria,
-        'Segue a planilha com os preços novos, valendo a partir de segunda.',
-    )
-    await chamar(clara.token, 'POST', `/solicitacoes/${sCardapio}/inicio`)
-    await chamar(clara.token, 'POST', `/solicitacoes/${sCardapio}/aguardando-cliente`)
-
-    // Entrega esperando a aprovação do contato no portal.
-    const sQrCode = await solicitacao(
-        padaria,
-        cPadaria,
-        'QR code do cardápio nas mesas',
-        'MEDIA',
-        clara.id,
-        melhoria,
-        'Queremos um QR code em cada mesa abrindo o cardápio do site.',
-    )
-    await chamar(clara.token, 'POST', `/solicitacoes/${sQrCode}/inicio`)
-    await chamar(clara.token, 'POST', `/solicitacoes/${sQrCode}/interacoes`, {
-        texto: 'Sérgio, os QR codes estão prontos: mandei o arquivo para a gráfica imprimir os adesivos. Confere se o cardápio abre certinho no seu celular?',
-        visibilidade: 'EXTERNA',
-    })
-    await chamar(clara.token, 'POST', `/solicitacoes/${sQrCode}/resolucao`, {
-        solucao: {
-            problema: null,
-            causa: null,
-            texto: 'QR codes gerados apontando para o cardápio do site e arquivo enviado para a gráfica.',
-        },
-    })
-
-    const sEmail = await solicitacao(
-        advocacia,
-        cAdvocacia,
-        'Criar e-mail para a nova advogada',
-        'ALTA',
-        marina.id,
-        suporte,
-        'A Dra. Beatriz começa na segunda e precisa de e-mail e acesso à pasta de processos.',
-    )
-    await chamar(dono, 'POST', `/solicitacoes/${sEmail}/inicio`)
-
-    await solicitacao(
-        advocacia,
-        cAdvocacia,
-        'Lentidão ao abrir a pasta compartilhada',
-        'MEDIA',
-        null,
-        suporte,
-        'Desde a semana passada demora quase um minuto para abrir a pasta de processos.',
-    )
-    const sWifi = await solicitacao(
-        academia,
-        cAcademia,
-        'Wi-Fi da recepção caindo à tarde',
-        'ALTA',
-        null,
-        null,
-        'Os alunos reclamam que a rede cai entre 17h e 19h.',
-    )
-    await solicitacao(
-        casaVerde,
-        cCasaVerde,
-        'Trocar as fotos da página inicial',
-        'BAIXA',
-        clara.id,
-        melhoria,
-        'Mandamos as fotos novas da coleção de primavera.',
-    )
-    const sBackup = await solicitacao(
-        academia,
-        cAcademia,
-        'Recuperar planilha apagada sem querer',
-        'ALTA',
-        rafael.id,
-        suporte,
-        'Apagaram a planilha de matrículas de março da pasta da recepção.',
-    )
-    await chamar(rafael.token, 'POST', `/solicitacoes/${sBackup}/inicio`)
-    await chamar(rafael.token, 'POST', `/solicitacoes/${sBackup}/resolucao`, {
-        solucao: {
-            problema: 'Planilha apagada da pasta compartilhada.',
-            causa: 'Exclusão acidental.',
-            texto: 'Restaurada a versão de ontem a partir do backup noturno.',
-        },
-    })
+        solicitacoes.set(s.chave, solicitacao)
+        for (const passo of s.passos ?? []) {
+            const quem = pessoa(passo.por).token
+            const rota = `/solicitacoes/${solicitacao}/${passo.acao === 'interacao' ? 'interacoes' : passo.acao}`
+            if (passo.acao === 'interacao')
+                await chamar(quem, 'POST', rota, { texto: mencoes(passo.texto!), visibilidade: passo.visibilidade })
+            else if (passo.acao === 'resolucao') await chamar(quem, 'POST', rota, { solucao: passo.solucao })
+            else await chamar(quem, 'POST', rota)
+        }
+    }
 
     // Projeto com tarefas, mais tarefas soltas e de solicitações.
-    const projeto = id(
-        await chamar(dono, 'POST', '/projetos', {
-            clienteId: casaVerde.id,
-            nome: 'Novo site da Casa Verde',
-            contratoId: cCasaVerde,
-            inicio: util(-6),
-            prazo: util(15),
-            estimativaMinutos: 40 * 60,
-        }),
-    )
-    const tarefa = async (
-        titulo: string,
-        quem: Pessoa,
-        extra: { solicitacaoId?: string; projetoId?: string; clienteId?: string },
-        dia: string,
-        estimativa: number,
-    ) =>
-        id(
-            await chamar(dono, 'POST', '/tarefas', {
-                titulo,
-                descricao: null,
-                solicitacaoId: extra.solicitacaoId ?? null,
-                projetoId: extra.projetoId ?? null,
-                clienteId: extra.clienteId ?? null,
-                responsavelId: quem.id,
-                prazo: dia,
-                planejadaPara: dia,
-                estimativaMinutos: estimativa,
-                visivelCliente: Boolean(extra.projetoId),
-            }),
+    const projetos = new Map<string, string>()
+    for (const p of DADOS.projetos) {
+        const cliente = daChave(clientes, p.cliente)
+        projetos.set(
+            p.chave,
+            id(
+                await chamar(dono, 'POST', '/projetos', {
+                    clienteId: cliente.id,
+                    nome: p.nome,
+                    contratoId: cliente.contrato,
+                    inicio: util(p.inicio),
+                    prazo: util(p.prazo),
+                    estimativaMinutos: p.estimativaMinutos,
+                }),
+            ),
         )
-    const tLayout = await tarefa('Layout da página inicial', clara, { projetoId: projeto }, util(-2), 6 * 60)
-    const tCatalogo = await tarefa('Catálogo de produtos', clara, { projetoId: projeto }, util(2), 8 * 60)
-    const tCheckout = await tarefa('Integração com o pagamento', rafael, { projetoId: projeto }, util(6), 10 * 60)
-    await tarefa('Textos das páginas institucionais', marina, { projetoId: projeto }, util(4), 3 * 60)
-    const tImpressora = await tarefa('Trocar a impressora do caixa 2', rafael, { solicitacaoId: sPdv }, hojeIso, 90)
-    const tConta = await tarefa('Criar a conta de e-mail e o acesso', marina, { solicitacaoId: sEmail }, hojeIso, 45)
-    const tPlanilha = await tarefa('Restaurar a planilha do backup', rafael, { solicitacaoId: sBackup }, util(-1), 60)
-    const tRoteador = await tarefa('Revisar o roteador da recepção', rafael, { solicitacaoId: sWifi }, util(1), 2 * 60)
-    await tarefa('Orçamento do novo servidor', marina, { clienteId: advocacia.id }, util(3), 2 * 60)
-    const tBanner = await tarefa('Ajustar o banner da promoção', clara, { solicitacaoId: sCardapio }, util(-3), 60)
+    }
+    const tarefas = new Map<string, string>()
+    for (const t of DADOS.tarefas) {
+        const dia = util(t.dia)
+        tarefas.set(
+            t.chave,
+            id(
+                await chamar(dono, 'POST', '/tarefas', {
+                    titulo: t.titulo,
+                    descricao: null,
+                    solicitacaoId: t.solicitacao ? daChave(solicitacoes, t.solicitacao) : null,
+                    projetoId: t.projeto ? daChave(projetos, t.projeto) : null,
+                    clienteId: t.cliente ? daChave(clientes, t.cliente).id : null,
+                    responsavelId: pessoa(t.responsavel).id,
+                    prazo: dia,
+                    planejadaPara: dia,
+                    estimativaMinutos: t.estimativaMinutos,
+                    visivelCliente: Boolean(t.projeto),
+                }),
+            ),
+        )
+    }
 
-    // Horas da semana (e da anterior), com cada pessoa apontando as próprias.
-    const apontar = (quem: Pessoa, tarefaId: string, dia: number, minutos: number, descricao: string) =>
-        chamar(quem.token, 'POST', '/apontamentos', {
-            tarefaId,
-            data: dia === 0 ? ultimoUtil() : util(dia),
-            duracaoMinutos: minutos,
-            descricao,
+    // Horas, com cada pessoa apontando as próprias.
+    for (const a of DADOS.apontamentos) {
+        const data = diaDoApontamento(a)
+        if (!data) continue
+        await chamar(pessoa(a.por).token, 'POST', '/apontamentos', {
+            tarefaId: daChave(tarefas, a.tarefa),
+            data,
+            duracaoMinutos: a.minutos,
+            descricao: a.descricao,
             descricaoExterna: null,
             faturavel: true,
             visivelCliente: null,
         })
-    await apontar(clara, tLayout, -4, 180, 'Rascunho do layout')
-    await apontar(clara, tLayout, -3, 150, 'Ajustes depois da reunião')
-    await apontar(clara, tCatalogo, -1, 120, 'Estrutura do catálogo')
-    await apontar(clara, tCatalogo, 0, 90, 'Fotos dos produtos')
-    await apontar(rafael, tPlanilha, -1, 50, 'Restauração do backup')
-    await apontar(rafael, tImpressora, 0, 40, 'Diagnóstico da impressora')
-    await apontar(rafael, tCheckout, -2, 210, 'Conta de testes do pagamento')
-    await apontar(rafael, tCheckout, -6, 120, 'Levantamento dos meios de pagamento')
-    await apontar(marina, tConta, 0, 30, 'Caixa de e-mail criada')
-    await apontar(marina, tLayout, -5, 60, 'Reunião de briefing com a Joana')
-    // A Marina aponta todo dia da semana, para a tela Horas trabalhadas ter o que agrupar.
-    const nestaSemana: number[] = []
-    for (let d = -1; diaDaSemana(util(d)) < diaDaSemana(ultimoUtil()); d--) nestaSemana.push(d)
-    for (const [i, d] of nestaSemana.entries()) {
-        await apontar(marina, tConta, d, 30 + 15 * i, i % 2 ? 'Reunião com a Helena' : 'Atendimento por telefone')
-    }
-    // Consumo dos bancos de horas no mês: só conta tarefa com contrato pela origem (aqui, a solicitação) (a Academia passa dos 80%, para a régua mostrar o alerta).
-    const noMes = (d: number) => (util(d) < inicioDoMes(0) ? 0 : d)
-    for (const [d, min, texto] of [
-        [-2, 240, 'Arte do banner e versões para as redes'],
-        [-6, 300, 'Campanha de Dia das Crianças'],
-        [-9, 180, 'Cardápio novo no site'],
-    ] as const) {
-        await apontar(clara, tBanner, noMes(d), min, texto)
-    }
-    for (const [d, min, texto] of [
-        [-1, 180, 'Troca do ponto de acesso da recepção'],
-        [-4, 150, 'Cabeamento da sala de spinning'],
-        [-7, 120, 'Configuração da rede de convidados'],
-    ] as const) {
-        await apontar(rafael, tRoteador, noMes(d), min, texto)
     }
 
-    // Status por último: primeiro as horas, depois o andamento.
-    for (const [t, quem] of [
-        [tLayout, clara],
-        [tPlanilha, rafael],
-    ] as const) {
-        await chamar(quem.token, 'POST', `/tarefas/${t}/inicio`)
-        await chamar(quem.token, 'POST', `/tarefas/${t}/conclusao`)
-    }
-    await chamar(clara.token, 'POST', `/tarefas/${tCatalogo}/inicio`)
-    await chamar(rafael.token, 'POST', `/tarefas/${tImpressora}/inicio`)
-    await chamar(rafael.token, 'POST', `/tarefas/${tCheckout}/inicio`)
-    await chamar(dono, 'POST', `/tarefas/${tConta}/inicio`)
-    for (const item of ['Criar a caixa no provedor', 'Liberar a pasta de processos', 'Mandar a senha provisória']) {
-        await chamar(dono, 'POST', `/tarefas/${tConta}/itens`, {
-            texto: item,
-            feito: item === 'Criar a caixa no provedor',
-        })
+    // Status por último: primeiro as horas, depois o andamento (cada tarefa pelo responsável dela).
+    for (const t of DADOS.tarefas) {
+        const tarefa = daChave(tarefas, t.chave)
+        const quem = pessoa(t.responsavel).token
+        if (t.status !== 'A_FAZER') await chamar(quem, 'POST', `/tarefas/${tarefa}/inicio`)
+        if (t.status === 'CONCLUIDA') await chamar(quem, 'POST', `/tarefas/${tarefa}/conclusao`)
+        for (const item of t.checklist ?? []) {
+            await chamar(dono, 'POST', `/tarefas/${tarefa}/itens`, { texto: item.texto, feito: item.feito })
+        }
     }
 
     // Recorrências (a geração das tarefas fica com o job; aqui só a regra).
-    const recorrencia = (clienteId: string, contratoId: string, titulo: string, quem: Pessoa, regra: object) =>
-        chamar(dono, 'POST', '/recorrencias', {
-            clienteId,
-            contratoId,
+    for (const r of DADOS.recorrencias) {
+        const cliente = daChave(clientes, r.cliente)
+        await chamar(dono, 'POST', '/recorrencias', {
+            clienteId: cliente.id,
+            contratoId: cliente.contrato,
             modelo: {
-                titulo,
+                titulo: r.titulo,
                 descricao: null,
-                responsavelId: quem.id,
+                responsavelId: pessoa(r.responsavel).id,
                 estimativaMinutos: 60,
                 visivelCliente: true,
                 checklist: null,
             },
-            regra,
+            regra: {
+                periodicidade: r.periodicidade,
+                diaReferencia: r.diaReferencia,
+                antecedenciaDias: r.antecedenciaDias,
+                inicio: null,
+                fim: null,
+            },
         })
-    await recorrencia(advocacia.id, cAdvocacia, 'Conferir o backup dos processos', rafael, {
-        periodicidade: 'SEMANAL',
-        diaReferencia: 1,
-        antecedenciaDias: 0,
-        inicio: null,
-        fim: null,
-    })
-    await recorrencia(padaria.id, cPadaria, 'Relatório mensal de atendimento', marina, {
-        periodicidade: 'MENSAL',
-        diaReferencia: 5,
-        antecedenciaDias: 2,
-        inicio: null,
-        fim: null,
-    })
-    await recorrencia(academia.id, cAcademia, 'Revisão trimestral da rede', rafael, {
-        periodicidade: 'TRIMESTRAL',
-        diaReferencia: 10,
-        antecedenciaDias: 5,
-        inicio: null,
-        fim: null,
-    })
+    }
 
-    // O cronômetro da Marina rodando, para aparecer na barra lateral e no Hoje.
-    await chamar(dono, 'POST', '/cronometro/inicio', { tarefaId: tConta })
+    // O cronômetro rodando, para aparecer na barra lateral e no Hoje.
+    if (DADOS.cronometro) {
+        await chamar(pessoa(DADOS.cronometro.por).token, 'POST', '/cronometro/inicio', {
+            tarefaId: daChave(tarefas, DADOS.cronometro.tarefa),
+        })
+    }
 
-    // O Sérgio entra no portal pelo convite (vê todas as solicitações da padaria e os contratos).
-    await chamar(dono, 'POST', `/clientes/${padaria.id}/contatos/${padaria.contato}/acesso-portal`, {
-        escopoPortal: 'TODAS_DO_CLIENTE',
-    })
-    await chamar(null, 'POST', '/auth/portal/convite', {
-        token: await tokenDoEmail(padaria.email, 'portal/convite'),
-        nome: 'Sérgio Almeida',
-        senha: SENHA,
-    })
+    // O contato entra no portal pelo convite.
+    const portal = DADOS.portal ? daChave(clientes, DADOS.portal.cliente) : null
+    if (DADOS.portal && portal) {
+        await chamar(dono, 'POST', `/clientes/${portal.id}/contatos/${portal.contato}/acesso-portal`, {
+            escopoPortal: DADOS.portal.escopo,
+        })
+        await chamar(null, 'POST', '/auth/portal/convite', {
+            token: await tokenDoEmail(portal.email, 'portal/convite'),
+            nome: DADOS.clientes.find((c) => c.chave === DADOS.portal!.cliente)!.contato.nome,
+            senha: SENHA,
+        })
+    }
 
+    // O que as receitas das capturas abrem: a padaria, o chamado do caixa e a entrega esperando aprovação.
+    const padaria = daChave(clientes, 'padaria')
     return {
         email,
         senha: SENHA,
-        solicitacaoId: sPdv,
+        solicitacaoId: daChave(solicitacoes, 'pdv'),
         clienteId: padaria.id,
-        contratoId: cPadaria,
+        contratoId: padaria.contrato,
         contato: { email: padaria.email, senha: SENHA },
         tenantId: (await chamar<{ tenant: { id: string } }>(dono, 'GET', '/auth/eu')).tenant.id,
-        entregaId: sQrCode,
+        entregaId: daChave(solicitacoes, 'qrcode'),
     }
 }

@@ -170,6 +170,8 @@ export const SECOES_AJUDA: SecaoAjuda[] = [
         ],
         dicas: [
             'Para quem configura a empresa, enquanto ela é nova, o cartão "Primeiros passos" mostra o que já foi feito e o que falta. "Dispensar" esconde o cartão neste navegador; ele também some quando tudo estiver feito.',
+            'Na empresa em teste que ainda não tem dados, quem configura a empresa vê "Quer ver o Acordu com dados?": "Carregar dados de exemplo" cria clientes, contatos, contratos, solicitações, tarefas e horas fictícios, sem enviar e-mail a ninguém. A oferta some quando a empresa tem dados próprios.',
+            'Com os exemplos carregados, "Apagar dados de exemplo" tira os clientes marcados como exemplo e tudo o que é deles, inclusive o que a equipe criou dentro deles. O que você cadastrou fora dos exemplos fica.',
         ],
         imagens: [
             {
@@ -216,6 +218,7 @@ export const SECOES_AJUDA: SecaoAjuda[] = [
             'O telefone que vem da Receita costuma ser do escritório de contabilidade: confira antes de salvar. O e-mail não vem, e para empresário individual (MEI) os dados abertos não trazem rua nem telefone: o Acordu usa CEP, bairro e cidade e completa a rua pelo CEP. Se a empresa não estiver ativa na Receita, aparece um aviso, mas dá para salvar.',
             'Inativar um cliente tira o acesso de todos os contatos ao portal; reativar não devolve: é preciso convidar de novo.',
             '"Arquivos" junta os anexos de todas as conversas e comentários do cliente.',
+            'Cliente com a marca "exemplo" é dos dados de exemplo: fictício, e sai com tudo o que é dele quando os exemplos são apagados no Hoje.',
         ],
         imagens: [
             { captura: 'cliente', legenda: 'A ficha de um cliente, com a régua do contrato e o que está em aberto.' },
