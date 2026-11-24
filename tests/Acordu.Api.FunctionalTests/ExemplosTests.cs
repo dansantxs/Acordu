@@ -23,7 +23,8 @@ public sealed class ExemplosTests(ApiFixture api)
     private static async Task<JsonElement> EstadoAsync(Equipe equipe) =>
         await equipe.EsperarAsync(HttpStatusCode.OK, HttpMethod.Get, Rota);
 
-    private static Task CarregarAsync(Equipe equipe) => equipe.EsperarAsync(HttpStatusCode.NoContent, HttpMethod.Post, Rota);
+    private static async Task CarregarAsync(Equipe equipe) =>
+        await equipe.EsperarAsync(HttpStatusCode.NoContent, HttpMethod.Post, Rota);
 
     private static async Task<int> TotalAsync(Equipe equipe, string rota) =>
         (await equipe.EsperarAsync(HttpStatusCode.OK, HttpMethod.Get, rota)).GetProperty("total").GetInt32();
