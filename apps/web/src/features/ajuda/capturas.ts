@@ -23,6 +23,9 @@ export const CAPTURAS = [
     'portal-detalhe',
     'portal-nova',
     'portal-contratos',
+    // Telas públicas do cadastro controlado (F14q), sem sessão.
+    'cadastro-convite',
+    'lista-espera',
 ] as const
 
 export type CapturaAjuda = (typeof CAPTURAS)[number]

@@ -487,6 +487,28 @@ export const SECOES_AJUDA: SecaoAjuda[] = [
         ],
     },
     {
+        id: 'cadastro',
+        titulo: 'Cadastro, convite e lista de espera',
+        grupo: 'conceitos',
+        permissoes: [],
+        resumo: 'Por enquanto, uma empresa nova entra no Acordu por convite da Nebrys. Quem ainda não tem convite pede pela lista de espera.',
+        dicas: [
+            'O convite chega por e-mail, com um link que vale por 7 dias e para um cadastro só. O link abre o cadastro com o e-mail convidado, que não dá para trocar.',
+            'O cadastro pede o seu nome, uma senha, o nome da empresa e o CPF ou CNPJ de quem contrata. Quem cria a empresa entra como Dono e convida a equipe depois, em Configurações › Equipe.',
+            'O e-mail convidado não pode ter conta no Acordu. Se já tiver, a tela avisa: peça à Nebrys um convite para outro e-mail.',
+            'Convite que venceu, já foi usado ou foi revogado não abre o cadastro: peça outro à Nebrys.',
+            'Sem convite, a tela de cadastro mostra a lista de espera: nome, e-mail, nome da empresa e, se quiser, o que você quer organizar. A Nebrys escolhe a quem convidar; entrar na lista não manda e-mail.',
+            'Os convites para a equipe e para o portal são outros: quem convida é a sua empresa, em Configurações › Equipe e na ficha do contato.',
+        ],
+        imagens: [
+            {
+                captura: 'cadastro-convite',
+                legenda: 'O cadastro aberto pelo link do convite, com o e-mail convidado fixo.',
+            },
+            { captura: 'lista-espera', legenda: 'Sem convite, a lista de espera aparece no lugar do cadastro.' },
+        ],
+    },
+    {
         id: 'textos-legais',
         titulo: 'Termos de uso e política de privacidade',
         grupo: 'conceitos',

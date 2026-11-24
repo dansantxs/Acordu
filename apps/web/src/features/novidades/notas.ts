@@ -13,6 +13,15 @@ export interface NotaVersao {
 
 export const NOTAS: NotaVersao[] = [
     {
+        data: '2026-11-24',
+        publico: 'equipe',
+        titulo: 'Cadastro por convite e lista de espera',
+        itens: [
+            'Enquanto o cadastro de empresas novas for só por convite, a tela de cadastro mostra a lista de espera: quem quer usar o Acordu deixa os dados, e a Nebrys convida.',
+            'O link do convite abre o cadastro com o e-mail convidado, que não dá para trocar.',
+        ],
+    },
+    {
         data: '2026-11-18',
         publico: 'equipe',
         titulo: 'Aceite dos termos de uso e da política de privacidade',
