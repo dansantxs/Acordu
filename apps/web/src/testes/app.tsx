@@ -32,6 +32,7 @@ export const perfil = {
         somenteLeituraDesde: null,
         expurgoPrevistoEm: null,
         diasFaixaTeste: 7,
+        demonstracao: false,
     },
     papel: 'Dono',
     permissoes: [],

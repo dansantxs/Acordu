@@ -85,3 +85,18 @@ export const consultaListaEspera = (filtro: FiltroPagina) =>
         staleTime: 0,
         retry: repetirConsulta,
     })
+
+/**
+ * A empresa de demonstração e quem foi indicado (contrato §17, F14s). Responde `200` também sem demonstração (`empresaId`
+ * nulo): o `404` é só a barreira.
+ */
+export const consultaDemonstracao = () =>
+    queryOptions({
+        queryKey: ['nebrys', 'demonstracao'],
+        queryFn: async () => {
+            const { data } = await apiNebrys.GET('/api/v1/nebrys/demonstracao')
+            return data!
+        },
+        staleTime: 0,
+        retry: repetirConsulta,
+    })

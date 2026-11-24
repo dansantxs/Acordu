@@ -11,9 +11,11 @@ import {
 /**
  * Faixa da situação da empresa no topo de toda tela interna (spec do F14): nos últimos dias do teste, quantos faltam e
  * como ativar (F14-10); só leitura, desde quando, até quando os dados ficam e como ativar (F14-25). Empresa ATIVA ou em
- * TESTE fora da janela: nada (F14-11).
+ * TESTE fora da janela: nada (F14-11). Na empresa de demonstração (RF-NEB-02, F14s), que fica fora do ciclo, a faixa
+ * diz que os dados são fictícios e que nada sai por e-mail (F14-89).
  */
 export function FaixaSituacao({ tenant, agora = new Date() }: { tenant: Tenant; agora?: Date }) {
+    if (tenant.demonstracao) return <FaixaDemonstracao />
     if (!podeGravar(tenant)) return <FaixaSomenteLeitura tenant={tenant} />
     const dias = diasRestantesDoTeste(tenant, agora)
     if (dias === null || !tenant.fimDoTeste) return null
@@ -29,6 +31,17 @@ export function FaixaSituacao({ tenant, agora = new Date() }: { tenant: Tenant; 
         >
             <strong className="font-semibold">{quanto}</strong> Depois disso a empresa fica só leitura. Para continuar
             usando, <ComoAtivar />
+        </div>
+    )
+}
+
+/** A demonstração: dados fictícios, nada sai por e-mail, e a Nebrys pode voltar tudo ao início. */
+function FaixaDemonstracao() {
+    return (
+        <div role="status" className="rounded-couro border border-linha bg-trilho px-4 py-3 text-sm text-suave">
+            <strong className="font-semibold text-tinta">Empresa de demonstração.</strong> Os dados são fictícios e nada
+            sai daqui por e-mail: convites e avisos não são enviados, e o link de acesso do portal sai só para copiar. A
+            Nebrys pode voltar os dados ao início a qualquer momento.
         </div>
     )
 }

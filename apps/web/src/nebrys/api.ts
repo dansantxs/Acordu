@@ -17,6 +17,8 @@ export type Convite = components['schemas']['ConviteEmpresaNebrysDto']
 export type SituacaoConvite = components['schemas']['SituacaoConviteEmpresa']
 export type EnvioConvite = components['schemas']['EnvioConviteEmpresaDto']
 export type EntradaListaEspera = components['schemas']['EntradaListaEsperaNebrysDto']
+export type Demonstracao = components['schemas']['DemonstracaoNebrysDto']
+export type PessoaIndicada = components['schemas']['PessoaIndicadaNebrysDto']
 
 /** Recusa local: a sessão de operação acabou (prazo) antes de a requisição sair. */
 export class SessaoOperacaoEncerrada extends Error {

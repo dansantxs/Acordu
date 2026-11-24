@@ -115,6 +115,7 @@ describe('portal: base', () => {
                         somenteLeituraDesde: null,
                         expurgoPrevistoEm: null,
                         diasFaixaTeste: 7,
+                        demonstracao: false,
                     },
                     papel: 'Cliente',
                     permissoes: [],
