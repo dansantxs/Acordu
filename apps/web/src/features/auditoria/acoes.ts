@@ -62,6 +62,13 @@ export const AREAS_ACAO: { area: string; acoes: [codigo: string, rotulo: string]
             ['solicitacao.contrato', 'Contrato da solicitação'],
         ],
     },
+    {
+        area: 'Empresa',
+        acoes: [
+            ['exemplos.carga', 'Dados de exemplo carregados'],
+            ['exemplos.remocao', 'Dados de exemplo apagados'],
+        ],
+    },
 ]
 
 const ROTULOS = new Map(AREAS_ACAO.flatMap((a) => a.acoes))
@@ -140,6 +147,10 @@ export function fraseAuditoria(r: Registro, nomes: ReadonlyMap<string, string>):
             return d.para ? `passou a solicitação para ${pessoa(d.para)}` : 'tirou o responsável da solicitação'
         case 'solicitacao.contrato':
             return d.para ? 'trocou o contrato da solicitação' : 'tirou a solicitação do contrato'
+        case 'exemplos.carga':
+            return `carregou os dados de exemplo (${numero(d.clientes)} clientes)`
+        case 'exemplos.remocao':
+            return `apagou os dados de exemplo (${numero(d.clientes)} clientes)`
         default:
             return rotuloAcao(r.acao)
     }

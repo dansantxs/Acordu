@@ -2,4 +2,8 @@
   <ItemGroup>
     <ProjectReference Include="..\Acordu.Domain\Acordu.Domain.csproj" />
   </ItemGroup>
+  <ItemGroup>
+    <!-- Dados fictícios dos exemplos e da demonstração (design do F14, D13): o bot do manual lê o mesmo arquivo. -->
+    <EmbeddedResource Include="Exemplos\demonstracao.json" LogicalName="Acordu.Application.Exemplos.demonstracao.json" />
+  </ItemGroup>
 </Project>

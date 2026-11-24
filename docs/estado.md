@@ -1,10 +1,10 @@
 # Acordu — Estado
 
-Visão geral curta, atualizada por cada PR (`docs/processo.md` §1). O histórico está no git, nos PRs e no registro dos designs. Atualizado em 24/11/2026 (F14q, telas do cadastro por convite e da área para convites e lista de espera).
+Visão geral curta, atualizada por cada PR (`docs/processo.md` §1). O histórico está no git, nos PRs e no registro dos designs. Atualizado em 24/11/2026 (F14r, dados de exemplo e o JSON único dos dados fictícios).
 
 ## Em revisão
 
-- **F14q — telas do cadastro controlado** (#182): `/cadastro` segue o modo da API (`GET /auth/cadastro`): no modo convite, o formulário da lista de espera no lugar do cadastro, com o motivo e o link da política (F14-44, F14-109); o link do e-mail (`/cadastro/convite/{token}`) abre o cadastro com o e-mail do convite fixo (F14-46). Na área da Nebrys, as telas de convites (emitir, reenviar, revogar) e da lista de espera (convidar, descartar). Seção "Cadastro, convite e lista de espera" no manual, com duas capturas novas pedidas ao bot (`.github/ajuda-request`), e nota em Novidades. Só front: sem migration, sem mudança na API nem variável nova.
+- **F14r — dados de exemplo** (#182): a empresa em teste sem dados vê no Hoje a oferta de carregar um conjunto fictício (clientes, contatos, contratos, solicitações, tarefas e horas), sem nenhum e-mail; os clientes vêm marcados como exemplo, e apagar leva o que a equipe criou dentro deles e deixa o resto (F14-91 a F14-96). `GET/POST/DELETE /configuracoes/exemplos`, só o Dono; recusa como só leitura na empresa VENCIDA ou CANCELADA. Os dados fictícios ficam num arquivo só, `src/Acordu.Application/Exemplos/demonstracao.json`, que a API embute e o bot do manual lê (D13). Migration `ClientesDeExemplo` e capturas pedidas aos bots (`.github/migration-request`, `.github/ajuda-request`); OpenAPI e tipos atualizados.
 
 ## Marco em andamento
 
@@ -17,7 +17,7 @@ Visão geral curta, atualizada por cada PR (`docs/processo.md` §1). O históric
 
 ## Próximos passos
 
-1. Merge do F14q. **Com o F14q na `main`, abrir o cadastro por convite é trocar a variável `CADASTRO_MODO` do GitHub para `convite` e fazer um deploy (G4)**: `/cadastro` passa a mostrar a lista de espera, e só quem recebe o link da Nebrys cria empresa. Com `aberto`, o cadastro de hoje segue. Depois o `/marco F14 182` segue pelo F14r (dados de exemplo) e o F14s (demonstração). Ligar `TEXTOS_LEGAIS_PUBLICADOS` só depois da #194, num deploy fora do horário de uso (deploy-ci §7). Email Routing de `contato@acordu.app.br` ativo e testado pelo Daniel em 16/11.
+1. Merge do F14r; depois o `/marco F14 182` segue pelo F14s (empresa de demonstração, que usa o mesmo `demonstracao.json`). **Com o F14q na `main`, abrir o cadastro por convite é trocar a variável `CADASTRO_MODO` do GitHub para `convite` e fazer um deploy (G4)**: `/cadastro` passa a mostrar a lista de espera, e só quem recebe o link da Nebrys cria empresa. Com `aberto`, o cadastro de hoje segue. Ligar `TEXTOS_LEGAIS_PUBLICADOS` só depois da #194, num deploy fora do horário de uso (deploy-ci §7). Email Routing de `contato@acordu.app.br` ativo e testado pelo Daniel em 16/11.
 2. Conferências que faltam da produção:
    - deploy: F8-27 e F8-28 (rollback por migration e por health), F8-29 (jobs do Scheduler), hostname do Turnstile;
    - backup: F8-30 e F13-32 na primeira madrugada com o `BACKUP_ATIVO`; F8-31 (restore) antes do primeiro cliente;
@@ -27,6 +27,8 @@ Visão geral curta, atualizada por cada PR (`docs/processo.md` §1). O históric
 3. Política de privacidade e termos de uso: rascunho na `main` (F14f, #193); marcadores para depois do registro da Nebrys (#194).
 
 ## Para o Daniel confirmar
+
+- F14r: "sem dado" para oferecer os exemplos é a regra do expurgo de cadastro, então convidar alguém para a equipe (vínculo de outra pessoa) já tira a oferta. O expurgo do cadastro abandonado continua contando os exemplos como dado (uma empresa só com exemplos não sai em 7 dias; sai pelo expurgo das só leitura). Se preferir, os dois passam a ignorar os exemplos.
 
 - F14p: a Nebrys ainda emite convite de empresa para e-mail de domínio descartável, e o cadastro com esse convite é recusado no e-mail (F14-60 vale com ou sem convite). Se preferir, a emissão na área passa a recusar também (melhoria pequena).
 

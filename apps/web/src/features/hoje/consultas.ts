@@ -36,3 +36,20 @@ export function consultaMinhaSemana(semana: string) {
         queryFn: async () => (await api.GET('/api/v1/capacidade', { params: { query: { semana } } })).data!,
     })
 }
+
+/**
+ * Dados de exemplo (RF-EMP-05, F14r): se a empresa pode carregar agora (`disponivel`) e se há exemplos para apagar
+ * (`carregados`). Só para quem gerencia a configuração (o Dono).
+ */
+export const consultaExemplos = queryOptions({
+    queryKey: ['configuracoes', 'exemplos'],
+    queryFn: async () => (await api.GET('/api/v1/configuracoes/exemplos')).data!,
+})
+
+export async function carregarExemplos(): Promise<void> {
+    await api.POST('/api/v1/configuracoes/exemplos')
+}
+
+export async function apagarExemplos(): Promise<void> {
+    await api.DELETE('/api/v1/configuracoes/exemplos')
+}

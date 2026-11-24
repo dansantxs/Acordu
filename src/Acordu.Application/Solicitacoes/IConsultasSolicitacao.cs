@@ -27,7 +27,7 @@ public interface IConsultasSolicitacao
 
     /// <summary>
     /// Em aberto (não RESOLVIDA, FECHADA nem CANCELADA), com SLA, cujo limite de risco já passou em <paramref name="agora"/>:
-    /// candidatas aos alertas de SLA (a situação final vem do domínio).
+    /// candidatas aos alertas de SLA (a situação final vem do domínio). As dos clientes de exemplo ficam de fora (F14r).
     /// </summary>
     Task<IReadOnlyList<Guid>> CandidatasAAlertaDeSlaAsync(DateTimeOffset agora, CancellationToken cancellationToken = default);
 }

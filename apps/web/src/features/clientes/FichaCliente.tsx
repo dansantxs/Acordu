@@ -179,6 +179,12 @@ function Ficha({
                 )
             }
         >
+            {cliente.exemplo && (
+                <Alerta tom="aviso">
+                    Cliente de exemplo: os dados dele são fictícios e saem quando os dados de exemplo forem apagados no
+                    Hoje, junto com o que for criado dentro dele.
+                </Alerta>
+            )}
             {!cliente.ativo && (
                 <Alerta tom="aviso">
                     <span className="flex flex-wrap items-center justify-between gap-3">

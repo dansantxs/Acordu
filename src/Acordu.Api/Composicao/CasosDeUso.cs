@@ -14,6 +14,7 @@ using Acordu.Application.Contratos;
 using Acordu.Application.Dashboard;
 using Acordu.Application.Empresas;
 using Acordu.Application.Equipe;
+using Acordu.Application.Exemplos;
 using Acordu.Application.ListaEspera;
 using Acordu.Application.Nebrys;
 using Acordu.Application.Notificacoes;
@@ -59,6 +60,9 @@ internal static class CasosDeUso
         services.AddScoped<ComandosApontamento>();
         services.AddScoped<ComandosConfiguracao>();
         services.AddScoped<ComandosCategoria>();
+        // Dados de exemplo (F14r): a carga do conjunto fictício e as ações do Dono.
+        services.AddScoped<CargaDosDadosFicticios>();
+        services.AddScoped<ComandosExemplos>();
         services.AddScoped<ComandosAcessoPortal>();
         services.AddScoped<RevogacaoAcessoPortal>();
         services.AddScoped<EnvioATerceiros>();

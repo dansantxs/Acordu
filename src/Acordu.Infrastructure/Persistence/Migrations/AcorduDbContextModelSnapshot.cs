@@ -352,6 +352,10 @@ namespace Acordu.Infrastructure.Persistence.Migrations
                         .HasColumnType("text[]")
                         .HasColumnName("etiquetas");
 
+                    b.Property<bool>("Exemplo")
+                        .HasColumnType("boolean")
+                        .HasColumnName("exemplo");
+
                     b.Property<string>("InscricaoEstadual")
                         .HasMaxLength(20)
                         .HasColumnType("character varying(20)")

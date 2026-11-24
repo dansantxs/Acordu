@@ -4248,6 +4248,45 @@
         }
       }
     },
+    "/api/v1/configuracoes/exemplos": {
+      "get": {
+        "tags": [
+          "Configurações"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DadosExemploDto"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Configurações"
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Configurações"
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          }
+        }
+      }
+    },
     "/api/v1/categorias": {
       "get": {
         "tags": [
@@ -5913,7 +5952,8 @@
           "telefone",
           "endereco",
           "responsavel",
-          "etiquetas"
+          "etiquetas",
+          "exemplo"
         ],
         "type": "object",
         "properties": {
@@ -5997,6 +6037,9 @@
             "items": {
               "type": "string"
             }
+          },
+          "exemplo": {
+            "type": "boolean"
           }
         }
       },
@@ -6083,7 +6126,8 @@
           "ativo",
           "razaoSocial",
           "responsavel",
-          "etiquetas"
+          "etiquetas",
+          "exemplo"
         ],
         "type": "object",
         "properties": {
@@ -6124,6 +6168,9 @@
             "items": {
               "type": "string"
             }
+          },
+          "exemplo": {
+            "type": "boolean"
           }
         }
       },
@@ -6817,6 +6864,21 @@
               "string"
             ],
             "format": "int32"
+          }
+        }
+      },
+      "DadosExemploDto": {
+        "required": [
+          "disponivel",
+          "carregados"
+        ],
+        "type": "object",
+        "properties": {
+          "disponivel": {
+            "type": "boolean"
+          },
+          "carregados": {
+            "type": "boolean"
           }
         }
       },

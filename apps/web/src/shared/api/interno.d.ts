@@ -4248,6 +4248,75 @@ export interface paths {
         patch?: never
         trace?: never
     }
+    '/api/v1/configuracoes/exemplos': {
+        parameters: {
+            query?: never
+            header?: never
+            path?: never
+            cookie?: never
+        }
+        get: {
+            parameters: {
+                query?: never
+                header?: never
+                path?: never
+                cookie?: never
+            }
+            requestBody?: never
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown
+                    }
+                    content: {
+                        'application/json': components['schemas']['DadosExemploDto']
+                    }
+                }
+            }
+        }
+        put?: never
+        post: {
+            parameters: {
+                query?: never
+                header?: never
+                path?: never
+                cookie?: never
+            }
+            requestBody?: never
+            responses: {
+                /** @description No Content */
+                204: {
+                    headers: {
+                        [name: string]: unknown
+                    }
+                    content?: never
+                }
+            }
+        }
+        delete: {
+            parameters: {
+                query?: never
+                header?: never
+                path?: never
+                cookie?: never
+            }
+            requestBody?: never
+            responses: {
+                /** @description No Content */
+                204: {
+                    headers: {
+                        [name: string]: unknown
+                    }
+                    content?: never
+                }
+            }
+        }
+        options?: never
+        head?: never
+        patch?: never
+        trace?: never
+    }
     '/api/v1/categorias': {
         parameters: {
             query?: never
@@ -5446,6 +5515,7 @@ export interface components {
             endereco: null | components['schemas']['EnderecoDto']
             responsavel: null | components['schemas']['Referencia']
             etiquetas: string[]
+            exemplo: boolean
         }
         ClienteRequest: {
             nome: string
@@ -5469,6 +5539,7 @@ export interface components {
             razaoSocial: null | string
             responsavel: null | components['schemas']['Referencia']
             etiquetas: string[]
+            exemplo: boolean
         }
         ComentarioTarefaDto: {
             /** Format: uuid */
@@ -5639,6 +5710,10 @@ export interface components {
             esquecido: boolean
             /** Format: int32 */
             sugestaoMinutos?: null | number | string
+        }
+        DadosExemploDto: {
+            disponivel: boolean
+            carregados: boolean
         }
         DashboardDto: {
             /** Format: date */

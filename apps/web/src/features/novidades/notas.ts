@@ -15,6 +15,15 @@ export const NOTAS: NotaVersao[] = [
     {
         data: '2026-11-24',
         publico: 'equipe',
+        titulo: 'Dados de exemplo para conhecer o Acordu',
+        itens: [
+            'Na empresa em teste que ainda não tem dados, o Hoje oferece carregar clientes, contratos, solicitações, tarefas e horas de exemplo, todos fictícios, para ver as telas funcionando. Nenhum e-mail é enviado.',
+            'Os clientes de exemplo aparecem com a marca "exemplo". Quando quiser começar com os seus dados, apague os exemplos no Hoje: sai tudo o que é deles, e o que você cadastrou fica.',
+        ],
+    },
+    {
+        data: '2026-11-24',
+        publico: 'equipe',
         titulo: 'Cadastro por convite e lista de espera',
         itens: [
             'Enquanto o cadastro de empresas novas for só por convite, a tela de cadastro mostra a lista de espera: quem quer usar o Acordu deixa os dados, e a Nebrys convida.',

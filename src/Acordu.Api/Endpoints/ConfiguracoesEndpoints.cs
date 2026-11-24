@@ -3,11 +3,12 @@ using Acordu.Application.Abstractions;
 using Acordu.Application.Categorias;
 using Acordu.Application.Common;
 using Acordu.Application.Configuracoes;
+using Acordu.Application.Exemplos;
 using Acordu.Domain.Acesso;
 
 namespace Acordu.Api.Endpoints;
 
-/// <summary>Calendário, empresa, configurações do portal e categorias (contrato §6).</summary>
+/// <summary>Calendário, empresa, configurações do portal, dados de exemplo e categorias (contrato §6).</summary>
 internal static class ConfiguracoesEndpoints
 {
     public static void MapConfiguracoes(this RouteGroupBuilder interno)
@@ -68,6 +69,28 @@ internal static class ConfiguracoesEndpoints
         })
             .RequirePermissao(Permissoes.ConfiguracaoGerenciar)
             .Produces<ConfiguracaoPortalDto>();
+
+        // Dados de exemplo (RF-EMP-05, F14r): a oferta da Hoje, carregar e apagar. Só o Dono (configuracao.gerenciar).
+        configuracoes.MapGet("/exemplos", async (ComandosExemplos comandos, CancellationToken cancellationToken) =>
+            Results.Ok(await comandos.ObterAsync(cancellationToken)))
+            .RequirePermissao(Permissoes.ConfiguracaoGerenciar)
+            .Produces<DadosExemploDto>();
+
+        configuracoes.MapPost("/exemplos", async (ComandosExemplos comandos, CancellationToken cancellationToken) =>
+        {
+            await comandos.CarregarAsync(cancellationToken);
+            return Results.NoContent();
+        })
+            .RequirePermissao(Permissoes.ConfiguracaoGerenciar)
+            .Produces(StatusCodes.Status204NoContent);
+
+        configuracoes.MapDelete("/exemplos", async (ComandosExemplos comandos, CancellationToken cancellationToken) =>
+        {
+            await comandos.ApagarAsync(cancellationToken);
+            return Results.NoContent();
+        })
+            .RequirePermissao(Permissoes.ConfiguracaoGerenciar)
+            .Produces(StatusCodes.Status204NoContent);
 
         var categorias = interno.MapGroup("/categorias").WithTags("Configurações");
 

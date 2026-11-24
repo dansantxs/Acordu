@@ -42,6 +42,7 @@ class Cliente <<aggregate root>> {
   +Endereco: Endereco? (VO: Cep, Logradouro, Numero?, Complemento?, Bairro?, Cidade, Uf)
   +ResponsavelId: Guid? (equipe; conferido na Application)
   +Etiquetas: string[] (até 10)
+  +Exemplo: bool (dados de exemplo, F14r)
   +Contatos: Contato[]
   --
   +Criar(id, tenantId, nome, documento?, observacoes?): Cliente
@@ -53,6 +54,7 @@ class Cliente <<aggregate root>> {
   +AtualizarContato(contatoId, ...)
   +InativarContato(contatoId) / ReativarContato(contatoId)
   +VincularUsuarioAoContato(contatoId, usuarioId)
+  +MarcarComoExemplo()
   +Inativar() / Reativar()
 }
 class Contato <<entity>> {
@@ -287,6 +289,7 @@ Sequencial por tenant, gerado na Infrastructure (`IGeradorProtocolo`: tabela `co
 - Campos do ERS: `Observacoes` no cliente (RF-CLI-01) e `Cargo` no contato (RF-CLI-02). O Id do contato é gerado pelo cliente.
 - `VincularUsuarioAoContato` é chamado quando o contato aceita o convite do portal (RF-CLI-03); `DesvincularUsuarioDoContato`, quando o acesso é revogado (o contato pode ser convidado de novo, inclusive com outra conta).
 - Inativar cliente não apaga histórico; a Application bloqueia novas solicitações para cliente inativo.
+- **`Exemplo`** (RF-EMP-05, F14r; design do F14, D13): cliente dos dados de exemplo, marcado só pela carga (`MarcarComoExemplo`; nada desmarca). Tudo o que tem o `ClienteId` dele é exemplo, inclusive o que a equipe criou dentro dele, e sai com ele quando os exemplos são apagados (`ComandosExemplos`, read side §8b). A carga monta as raízes pelas fábricas do domínio (`CargaDosDadosFicticios`, Application) a partir do `demonstracao.json` e descarta os eventos delas antes de gravar: nada vai à outbox, e o que os manipuladores da transação fariam (primeira resposta, solicitação que sai de ABERTA pela tarefa, §3.1) é aplicado na própria carga.
 
 ### 4.2 Contrato
 - **Invariantes:**

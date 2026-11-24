@@ -1,0 +1,275 @@
+{
+  "versao": 1,
+  "empresa": {
+    "nome": "Estúdio Aurora"
+  },
+  "pessoas": [
+    {
+      "chave": "marina",
+      "nome": "Marina Duarte",
+      "email": "marina.duarte@exemplo.invalid",
+      "papel": "Dono",
+      "capacidadeSemanalMinutos": 1800
+    },
+    {
+      "chave": "rafael",
+      "nome": "Rafael Nunes",
+      "email": "rafael.nunes@exemplo.invalid",
+      "papel": "Membro",
+      "capacidadeSemanalMinutos": 2400
+    },
+    {
+      "chave": "clara",
+      "nome": "Clara Moreira",
+      "email": "clara.moreira@exemplo.invalid",
+      "papel": "Membro",
+      "capacidadeSemanalMinutos": 1800
+    }
+  ],
+  "categorias": [
+    { "chave": "suporte", "nome": "Suporte" },
+    { "chave": "melhoria", "nome": "Melhoria" },
+    { "chave": "infraestrutura", "nome": "Infraestrutura" }
+  ],
+  "clientes": [
+    {
+      "chave": "padaria",
+      "nome": "Padaria Grão Dourado",
+      "etiquetas": ["varejo", "delivery"],
+      "responsavel": "marina",
+      "email": "contato@padaria.exemplo.invalid",
+      "razaoSocial": "Grão Dourado Panificadora Ltda.",
+      "telefone": "(00) 0000-0101",
+      "observacoes": "Abre às 6h; chamados do caixa são sempre urgentes.",
+      "endereco": {
+        "cep": "17012-000",
+        "logradouro": "Rua das Acácias",
+        "numero": "410",
+        "complemento": null,
+        "bairro": "Centro",
+        "cidade": "Bauru",
+        "uf": "SP"
+      },
+      "contato": { "nome": "Sérgio Almeida", "email": "sergio.almeida@padaria.exemplo.invalid" },
+      "contrato": { "tipo": "BANCO_HORAS", "inicioMeses": -3, "franquiaMinutos": 1200 }
+    },
+    {
+      "chave": "advocacia",
+      "nome": "Lima & Prado Advocacia",
+      "etiquetas": ["escritório"],
+      "responsavel": "marina",
+      "email": "contato@advocacia.exemplo.invalid",
+      "contato": { "nome": "Helena Prado", "email": "helena.prado@advocacia.exemplo.invalid" },
+      "contrato": { "tipo": "MENSAL_FIXO", "inicioMeses": -3, "franquiaMinutos": 1800 }
+    },
+    {
+      "chave": "casaVerde",
+      "nome": "Casa Verde Plantas",
+      "etiquetas": ["varejo", "site"],
+      "responsavel": "marina",
+      "email": "contato@casaverde.exemplo.invalid",
+      "contato": { "nome": "Joana Ribeiro", "email": "joana.ribeiro@casaverde.exemplo.invalid" },
+      "contrato": { "tipo": "AVULSO", "inicioMeses": -3, "franquiaMinutos": null }
+    },
+    {
+      "chave": "academia",
+      "nome": "Academia Movimento",
+      "etiquetas": ["academia"],
+      "responsavel": "marina",
+      "email": "contato@academia.exemplo.invalid",
+      "contato": { "nome": "Paulo Teixeira", "email": "paulo.teixeira@academia.exemplo.invalid" },
+      "contrato": { "tipo": "BANCO_HORAS", "inicioMeses": -3, "franquiaMinutos": 600 }
+    }
+  ],
+  "solicitacoes": [
+    {
+      "chave": "pdv",
+      "cliente": "padaria",
+      "titulo": "Caixa não imprime o cupom desde ontem",
+      "descricao": "A impressora do caixa 2 liga, mas o cupom sai em branco. O caixa 1 está normal.",
+      "prioridade": "URGENTE",
+      "responsavel": "rafael",
+      "categoria": "suporte",
+      "passos": [
+        { "acao": "inicio", "por": "rafael" },
+        {
+          "acao": "interacao",
+          "por": "rafael",
+          "visibilidade": "EXTERNA",
+          "texto": "Oi, Sérgio! Já estou vendo. Pode me mandar uma foto do cupom em branco?"
+        },
+        {
+          "acao": "interacao",
+          "por": "rafael",
+          "visibilidade": "INTERNA",
+          "texto": "Parece a cabeça térmica. @{marina}, temos uma impressora reserva para emprestar?"
+        }
+      ]
+    },
+    {
+      "chave": "cardapio",
+      "cliente": "padaria",
+      "titulo": "Atualizar os preços do cardápio no site",
+      "descricao": "Segue a planilha com os preços novos, valendo a partir de segunda.",
+      "prioridade": "MEDIA",
+      "responsavel": "clara",
+      "categoria": "melhoria",
+      "passos": [
+        { "acao": "inicio", "por": "clara" },
+        { "acao": "aguardando-cliente", "por": "clara" }
+      ]
+    },
+    {
+      "chave": "qrcode",
+      "cliente": "padaria",
+      "titulo": "QR code do cardápio nas mesas",
+      "descricao": "Queremos um QR code em cada mesa abrindo o cardápio do site.",
+      "prioridade": "MEDIA",
+      "responsavel": "clara",
+      "categoria": "melhoria",
+      "passos": [
+        { "acao": "inicio", "por": "clara" },
+        {
+          "acao": "interacao",
+          "por": "clara",
+          "visibilidade": "EXTERNA",
+          "texto": "Sérgio, os QR codes estão prontos: mandei o arquivo para a gráfica imprimir os adesivos. Confere se o cardápio abre certinho no seu celular?"
+        },
+        {
+          "acao": "resolucao",
+          "por": "clara",
+          "solucao": {
+            "texto": "QR codes gerados apontando para o cardápio do site e arquivo enviado para a gráfica.",
+            "problema": null,
+            "causa": null
+          }
+        }
+      ]
+    },
+    {
+      "chave": "email",
+      "cliente": "advocacia",
+      "titulo": "Criar e-mail para a nova advogada",
+      "descricao": "A Dra. Beatriz começa na segunda e precisa de e-mail e acesso à pasta de processos.",
+      "prioridade": "ALTA",
+      "responsavel": "marina",
+      "categoria": "suporte",
+      "passos": [{ "acao": "inicio", "por": "marina" }]
+    },
+    {
+      "chave": "lentidao",
+      "cliente": "advocacia",
+      "titulo": "Lentidão ao abrir a pasta compartilhada",
+      "descricao": "Desde a semana passada demora quase um minuto para abrir a pasta de processos.",
+      "prioridade": "MEDIA",
+      "responsavel": null,
+      "categoria": "suporte",
+      "passos": []
+    },
+    {
+      "chave": "wifi",
+      "cliente": "academia",
+      "titulo": "Wi-Fi da recepção caindo à tarde",
+      "descricao": "Os alunos reclamam que a rede cai entre 17h e 19h.",
+      "prioridade": "ALTA",
+      "responsavel": null,
+      "categoria": null,
+      "passos": []
+    },
+    {
+      "chave": "fotos",
+      "cliente": "casaVerde",
+      "titulo": "Trocar as fotos da página inicial",
+      "descricao": "Mandamos as fotos novas da coleção de primavera.",
+      "prioridade": "BAIXA",
+      "responsavel": "clara",
+      "categoria": "melhoria",
+      "passos": []
+    },
+    {
+      "chave": "backup",
+      "cliente": "academia",
+      "titulo": "Recuperar planilha apagada sem querer",
+      "descricao": "Apagaram a planilha de matrículas de março da pasta da recepção.",
+      "prioridade": "ALTA",
+      "responsavel": "rafael",
+      "categoria": "suporte",
+      "passos": [
+        { "acao": "inicio", "por": "rafael" },
+        {
+          "acao": "resolucao",
+          "por": "rafael",
+          "solucao": {
+            "texto": "Restaurada a versão de ontem a partir do backup noturno.",
+            "problema": "Planilha apagada da pasta compartilhada.",
+            "causa": "Exclusão acidental."
+          }
+        }
+      ]
+    }
+  ],
+  "projetos": [
+    {
+      "chave": "site",
+      "cliente": "casaVerde",
+      "nome": "Novo site da Casa Verde",
+      "inicio": -6,
+      "prazo": 15,
+      "estimativaMinutos": 2400
+    }
+  ],
+  "tarefas": [
+    { "chave": "layout", "titulo": "Layout da página inicial", "responsavel": "clara", "projeto": "site", "dia": -2, "estimativaMinutos": 360, "status": "CONCLUIDA" },
+    { "chave": "catalogo", "titulo": "Catálogo de produtos", "responsavel": "clara", "projeto": "site", "dia": 2, "estimativaMinutos": 480, "status": "FAZENDO" },
+    { "chave": "checkout", "titulo": "Integração com o pagamento", "responsavel": "rafael", "projeto": "site", "dia": 6, "estimativaMinutos": 600, "status": "FAZENDO" },
+    { "chave": "textos", "titulo": "Textos das páginas institucionais", "responsavel": "marina", "projeto": "site", "dia": 4, "estimativaMinutos": 180, "status": "A_FAZER" },
+    { "chave": "impressora", "titulo": "Trocar a impressora do caixa 2", "responsavel": "rafael", "solicitacao": "pdv", "dia": 0, "estimativaMinutos": 90, "status": "FAZENDO" },
+    {
+      "chave": "conta",
+      "titulo": "Criar a conta de e-mail e o acesso",
+      "responsavel": "marina",
+      "solicitacao": "email",
+      "dia": 0,
+      "estimativaMinutos": 45,
+      "status": "FAZENDO",
+      "checklist": [
+        { "texto": "Criar a caixa no provedor", "feito": true },
+        { "texto": "Liberar a pasta de processos", "feito": false },
+        { "texto": "Mandar a senha provisória", "feito": false }
+      ]
+    },
+    { "chave": "planilha", "titulo": "Restaurar a planilha do backup", "responsavel": "rafael", "solicitacao": "backup", "dia": -1, "estimativaMinutos": 60, "status": "CONCLUIDA" },
+    { "chave": "roteador", "titulo": "Revisar o roteador da recepção", "responsavel": "rafael", "solicitacao": "wifi", "dia": 1, "estimativaMinutos": 120, "status": "A_FAZER" },
+    { "chave": "orcamento", "titulo": "Orçamento do novo servidor", "responsavel": "marina", "cliente": "advocacia", "dia": 3, "estimativaMinutos": 120, "status": "A_FAZER" },
+    { "chave": "banner", "titulo": "Ajustar o banner da promoção", "responsavel": "clara", "solicitacao": "cardapio", "dia": -3, "estimativaMinutos": 60, "status": "A_FAZER" }
+  ],
+  "apontamentos": [
+    { "por": "clara", "tarefa": "layout", "dia": -4, "minutos": 180, "descricao": "Rascunho do layout" },
+    { "por": "clara", "tarefa": "layout", "dia": -3, "minutos": 150, "descricao": "Ajustes depois da reunião" },
+    { "por": "clara", "tarefa": "catalogo", "dia": -1, "minutos": 120, "descricao": "Estrutura do catálogo" },
+    { "por": "clara", "tarefa": "catalogo", "dia": 0, "minutos": 90, "descricao": "Fotos dos produtos" },
+    { "por": "rafael", "tarefa": "planilha", "dia": -1, "minutos": 50, "descricao": "Restauração do backup" },
+    { "por": "rafael", "tarefa": "impressora", "dia": 0, "minutos": 40, "descricao": "Diagnóstico da impressora" },
+    { "por": "rafael", "tarefa": "checkout", "dia": -2, "minutos": 210, "descricao": "Conta de testes do pagamento" },
+    { "por": "rafael", "tarefa": "checkout", "dia": -6, "minutos": 120, "descricao": "Levantamento dos meios de pagamento" },
+    { "por": "marina", "tarefa": "conta", "dia": 0, "minutos": 30, "descricao": "Caixa de e-mail criada" },
+    { "por": "marina", "tarefa": "layout", "dia": -5, "minutos": 60, "descricao": "Reunião de briefing com a Joana" },
+    { "por": "marina", "tarefa": "conta", "dia": -1, "minutos": 30, "descricao": "Atendimento por telefone", "limite": "semana" },
+    { "por": "marina", "tarefa": "conta", "dia": -2, "minutos": 45, "descricao": "Reunião com a Helena", "limite": "semana" },
+    { "por": "marina", "tarefa": "conta", "dia": -3, "minutos": 60, "descricao": "Atendimento por telefone", "limite": "semana" },
+    { "por": "marina", "tarefa": "conta", "dia": -4, "minutos": 75, "descricao": "Reunião com a Helena", "limite": "semana" },
+    { "por": "clara", "tarefa": "banner", "dia": -2, "minutos": 240, "descricao": "Arte do banner e versões para as redes", "limite": "mes" },
+    { "por": "clara", "tarefa": "banner", "dia": -6, "minutos": 300, "descricao": "Campanha de Dia das Crianças", "limite": "mes" },
+    { "por": "clara", "tarefa": "banner", "dia": -9, "minutos": 180, "descricao": "Cardápio novo no site", "limite": "mes" },
+    { "por": "rafael", "tarefa": "roteador", "dia": -1, "minutos": 180, "descricao": "Troca do ponto de acesso da recepção", "limite": "mes" },
+    { "por": "rafael", "tarefa": "roteador", "dia": -4, "minutos": 150, "descricao": "Cabeamento da sala de spinning", "limite": "mes" },
+    { "por": "rafael", "tarefa": "roteador", "dia": -7, "minutos": 120, "descricao": "Configuração da rede de convidados", "limite": "mes" }
+  ],
+  "recorrencias": [
+    { "cliente": "advocacia", "titulo": "Conferir o backup dos processos", "responsavel": "rafael", "periodicidade": "SEMANAL", "diaReferencia": 1, "antecedenciaDias": 0 },
+    { "cliente": "padaria", "titulo": "Relatório mensal de atendimento", "responsavel": "marina", "periodicidade": "MENSAL", "diaReferencia": 5, "antecedenciaDias": 2 },
+    { "cliente": "academia", "titulo": "Revisão trimestral da rede", "responsavel": "rafael", "periodicidade": "TRIMESTRAL", "diaReferencia": 10, "antecedenciaDias": 5 }
+  ],
+  "cronometro": { "por": "marina", "tarefa": "conta" },
+  "portal": { "cliente": "padaria", "escopo": "TODAS_DO_CLIENTE" }
+}
