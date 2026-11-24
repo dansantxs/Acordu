@@ -1,11 +1,11 @@
 {
   "marco": "F14",
   "issue": 182,
-  "etapa": "AGUARDANDO_MERGE",
-  "branch": "feat/F14p-descartavel",
+  "etapa": "IMPLEMENTANDO",
+  "branch": "feat/F14q-telas-convite",
   "pr": {
-    "id": "F14p",
-    "numero": 217
+    "id": "F14q",
+    "numero": null
   },
   "feitos": [
     {
@@ -67,11 +67,15 @@
     {
       "id": "F14o",
       "pr": 215
+    },
+    {
+      "id": "F14p",
+      "pr": 217
     }
   ],
   "contadores": {
     "devolucoesNaEtapa": 0,
-    "rodadasNoPr": 1
+    "rodadasNoPr": 0
   },
   "verificacao": [
     "node scripts/conferir-specs.mjs",
@@ -97,16 +101,12 @@
       "PR #205 mesclado (F14l; \"aceito as recomendações\": liberação repetida ou sem teste → 422, ativar/reativar limpam as datas do ciclo, prorrogar TESTE para antes do fim atual aceito)",
       "PR #206 mesclado (F14m)",
       "PR #212 mesclado (F14n; recomendações aceitas: conta por convite confirmada, um convite em aberto por e-mail, retenção na #213)",
-      "PR #215 mesclado (F14o; retenção da lista na #194, e-mail repetido não atualiza)"
+      "PR #215 mesclado (F14o; retenção da lista na #194, e-mail repetido não atualiza)",
+      "PR #217 mesclado (F14p; sem comentário: emissão de convite para e-mail descartável fica para depois)"
     ],
     "G2_F14h": "PR #201 mesclado (18/11), sem comentário nas perguntas: valem as recomendações da D16 (variável única conferida no deploy.yml; ciente 404; pendentes sem migration; nenhum campo novo; convenção §4) e o risco da janela da virada aceito"
   },
-  "ressalvas": [
-    "Testador: emissão de convite pela área não confere a lista de descartáveis; o cadastro recusa depois",
-    "Testador: lista de espera com e-mail descartável responde 400, não o 202 do F14-53",
-    "Revisor: a lista só é lida na primeira resolução (AddSingleton com factory), não na subida; o comentário diz que a Api não sobe sem o recurso",
-    "Revisor: confirmar a licença CC0 no LICENSE.txt da origem (sem rede para conferir)"
-  ],
+  "ressalvas": [],
   "bloqueios": [],
   "atualizadoEm": "2026-11-24",
   "decisoes": [
