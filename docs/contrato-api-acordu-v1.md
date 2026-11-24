@@ -168,6 +168,7 @@ Cadastro ampliado (decidido em 16/10, RF-CLI-01, 06 e 07):
   - `responsavelId`: precisa ser da equipe, conferido só quando o valor muda (quem saiu da equipe continua aparecendo até alguém trocar);
   - `etiquetas`: até 10, de até 30 caracteres; repetidas sem diferenciar maiúsculas viram uma, com a grafia da primeira.
 - `busca` procura também na razão social; `etiqueta` filtra pela grafia exata, como aparece em `/clientes/etiquetas`.
+- **Exemplo (F14r, RF-EMP-05):** a lista e o detalhe trazem `exemplo` (booleano): cliente dos dados de exemplo (§6). Só a carga dos exemplos marca; o corpo do `POST`/`PATCH` não tem o campo.
 
 ### 4.2 Contatos e acesso ao portal
 
@@ -266,6 +267,7 @@ Para `BANCO_HORAS`, `saldoMinutos` é o saldo **acumulado** desde o início do c
 | GET/PUT | `/configuracoes/calendario` | Fuso, expediente por dia, feriados (ADR 0003). | `configuracao.gerenciar` (GET: qualquer interno) |
 | GET/PUT | `/configuracoes/empresa` | Nome, "responder para" dos e-mails ao contato e SLA sugerido nos contratos novos (F5a). | `configuracao.gerenciar` (GET: qualquer interno) |
 | GET/PUT | `/configuracoes/portal` | Nome exibido e logotipo (RF-POR-09), dias para fechamento automático. | `configuracao.gerenciar` |
+| GET/POST/DELETE | `/configuracoes/exemplos` | Dados de exemplo (RF-EMP-05, F14r): o estado, carregar e apagar. | `configuracao.gerenciar` |
 | GET/POST/PATCH/DELETE | `/categorias` | Categorias de solicitação. | `configuracao.gerenciar` |
 
 ```json
@@ -288,6 +290,12 @@ Decidido na implementação:
 - `PUT /configuracoes/portal` `{ "nomeExibido": "...", "diasFechamentoAutomatico": 5 }` (1 a 60; guardados no próprio tenant); a resposta traz também `nomeTenant` e `logoUrl`.
 - `PUT /configuracoes/portal/logo` — multipart, campo `logo`: PNG, JPEG ou WebP (pelo conteúdo) até 512 KB → `200` com a configuração. Tipo errado → `400` em `errors.logo`; acima do limite → `413`. `DELETE /configuracoes/portal/logo` remove (→ `200`). `logoUrl` é uma URL assinada de 1 hora (o bucket é privado); o portal recebe a mesma em `/portal/eu` (`prestador.logoUrl`). Cada envio usa um arquivo novo e o anterior é apagado.
 - **Empresa (22/10, F5a, pedido de 16/10 e decisão 3 do F4):** `PUT /configuracoes/empresa` `{ "nome": "...", "responderPara": "atendimento@...", "slaPadrao": [ { "prioridade", "primeiraRespostaMinutos", "resolucaoMinutos" } x4 ] }` → `200` com `{ nome, responderPara, slaPadrao, slaPersonalizado }`. `responderPara` vazio = nenhum; vai como Reply-To nos e-mails ao contato (avisos, convite do portal, link por solicitação), com o "De" ainda no endereço do Acordu; e-mails da equipe e da conta não usam. `slaPadrao` só **sugere** os prazos no cadastro de contrato (a política continua no contrato); sem ele, o GET devolve a sugestão do sistema (Urgente 1h/4h, Alta 2h/16h, Média 4h/32h, Baixa 8h/80h, em minutos úteis) com `slaPersonalizado: false`. Erros no campo: `nome` (vazio ou longo), `responderPara` (formato), `slaPadrao` (faltando prioridade, prazo zero, resolução menor que a primeira resposta). O `GET` é liberado à equipe porque o cadastro de contrato usa a sugestão.
+- **Dados de exemplo (F14r; RF-EMP-05; design do F14, D13):** um conjunto fictício (o mesmo da demonstração e das capturas do manual, `src/Acordu.Application/Exemplos/demonstracao.json`) para a empresa em teste ver as telas funcionando. Só o que é ligado a cliente: clientes (`exemplo: true`, §4.1) com um contato e um contrato cada, projeto, solicitações (com conversa, andamento e resolução), tarefas e horas; o responsável e o autor de tudo é quem carregou. Categorias, equipe, recorrências, cronômetro e portal ficam de fora.
+  - `GET /configuracoes/exemplos` → `200 { "disponivel": true, "carregados": false }`. `disponivel`: a carga é possível agora (a Hoje oferece, F14-91): empresa em TESTE, fora da demonstração, sem exemplos e sem dado próprio. "Dado próprio" é a regra de "sem dado" do expurgo de cadastro (read side §8b): registro de negócio, papel criado pela empresa ou vínculo de outra pessoa que não o criador, sem contar o que é ligado aos clientes de exemplo. `carregados`: há exemplos para apagar.
+  - `POST /configuracoes/exemplos` → `204`. **Nenhum e-mail sai** (nada vai à outbox: nem aviso no sino, nem feed, nem seguimento). Indisponível (fora de TESTE, com dado próprio ou com os exemplos já carregados) → `422 transicao-invalida` com a explicação, sem carregar nada (F14-93).
+  - `DELETE /configuracoes/exemplos` → `204`: apaga os clientes de exemplo e tudo o que tem o `ClienteId` deles, inclusive o que a equipe criou dentro deles (tarefa, apontamento, comentário, contato, acesso ao portal), com os seguidores e as marcas de alerta desses itens; os anexos saem do storage depois do commit. O resto fica (F14-94). Sem exemplos, `204` sem mudar nada. Vale também fora de TESTE (a empresa ativada com os exemplos ainda carregados). Os números de protocolo já usados não voltam.
+  - Carregar e apagar são gravação da empresa: na empresa só leitura → `422 empresa-somente-leitura`, antes da regra dos exemplos (ADR 0015). Sem `configuracao.gerenciar` (ou contato) → `403` (F14-95). Tudo no tenant do token: os exemplos de uma empresa nunca aparecem em outra, e apagar em uma não toca a outra (F14-96).
+  - Trilha: `exemplos.carga` e `exemplos.remocao` (§11a).
 - Categorias: `POST`/`PATCH` `{ "nome": "...", "ativa": true }` (`ativa` nulo mantém; PATCH reativa), `DELETE` inativa; nome repetido no tenant (sem diferenciar maiúsculas) → `400` em `nome`; categoria inativa não entra em nova solicitação (`400` em `categoriaId`).
 
 ---
@@ -660,6 +668,7 @@ Decidido no marco 15 (14/10):
 | Solicitações | `solicitacao.status` | solicitação | `de`, `para` (status interno) |
 | | `solicitacao.responsavel` | solicitação | `de`, `para` (ids) |
 | | `solicitacao.contrato` | solicitação | `de`, `para` (ids dos contratos) |
+| Empresa | `exemplos.carga`, `exemplos.remocao` (F14r) | empresa | `clientes` (quantos clientes de exemplo entraram ou saíram) |
 
 - Status e responsável são auditados por qualquer caminho (equipe, portal, retomada pela resposta do contato, fechamento automático); `usuario` nulo no job e na sessão de link. Links emitidos automaticamente nos e-mails ao contato (§12a) não são auditados: é o sistema agindo.
 - Registros com mais de 12 meses são expurgados (segurança §8).
@@ -822,6 +831,7 @@ Sem rota própria: saem depois do commit quando a solicitação tem contato ativ
 - Remetente com o nome do prestador. A resposta do próprio contato não gera e-mail para ele.
 - Link: contato com conta → `{App__UrlPublica}/portal/solicitacoes/{id}`; sem conta → link de acesso sem senha (30 dias) **novo a cada e-mail**, revogando o anterior da mesma solicitação e contato. Solicitação fechada ou cancelada não ganha link novo.
 - **Empresa não liberada (RF-AUT-06, F9b):** nenhum desses e-mails sai e nenhum link é gerado; o aviso é descartado (fica no log a categoria e a empresa, nunca o endereço), não adiado: vale o estado na hora do evento, então nem uma nova tentativa da outbox entrega depois da liberação o que foi gerado antes dela. A operação que causou o aviso segue normalmente.
+- **Cliente dos dados de exemplo (F14r, RF-EMP-05):** nenhum desses e-mails sai, nem pelo que a equipe faz depois nos exemplos (o contato é fictício, com e-mail `.invalid`).
 
 ## 12b. E-mails internos (RF-NOT-02, 7c2)
 
@@ -834,7 +844,7 @@ Empresa não liberada (RF-AUT-06, F9b): o sino recebe tudo como sempre; o e-mail
 | Menção (`MENCAO`, 14b) em interação interna ou comentário de tarefa | Cada pessoa mencionada que ainda é da equipe (nunca o autor). Sino com "{autor} mencionou você na solicitação #N …" ou "na tarefa …"; e-mail com um trecho de até 280 caracteres em que as menções viram `@Nome`. Um aviso por (interação ou comentário, pessoa). |
 | Cronômetro esquecido (`CRONOMETRO`, F12e): 30 min depois do fim do expediente do dia do início, ou 10 h rodando | Só o dono do cronômetro, uma vez por cronômetro, pelo tick. E-mail ligado por padrão. |
 | Novidade no que a pessoa segue (`SEGUIDAS`, 14c): interação na solicitação, comentário na tarefa, mudança de status | Quem segue o item e ainda pode vê-lo, menos quem causou o evento e quem foi mencionado no mesmo texto (recebe a `MENCAO`). E-mail desligado por padrão; o sino sempre. |
-| SLA em risco (75% do prazo útil) ou violado | Responsável; sem ele, quem tem `solicitacao.editar`. Verificado no `tick`; situação = a pior entre primeira resposta e resolução (read side §5); um alerta por (solicitação, ciclo do SLA, situação); reabrir inicia novo ciclo. |
+| SLA em risco (75% do prazo útil) ou violado | Responsável; sem ele, quem tem `solicitacao.editar`. Verificado no `tick`; situação = a pior entre primeira resposta e resolução (read side §5); um alerta por (solicitação, ciclo do SLA, situação); reabrir inicia novo ciclo. As solicitações dos clientes de exemplo (F14r) não alertam. |
 
 O `tick` responde também `alertasSla` (solicitações alertadas), `tarefasRecorrentes` (tarefas geradas, §10) e `falhas` (tenants com erro em algum dos passos, logados).
 

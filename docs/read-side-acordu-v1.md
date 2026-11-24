@@ -204,6 +204,16 @@ Convites de empresa (F14n): a mesma `IConsultasNebrys` lista (`convites_empresa`
 
 Lista de espera (F14o): a mesma `IConsultasNebrys` lista `entradas_lista_espera` por ordem de chegada (`criada_em asc, id asc`, paginação do contrato §1), com o `convite_id` do convite mais recente que saiu de cada entrada (subconsulta em `convites_empresa.entrada_lista_espera_id`, que tem índice pela chave estrangeira). Tabela global, sem filtro nem `IgnoreQueryFilters`. A `situacao` é calculada pela `convidada_em`. Sem índice para a ordem (poucas entradas no nível 0); o `email` tem índice único, que é o "não duplica" da inscrição pública.
 
+## 8b. Dados de exemplo (F14r; RF-EMP-05; design do F14, D13)
+
+`IDadosDeExemplo` (implementada em `Acordu.Infrastructure.Persistence.Exemplos.DadosDeExemplo`) lê no tenant do contexto, pelos filtros globais (nenhum `IgnoreQueryFilters`):
+
+- **exemplo** é o cliente com `exemplo = true` e tudo o que tem o `cliente_id` dele (o `ClienteId` desnormalizado do ADR 0002), mais o que pende de uma tarefa dele (cronômetro, comentário);
+- **carregados**: existe cliente de exemplo;
+- **dado próprio** ("sem dado" é a regra da `ClassificacaoDoExpurgo`, sem contar os exemplos): um registro de qualquer tipo de `ClassificacaoDoExpurgo.Dados` fora dos exemplos (cliente sem a marca, categoria, convite da equipe, raiz ligada a outro cliente, tarefa ou apontamento sem cliente, cronômetro ou comentário de tarefa fora dos exemplos), um papel criado pela empresa ou um vínculo de outra pessoa que não o criador (o vínculo de contato de um cliente de exemplo não conta). Uma consulta `EXISTS` por tipo, parando na primeira que achar; um teste confere que os tipos conferidos são os de `ClassificacaoDoExpurgo.Dados`.
+
+A remoção usa os mesmos critérios: lê os ids dos clientes de exemplo, das tarefas, solicitações, projetos, contratos e cronômetros deles e as chaves dos anexos, e apaga por `ExecuteDelete` (no tenant do contexto, `tenant_id` e `cliente_id = ANY(...)`) toda entidade do modelo com `ClienteId` (vem do modelo: entidade nova entra sozinha), as que pendem da tarefa, os seguidores e as marcas de alerta desses itens; os clientes, com os contatos, saem pela unidade de trabalho. Sem índice novo: as tabelas grandes já têm índice começando por `(tenant_id, cliente_id …)` (§9), e a carga é pequena (dezenas de linhas).
+
 ---
 
 ## 9. Onde vive no código

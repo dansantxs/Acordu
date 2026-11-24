@@ -96,6 +96,8 @@ acordu/
 │  │  ├─ Notificacoes/
 │  │  ├─ Configuracoes/
 │  │  ├─ Empresas/                     # situação da empresa: prazos e vencimento do teste (F14)
+│  │  ├─ Exemplos/                     # dados de exemplo (F14r) e o demonstracao.json embutido: os dados fictícios
+│  │  │                                # únicos, lidos também pelo bot do manual (apps/web/ajuda) (D13 do F14)
 │  │  ├─ Nebrys/                       # área da Nebrys: sessão de operação, consultas e DTOs próprios, sem tipo de negócio (ADR 0014)
 │  │  ├─ Portal/                       # casos de uso e DTOs EXCLUSIVOS do portal (ADR 0002)
 │  │  │  ├─ Solicitacoes/
@@ -108,6 +110,7 @@ acordu/
 │  │  │  ├─ Repositories/
 │  │  │  ├─ Consultas/                 # SQL do read side (helper com TenantId/ClienteId obrigatórios)
 │  │  │  ├─ Nebrys/                    # consultas da área da Nebrys (ponto revisado de IgnoreQueryFilters, ADR 0014)
+│  │  │  ├─ Exemplos/                  # o que é exemplo e a remoção, no tenant do contexto (F14r)
 │  │  │  └─ Migrations/
 │  │  ├─ MultiTenancy/                 # filtros globais por TenantId e ClienteId
 │  │  ├─ Armazenamento/                # object storage S3-compatível (R2) + URLs assinadas

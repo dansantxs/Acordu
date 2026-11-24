@@ -1,7 +1,7 @@
 {
   "marco": "F14",
   "issue": 182,
-  "etapa": "IMPLEMENTANDO",
+  "etapa": "AGUARDANDO_MERGE",
   "branch": "feat/F14r-dados-exemplo",
   "pr": {
     "id": "F14r",
@@ -79,7 +79,7 @@
   ],
   "contadores": {
     "devolucoesNaEtapa": 0,
-    "rodadasNoPr": 0
+    "rodadasNoPr": 1
   },
   "verificacao": [
     "node scripts/conferir-specs.mjs",
@@ -111,7 +111,13 @@
     ],
     "G2_F14h": "PR #201 mesclado (18/11), sem comentário nas perguntas: valem as recomendações da D16 (variável única conferida no deploy.yml; ciente 404; pendentes sem migration; nenhum campo novo; convenção §4) e o risco da janela da virada aceito"
   },
-  "ressalvas": [],
+  "ressalvas": [
+    "Testador: dois POST simultâneos podem carregar os exemplos em dobro (risco aceito, sem teste)",
+    "Testador: a oferta some quando se convida alguém para a equipe (aberto no estado.md)",
+    "Testador: notificações do sino ficam depois de apagar os exemplos (sem teste)",
+    "Revisor: telefone que parecia real trocado por (00) 0000-0101; CEP 17012-000 é de região de Bauru com rua fictícia (mantido)",
+    "Revisor: contato de exemplo nunca recebe aviso e exemplo fica fora dos alertas de SLA, mesmo depois de a empresa ser ativada"
+  ],
   "bloqueios": [],
   "atualizadoEm": "2026-11-24",
   "decisoes": [

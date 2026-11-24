@@ -251,6 +251,7 @@ Quem, tenant, ação, alvo, quando (IP opcional). Não audita leituras. Mecanism
 - Contratos: criação, edição, suspensão/encerramento, ajuste de saldo, fechamento de período.
 - Apontamentos: edição e exclusão (com valor anterior).
 - Solicitações: mudança de status, de responsável e de contrato.
+- Empresa: carga e remoção dos dados de exemplo pelo Dono (`exemplos.carga`, `exemplos.remocao`, F14r), com quantos clientes de exemplo entraram ou saíram.
 
 ---
 
