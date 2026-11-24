@@ -14,7 +14,8 @@ namespace Acordu.Infrastructure.Persistence.Cadastros;
 /// desde <see cref="Tenant.CriadoEm"/> e sem dado (<see cref="ClassificacaoDoExpurgo"/>) é apagada inteira pelo
 /// <see cref="ApagadorDeEmpresa"/>, com o criador se ele não tiver vínculo com outra empresa, e o registro do documento
 /// dela sai (decisão 16 do G2 do F14, F14-104). Cada empresa num escopo e numa transação próprios; a falha de uma é logada
-/// e não para as demais. Ponto revisado de IgnoreQueryFilters e de remoção fora da guarda de gravação (convenções §1): é o
+/// e não para as demais. A empresa de demonstração nunca entra (RF-NEB-02, F14s): ela nasce liberada e tem a marca no
+/// filtro. Ponto revisado de IgnoreQueryFilters e de remoção fora da guarda de gravação (convenções §1): é o
 /// sistema agindo, sem contexto de empresa.
 /// </summary>
 public sealed partial class ExpurgoCadastros
@@ -51,7 +52,7 @@ public sealed partial class ExpurgoCadastros
         {
             candidatas = await escopo.ServiceProvider.GetRequiredService<AcorduDbContext>().Tenants
                 .IgnoreQueryFilters(Filtros)
-                .Where(t => t.EnvioLiberadoEm == null && t.CriadoEm <= limite)
+                .Where(t => t.EnvioLiberadoEm == null && !t.Demonstracao && t.CriadoEm <= limite)
                 .Select(t => t.Id)
                 .ToListAsync(cancellationToken);
         }
@@ -84,13 +85,14 @@ public sealed partial class ExpurgoCadastros
         await using var transacao = await db.Database.BeginTransactionAsync(IsolationLevel.Serializable, cancellationToken);
 
         var tenant = await db.Tenants.IgnoreQueryFilters(Filtros).AsNoTracking()
-            .SingleOrDefaultAsync(t => t.Id == tenantId && t.EnvioLiberadoEm == null && t.CriadoEm <= limite, cancellationToken);
+            .SingleOrDefaultAsync(
+                t => t.Id == tenantId && t.EnvioLiberadoEm == null && !t.Demonstracao && t.CriadoEm <= limite, cancellationToken);
         if (tenant is null || await TemDadosAsync(db, tenant, cancellationToken))
             return false;
 
         // A empresa sai primeiro, com a condição repetida: liberada no meio do caminho, nada é apagado.
         var removida = await db.Tenants.IgnoreQueryFilters(Filtros)
-            .Where(t => t.Id == tenantId && t.EnvioLiberadoEm == null)
+            .Where(t => t.Id == tenantId && t.EnvioLiberadoEm == null && !t.Demonstracao)
             .ExecuteDeleteAsync(cancellationToken);
         if (removida != 1)
             return false;

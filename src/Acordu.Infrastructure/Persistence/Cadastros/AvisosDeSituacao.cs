@@ -192,7 +192,8 @@ public sealed partial class AvisosDeSituacao
 
     /// <summary>
     /// Pré-filtro no banco (a decisão é do domínio): TESTE com o fim do teste à frente e dentro da maior antecedência (com
-    /// folga para o fuso), ou só leitura com a data do expurgo ainda à frente (F14-113). ATIVA nunca.
+    /// folga para o fuso), ou só leitura com a data do expurgo ainda à frente (F14-113). ATIVA nunca, e a demonstração
+    /// nunca (RF-NEB-02: ela é ATIVA, e a marca fica no filtro também).
     /// </summary>
     private static IQueryable<Tenant> Candidatas(AcorduDbContext db, DateTimeOffset agora, PrazosAvisosSituacao prazos)
     {
@@ -200,6 +201,7 @@ public sealed partial class AvisosDeSituacao
         var limiteDoFim = agora + TimeSpan.FromDays(prazos.DiasAntesDoFim[^1] + 2);
         var soLeituraDepoisDe = agora - prazos.PrazoAteExpurgo;
         return db.Tenants.IgnoreQueryFilters(Filtros)
+            .Where(t => !t.Demonstracao)
             .Where(t => (t.Situacao == SituacaoEmpresa.Teste && t.FimDoTeste > agora && t.FimDoTeste <= limiteDoFim)
                 || (SituacaoEmpresaExtensions.SituacoesSomenteLeitura.Contains(t.Situacao)
                     && t.SomenteLeituraDesde != null
