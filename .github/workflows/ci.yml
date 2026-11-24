@@ -84,6 +84,7 @@ jobs:
               - docs/processo.md
               # Fluxo BPMN em sincronia com o gerador (processo §1).
               - docs/fluxo-acordu.bpmn
+              - docs/fluxo-acordu.svg
               - scripts/gerar-fluxo-bpmn.py
               - .claude/**
               - .github/workflows/ci.yml
@@ -121,6 +122,7 @@ jobs:
             docs/specs
             docs/processo.md
             docs/fluxo-acordu.bpmn
+            docs/fluxo-acordu.svg
             scripts
             .claude
             .github/workflows

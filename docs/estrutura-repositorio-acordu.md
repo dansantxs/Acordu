@@ -39,6 +39,7 @@ acordu/
 │     └─ backup.yml                    # pg_dump diário → R2
 ├─ docs/
 │  ├─ fluxo-acordu.bpmn                # fluxo de negócio em BPMN, gerado por scripts/gerar-fluxo-bpmn.py
+│  ├─ fluxo-acordu.svg                 # a mesma figura para o README, gerada junto
 │  ├─ ers/
 │  │  └─ ERS-acordu-v1.md
 │  ├─ adr/
@@ -146,7 +147,7 @@ acordu/
 ├─ scripts/
 │  ├─ conferir-specs.mjs               # estrutura das specs na CI (processo.md), com conferir-specs.test.mjs
 │  ├─ conferir-fabrica.test.mjs        # regras do .claude/settings.json e modelos dos agentes
-│  ├─ gerar-fluxo-bpmn.py              # gera docs/fluxo-acordu.bpmn; --conferir na CI (processo.md §1)
+│  ├─ gerar-fluxo-bpmn.py              # gera docs/fluxo-acordu.bpmn e .svg; --conferir na CI (processo.md §1)
 │  ├─ rotulos.sh                       # rótulos do backlog (processo.md §7), com rotulos.test.sh
 │  └─ ci-local.sh                      # o que a CI rodaria na branch (deploy-ci §3.1), com ci-local.test.sh
 ├─ docker-compose.dev.yml              # dev local: Postgres 17 na porta 5434 (object storage local entra no marco de anexos)
