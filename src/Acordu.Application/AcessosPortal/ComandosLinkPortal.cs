@@ -74,12 +74,16 @@ public sealed class ComandosLinkPortal
         _unidade = unidade;
     }
 
-    /// <summary>Empresa não liberada (RF-AUT-06) → 422 <c>email-nao-confirmado</c>, mesmo sem enviar o e-mail.</summary>
+    /// <summary>
+    /// Empresa não liberada (RF-AUT-06) → 422 <c>email-nao-confirmado</c>, mesmo sem enviar o e-mail. Empresa de
+    /// demonstração com <c>enviarEmail</c> → 422 <c>demonstracao-sem-envio</c>; sem e-mail, o link é emitido (F14-89).
+    /// </summary>
     public async Task<LinkEmitidoDto> EmitirAsync(Guid solicitacaoId, EmissaoLinkRequest dados, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(dados);
         var solicitacao = await CarregarAsync(solicitacaoId, cancellationToken);
-        await _envio.GarantirLiberadoAsync(cancellationToken);
+        // Na demonstração, só o link sem e-mail sai (F14-89): o que mandaria e-mail recebe 422 demonstracao-sem-envio.
+        await _envio.GarantirLiberadoAsync(comEmail: dados.EnviarEmail != false, cancellationToken);
         if (solicitacao.EstaFinalizada)
             throw new AcessoPortalException("Solicitação fechada ou cancelada não recebe link de acesso.");
         var dias = dados.ValidadeDias ?? ValidadePadraoDias;

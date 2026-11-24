@@ -6,7 +6,9 @@ namespace Acordu.Application.Common;
 
 /// <summary>
 /// Barreira do envio a terceiros (RF-AUT-06, F9): convites e links só saem de empresa liberada; avisos automáticos, só
-/// de empresa liberada e fora do só leitura (RF-EMP-02, F14d). A permissão de quem age
+/// de empresa liberada e fora do só leitura (RF-EMP-02, F14d). A empresa de demonstração não manda nada para fora
+/// (RF-NEB-02, F14-89; design do F14, D13): convite e link com e-mail → <see cref="DemonstracaoSemEnvioException"/>, link
+/// sem e-mail é emitido, e nenhum aviso sai. A permissão de quem age
 /// é conferida antes (sem ela, 403); nos casos de uso, esta checagem vem depois da carga do alvo (inexistente, 404) e
 /// antes das regras de negócio.
 /// </summary>
@@ -27,10 +29,28 @@ public sealed class EnvioATerceiros
         _origem = origem;
     }
 
-    /// <summary>Empresa não liberada → <see cref="EmailNaoConfirmadoException"/>.</summary>
-    public async Task GarantirLiberadoAsync(CancellationToken cancellationToken = default)
+    /// <summary>
+    /// Ação que manda e-mail (convite): empresa não liberada → <see cref="EmailNaoConfirmadoException"/>; demonstração →
+    /// <see cref="DemonstracaoSemEnvioException"/>.
+    /// </summary>
+    public Task GarantirLiberadoAsync(CancellationToken cancellationToken = default) =>
+        GarantirLiberadoAsync(comEmail: true, cancellationToken);
+
+    /// <summary>
+    /// Empresa não liberada → <see cref="EmailNaoConfirmadoException"/>. Na demonstração, a recusa é
+    /// <see cref="DemonstracaoSemEnvioException"/> quando a ação manda e-mail (<paramref name="comEmail"/>: convite, link
+    /// enviado por e-mail); sem e-mail (o link que a equipe copia), passa.
+    /// </summary>
+    public async Task GarantirLiberadoAsync(bool comEmail, CancellationToken cancellationToken = default)
     {
         var tenant = await TenantAsync(cancellationToken);
+        if (tenant.Demonstracao)
+        {
+            if (comEmail)
+                throw new DemonstracaoSemEnvioException();
+            return;
+        }
+
         if (!tenant.EnvioLiberado)
             throw new EmailNaoConfirmadoException();
     }
@@ -44,8 +64,9 @@ public sealed class EnvioATerceiros
     public async Task<bool> PodeAvisarAsync(string categoria, Guid? usuarioId, CancellationToken cancellationToken = default)
     {
         var tenant = await TenantAsync(cancellationToken);
-        // Empresa só leitura não envia nada (RF-EMP-02, ADR 0015, item 5): vale o estado atual, sem envio retroativo.
-        if (tenant.SomenteLeitura)
+        // Empresa só leitura não envia nada (RF-EMP-02, ADR 0015, item 5): vale o estado atual, sem envio retroativo. A de
+        // demonstração também não (RF-NEB-02, F14-89): os e-mails são fictícios, e as pessoas indicadas só a usam para mostrar.
+        if (tenant.SomenteLeitura || tenant.Demonstracao)
         {
             _bloqueados.Registrar(categoria);
             return false;
