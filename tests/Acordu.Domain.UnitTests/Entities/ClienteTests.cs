@@ -67,6 +67,26 @@ public sealed class ClienteTests
         }
     }
 
+    public sealed class DadosDeExemplo
+    {
+        [Fact]
+        public void Criar_SemMarca_NaoEhExemplo()
+        {
+            Criar().Exemplo.Should().BeFalse();
+        }
+
+        [Fact]
+        public void MarcarComoExemplo_ClienteNovo_FicaMarcadoEAtivo()
+        {
+            var cliente = Criar();
+
+            cliente.MarcarComoExemplo();
+
+            cliente.Exemplo.Should().BeTrue();
+            cliente.Ativo.Should().BeTrue();
+        }
+    }
+
     public sealed class EditarEInativar
     {
         [Fact]
