@@ -514,6 +514,48 @@
         }
       }
     },
+    "/api/v1/lista-espera": {
+      "post": {
+        "tags": [
+          "Operação"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ListaEsperaRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "202": {
+            "description": "Accepted"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too Many Requests",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/clientes": {
       "get": {
         "tags": [
@@ -7800,6 +7842,46 @@
         "properties": {
           "token": {
             "type": "string"
+          }
+        }
+      },
+      "ListaEsperaRequest": {
+        "required": [
+          "nome",
+          "email",
+          "nomeEmpresa"
+        ],
+        "type": "object",
+        "properties": {
+          "nome": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "email": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "nomeEmpresa": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "mensagem": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "tokenTurnstile": {
+            "type": [
+              "null",
+              "string"
+            ]
           }
         }
       },

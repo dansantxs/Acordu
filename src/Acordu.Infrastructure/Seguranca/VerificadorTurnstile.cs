@@ -8,14 +8,13 @@ namespace Acordu.Infrastructure.Seguranca;
 /// <summary>Configuração do Turnstile: o segredo e, se houver, o hostname do SPA que o token precisa trazer.</summary>
 public sealed record OpcoesTurnstile(string Segredo, string? Hostname)
 {
-    public const string Acao = "registro";
     public static readonly Uri Siteverify = new("https://challenges.cloudflare.com/turnstile/v0/siteverify");
 }
 
 /// <summary>
-/// Confere o token no <c>siteverify</c> do Cloudflare (RNF-SEG-10): aprovado só com <c>success</c>, a ação
-/// <see cref="OpcoesTurnstile.Acao"/> e o hostname esperado. Sem resposta, erro HTTP ou JSON estranho → indisponível,
-/// e o cadastro é recusado (spec do F9, decisão 5c).
+/// Confere o token no <c>siteverify</c> do Cloudflare (RNF-SEG-10): aprovado só com <c>success</c>, a ação da rota
+/// (<see cref="AcoesVerificacaoHumana"/>: cadastro ou lista de espera) e o hostname esperado. Sem resposta, erro HTTP ou
+/// JSON estranho → indisponível, e o envio é recusado (spec do F9, decisão 5c).
 /// </summary>
 public sealed partial class VerificadorTurnstile : IVerificacaoHumana
 {
@@ -33,8 +32,10 @@ public sealed partial class VerificadorTurnstile : IVerificacaoHumana
         _logger = logger;
     }
 
-    public async Task<ResultadoVerificacaoHumana> VerificarAsync(string? token, string? ip, CancellationToken cancellationToken = default)
+    public async Task<ResultadoVerificacaoHumana> VerificarAsync(
+        string? token, string? ip, string acao, CancellationToken cancellationToken = default)
     {
+        ArgumentException.ThrowIfNullOrWhiteSpace(acao);
         if (string.IsNullOrWhiteSpace(token))
             return ResultadoVerificacaoHumana.Recusada;
 
@@ -72,7 +73,7 @@ public sealed partial class VerificadorTurnstile : IVerificacaoHumana
 
         var aprovado = corpo.ValueKind == JsonValueKind.Object
             && corpo.TryGetProperty("success", out var sucesso) && sucesso.ValueKind == JsonValueKind.True
-            && Texto(corpo, "action") == OpcoesTurnstile.Acao
+            && Texto(corpo, "action") == acao
             && (_opcoes.Hostname is null || string.Equals(Texto(corpo, "hostname"), _opcoes.Hostname, StringComparison.OrdinalIgnoreCase));
         return aprovado ? ResultadoVerificacaoHumana.Aprovada : ResultadoVerificacaoHumana.Recusada;
     }
@@ -85,20 +86,21 @@ public sealed partial class VerificadorTurnstile : IVerificacaoHumana
     private static string? Texto(JsonElement corpo, string nome) =>
         corpo.TryGetProperty(nome, out var valor) && valor.ValueKind == JsonValueKind.String ? valor.GetString() : null;
 
-    [LoggerMessage(EventId = 310, Level = LogLevel.Warning, Message = "Turnstile respondeu {Status}: cadastro recusado.")]
+    [LoggerMessage(EventId = 310, Level = LogLevel.Warning, Message = "Turnstile respondeu {Status}: envio recusado (cadastro ou lista de espera).")]
     private static partial void Indisponivel(ILogger logger, int status);
 
-    [LoggerMessage(EventId = 311, Level = LogLevel.Warning, Message = "Turnstile não respondeu: cadastro recusado.")]
+    [LoggerMessage(EventId = 311, Level = LogLevel.Warning, Message = "Turnstile não respondeu: envio recusado (cadastro ou lista de espera).")]
     private static partial void Falhou(ILogger logger, Exception erro);
 
     [LoggerMessage(EventId = 312, Level = LogLevel.Error,
-        Message = "Turnstile recusou o segredo do servidor (Turnstile__Segredo errado ou revogado): todo cadastro é recusado.")]
+        Message = "Turnstile recusou o segredo do servidor (Turnstile__Segredo errado ou revogado): todo cadastro e toda lista de espera são recusados.")]
     private static partial void SegredoRecusado(ILogger logger);
 }
 
 /// <summary>Sem segredo configurado (dev, testes, E2E): aprova sem chamar o Cloudflare (RNF-SEG-10).</summary>
 public sealed class VerificacaoHumanaDesligada : IVerificacaoHumana
 {
-    public Task<ResultadoVerificacaoHumana> VerificarAsync(string? token, string? ip, CancellationToken cancellationToken = default) =>
+    public Task<ResultadoVerificacaoHumana> VerificarAsync(
+        string? token, string? ip, string acao, CancellationToken cancellationToken = default) =>
         Task.FromResult(ResultadoVerificacaoHumana.Aprovada);
 }

@@ -1,11 +1,10 @@
 # Acordu — Estado
 
-Visão geral curta, atualizada por cada PR (`docs/processo.md` §1). O histórico está no git, nos PRs e no registro dos designs. Atualizado em 24/11/2026 (fluxo em SVG no README).
+Visão geral curta, atualizada por cada PR (`docs/processo.md` §1). O histórico está no git, nos PRs e no registro dos designs. Atualizado em 24/11/2026 (F14o, lista de espera).
 
 ## Em revisão
 
-- **Fluxo no README**: `docs/fluxo-acordu.svg` gerado junto com o BPMN e mostrado na seção "Como funciona"; README com o status atual (produção no ar, F14 em andamento) e os ADRs 0014 e 0015.
-- **F14n — convite de empresa e modo do cadastro** (#182): a área da Nebrys emite, reenvia e revoga convites de empresa (API; as telas são do F14q); `Cadastro__Modo` (`convite` ou `aberto`, sem ela `convite`); o registro aceita o convite, com o e-mail dele e uso único. Migration `ConvitesDeEmpresa` pelo bot. **Antes do próximo deploy, criar a variável `CADASTRO_MODO`** (runbook, "Segredos do GitHub"; próximos passos, item 1): sem ela o deploy para.
+- **F14o — lista de espera** (#182): `POST /api/v1/lista-espera` público (Turnstile com a ação `lista-espera`, limite `RateLimit__ListaEspera__PorHora`, padrão 3; e-mail repetido não duplica e recebe a mesma resposta) e, na área da Nebrys, a lista por ordem de chegada, o convite a partir da entrada e o descarte (API; as telas são do F14q). Migration `ListaDeEspera` pelo bot. Nenhuma variável obrigatória nova.
 
 ## Marco em andamento
 
@@ -18,7 +17,7 @@ Visão geral curta, atualizada por cada PR (`docs/processo.md` §1). O históric
 
 ## Próximos passos
 
-1. Merge do F14n (F14m na `main`, #206). Depois o `/marco F14 182` segue pelo F14o (lista de espera). Criar `CADASTRO_MODO` antes do próximo deploy: `convite` fecha o cadastro de produção já (a tela do convite e da lista de espera é do F14q; até lá, quem abre `/cadastro` recebe a recusa no envio); `aberto` mantém o cadastro de hoje até o F14q. Ligar `TEXTOS_LEGAIS_PUBLICADOS` só depois da #194, num deploy fora do horário de uso (deploy-ci §7). Email Routing de `contato@acordu.app.br` ativo e testado pelo Daniel em 16/11.
+1. Merge do F14o (F14n na `main`, #212). Depois o `/marco F14 182` segue pelo F14p (e-mail descartável e fecho das regras do cadastro). Criar `CADASTRO_MODO` antes do próximo deploy: `convite` fecha o cadastro de produção já (a tela do convite e da lista de espera é do F14q; até lá, quem abre `/cadastro` recebe a recusa no envio); `aberto` mantém o cadastro de hoje até o F14q. Ligar `TEXTOS_LEGAIS_PUBLICADOS` só depois da #194, num deploy fora do horário de uso (deploy-ci §7). Email Routing de `contato@acordu.app.br` ativo e testado pelo Daniel em 16/11.
 2. Conferências que faltam da produção:
    - deploy: F8-27 e F8-28 (rollback por migration e por health), F8-29 (jobs do Scheduler), hostname do Turnstile;
    - backup: F8-30 e F13-32 na primeira madrugada com o `BACKUP_ATIVO`; F8-31 (restore) antes do primeiro cliente;

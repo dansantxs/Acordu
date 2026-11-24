@@ -337,6 +337,7 @@ internal static class ComposicaoApi
         api.MapAuth();
         api.MapAgendaIcs();
         api.MapErrosWeb();
+        api.MapListaEspera();
         api.MapNebrys();
         var grupos = new GruposApi(
             api,

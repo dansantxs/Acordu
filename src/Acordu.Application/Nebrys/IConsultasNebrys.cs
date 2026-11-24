@@ -25,6 +25,13 @@ public interface IConsultasNebrys
 
     /// <summary>Um convite de empresa; nulo se não existe.</summary>
     Task<ConviteEmpresaNebrysDto?> ObterConviteAsync(Guid id, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Lista de espera por ordem de chegada, a mais antiga primeiro, com a situação de cada entrada (F14-75). Tabela global,
+    /// fora dos tenants (design D12).
+    /// </summary>
+    Task<ResultadoPaginado<EntradaListaEsperaNebrysDto>> ListarListaEsperaAsync(
+        Paginacao paginacao, CancellationToken cancellationToken = default);
 }
 
 /// <summary>

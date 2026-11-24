@@ -520,6 +520,10 @@ namespace Acordu.Infrastructure.Persistence.Migrations
                         .HasColumnType("character varying(254)")
                         .HasColumnName("email");
 
+                    b.Property<Guid?>("EntradaListaEsperaId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("entrada_lista_espera_id");
+
                     b.Property<DateTimeOffset>("EnviadoEm")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("enviado_em");
@@ -553,6 +557,9 @@ namespace Acordu.Infrastructure.Persistence.Migrations
 
                     b.HasIndex("Email")
                         .HasDatabaseName("ix_convites_empresa_email");
+
+                    b.HasIndex("EntradaListaEsperaId")
+                        .HasDatabaseName("ix_convites_empresa_entrada_lista_espera_id");
 
                     b.HasIndex("TokenHash")
                         .IsUnique()
@@ -768,6 +775,59 @@ namespace Acordu.Infrastructure.Persistence.Migrations
                         .HasName("pk_documentos_teste");
 
                     b.ToTable("documentos_teste", (string)null);
+                });
+
+            modelBuilder.Entity("Acordu.Domain.Entities.EntradaListaEspera", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<DateTimeOffset?>("ConvidadaEm")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("convidada_em");
+
+                    b.Property<DateTimeOffset>("CriadaEm")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("criada_em");
+
+                    b.Property<string>("Email")
+                        .IsRequired()
+                        .HasMaxLength(254)
+                        .HasColumnType("character varying(254)")
+                        .HasColumnName("email");
+
+                    b.Property<string>("Mensagem")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)")
+                        .HasColumnName("mensagem");
+
+                    b.Property<string>("Nome")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("nome");
+
+                    b.Property<string>("NomeEmpresa")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("nome_empresa");
+
+                    b.Property<uint>("Versao")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("xid")
+                        .HasColumnName("xmin");
+
+                    b.HasKey("Id")
+                        .HasName("pk_entradas_lista_espera");
+
+                    b.HasIndex("Email")
+                        .IsUnique()
+                        .HasDatabaseName("ix_entradas_lista_espera_email");
+
+                    b.ToTable("entradas_lista_espera", (string)null);
                 });
 
             modelBuilder.Entity("Acordu.Domain.Entities.Interacao", b =>
@@ -2430,6 +2490,15 @@ namespace Acordu.Infrastructure.Persistence.Migrations
 
                     b.Navigation("Vigencia")
                         .IsRequired();
+                });
+
+            modelBuilder.Entity("Acordu.Domain.Entities.ConviteEmpresa", b =>
+                {
+                    b.HasOne("Acordu.Domain.Entities.EntradaListaEspera", null)
+                        .WithMany()
+                        .HasForeignKey("EntradaListaEsperaId")
+                        .OnDelete(DeleteBehavior.SetNull)
+                        .HasConstraintName("fk_convites_empresa_entrada_lista_espera_entrada_lista_espera_");
                 });
 
             modelBuilder.Entity("Acordu.Domain.Entities.Interacao", b =>

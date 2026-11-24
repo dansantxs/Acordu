@@ -33,6 +33,12 @@ internal static class ComposicaoSeguranca
     /// </summary>
     public const string LimiteRegistro = "registro";
 
+    /// <summary>
+    /// Lista de espera pública (F14-54; design do F14, D12): como o cadastro, por hora (padrão 3,
+    /// <c>RateLimit__ListaEspera__PorHora</c>) e por IP (IPv6 por /64), com cota própria, separada da do cadastro.
+    /// </summary>
+    public const string LimiteListaEspera = "lista-espera";
+
     /// <summary>Feed ICS da agenda assinável, por IP (os calendários buscam de tempos em tempos).</summary>
     public const string LimiteAgenda = "agenda";
 
@@ -93,6 +99,7 @@ internal static class ComposicaoSeguranca
         var limiteAgenda = configuracao.GetValue("RateLimit:Agenda:PorMinuto", 30);
         var limiteRegistro = configuracao.GetValue("RateLimit:Registro:PorHora", 3);
         var limiteErrosWeb = configuracao.GetValue("RateLimit:ErrosWeb:PorMinuto", 10);
+        var limiteListaEspera = configuracao.GetValue("RateLimit:ListaEspera:PorHora", 3);
         services.AddRateLimiter(opcoes =>
         {
             opcoes.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
@@ -116,6 +123,9 @@ internal static class ComposicaoSeguranca
             opcoes.AddPolicy(LimiteRegistro, http => RateLimitPartition.GetFixedWindowLimiter(
                 ChaveDoIp(http.Connection.RemoteIpAddress),
                 _ => new FixedWindowRateLimiterOptions { PermitLimit = limiteRegistro, Window = TimeSpan.FromHours(1), QueueLimit = 0 }));
+            opcoes.AddPolicy(LimiteListaEspera, http => RateLimitPartition.GetFixedWindowLimiter(
+                ChaveDoIp(http.Connection.RemoteIpAddress),
+                _ => new FixedWindowRateLimiterOptions { PermitLimit = limiteListaEspera, Window = TimeSpan.FromHours(1), QueueLimit = 0 }));
             opcoes.AddPolicy(LimiteErrosWeb, http => RateLimitPartition.GetFixedWindowLimiter(
                 ChaveDoIp(http.Connection.RemoteIpAddress),
                 _ => new FixedWindowRateLimiterOptions { PermitLimit = limiteErrosWeb, Window = TimeSpan.FromMinutes(1), QueueLimit = 0 }));

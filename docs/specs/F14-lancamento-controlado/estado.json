@@ -2,10 +2,10 @@
   "marco": "F14",
   "issue": 182,
   "etapa": "AGUARDANDO_MERGE",
-  "branch": "feat/F14n-convite-empresa",
+  "branch": "feat/F14o-lista-espera",
   "pr": {
-    "id": "F14n",
-    "numero": null
+    "id": "F14o",
+    "numero": 215
   },
   "feitos": [
     {
@@ -59,11 +59,15 @@
     {
       "id": "F14m",
       "pr": 206
+    },
+    {
+      "id": "F14n",
+      "pr": 212
     }
   ],
   "contadores": {
     "devolucoesNaEtapa": 0,
-    "rodadasNoPr": 2
+    "rodadasNoPr": 0
   },
   "verificacao": [
     "node scripts/conferir-specs.mjs",
@@ -87,26 +91,25 @@
       "PR #202 mesclado (F14h; coluna Forma e ciente sem corpo mantidos)",
       "PR #203 mesclado (F14k)",
       "PR #205 mesclado (F14l; \"aceito as recomendações\": liberação repetida ou sem teste → 422, ativar/reativar limpam as datas do ciclo, prorrogar TESTE para antes do fim atual aceito)",
-      "PR #206 mesclado (F14m)"
+      "PR #206 mesclado (F14m)",
+      "PR #212 mesclado (F14n; recomendações aceitas: conta por convite confirmada, um convite em aberto por e-mail, retenção na #213)"
     ],
     "G2_F14h": "PR #201 mesclado (18/11), sem comentário nas perguntas: valem as recomendações da D16 (variável única conferida no deploy.yml; ciente 404; pendentes sem migration; nenhum campo novo; convenção §4) e o risco da janela da virada aceito"
   },
   "ressalvas": [
-    "Testador: ordem da lista de convites (últimos primeiro) só por leitura; relógio fixo empata criado_em",
-    "Testador: isolamento entre tenants não se aplica (convites_empresa sem tenant, D14); 404 da área testado",
-    "Testador: teste de senha curta assume errors.senha; confirmar na CI",
-    "Revisor: ERS (RF-AUT-06/07) sem a exceção da conta por convite fora do expurgo; acrescentar se o Daniel confirmar a premissa",
-    "Revisor: testes de integração e funcionais dependem da migration ConvitesDeEmpresa do bot",
-    "Revisor: falha de envio do convite engolida sem log (a resposta traz emailEnviado:false)",
-    "Revisor: sem teste de emailEnviado:false no reenvio nem de Cadastro__DiasConvite diferente de 7",
-    "Revisor: ConviteEmpresa sem a entrada de origem do D12 (F14o atualiza o teste de propriedades)"
+    "Política de privacidade diz que a entrada some ao convidar, mas a convidada fica até o descarte (decisão do Daniel antes de ligar TEXTOS_LEGAIS_PUBLICADOS)",
+    "E-mail repetido na lista não atualiza a entrada (confirmar)",
+    "Mensagem do 422 de entrada já convidada não cita emitir convite novo quando o anterior foi revogado",
+    "EmitirAsync deixou de ser async: ArgumentNullException síncrono",
+    "Testes de banco dependem da migration ListaDeEspera do bot; ContratoOpenApiTests confere o OpenAPI escrito à mão"
   ],
   "bloqueios": [],
-  "atualizadoEm": "2026-11-23",
+  "atualizadoEm": "2026-11-24",
   "decisoes": [
     "18/11 F14-104: \"Só apagar a linha\" (Daniel, no chat): a liberação usada pelo cadastro abandonado não volta",
     "18/11 F14h: \"Pôr o aceite atrás da TEXTOS_LEGAIS_PUBLICADOS\" (Daniel, no chat); cenários do estado desligado pedem PR de spec e design (G2 só da mudança) antes do F14h",
     "21/11 F14l: \"aceito as recomendações\" (Daniel, no chat) para as três premissas do \"Para o Daniel decidir\" do PR #205",
-    "23/11 F14n: \"aceito as recomendações\" (Daniel, no chat): conta por convite nasce confirmada e fora do expurgo (exceção no RF-AUT-06); um convite em aberto por e-mail (422); retenção dos e-mails dos convites em issue própria"
+    "23/11 F14n: \"aceito as recomendações\" (Daniel, no chat): conta por convite nasce confirmada e fora do expurgo (exceção no RF-AUT-06); um convite em aberto por e-mail (422); retenção dos e-mails dos convites em issue própria",
+    "24/11 F14o: \"aceito as recomendações, ajusta a política na #194\" (Daniel, no chat): a entrada convidada fica até o descarte e a frase da política muda na #194; e-mail repetido não atualiza a entrada"
   ]
 }

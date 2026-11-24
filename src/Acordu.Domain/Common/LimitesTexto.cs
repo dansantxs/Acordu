@@ -30,4 +30,7 @@ public static class LimitesTexto
     public const int Motivo = 1_000;
     public const int ItemChecklist = 500;
     public const int DescricaoApontamento = 2_000;
+
+    /// <summary>Mensagem opcional da lista de espera ("o que você quer resolver", F14o; decisão 5 do G2 do F14).</summary>
+    public const int MensagemListaEspera = 1_000;
 }

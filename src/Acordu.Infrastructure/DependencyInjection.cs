@@ -138,6 +138,10 @@ public static class DependencyInjection
         // Convites de empresa (F14n, design D12): o cadastro usa o registro; as ações da área, a porta.
         services.AddScoped<Persistence.ConvitesEmpresa.RegistroConvitesEmpresa>();
         services.AddScoped<Application.Nebrys.IConvitesEmpresa>(sp => sp.GetRequiredService<Persistence.ConvitesEmpresa.RegistroConvitesEmpresa>());
+        // Lista de espera (F14o, design D12): a página pública grava pela inscrição; as ações da área, pela porta.
+        services.AddScoped<Persistence.ListaEspera.RegistroListaEspera>();
+        services.AddScoped<Application.ListaEspera.IInscricoesListaEspera>(sp => sp.GetRequiredService<Persistence.ListaEspera.RegistroListaEspera>());
+        services.AddScoped<Application.Nebrys.IListaEspera>(sp => sp.GetRequiredService<Persistence.ListaEspera.RegistroListaEspera>());
         services.AddScoped<IServicoAutenticacao, ServicoAutenticacao>();
         // Sessão de operação da Nebrys (ADR 0014): depende de OperadoresNebrys, que a Api lê da configuração.
         services.AddScoped<Application.Nebrys.IServicoOperacao, ServicoOperacao>();

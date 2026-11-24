@@ -14,8 +14,8 @@ namespace Acordu.Infrastructure.Persistence.Nebrys;
 /// Consultas da área da Nebrys (ADR 0014, item 3; read side "Área da Nebrys"). A sessão de operação não tem tenant, então
 /// os filtros globais não devolvem nada: este é um ponto revisado de <c>IgnoreQueryFilters</c> (convenções §1), que lê só
 /// o <c>Tenant</c>, a conta de quem o criou e a contagem dos vínculos da equipe, e projeta só os campos da relação com a
-/// Nebrys. Nenhuma entidade de negócio do prestador é lida aqui (teste de arquitetura). Os convites de empresa (F14n) são
-/// de uma tabela global, sem filtro: a leitura deles não precisa de exceção.
+/// Nebrys. Nenhuma entidade de negócio do prestador é lida aqui (teste de arquitetura). Os convites de empresa (F14n) e a
+/// lista de espera (F14o) são de tabelas globais, sem filtro: a leitura deles não precisa de exceção.
 /// </summary>
 public sealed class ConsultasNebrys : IConsultasNebrys
 {
@@ -89,6 +89,36 @@ public sealed class ConsultasNebrys : IConsultasNebrys
     {
         var convite = await _db.Set<ConviteEmpresa>().AsNoTracking().SingleOrDefaultAsync(c => c.Id == id, cancellationToken);
         return convite is null ? null : Convite(convite, _relogio.GetUtcNow());
+    }
+
+    public async Task<ResultadoPaginado<EntradaListaEsperaNebrysDto>> ListarListaEsperaAsync(
+        Paginacao paginacao, CancellationToken cancellationToken = default)
+    {
+        var entradas = _db.Set<EntradaListaEspera>().AsNoTracking();
+        var total = await entradas.CountAsync(cancellationToken);
+        // Ordem de chegada (F14-75); o convite que saiu de cada entrada, o mais recente, se ainda existe.
+        var linhas = await entradas
+            .OrderBy(e => e.CriadaEm)
+            .ThenBy(e => e.Id)
+            .Skip(paginacao.Pular)
+            .Take(paginacao.TamanhoPagina)
+            .Select(e => new
+            {
+                Entrada = e,
+                ConviteId = _db.Set<ConviteEmpresa>()
+                    .Where(c => c.EntradaListaEsperaId == e.Id)
+                    .OrderByDescending(c => c.CriadoEm)
+                    .Select(c => (Guid?)c.Id)
+                    .FirstOrDefault(),
+            })
+            .ToListAsync(cancellationToken);
+        return new ResultadoPaginado<EntradaListaEsperaNebrysDto>(
+            linhas.Select(l => new EntradaListaEsperaNebrysDto(
+                l.Entrada.Id, l.Entrada.Nome, l.Entrada.Email, l.Entrada.NomeEmpresa, l.Entrada.Mensagem, l.Entrada.Situacao,
+                l.Entrada.CriadaEm, l.Entrada.ConvidadaEm, l.ConviteId)).ToList(),
+            paginacao.Pagina,
+            paginacao.TamanhoPagina,
+            total);
     }
 
     /// <summary>Só o e-mail, a situação e as datas: nunca o hash do token.</summary>

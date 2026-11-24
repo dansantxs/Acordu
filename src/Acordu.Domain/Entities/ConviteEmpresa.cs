@@ -21,11 +21,12 @@ public sealed class ConviteEmpresa
         TokenHash = null!;
     }
 
-    private ConviteEmpresa(Guid id, string email, DateTimeOffset criadoEm)
+    private ConviteEmpresa(Guid id, string email, DateTimeOffset criadoEm, Guid? entradaListaEsperaId)
     {
         Id = id;
         Email = email;
         CriadoEm = criadoEm;
+        EntradaListaEsperaId = entradaListaEsperaId;
         TokenHash = null!;
     }
 
@@ -51,16 +52,28 @@ public sealed class ConviteEmpresa
     /// <summary>Quando a Nebrys revogou (F14-74); nulo sem revogação.</summary>
     public DateTimeOffset? RevogadoEm { get; private set; }
 
+    /// <summary>
+    /// A entrada da lista de espera de onde o convite saiu (F14-76, design D12); nula no convite emitido direto para um
+    /// e-mail. Vira nula se a entrada for descartada depois (F14-77): a entrada não fica guardada sem motivo.
+    /// </summary>
+    public Guid? EntradaListaEsperaId { get; private set; }
+
     /// <summary>Nem usado nem revogado: pode ser reenviado ou revogado (vencido também, para reenviar).</summary>
     public bool Pendente => UsadoEm is null && RevogadoEm is null;
 
     /// <summary>
-    /// A Nebrys emite o convite para o e-mail (F14-72): o token volta só aqui, em claro, para o e-mail; o convite guarda o
+    /// A Nebrys emite o convite para o e-mail (F14-72), direto ou a partir de uma entrada da lista de espera
+    /// (<paramref name="entradaListaEsperaId"/>, F14-76): o token volta só aqui, em claro, para o e-mail; o convite guarda o
     /// hash. E-mail inválido → <see cref="ArgumentException"/> no parâmetro <c>email</c>.
     /// </summary>
-    public static (ConviteEmpresa Convite, string Token) Emitir(Guid id, string email, TimeSpan validade, DateTimeOffset agora)
+    public static (ConviteEmpresa Convite, string Token) Emitir(
+        Guid id, string email, TimeSpan validade, DateTimeOffset agora, Guid? entradaListaEsperaId = null)
     {
-        var convite = new ConviteEmpresa(Ids.Obrigatorio(id, nameof(id)), Common.Email.Normalizar(email, nameof(email)), agora.ToUniversalTime());
+        var convite = new ConviteEmpresa(
+            Ids.Obrigatorio(id, nameof(id)),
+            Common.Email.Normalizar(email, nameof(email)),
+            agora.ToUniversalTime(),
+            Ids.Opcional(entradaListaEsperaId, nameof(entradaListaEsperaId)));
         var token = convite.NovoToken(validade, agora);
         return (convite, token);
     }

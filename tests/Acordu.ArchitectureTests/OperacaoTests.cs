@@ -131,7 +131,36 @@ public sealed class OperacaoTests
         var propriedades = Camadas.Domain.GetType("Acordu.Domain.Entities.ConviteEmpresa")!.GetProperties().Select(p => p.Name);
 
         propriedades.Should().BeEquivalentTo(
-            ["Id", "Email", "CriadoEm", "TokenHash", "EnviadoEm", "ExpiraEm", "UsadoEm", "RevogadoEm", "Pendente"]);
+            ["Id", "Email", "CriadoEm", "TokenHash", "EnviadoEm", "ExpiraEm", "UsadoEm", "RevogadoEm", "Pendente", "EntradaListaEsperaId"]);
+    }
+
+    [Fact] // Design do F14, D4 e D12 (F14o)
+    public void EntradaListaEspera_SoAListaDeEsperaEAAreaDaNebrysUsam()
+    {
+        const string entrada = "Acordu.Domain.Entities.EntradaListaEspera";
+        Camadas.Domain.GetType(entrada).Should().NotBeNull("o teste perde o sentido se o tipo mudar de nome");
+        var fora = Types.InAssemblies([Camadas.Api, Camadas.Application, Camadas.Infrastructure])
+            .That().DoNotResideInNamespace("Acordu.Application.ListaEspera")
+            .And().DoNotResideInNamespace("Acordu.Infrastructure.Persistence.ListaEspera")
+            .And().DoNotResideInNamespace("Acordu.Application.Nebrys")
+            .And().DoNotResideInNamespace("Acordu.Infrastructure.Persistence.Nebrys")
+            // Só a chave estrangeira da entrada de origem no mapeamento do convite (F14-76).
+            .And().DoNotHaveNameMatching("^ConviteEmpresaConfiguration$")
+            .And().DoNotResideInNamespace("Acordu.Infrastructure.Persistence.Migrations")
+            .ShouldNot().HaveDependencyOn(entrada)
+            .GetResult();
+
+        fora.IsSuccessful.Should().BeTrue(
+            "a tabela global da lista de espera é da inscrição pública e da área da Nebrys (ADR 0014, item 7); violações: {0}",
+            string.Join(", ", fora.FailingTypeNames ?? []));
+    }
+
+    [Fact] // Design do F14, D12: a entrada da lista de espera não tem referência a empresa (ela ainda não existe) nem a tenant
+    public void EntradaListaEspera_SemReferenciaAEmpresa()
+    {
+        var propriedades = Camadas.Domain.GetType("Acordu.Domain.Entities.EntradaListaEspera")!.GetProperties().Select(p => p.Name);
+
+        propriedades.Should().BeEquivalentTo(["Id", "Nome", "Email", "NomeEmpresa", "Mensagem", "CriadaEm", "ConvidadaEm", "Situacao"]);
     }
 
     [Fact] // Design do F14, D8: o registro do documento não tem referência à empresa nem à pessoa

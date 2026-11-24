@@ -14,6 +14,7 @@ using Acordu.Application.Contratos;
 using Acordu.Application.Dashboard;
 using Acordu.Application.Empresas;
 using Acordu.Application.Equipe;
+using Acordu.Application.ListaEspera;
 using Acordu.Application.Nebrys;
 using Acordu.Application.Notificacoes;
 using Acordu.Application.Papeis;
@@ -74,6 +75,9 @@ internal static class CasosDeUso
         services.AddScoped<LiberacaoDocumentos>();
         // Convites de empresa (F14n): emitir, reenviar e revogar pela área.
         services.AddScoped<ConvitesEmpresaNebrys>();
+        // Lista de espera (F14o): a inscrição pública e as ações da área (convidar a partir da entrada, descartar).
+        services.AddScoped<InscricaoListaEspera>();
+        services.AddScoped<ListaEsperaNebrys>();
         services.AddScoped<ComandosPortal>();
         services.AddScoped<TarefasAbertas>();
         services.AddScoped<LeituraPortal>();

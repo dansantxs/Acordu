@@ -2,7 +2,6 @@ using Acordu.Api.Erros;
 using Acordu.Application.Abstractions;
 using Acordu.Application.Autenticacao;
 using Acordu.Application.Cadastro;
-using Acordu.Application.Common;
 
 namespace Acordu.Api.Seguranca;
 
@@ -23,15 +22,7 @@ internal static class AuthEndpoints
             ConfiguracaoJwt jwt, TimeProvider relogio, HttpResponse resposta, CancellationToken cancellationToken) =>
         {
             // RNF-SEG-10: o desafio vem antes de qualquer validação ou gravação (spec do F9, F9-01 a F9-05).
-            var verificacao = await humana.VerificarAsync(corpo.TokenTurnstile, origem.Ip, cancellationToken);
-            if (verificacao != ResultadoVerificacaoHumana.Aprovada)
-            {
-                throw ErroDeCampo.Criar(
-                    "tokenTurnstile",
-                    verificacao == ResultadoVerificacaoHumana.Indisponivel
-                        ? "Não deu para conferir agora. Tente de novo em instantes."
-                        : "Confirme que você não é um robô e tente de novo.");
-            }
+            await DesafioHumano.ExigirAsync(humana, origem, corpo.TokenTurnstile, AcoesVerificacaoHumana.Registro, cancellationToken);
 
             var sessao = await servico.RegistrarAsync(
                 corpo.Nome, corpo.Email, corpo.Senha, corpo.NomeEmpresa, corpo.Documento, corpo.VersaoTermos,

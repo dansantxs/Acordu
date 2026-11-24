@@ -202,6 +202,8 @@ As ações sobre a situação (F14l, contrato §17) respondem com a mesma consul
 
 Convites de empresa (F14n): a mesma `IConsultasNebrys` lista (`convites_empresa`, emitidos por último primeiro: `criado_em desc, id desc`, paginação do contrato §1) e lê um convite. A tabela é global, sem filtro, então não há `IgnoreQueryFilters`. A `situacao` é calculada na leitura, pelo instante do `TimeProvider` (vencido = `expira_em` já passou, sem uso nem revogação); o hash do token nunca é projetado. As ações de emitir e reenviar respondem com o convite lido depois do commit e o `emailEnviado`. Sem índice para a lista (poucos convites no nível 0); `email` e `token_hash` têm índice para a emissão e o cadastro.
 
+Lista de espera (F14o): a mesma `IConsultasNebrys` lista `entradas_lista_espera` por ordem de chegada (`criada_em asc, id asc`, paginação do contrato §1), com o `convite_id` do convite mais recente que saiu de cada entrada (subconsulta em `convites_empresa.entrada_lista_espera_id`, que tem índice pela chave estrangeira). Tabela global, sem filtro nem `IgnoreQueryFilters`. A `situacao` é calculada pela `convidada_em`. Sem índice para a ordem (poucas entradas no nível 0); o `email` tem índice único, que é o "não duplica" da inscrição pública.
+
 ---
 
 ## 9. Onde vive no código
