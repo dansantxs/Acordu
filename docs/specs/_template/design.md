@@ -16,7 +16,7 @@ Decisões de implementação (sem portão):
 
 ## 2. Impacto nos documentos
 
-ERS, contrato da API e OpenAPI, modelo de domínio, read side, segurança, deploy e CI, convenções, ADR novo. "Nenhum" também é resposta.
+ERS, contrato da API e OpenAPI, modelo de domínio, read side, segurança, deploy e CI, convenções, fluxo BPMN (`docs/fluxo-acordu.bpmn`), ADR novo. "Nenhum" também é resposta.
 
 - …
 

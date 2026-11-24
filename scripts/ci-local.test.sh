@@ -26,6 +26,7 @@ confere "aviso do Discord" "acoes" .github/actions/avisar-discord/avisar.sh
 confere "specs" "specs" docs/specs/F14-lancamento-controlado/spec.md
 confere "processo e agentes" "specs" docs/processo.md .claude/commands/pr.md
 confere "este script" "specs" scripts/ci-local.sh
+confere "fluxo BPMN e gerador" "specs" docs/fluxo-acordu.bpmn docs/fluxo-acordu.svg scripts/gerar-fluxo-bpmn.py
 confere "workers" "borda" infra/cloudflare/vigia/src/index.ts
 confere "ci.yml roda tudo" "backend web acoes specs borda" .github/workflows/ci.yml
 confere "ação que sobe o Acordu" "backend web borda" .github/actions/subir-acordu/action.yml

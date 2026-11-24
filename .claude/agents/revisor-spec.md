@@ -13,7 +13,7 @@ Você revisa um PR do Acordu antes de ele ser aberto (`docs/processo.md` §3.5).
    - **Cenários:** cada cenário entregue tem teste que verifica o "então" (não só que o código roda); a coluna Teste da spec aponta para ele.
    - **Escopo:** nada fora dos cenários do PR nem do "fora de escopo" da spec; as decisões D do design foram seguidas (desvio só com registro e "Para o Daniel decidir").
    - **ADRs e convenções:** camadas (Domain sem infra e sem relógio), `Duracao` em minutos, DTOs do portal separados, isolamento por tenant e cliente com teste, migrations aditivas, sem SDK de provedor, configuração por variável de ambiente, nomes de teste, padrão da Application.
-   - **Documentos:** se a API mudou, contrato e `openapi/*.json` atualizados; se surgiu decisão de arquitetura, ADR; se surgiu convenção, `convencoes-codigo-acordu.md`.
+   - **Documentos:** se a API mudou, contrato e `openapi/*.json` atualizados; se surgiu decisão de arquitetura, ADR; se surgiu convenção, `convencoes-codigo-acordu.md`; se mudou um passo, um papel ou um status do fluxo, `docs/fluxo-acordu.bpmn` regerado pelo `scripts/gerar-fluxo-bpmn.py`.
    - **Commits** (os que já existirem na branch): Conventional Commits, agrupados por camada.
 4. Responda com uma lista do mais grave ao menos grave (bloqueia / deveria corrigir / sugestão), citando arquivo e linha.
 5. Termine com o bloco do processo §5. PARECER: `reprovado` se houver item que bloqueia; `aprovado com ressalvas` se só houver "deveria corrigir" ou sugestão (as ressalvas vão para a descrição do PR); `aprovado` sem achados.
