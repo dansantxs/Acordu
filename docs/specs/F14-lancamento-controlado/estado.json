@@ -1,7 +1,7 @@
 {
   "marco": "F14",
   "issue": 182,
-  "etapa": "IMPLEMENTANDO",
+  "etapa": "AGUARDANDO_MERGE",
   "branch": "feat/F14q-telas-convite",
   "pr": {
     "id": "F14q",
@@ -75,7 +75,7 @@
   ],
   "contadores": {
     "devolucoesNaEtapa": 0,
-    "rodadasNoPr": 0
+    "rodadasNoPr": 1
   },
   "verificacao": [
     "node scripts/conferir-specs.mjs",
@@ -106,7 +106,13 @@
     ],
     "G2_F14h": "PR #201 mesclado (18/11), sem comentário nas perguntas: valem as recomendações da D16 (variável única conferida no deploy.yml; ciente 404; pendentes sem migration; nenhum campo novo; convenção §4) e o risco da janela da virada aceito"
   },
-  "ressalvas": [],
+  "ressalvas": [
+    "Testador: lerSessaoOperacao testado direto, não pela renderização da CascaNebrys com sessão vencida",
+    "Testador: sem E2E do modo convite (precisaria de operadora da Nebrys na E2E)",
+    "Teste das capturas falha até o bot gerar cadastro-convite.webp e lista-espera.webp",
+    "Revisor: no ramo temConta, \"Entrar com a conta que já existe\" vai a /entrar, que manda quem já está logado para / (limitação de UX, decisão do Daniel)",
+    "Revisor: DetalheConvite trata 404 como \"não existe\" sem encerrar a sessão (igual ao DetalheEmpresa do F14m)"
+  ],
   "bloqueios": [],
   "atualizadoEm": "2026-11-24",
   "decisoes": [

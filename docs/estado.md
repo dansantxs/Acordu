@@ -1,10 +1,10 @@
 # Acordu — Estado
 
-Visão geral curta, atualizada por cada PR (`docs/processo.md` §1). O histórico está no git, nos PRs e no registro dos designs. Atualizado em 24/11/2026 (F14p, e-mail descartável e trilha da área).
+Visão geral curta, atualizada por cada PR (`docs/processo.md` §1). O histórico está no git, nos PRs e no registro dos designs. Atualizado em 24/11/2026 (F14q, telas do cadastro por convite e da área para convites e lista de espera).
 
 ## Em revisão
 
-- **F14p — e-mail descartável e fecho das regras do cadastro** (#182): o cadastro e a lista de espera recusam e-mail de domínio descartável (`400` no e-mail), pela lista versionada `src/Acordu.Infrastructure/Seguranca/dominios-descartaveis.txt`, copiada da `disposable-email-domains` (CC0 1.0; commit no cabeçalho); o modo aberto sem convite conferido com todas as regras do F14; a trilha `nebrys.*` conferida em todas as ações da área, com `antes` e `depois` sempre presentes (API). Sem migration, sem mudança no OpenAPI, nenhuma variável nova.
+- **F14q — telas do cadastro controlado** (#182): `/cadastro` segue o modo da API (`GET /auth/cadastro`): no modo convite, o formulário da lista de espera no lugar do cadastro, com o motivo e o link da política (F14-44, F14-109); o link do e-mail (`/cadastro/convite/{token}`) abre o cadastro com o e-mail do convite fixo (F14-46). Na área da Nebrys, as telas de convites (emitir, reenviar, revogar) e da lista de espera (convidar, descartar). Seção "Cadastro, convite e lista de espera" no manual, com duas capturas novas pedidas ao bot (`.github/ajuda-request`), e nota em Novidades. Só front: sem migration, sem mudança na API nem variável nova.
 
 ## Marco em andamento
 
@@ -17,7 +17,7 @@ Visão geral curta, atualizada por cada PR (`docs/processo.md` §1). O históric
 
 ## Próximos passos
 
-1. Merge do F14p (F14o na `main`). Depois o `/marco F14 182` segue pelo F14q (telas do cadastro por convite, da lista de espera e da área para convites e lista). A variável `CADASTRO_MODO` já existe no GitHub (criada pelo Daniel em 24/11): com `convite`, o cadastro de produção fecha no próximo deploy (a tela do convite e da lista de espera é do F14q; até lá, quem abre `/cadastro` recebe a recusa no envio); com `aberto`, o cadastro de hoje segue até o F14q. Ligar `TEXTOS_LEGAIS_PUBLICADOS` só depois da #194, num deploy fora do horário de uso (deploy-ci §7). Email Routing de `contato@acordu.app.br` ativo e testado pelo Daniel em 16/11.
+1. Merge do F14q. **Com o F14q na `main`, abrir o cadastro por convite é trocar a variável `CADASTRO_MODO` do GitHub para `convite` e fazer um deploy (G4)**: `/cadastro` passa a mostrar a lista de espera, e só quem recebe o link da Nebrys cria empresa. Com `aberto`, o cadastro de hoje segue. Depois o `/marco F14 182` segue pelo F14r (dados de exemplo) e o F14s (demonstração). Ligar `TEXTOS_LEGAIS_PUBLICADOS` só depois da #194, num deploy fora do horário de uso (deploy-ci §7). Email Routing de `contato@acordu.app.br` ativo e testado pelo Daniel em 16/11.
 2. Conferências que faltam da produção:
    - deploy: F8-27 e F8-28 (rollback por migration e por health), F8-29 (jobs do Scheduler), hostname do Turnstile;
    - backup: F8-30 e F13-32 na primeira madrugada com o `BACKUP_ATIVO`; F8-31 (restore) antes do primeiro cliente;
