@@ -58,6 +58,13 @@ public sealed class Cliente : EntidadeBase
     /// </summary>
     public Guid? ResponsavelId { get; private set; }
 
+    /// <summary>
+    /// Cliente dos dados de exemplo (RF-EMP-05, F14r; design do F14, D13). Tudo o que é ligado a ele pelo
+    /// <c>ClienteId</c> conta como exemplo, inclusive o que a equipe criou dentro dele, e sai junto quando os exemplos
+    /// são apagados. Só a carga dos exemplos marca; nada desmarca.
+    /// </summary>
+    public bool Exemplo { get; private set; }
+
     public IReadOnlyList<string> Etiquetas => _etiquetas;
 
     public IReadOnlyList<Contato> Contatos => _contatos;
@@ -120,6 +127,9 @@ public sealed class Cliente : EntidadeBase
             throw new ArgumentException($"No máximo {MaximoEtiquetas} etiquetas por cliente.", nameof(etiquetas));
         _etiquetas = lista;
     }
+
+    /// <summary>Marca o cliente como dado de exemplo (só a carga dos exemplos chama).</summary>
+    public void MarcarComoExemplo() => Exemplo = true;
 
     public void Inativar() => Ativo = false;
 
