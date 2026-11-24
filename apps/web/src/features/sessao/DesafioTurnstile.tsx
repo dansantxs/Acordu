@@ -45,18 +45,24 @@ function carregarTurnstile(): Promise<void> {
     return carregamento
 }
 
+/** Ação do widget, a mesma que a API confere em cada rota pública (convenções §3; contrato §2 e §16). */
+export type AcaoTurnstile = 'registro' | 'lista-espera'
+
 /**
- * Desafio do Cloudflare Turnstile no cadastro (RNF-SEG-10; spec do F9, F9-39 a F9-41): entrega o token (ou nulo, quando
- * vence ou dá erro) e é renovado sempre que `versao` muda, porque o token só vale uma vez.
+ * Desafio do Cloudflare Turnstile no cadastro e na lista de espera (RNF-SEG-10; spec do F9, F9-39 a F9-41; F14-54):
+ * entrega o token (ou nulo, quando vence ou dá erro) e é renovado sempre que `versao` muda, porque o token só vale uma
+ * vez. `acao` é a da rota que vai receber o token: o de uma não vale na outra.
  */
 export function DesafioTurnstile({
     chave,
     versao,
     aoMudar,
+    acao = 'registro',
 }: {
     chave: string
     versao: number
     aoMudar: (token: string | null) => void
+    acao?: AcaoTurnstile
 }) {
     const elemento = useRef<HTMLDivElement>(null)
     const widget = useRef<string | null>(null)
@@ -74,7 +80,7 @@ export function DesafioTurnstile({
                 if (!ativo || !elemento.current || !window.turnstile) return
                 const id = window.turnstile.render(elemento.current, {
                     sitekey: chave,
-                    action: 'registro',
+                    action: acao,
                     language: 'pt-br',
                     callback: (token) => retorno.current(token),
                     'expired-callback': () => retorno.current(null),
@@ -89,7 +95,7 @@ export function DesafioTurnstile({
             if (widget.current) window.turnstile?.remove(widget.current)
             widget.current = null
         }
-    }, [chave])
+    }, [chave, acao])
 
     useEffect(() => {
         if (versao === 0 || !widget.current) return

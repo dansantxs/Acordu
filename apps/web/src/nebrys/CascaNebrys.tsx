@@ -4,6 +4,7 @@ import { useEffect, useSyncExternalStore } from 'react'
 import {
     assinarSessaoOperacao,
     encerrarSessaoOperacao,
+    lerSessaoOperacao,
     sessaoOperacao,
     versaoSessaoOperacao,
 } from '@/shared/sessao/sessaoOperacao'
@@ -19,7 +20,7 @@ function horaDoFim(expiraEm: string): string {
 }
 
 /**
- * Moldura da área da Nebrys: faixa de couro no topo com Empresas, Liberar documento e Sair. Não tem nada do app da
+ * Moldura da área da Nebrys: faixa de couro no topo com Empresas, Convites, Lista de espera, Liberar documento e Sair. Não tem nada do app da
  * equipe (capa, sino, paleta, ajuda): a área fica fora do manual. Quando a sessão de operação acaba (prazo, recusa da
  * API ou "Sair"), o cache da área some e as rotas voltam para a entrada.
  */
@@ -27,7 +28,9 @@ export function CascaNebrys() {
     const roteador = useRouter()
     const consultas = useQueryClient()
     useSyncExternalStore(assinarSessaoOperacao, versaoSessaoOperacao)
-    const sessao = sessaoOperacao()
+    // Só lê: encerrar a sessão vencida durante a renderização avisaria os ouvintes no meio dela (ressalva do F14m). O
+    // temporizador e o cliente da área encerram no prazo.
+    const sessao = lerSessaoOperacao()
 
     useEffect(
         () =>
@@ -48,6 +51,12 @@ export function CascaNebrys() {
                     <nav aria-label="Área da Nebrys" className="flex gap-1">
                         <Link to="/nebrys/empresas" className={estiloLink}>
                             Empresas
+                        </Link>
+                        <Link to="/nebrys/convites" className={estiloLink}>
+                            Convites
+                        </Link>
+                        <Link to="/nebrys/lista-espera" className={estiloLink}>
+                            Lista de espera
                         </Link>
                         <Link to="/nebrys/documentos" className={estiloLink}>
                             Liberar documento

@@ -21,7 +21,17 @@ interface Receita {
     largura?: number
     /** Quem está na tela: a Dona (padrão) ou o contato da padaria no portal. */
     portal?: boolean
+    /** Tela pública (cadastro, lista de espera): numa aba sem sessão, aberta só para ela. */
+    anonimo?: boolean
+    /**
+     * Respostas simuladas antes de abrir a rota. O bot sobe a API no modo aberto e sem convite emitido: o modo convite
+     * e o convite das telas de cadastro (F14q) vêm daqui, só para a foto.
+     */
+    simular?: (p: Page) => Promise<void>
 }
+
+/** E-mail fictício do convite na foto do cadastro por convite. */
+const EMAIL_CONVIDADO = 'ana.souza@exemplo.com'
 
 const texto = (t: string) => (p: Page) => p.getByText(t).first()
 const titulo = (t: string | RegExp) => (p: Page) => p.getByRole('heading', { level: 1, name: t })
@@ -48,6 +58,21 @@ const RECEITAS: Record<CapturaAjuda, Receita> = {
     },
     'portal-nova': { rota: () => '/portal/nova', pronto: titulo('Nova solicitação'), portal: true },
     'portal-contratos': { rota: () => '/portal/contratos', pronto: texto('Banco de horas'), portal: true },
+    'cadastro-convite': {
+        rota: () => '/cadastro/convite/token-da-foto',
+        pronto: texto('A Nebrys convidou'),
+        anonimo: true,
+        simular: (p) =>
+            p.route('**/api/v1/auth/registro/convite/consulta', (r) =>
+                r.fulfill({ json: { email: EMAIL_CONVIDADO, temConta: false } }),
+            ),
+    },
+    'lista-espera': {
+        rota: () => '/cadastro',
+        pronto: titulo('Lista de espera'),
+        anonimo: true,
+        simular: (p) => p.route('**/api/v1/auth/cadastro', (r) => r.fulfill({ json: { modo: 'CONVITE' } })),
+    },
 }
 
 const PASTA = fileURLToPath(new URL('../public/ajuda/', import.meta.url))
@@ -67,8 +92,17 @@ async function esperarSossego(page: Page, emVoo: Set<string>) {
     await page.waitForTimeout(400)
 }
 
-/** Uma aba já logada, no tema claro, que conta as chamadas em voo para `esperarSossego`. */
-async function entrar(contexto: BrowserContext, email: string, senha: string, inicio: RegExp | string) {
+const OPCOES_CONTEXTO = {
+    baseURL: 'http://localhost:5173',
+    locale: 'pt-BR',
+    timezoneId: 'America/Sao_Paulo',
+    colorScheme: 'light',
+    reducedMotion: 'reduce',
+    deviceScaleFactor: 1,
+} as const
+
+/** Uma aba no tema claro, que conta as chamadas em voo para `esperarSossego`. */
+async function abrirAba(contexto: BrowserContext) {
     // Tema claro fixo, qualquer que seja a escolha guardada.
     await contexto.addInitScript(() => {
         localStorage.setItem('acordu.tema', 'claro')
@@ -84,7 +118,12 @@ async function entrar(contexto: BrowserContext, email: string, senha: string, in
     const saiu = (r: { url: () => string; method: () => string }) => emVoo.delete(r.url() + r.method())
     page.on('requestfinished', saiu)
     page.on('requestfailed', saiu)
+    return { page, emVoo }
+}
 
+/** Uma aba já logada (`abrirAba` e o login). */
+async function entrar(contexto: BrowserContext, email: string, senha: string, inicio: RegExp | string) {
+    const { page, emVoo } = await abrirAba(contexto)
     await page.goto('/entrar')
     await page.getByLabel('E-mail').fill(email)
     await page.getByLabel('Senha', { exact: true }).fill(senha)
@@ -106,18 +145,13 @@ test('captura as telas do manual', async ({ browser, context }) => {
     const equipe = await entrar(context, demo.email, demo.senha, /, Marina$/)
     // O portal em outro contexto: cada um com o seu cookie de sessão.
     const portal = await entrar(
-        await browser.newContext({
-            baseURL: 'http://localhost:5173',
-            locale: 'pt-BR',
-            timezoneId: 'America/Sao_Paulo',
-            colorScheme: 'light',
-            reducedMotion: 'reduce',
-            deviceScaleFactor: 1,
-        }),
+        await browser.newContext(OPCOES_CONTEXTO),
         demo.contato.email,
         demo.contato.senha,
         'Solicitações',
     )
+    // As telas públicas num contexto sem cookie de sessão; cada uma numa aba nova, com as próprias simulações.
+    const anonimo = await browser.newContext(OPCOES_CONTEXTO)
 
     // A conversão para WebP usa o próprio Chromium (canvas), sem dependência de imagem no projeto.
     const conversor = await context.newPage()
@@ -143,7 +177,8 @@ test('captura as telas do manual', async ({ browser, context }) => {
     for (const nome of CAPTURAS) {
         const receita = RECEITAS[nome]
         await test.step(nome, async () => {
-            const { page, emVoo } = receita.portal ? portal : equipe
+            const { page, emVoo } = receita.anonimo ? await abrirAba(anonimo) : receita.portal ? portal : equipe
+            await receita.simular?.(page)
             const largura = receita.largura ?? TAMANHO_CAPTURA.largura
             await page.setViewportSize({
                 width: largura,
@@ -154,6 +189,7 @@ test('captura as telas do manual', async ({ browser, context }) => {
             await esperarSossego(page, emVoo)
             const png = await page.screenshot({ animations: 'disabled', caret: 'hide' })
             writeFileSync(`${PASTA}${nome}.webp`, await paraWebp(png))
+            if (receita.anonimo) await page.close()
         })
     }
 

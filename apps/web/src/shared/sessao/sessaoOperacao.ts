@@ -51,6 +51,11 @@ export function sessaoOperacao(agora = Date.now()): SessaoOperacao | null {
     return sessao
 }
 
+/** A sessão guardada, sem conferir o prazo nem encerrar: para a renderização, que não pode avisar os ouvintes. */
+export function lerSessaoOperacao(): SessaoOperacao | null {
+    return sessao
+}
+
 export function motivoSemOperacao(): MotivoSemOperacao {
     return motivo
 }

@@ -1,9 +1,9 @@
 /**
- * Tokens de link (convite, redefinição de senha, confirmação de e-mail) saem da URL na primeira carga (segurança
+ * Tokens de link (convite da equipe, do portal e de empresa, redefinição de senha, confirmação de e-mail) saem da URL na primeira carga (segurança
  * §9: não ficam no histórico nem vão em Referer). Ficam na `sessionStorage` da aba, para a página sobreviver a uma
  * recarga, e são apagados quando usados.
  */
-export type TipoDeLink = 'convite' | 'convite-portal' | 'senha' | 'confirmacao'
+export type TipoDeLink = 'convite' | 'convite-portal' | 'convite-empresa' | 'senha' | 'confirmacao'
 
 const memoria = new Map<TipoDeLink, string>()
 const chave = (tipo: TipoDeLink) => `acordu.link.${tipo}`
