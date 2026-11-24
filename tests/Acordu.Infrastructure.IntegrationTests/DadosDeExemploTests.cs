@@ -94,10 +94,11 @@ public sealed class DadosDeExemploTests(BancoFixture banco)
             comentario, comentarioReal,
             Dados.Apontamento(tenant, exemplo.Id, tarefa.Id), Dados.Projeto(tenant, exemplo.Id)));
         var seguidor = Guid.NewGuid();
+        var desde = Dados.Agora.ToUniversalTime(); // SQL cru não passa pelo conversor do EF: o Npgsql só aceita offset 0
         await using (var db = banco.DaEquipe(tenant))
         {
             await db.Database.ExecuteSqlAsync(
-                $"INSERT INTO seguidores (tenant_id, alvo, alvo_id, usuario_id, desde) VALUES ({tenant}, 2, {tarefa.Id}, {seguidor}, {Dados.Agora}), ({tenant}, 2, {tarefaReal.Id}, {seguidor}, {Dados.Agora})");
+                $"INSERT INTO seguidores (tenant_id, alvo, alvo_id, usuario_id, desde) VALUES ({tenant}, 2, {tarefa.Id}, {seguidor}, {desde}), ({tenant}, 2, {tarefaReal.Id}, {seguidor}, {desde})");
         }
         var exemploDoOutro = Exemplo(outro);
         var solicitacaoDoOutro = Dados.Solicitacao(outro, exemploDoOutro.Id);
@@ -118,7 +119,7 @@ public sealed class DadosDeExemploTests(BancoFixture banco)
         {
             (await db.Clientes.Select(c => c.Id).ToListAsync()).Should().Equal(real.Id);
             (await db.Solicitacoes.Select(s => s.Id).ToListAsync()).Should().Equal(solicitacaoReal.Id);
-                        (await db.Interacoes.AnyAsync()).Should().BeFalse();
+            (await db.Interacoes.AnyAsync()).Should().BeFalse();
             (await db.Apontamentos.AnyAsync()).Should().BeFalse();
             (await db.Projetos.AnyAsync()).Should().BeFalse();
             (await db.Cronometros.AnyAsync()).Should().BeFalse("o cronômetro de uma tarefa do exemplo sai com ela");

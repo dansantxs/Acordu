@@ -79,7 +79,7 @@
   ],
   "contadores": {
     "devolucoesNaEtapa": 0,
-    "rodadasNoPr": 2
+    "rodadasNoPr": 3
   },
   "verificacao": [
     "node scripts/conferir-specs.mjs",
