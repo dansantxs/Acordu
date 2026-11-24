@@ -9,7 +9,8 @@ namespace Acordu.Api.Endpoints;
 /// <summary>
 /// Área da Nebrys (contrato §17, ADR 0014): sessão de operação sem tenant, lista e detalhe das empresas, só com os campos
 /// da relação com a Nebrys (RNF-PRIV-01), ações sobre a situação delas e liberação de documento (F14l), e convites de
-/// empresa (F14n) e a lista de espera (F14o). Quem não tem a sessão de operação recebe <c>404</c> antes de chegar aqui
+/// empresa (F14n), a lista de espera (F14o) e a empresa de demonstração (F14s). Quem não tem a sessão de operação recebe
+/// <c>404</c> antes de chegar aqui
 /// (<see cref="AreaNebrys"/>).
 /// Documento OpenAPI próprio (<c>openapi/nebrys.json</c>).
 /// </summary>
@@ -131,6 +132,33 @@ internal static class NebrysEndpoints
         area.MapDelete("/lista-espera/{id:guid}", async (Guid id, ListaEsperaNebrys lista, CancellationToken cancellationToken) =>
         {
             await lista.DescartarAsync(id, cancellationToken);
+            return Results.NoContent();
+        })
+            .Produces(StatusCodes.Status204NoContent);
+
+        // Empresa de demonstração (F14-87 a F14-90, F14-110; design D13): há uma só. O GET responde 200 também sem ela (os
+        // campos da empresa nulos), para o 404 continuar sendo só a barreira (a área encerra a sessão com ele).
+        area.MapGet("/demonstracao", async (DemonstracaoNebrys demonstracao, CancellationToken cancellationToken) =>
+            Results.Ok(await demonstracao.ObterAsync(cancellationToken)))
+            .Produces<DemonstracaoNebrysDto>();
+
+        area.MapPost("/demonstracao", async (DemonstracaoNebrys demonstracao, CancellationToken cancellationToken) =>
+            Results.Created("/api/v1/nebrys/demonstracao", await demonstracao.CriarAsync(cancellationToken)))
+            .Produces<DemonstracaoNebrysDto>(StatusCodes.Status201Created);
+
+        area.MapPost("/demonstracao/restauracao", async (DemonstracaoNebrys demonstracao, CancellationToken cancellationToken) =>
+            Results.Ok(await demonstracao.RestaurarAsync(cancellationToken)))
+            .Produces<DemonstracaoNebrysDto>();
+
+        area.MapPost("/demonstracao/indicacoes", async (
+            IndicacaoDemonstracaoRequest corpo, DemonstracaoNebrys demonstracao, CancellationToken cancellationToken) =>
+            Results.Ok(await demonstracao.IndicarAsync(corpo, cancellationToken)))
+            .Produces<DemonstracaoNebrysDto>();
+
+        area.MapDelete("/demonstracao/indicacoes/{usuarioId:guid}", async (
+            Guid usuarioId, DemonstracaoNebrys demonstracao, CancellationToken cancellationToken) =>
+        {
+            await demonstracao.RetirarAsync(usuarioId, cancellationToken);
             return Results.NoContent();
         })
             .Produces(StatusCodes.Status204NoContent);

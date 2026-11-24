@@ -590,6 +590,169 @@ export interface paths {
         patch?: never
         trace?: never
     }
+    '/api/v1/nebrys/demonstracao': {
+        parameters: {
+            query?: never
+            header?: never
+            path?: never
+            cookie?: never
+        }
+        get: {
+            parameters: {
+                query?: never
+                header?: never
+                path?: never
+                cookie?: never
+            }
+            requestBody?: never
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown
+                    }
+                    content: {
+                        'application/json': components['schemas']['DemonstracaoNebrysDto']
+                    }
+                }
+            }
+        }
+        put?: never
+        post: {
+            parameters: {
+                query?: never
+                header?: never
+                path?: never
+                cookie?: never
+            }
+            requestBody?: never
+            responses: {
+                /** @description Created */
+                201: {
+                    headers: {
+                        [name: string]: unknown
+                    }
+                    content: {
+                        'application/json': components['schemas']['DemonstracaoNebrysDto']
+                    }
+                }
+            }
+        }
+        delete?: never
+        options?: never
+        head?: never
+        patch?: never
+        trace?: never
+    }
+    '/api/v1/nebrys/demonstracao/restauracao': {
+        parameters: {
+            query?: never
+            header?: never
+            path?: never
+            cookie?: never
+        }
+        get?: never
+        put?: never
+        post: {
+            parameters: {
+                query?: never
+                header?: never
+                path?: never
+                cookie?: never
+            }
+            requestBody?: never
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown
+                    }
+                    content: {
+                        'application/json': components['schemas']['DemonstracaoNebrysDto']
+                    }
+                }
+            }
+        }
+        delete?: never
+        options?: never
+        head?: never
+        patch?: never
+        trace?: never
+    }
+    '/api/v1/nebrys/demonstracao/indicacoes': {
+        parameters: {
+            query?: never
+            header?: never
+            path?: never
+            cookie?: never
+        }
+        get?: never
+        put?: never
+        post: {
+            parameters: {
+                query?: never
+                header?: never
+                path?: never
+                cookie?: never
+            }
+            requestBody: {
+                content: {
+                    'application/json': components['schemas']['IndicacaoDemonstracaoRequest']
+                }
+            }
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown
+                    }
+                    content: {
+                        'application/json': components['schemas']['DemonstracaoNebrysDto']
+                    }
+                }
+            }
+        }
+        delete?: never
+        options?: never
+        head?: never
+        patch?: never
+        trace?: never
+    }
+    '/api/v1/nebrys/demonstracao/indicacoes/{usuarioId}': {
+        parameters: {
+            query?: never
+            header?: never
+            path?: never
+            cookie?: never
+        }
+        get?: never
+        put?: never
+        post?: never
+        delete: {
+            parameters: {
+                query?: never
+                header?: never
+                path: {
+                    usuarioId: string
+                }
+                cookie?: never
+            }
+            requestBody?: never
+            responses: {
+                /** @description No Content */
+                204: {
+                    headers: {
+                        [name: string]: unknown
+                    }
+                    content?: never
+                }
+            }
+        }
+        options?: never
+        head?: never
+        patch?: never
+        trace?: never
+    }
 }
 export type webhooks = Record<string, never>
 export interface components {
@@ -616,6 +779,14 @@ export interface components {
         CriadorEmpresaDto: {
             nome: string
             email: null | string
+        }
+        DemonstracaoNebrysDto: {
+            /** Format: uuid */
+            empresaId: null | string
+            nome: null | string
+            /** Format: date-time */
+            criadaEm: null | string
+            indicadas: components['schemas']['PessoaIndicadaNebrysDto'][]
         }
         EmpresaNebrysDto: {
             /** Format: uuid */
@@ -677,8 +848,17 @@ export interface components {
             convite: components['schemas']['ConviteEmpresaNebrysDto']
             emailEnviado: boolean
         }
+        IndicacaoDemonstracaoRequest: {
+            email: null | string
+        }
         LiberacaoDocumentoRequest: {
             documento: null | string
+        }
+        PessoaIndicadaNebrysDto: {
+            /** Format: uuid */
+            usuarioId: string
+            nome: string
+            email: string
         }
         ProrrogacaoTesteRequest: {
             /** Format: date */

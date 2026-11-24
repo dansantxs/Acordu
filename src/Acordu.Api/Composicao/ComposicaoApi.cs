@@ -103,6 +103,8 @@ internal static class ComposicaoApi
         services.AddScoped<IOperadorAtual>(sp => sp.GetRequiredService<OperadorDaRequisicao>());
         services.AddScoped<ITrilhaDaOperacao, Infrastructure.Persistence.Auditoria.TrilhaDaOperacao>();
         services.AddScoped<ISituacaoDasEmpresas, Infrastructure.Persistence.Nebrys.SituacaoDasEmpresas>();
+        // Empresa de demonstração (F14s, design D13): no mesmo molde, num escopo próprio com o tenant da demonstração.
+        services.AddScoped<IEmpresaDeDemonstracao, Infrastructure.Persistence.Demonstracao.EmpresaDeDemonstracao>();
         // Textos legais publicados (D16): padrão desligado; valor presente e inválido impede a subida (F14-121).
         services.AddSingleton(OpcoesTextosLegais.DaConfiguracao(configuracao["TextosLegais:Publicados"]));
         // Modo do cadastro e validade do convite de empresa (F14n, design D11 e D12): sem o modo, convite (fail-closed);

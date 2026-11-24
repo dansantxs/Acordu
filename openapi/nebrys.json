@@ -527,6 +527,113 @@
           }
         }
       }
+    },
+    "/api/v1/nebrys/demonstracao": {
+      "get": {
+        "tags": [
+          "Nebrys"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DemonstracaoNebrysDto"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Nebrys"
+        ],
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DemonstracaoNebrysDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/nebrys/demonstracao/restauracao": {
+      "post": {
+        "tags": [
+          "Nebrys"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DemonstracaoNebrysDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/nebrys/demonstracao/indicacoes": {
+      "post": {
+        "tags": [
+          "Nebrys"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/IndicacaoDemonstracaoRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DemonstracaoNebrysDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/nebrys/demonstracao/indicacoes/{usuarioId}": {
+      "delete": {
+        "tags": [
+          "Nebrys"
+        ],
+        "parameters": [
+          {
+            "name": "usuarioId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          }
+        }
+      }
     }
   },
   "components": {
@@ -611,6 +718,43 @@
               "null",
               "string"
             ]
+          }
+        }
+      },
+      "DemonstracaoNebrysDto": {
+        "required": [
+          "empresaId",
+          "nome",
+          "criadaEm",
+          "indicadas"
+        ],
+        "type": "object",
+        "properties": {
+          "empresaId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "nome": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "criadaEm": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "indicadas": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PessoaIndicadaNebrysDto"
+            }
           }
         }
       },
@@ -857,6 +1001,20 @@
           }
         }
       },
+      "IndicacaoDemonstracaoRequest": {
+        "required": [
+          "email"
+        ],
+        "type": "object",
+        "properties": {
+          "email": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
       "LiberacaoDocumentoRequest": {
         "required": [
           "documento"
@@ -868,6 +1026,26 @@
               "null",
               "string"
             ]
+          }
+        }
+      },
+      "PessoaIndicadaNebrysDto": {
+        "required": [
+          "usuarioId",
+          "nome",
+          "email"
+        ],
+        "type": "object",
+        "properties": {
+          "usuarioId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "nome": {
+            "type": "string"
+          },
+          "email": {
+            "type": "string"
           }
         }
       },
