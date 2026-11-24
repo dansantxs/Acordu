@@ -153,6 +153,47 @@ public sealed class Tenant
     }
 
     /// <summary>
+    /// A empresa de demonstração (RF-NEB-02, F14-87; design do F14, D1 a1 e D13), criada pela área da Nebrys: ATIVA e fora
+    /// do ciclo de situação (nenhuma transição vale, F14-69), sem fim de teste nem documento. O envio nasce liberado só para
+    /// a tela não pedir a confirmação do e-mail de quem a criou (uma conta fictícia): nada sai dela, porque o bloqueio do
+    /// envio olha a marca <see cref="Demonstracao"/> antes da liberação (F14-89).
+    /// </summary>
+    public static Tenant CriarDemonstracao(Guid id, string nome, DateTimeOffset agora, Guid criadoPorUsuarioId)
+    {
+        var criadoEm = agora.ToUniversalTime();
+        return new(
+            Ids.Obrigatorio(id, nameof(id)),
+            Texto.Obrigatorio(nome, LimitesTexto.Nome, nameof(nome)),
+            criadoEm,
+            Ids.Obrigatorio(criadoPorUsuarioId, nameof(criadoPorUsuarioId)),
+            criadoEm)
+        {
+            Situacao = SituacaoEmpresa.Ativa,
+            FimDoTeste = null,
+            Demonstracao = true,
+            EnvioLiberadoEm = criadoEm,
+        };
+    }
+
+    /// <summary>
+    /// Volta a configuração da empresa de demonstração ao estado de quando foi criada (F14-88): o nome dos dados fictícios,
+    /// sem nome de portal, endereço de resposta, logotipo nem SLA próprio, e o fechamento automático padrão. A situação, o
+    /// criador e a data de criação não mudam. Fora da demonstração → <see cref="TransicaoInvalidaException"/>.
+    /// </summary>
+    public void RestaurarDemonstracao(string nome)
+    {
+        if (!Demonstracao)
+            throw new TransicaoInvalidaException("Só a empresa de demonstração é restaurada.");
+
+        Nome = Texto.Obrigatorio(nome, LimitesTexto.Nome, nameof(nome));
+        NomePortal = null;
+        DiasFechamentoAutomatico = DiasFechamentoPadrao;
+        LogoChave = null;
+        ResponderPara = null;
+        SlaPadrao = null;
+    }
+
+    /// <summary>
     /// TESTE → VENCIDA (job diário, F14-03), só com o fim do teste já alcançado em <paramref name="agora"/>. O só leitura
     /// começa no instante do vencimento, que fica gravado como a data do vencimento. O fim do teste fica como estava.
     /// </summary>
