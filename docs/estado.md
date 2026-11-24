@@ -1,6 +1,6 @@
 # Acordu — Estado
 
-Visão geral curta, atualizada por cada PR (`docs/processo.md` §1). O histórico está no git, nos PRs e no registro dos designs. Atualizado em 23/11/2026 (F14n, convite de empresa e modo do cadastro).
+Visão geral curta, atualizada por cada PR (`docs/processo.md` §1). O histórico está no git, nos PRs e no registro dos designs. Atualizado em 24/11/2026 (fluxo em SVG no README).
 
 ## Em revisão
 

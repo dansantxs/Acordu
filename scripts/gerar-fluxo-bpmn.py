@@ -18,7 +18,6 @@ from pathlib import Path
 from xml.sax.saxutils import escape, quoteattr
 
 DOCS = Path(__file__).resolve().parent.parent / 'docs'
-SAIDAS = {'fluxo-acordu.bpmn': None, 'fluxo-acordu.svg': None}  # preenchido no fim
 RAIAS = [  # nome, altura
     ("Operação Nebrys", 250),
     ("Dono da empresa", 170),
@@ -315,9 +314,8 @@ def gerar_svg():
 
 
 if __name__ == '__main__':
-    SAIDAS['fluxo-acordu.bpmn'] = gerar()
-    SAIDAS['fluxo-acordu.svg'] = gerar_svg()
-    for nome, conteudo in SAIDAS.items():
+    saidas = {'fluxo-acordu.bpmn': gerar(), 'fluxo-acordu.svg': gerar_svg()}
+    for nome, conteudo in saidas.items():
         arquivo = DOCS / nome
         if '--conferir' in sys.argv:
             atual = arquivo.read_text(encoding='utf-8') if arquivo.exists() else ''
