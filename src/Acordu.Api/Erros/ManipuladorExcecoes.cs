@@ -107,6 +107,7 @@ internal static partial class ManipuladorExcecoes
         NaoEncontradoException e => Problema(404, "nao-encontrado", "Não encontrado", e.Message),
         AcessoNegadoException e => Problema(403, "sem-permissao", "Sem permissão", e.Message),
         EmailNaoConfirmadoException e => Problema(422, "email-nao-confirmado", "E-mail não confirmado", e.Message),
+        DemonstracaoSemEnvioException e => Problema(422, "demonstracao-sem-envio", "Demonstração sem envio", e.Message),
         EmpresaSomenteLeituraException e => Problema(422, "empresa-somente-leitura", "Empresa só leitura", e.Message),
         CronometroAtivoException e => Problema(409, "cronometro-ativo", "Cronômetro já ativo", e.Message),
         LimiteExcedidoException e => Problema(429, "limite-requisicoes", "Muitas requisições", e.Message),

@@ -212,6 +212,8 @@ public sealed partial class AreaNebrysTests(ApiFixture api)
                 "/api/v1/nebrys/convites", "/api/v1/nebrys/convites/{id}",
                 "/api/v1/nebrys/convites/{id}/reenvio", "/api/v1/nebrys/convites/{id}/revogacao",
                 "/api/v1/nebrys/lista-espera", "/api/v1/nebrys/lista-espera/{id}/convite", "/api/v1/nebrys/lista-espera/{id}",
+                "/api/v1/nebrys/demonstracao", "/api/v1/nebrys/demonstracao/restauracao",
+                "/api/v1/nebrys/demonstracao/indicacoes", "/api/v1/nebrys/demonstracao/indicacoes/{usuarioId}",
             ]);
         interno.Should().NotContain("/api/v1/nebrys");
     }
@@ -242,6 +244,12 @@ public sealed partial class AreaNebrysTests(ApiFixture api)
         { "POST", "/api/v1/nebrys/lista-espera/{tenant}/convite" },
         { "DELETE", "/api/v1/nebrys/lista-espera/{tenant}" },
         { "GET", "/api/v1/nebrys/lista-espera/{tenant}" },
+        // F14s: empresa de demonstração. O {tenant} é só um Guid qualquer para o {usuarioId} da pessoa indicada.
+        { "GET", "/api/v1/nebrys/demonstracao" },
+        { "POST", "/api/v1/nebrys/demonstracao" },
+        { "POST", "/api/v1/nebrys/demonstracao/restauracao" },
+        { "POST", "/api/v1/nebrys/demonstracao/indicacoes" },
+        { "DELETE", "/api/v1/nebrys/demonstracao/indicacoes/{tenant}" },
         { "GET", "/api/v1/nebrys" },
         { "GET", "/api/v1/nebrys/qualquer-coisa" },
         { "GET", "/API/V1/NEBRYS/EMPRESAS" },

@@ -12,7 +12,8 @@ namespace Acordu.Application.Exemplos;
 /// Monta no tenant do contexto o que é ligado a cliente nos dados fictícios (<see cref="DadosFicticios"/>): clientes com
 /// o contato e o contrato, projetos, solicitações com os passos, tarefas e apontamentos (RF-EMP-05; design do F14, D13).
 /// Só adiciona às unidades de trabalho: quem chama confere as regras e grava. Categorias, equipe, recorrências,
-/// cronômetro e portal ficam de fora (os exemplos são só o que é ligado a cliente; a demonstração do F14s soma o resto).
+/// cronômetro e portal ficam de fora (os exemplos são só o que é ligado a cliente); a demonstração soma o resto
+/// (<see cref="SemeaduraDaDemonstracao"/>, F14s).
 /// <para>
 /// Nenhum efeito fora da transação: os eventos de domínio das raízes criadas são descartados antes da gravação, então
 /// nada vai à outbox (nenhum e-mail, aviso no sino, seguimento ou feed). O efeito que os manipuladores da transação teriam
@@ -84,12 +85,46 @@ public sealed class CargaDosDadosFicticios
         CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(dados);
+        await MontarTudoAsync(dados, tenant, autor, pessoas, categorias: null, exemplo, cancellationToken);
+        return dados.Clientes.Count;
+    }
+
+    /// <summary>
+    /// A montagem da empresa de demonstração (F14s, F14-87): como <see cref="MontarAsync"/>, sem marcar exemplo, com a
+    /// categoria de cada solicitação (<paramref name="categorias"/>, chave → id) e devolvendo o que foi criado por chave,
+    /// para a demonstração somar recorrências, cronômetro e portal.
+    /// </summary>
+    public async Task<DadosMontados> MontarDemonstracaoAsync(
+        DadosFicticios dados,
+        Tenant tenant,
+        Guid autor,
+        IReadOnlyDictionary<string, Guid> pessoas,
+        IReadOnlyDictionary<string, Guid> categorias,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(pessoas);
+        ArgumentNullException.ThrowIfNull(categorias);
+        var montagem = await MontarTudoAsync(dados, tenant, autor, pessoas, categorias, exemplo: false, cancellationToken);
+        return montagem.Montados();
+    }
+
+    private async Task<Montagem> MontarTudoAsync(
+        DadosFicticios dados,
+        Tenant tenant,
+        Guid autor,
+        IReadOnlyDictionary<string, Guid>? pessoas,
+        IReadOnlyDictionary<string, Guid>? categorias,
+        bool exemplo,
+        CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(dados);
         ArgumentNullException.ThrowIfNull(tenant);
         var montagem = new Montagem(
             dados,
             tenant,
             autor,
             pessoas,
+            categorias,
             new DiasRelativos(await _relogio.HojeAsync(cancellationToken)),
             _relogio.Agora,
             await _calendarios.DoTenantAsync(cancellationToken));
@@ -137,7 +172,7 @@ public sealed class CargaDosDadosFicticios
             }
         }
 
-        return dados.Clientes.Count;
+        return montagem;
     }
 
     /// <summary>O estado de uma montagem: as raízes criadas e as chaves já resolvidas.</summary>
@@ -146,6 +181,7 @@ public sealed class CargaDosDadosFicticios
         Tenant tenant,
         Guid autor,
         IReadOnlyDictionary<string, Guid>? pessoas,
+        IReadOnlyDictionary<string, Guid>? categorias,
         DiasRelativos dias,
         DateTimeOffset agora,
         CalendarioUtil calendario)
@@ -157,6 +193,13 @@ public sealed class CargaDosDadosFicticios
         private readonly Dictionary<Guid, Contrato> _contratosPorId = [];
 
         public List<EntidadeBase> Criadas { get; } = [];
+
+        /// <summary>O que foi criado, por chave dos dados fictícios.</summary>
+        public DadosMontados Montados() => new(
+            _clientes.ToDictionary(c => c.Key, c => c.Value.Cliente, StringComparer.Ordinal),
+            _clientes.ToDictionary(c => c.Key, c => c.Value.Contato, StringComparer.Ordinal),
+            _clientes.ToDictionary(c => c.Key, c => c.Value.Contrato.Id, StringComparer.Ordinal),
+            _tarefas.ToDictionary(t => t.Key, t => t.Value.Tarefa.Id, StringComparer.Ordinal));
 
         public void Cliente(ClienteFicticio dado, bool exemplo)
         {
@@ -206,7 +249,11 @@ public sealed class CargaDosDadosFicticios
         public void Solicitacao(SolicitacaoFicticia dado, int numero)
         {
             var (cliente, contato, contrato) = _clientes[dado.Cliente];
-            // Categorias não entram nos exemplos (não são ligadas a cliente): a solicitação fica sem categoria.
+            // Categorias não entram nos exemplos (não são ligadas a cliente): a solicitação fica sem categoria. Na
+            // demonstração, a categoria do arquivo.
+            var categoria = dado.Categoria is { } chave && categorias is not null && categorias.TryGetValue(chave, out var id)
+                ? id
+                : (Guid?)null;
             var solicitacao = Domain.Entities.Solicitacao.Abrir(
                 Guid.CreateVersion7(),
                 tenant.Id,
@@ -217,7 +264,7 @@ public sealed class CargaDosDadosFicticios
                 dado.Prioridade,
                 OrigemSolicitacao.Interna,
                 contato,
-                null,
+                categoria,
                 Pessoa(dado.Responsavel),
                 contrato.Id,
                 contrato.Sla,
@@ -380,3 +427,10 @@ public sealed class CargaDosDadosFicticios
         private static Duracao? Minutos(int? minutos) => minutos is { } m ? Duracao.FromMinutos(m) : null;
     }
 }
+
+/// <summary>O que a montagem criou, por chave dos dados fictícios (cliente → cliente, contato e contrato; tarefa → id).</summary>
+public sealed record DadosMontados(
+    IReadOnlyDictionary<string, Cliente> Clientes,
+    IReadOnlyDictionary<string, Guid> Contatos,
+    IReadOnlyDictionary<string, Guid> Contratos,
+    IReadOnlyDictionary<string, Guid> Tarefas);

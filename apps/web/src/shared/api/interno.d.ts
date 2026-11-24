@@ -6594,6 +6594,7 @@ export interface components {
             expurgoPrevistoEm: null | string
             /** Format: int32 */
             diasFaixaTeste: number | string
+            demonstracao: boolean
         }
         TenantDoUsuario: {
             /** Format: uuid */

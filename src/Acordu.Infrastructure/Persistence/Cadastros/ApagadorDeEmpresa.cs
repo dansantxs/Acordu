@@ -12,9 +12,9 @@ namespace Acordu.Infrastructure.Persistence.Cadastros;
 
 /// <summary>
 /// Apaga tudo de uma empresa (design do F14, D6), dentro da transação de quem chama: o expurgo do cadastro abandonado
-/// (RF-AUT-07, F9d), o da empresa vencida ou cancelada (RF-EMP-03, F14i) e, no F14s, a restauração da demonstração.
-/// Quem chama remove antes a própria linha do <see cref="Tenant"/>, com a condição dele repetida no <c>DELETE</c>, e só
-/// chama isto se a linha saiu.
+/// (RF-AUT-07, F9d), o da empresa vencida ou cancelada (RF-EMP-03, F14i) e a restauração da demonstração (F14s,
+/// <see cref="ApagarParaRestaurarAsync"/>). No expurgo, quem chama remove antes a própria linha do <see cref="Tenant"/>,
+/// com a condição dele repetida no <c>DELETE</c>, e só chama isto se a linha saiu.
 /// <para>
 /// Ponto revisado de <c>IgnoreQueryFilters</c> e de remoção por <c>ExecuteDelete</c>, fora das guardas de isolamento e
 /// de só leitura (convenções §1, ADR 0015 item 3): é o sistema agindo, sem contexto de empresa.
@@ -70,6 +70,24 @@ public sealed partial class ApagadorDeEmpresa
 
         ContasApagadas(_logger, apagadas, contas.Count - apagadas, tenantId);
 
+        return arquivos;
+    }
+
+    /// <summary>
+    /// A restauração da empresa de demonstração (F14-88; design do F14, D13): apaga tudo o que tem o <c>TenantId</c> dela,
+    /// inclusive vínculos, papéis e calendário, que quem chama semeia de novo, mas fica a linha do <see cref="Tenant"/>,
+    /// ficam as contas (as fictícias e as das pessoas indicadas, que têm a própria empresa) e ficam as sessões abertas nela
+    /// (os refresh tokens: quem estava na demonstração continua, com o vínculo novo). As sugestões ficam como estão: são da
+    /// Nebrys. Devolve as chaves do storage (anexos e logotipo), para <see cref="RemoverArquivosAsync"/> depois do commit.
+    /// </summary>
+    public static async Task<IReadOnlyList<string>> ApagarParaRestaurarAsync(
+        AcorduDbContext db, Tenant tenant, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(db);
+        ArgumentNullException.ThrowIfNull(tenant);
+        var arquivos = await ChavesDosArquivosAsync(db, tenant, cancellationToken);
+        foreach (var tipo in TiposComTenant(db).Where(t => t != typeof(RefreshToken)))
+            await (Task<int>)Apagar.MakeGenericMethod(tipo).Invoke(null, [db, tenant.Id, cancellationToken])!;
         return arquivos;
     }
 

@@ -10554,7 +10554,8 @@
           "fimDoTeste",
           "somenteLeituraDesde",
           "expurgoPrevistoEm",
-          "diasFaixaTeste"
+          "diasFaixaTeste",
+          "demonstracao"
         ],
         "type": "object",
         "properties": {
@@ -10602,6 +10603,9 @@
               "string"
             ],
             "format": "int32"
+          },
+          "demonstracao": {
+            "type": "boolean"
           }
         }
       },

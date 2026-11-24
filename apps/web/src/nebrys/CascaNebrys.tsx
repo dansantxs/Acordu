@@ -20,7 +20,8 @@ function horaDoFim(expiraEm: string): string {
 }
 
 /**
- * Moldura da área da Nebrys: faixa de couro no topo com Empresas, Convites, Lista de espera, Liberar documento e Sair. Não tem nada do app da
+ * Moldura da área da Nebrys: faixa de couro no topo com Empresas, Convites, Lista de espera, Liberar documento,
+ * Demonstração e Sair. Não tem nada do app da
  * equipe (capa, sino, paleta, ajuda): a área fica fora do manual. Quando a sessão de operação acaba (prazo, recusa da
  * API ou "Sair"), o cache da área some e as rotas voltam para a entrada.
  */
@@ -60,6 +61,9 @@ export function CascaNebrys() {
                         </Link>
                         <Link to="/nebrys/documentos" className={estiloLink}>
                             Liberar documento
+                        </Link>
+                        <Link to="/nebrys/demonstracao" className={estiloLink}>
+                            Demonstração
                         </Link>
                     </nav>
                     <div className="ml-auto flex items-center gap-3">

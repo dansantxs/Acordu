@@ -31,7 +31,8 @@ public sealed record TextoPendente(TipoTextoLegal Texto, string Versao);
 /// <see cref="Situacao"/> e as datas (F14-02): <see cref="FimDoTeste"/> em TESTE (e o que era, depois de vencer);
 /// <see cref="SomenteLeituraDesde"/> e <see cref="ExpurgoPrevistoEm"/> só em VENCIDA ou CANCELADA.
 /// <see cref="DiasFaixaTeste"/>: a janela antes do fim do teste em que a SPA mostra a faixa (<c>Empresas__DiasFaixaTeste</c>,
-/// F14-10, F14-11).
+/// F14-10, F14-11). <see cref="Demonstracao"/>: a empresa de demonstração (RF-NEB-02, F14s), fora do ciclo de situação e
+/// sem envio de e-mail; a SPA mostra a faixa da demonstração.
 /// </summary>
 public sealed record TenantAtivo(
     Guid Id,
@@ -42,7 +43,8 @@ public sealed record TenantAtivo(
     DateTimeOffset? FimDoTeste,
     DateTimeOffset? SomenteLeituraDesde,
     DateTimeOffset? ExpurgoPrevistoEm,
-    int DiasFaixaTeste);
+    int DiasFaixaTeste,
+    bool Demonstracao);
 
 /// <summary>Um tenant em que o usuário tem vínculo, para a troca de tenant.</summary>
 public sealed record TenantDoUsuario(Guid Id, string Nome, string Papel);

@@ -29,7 +29,8 @@ public sealed class VencimentoTestes
     {
         var tenant = await _tenant.ObterAsync(cancellationToken);
         var agora = _relogio.GetUtcNow();
-        if (tenant.Situacao != SituacaoEmpresa.Teste || tenant.FimDoTeste is not { } fim || agora < fim)
+        // A demonstração é ATIVA e nunca vence (RF-NEB-02); a marca fica na condição também.
+        if (tenant.Demonstracao || tenant.Situacao != SituacaoEmpresa.Teste || tenant.FimDoTeste is not { } fim || agora < fim)
             return 0;
 
         tenant.Vencer(agora);

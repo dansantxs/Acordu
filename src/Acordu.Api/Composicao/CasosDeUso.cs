@@ -82,6 +82,9 @@ internal static class CasosDeUso
         // Lista de espera (F14o): a inscrição pública e as ações da área (convidar a partir da entrada, descartar).
         services.AddScoped<InscricaoListaEspera>();
         services.AddScoped<ListaEsperaNebrys>();
+        // Empresa de demonstração (F14s): criar, restaurar e indicar pela área; os dados fictícios inteiros.
+        services.AddScoped<DemonstracaoNebrys>();
+        services.AddScoped<SemeaduraDaDemonstracao>();
         services.AddScoped<ComandosPortal>();
         services.AddScoped<TarefasAbertas>();
         services.AddScoped<LeituraPortal>();

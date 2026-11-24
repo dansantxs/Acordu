@@ -12,8 +12,8 @@ namespace Acordu.Infrastructure.Persistence.Cadastros;
 /// Passo <c>expurgo-empresas</c> do job diário (RF-EMP-03, F14i; design do F14, D6): empresa VENCIDA ou CANCELADA com o
 /// início do só leitura há <see cref="OpcoesEmpresas.PrazoAteExpurgo"/> ou mais é apagada inteira pelo
 /// <see cref="ApagadorDeEmpresa"/>, com as contas que só tinham presença nela. Inclui as anteriores ao F14, que a
-/// migration deixou CANCELADA com data antiga (F14-112). TESTE e ATIVA (e a demonstração, que é ATIVA) nunca entram
-/// (F14-31). O registro do documento (<c>documentos_teste</c>) não tem referência à empresa e fica (F14-37).
+/// migration deixou CANCELADA com data antiga (F14-112). TESTE e ATIVA nunca entram (F14-31), nem a demonstração
+/// (RF-NEB-02: ela é ATIVA, e a marca fica no filtro também, F14s). O registro do documento (<c>documentos_teste</c>) não tem referência à empresa e fica (F14-37).
 /// <para>
 /// Cada empresa num escopo e numa transação serializável, com a condição repetida no <c>DELETE</c> da empresa: uma
 /// reativação concorrente faz o commit falhar ou o <c>DELETE</c> não achar a linha. A falha de uma é logada, conta em
@@ -104,10 +104,14 @@ public sealed partial class ExpurgoEmpresas
         return true;
     }
 
-    /// <summary>Só leitura desde antes do limite (a mesma regra de <c>Tenant.ExpurgoDevido</c>, traduzida para SQL).</summary>
+    /// <summary>
+    /// Só leitura desde antes do limite (a mesma regra de <c>Tenant.ExpurgoDevido</c>, traduzida para SQL), fora da
+    /// demonstração.
+    /// </summary>
     private static IQueryable<Domain.Entities.Tenant> Expurgaveis(AcorduDbContext db, DateTimeOffset limite) =>
         db.Tenants.IgnoreQueryFilters(Filtros)
-            .Where(t => SituacaoEmpresaExtensions.SituacoesSomenteLeitura.Contains(t.Situacao)
+            .Where(t => !t.Demonstracao
+                && SituacaoEmpresaExtensions.SituacoesSomenteLeitura.Contains(t.Situacao)
                 && t.SomenteLeituraDesde != null
                 && t.SomenteLeituraDesde <= limite);
 

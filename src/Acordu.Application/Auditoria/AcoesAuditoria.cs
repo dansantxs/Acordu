@@ -52,6 +52,17 @@ public static class AcoesAuditoria
 
     public const string NebrysListaDescarte = "nebrys.lista.descarte";
 
+    /// <summary>
+    /// Empresa de demonstração na área da Nebrys (F14-87 a F14-90; RF-NEB-02): sem tenant, o operador em <c>usuario</c>, a
+    /// demonstração no alvo (<c>empresa</c>) e o antes e o depois em <c>dados</c>; na indicação e na retirada, também o
+    /// e-mail da pessoa.
+    /// </summary>
+    public const string NebrysDemonstracaoCriacao = "nebrys.demonstracao.criacao";
+
+    public const string NebrysDemonstracaoRestauracao = "nebrys.demonstracao.restauracao";
+    public const string NebrysDemonstracaoIndicacao = "nebrys.demonstracao.indicacao";
+    public const string NebrysDemonstracaoRetirada = "nebrys.demonstracao.retirada";
+
     public const string EquipeConvite = "equipe.convite";
     public const string EquipeConviteRevogacao = "equipe.convite.revogacao";
     public const string EquipePapelTroca = "equipe.papel.troca";
