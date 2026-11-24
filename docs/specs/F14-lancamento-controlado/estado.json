@@ -1,11 +1,11 @@
 {
   "marco": "F14",
   "issue": 182,
-  "etapa": "AGUARDANDO_MERGE",
-  "branch": "feat/F14r-dados-exemplo",
+  "etapa": "IMPLEMENTANDO",
+  "branch": "feat/F14s-demonstracao",
   "pr": {
-    "id": "F14r",
-    "numero": 219
+    "id": "F14s",
+    "numero": null
   },
   "feitos": [
     {
@@ -75,11 +75,15 @@
     {
       "id": "F14q",
       "pr": 218
+    },
+    {
+      "id": "F14r",
+      "pr": 219
     }
   ],
   "contadores": {
     "devolucoesNaEtapa": 0,
-    "rodadasNoPr": 3
+    "rodadasNoPr": 0
   },
   "verificacao": [
     "node scripts/conferir-specs.mjs",
@@ -107,17 +111,12 @@
       "PR #212 mesclado (F14n; recomendações aceitas: conta por convite confirmada, um convite em aberto por e-mail, retenção na #213)",
       "PR #215 mesclado (F14o; retenção da lista na #194, e-mail repetido não atualiza)",
       "PR #217 mesclado (F14p; sem comentário: emissão de convite para e-mail descartável fica para depois)",
-      "PR #218 mesclado (F14q; sem comentário: link do temConta fica, modo convite conferido à mão depois do deploy)"
+      "PR #218 mesclado (F14q; sem comentário: link do temConta fica, modo convite conferido à mão depois do deploy)",
+      "PR #219 mesclado (F14r; sem comentário: os quatro pontos abertos ficam como estão)"
     ],
     "G2_F14h": "PR #201 mesclado (18/11), sem comentário nas perguntas: valem as recomendações da D16 (variável única conferida no deploy.yml; ciente 404; pendentes sem migration; nenhum campo novo; convenção §4) e o risco da janela da virada aceito"
   },
-  "ressalvas": [
-    "Testador: dois POST simultâneos podem carregar os exemplos em dobro (risco aceito, sem teste)",
-    "Testador: a oferta some quando se convida alguém para a equipe (aberto no estado.md)",
-    "Testador: notificações do sino ficam depois de apagar os exemplos (sem teste)",
-    "Revisor: telefone que parecia real trocado por (00) 0000-0101; CEP 17012-000 é de região de Bauru com rua fictícia (mantido)",
-    "Revisor: contato de exemplo nunca recebe aviso e exemplo fica fora dos alertas de SLA, mesmo depois de a empresa ser ativada"
-  ],
+  "ressalvas": [],
   "bloqueios": [],
   "atualizadoEm": "2026-11-24",
   "decisoes": [
