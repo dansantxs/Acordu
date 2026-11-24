@@ -163,6 +163,11 @@ export function ListaClientes({ perfil, filtros }: { perfil: Perfil; filtros: Fi
                                                 inativo
                                             </span>
                                         )}
+                                        {cliente.exemplo && (
+                                            <span className="ml-2 rounded-couro bg-acento-suave px-1.5 py-0.5 text-xs text-acento-texto">
+                                                exemplo
+                                            </span>
+                                        )}
                                         {cliente.razaoSocial && cliente.razaoSocial !== cliente.nome && (
                                             <span className="block text-xs text-suave">{cliente.razaoSocial}</span>
                                         )}

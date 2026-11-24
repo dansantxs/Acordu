@@ -16,12 +16,13 @@ import { diaPorExtenso, saudacao } from '@/shared/format/saudacao'
 import type { Perfil } from '@/shared/sessao/perfil'
 import { Pagina } from '@/shared/ui/Pagina'
 import { consultaMinhaSemana, consultaMinhasSolicitacoes, consultaMinhasTarefas } from './consultas'
+import { DadosDeExemplo } from './DadosDeExemplo'
 import { PrimeirosPassos } from './PrimeirosPassos'
 
 /**
  * Hoje (F6a, protótipo): o início pessoal. O que está na mão (solicitações pelo prazo de SLA e as tarefas do dia ou
  * atrasadas), o que espera o cliente, a carga da semana, o que já foi apontado hoje e os avisos recentes. Cada bloco
- * só aparece com a permissão de leitura dele.
+ * só aparece com a permissão de leitura dele. Para o Dono, a oferta dos dados de exemplo (F14r).
  */
 export function TelaHoje({ perfil }: { perfil: Perfil }) {
     const fuso = perfil.tenant.fusoHorario
@@ -31,6 +32,7 @@ export function TelaHoje({ perfil }: { perfil: Perfil }) {
     return (
         <Pagina ajuda="hoje" titulo={`${saudacao(fuso)}, ${primeiroNome}`} contexto={diaPorExtenso(fuso)}>
             <AvisoConfirmacao perfil={perfil} />
+            <DadosDeExemplo perfil={perfil} />
             <PrimeirosPassos perfil={perfil} />
             <div className="grid gap-6 lg:grid-cols-3">
                 <div className="flex flex-col gap-6 lg:col-span-2">
