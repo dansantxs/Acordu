@@ -135,6 +135,9 @@ public static class DependencyInjection
         // A liberação da área da Nebrys (F14l) lê o mesmo registro, pelo HMAC.
         services.AddScoped<Application.Nebrys.IDocumentosTeste>(sp => sp.GetRequiredService<Persistence.Documentos.RegistroDocumentos>());
         services.AddScoped<Persistence.Aceites.RegistroAceites>();
+        // Convites de empresa (F14n, design D12): o cadastro usa o registro; as ações da área, a porta.
+        services.AddScoped<Persistence.ConvitesEmpresa.RegistroConvitesEmpresa>();
+        services.AddScoped<Application.Nebrys.IConvitesEmpresa>(sp => sp.GetRequiredService<Persistence.ConvitesEmpresa.RegistroConvitesEmpresa>());
         services.AddScoped<IServicoAutenticacao, ServicoAutenticacao>();
         // Sessão de operação da Nebrys (ADR 0014): depende de OperadoresNebrys, que a Api lê da configuração.
         services.AddScoped<Application.Nebrys.IServicoOperacao, ServicoOperacao>();

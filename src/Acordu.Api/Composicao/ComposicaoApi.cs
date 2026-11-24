@@ -38,7 +38,9 @@ namespace Acordu.Api.Composicao;
 /// <c>Empresas__AvisoAntesDoExpurgo</c> (padrão 7; F14j),
 /// <c>Documentos__ChaveHmac</c> (obrigatória, ≥ 32 bytes; F14g), <c>Nebrys__Contato</c> (canal da Nebrys; F14g),
 /// <c>Nebrys__Operadores</c> (e-mails dos operadores da área da Nebrys, separados por vírgula; sem ela, a área responde 404; F14k),
-/// <c>TextosLegais__Publicados</c> (<c>true</c> ou <c>false</c>, padrão desligado; F14h, D16) e
+/// <c>TextosLegais__Publicados</c> (<c>true</c> ou <c>false</c>, padrão desligado; F14h, D16),
+/// <c>Cadastro__Modo</c> (<c>convite</c> ou <c>aberto</c>; sem ela, <c>convite</c>; F14n, D11) e <c>Cadastro__DiasConvite</c>
+/// (padrão 7; F14n, D12) e
 /// <c>Email__ResendChave</c>, <c>Email__Remetente</c>, <c>Email__NomeRemetente</c> e <c>Email__Smtp__Host</c>/<c>Email__Smtp__Porta</c> (Mailpit, só em desenvolvimento), <c>Email__RegistrarConteudo</c> (só em
 /// desenvolvimento).
 /// </summary>
@@ -103,6 +105,9 @@ internal static class ComposicaoApi
         services.AddScoped<ISituacaoDasEmpresas, Infrastructure.Persistence.Nebrys.SituacaoDasEmpresas>();
         // Textos legais publicados (D16): padrão desligado; valor presente e inválido impede a subida (F14-121).
         services.AddSingleton(OpcoesTextosLegais.DaConfiguracao(configuracao["TextosLegais:Publicados"]));
+        // Modo do cadastro e validade do convite de empresa (F14n, design D11 e D12): sem o modo, convite (fail-closed);
+        // valor presente e inválido impede a subida.
+        services.AddSingleton(OpcoesCadastro.DaConfiguracao(configuracao["Cadastro:Modo"], configuracao["Cadastro:DiasConvite"]));
         AdicionarEmail(services, configuracao);
         AdicionarArmazenamento(services, configuracao);
         AdicionarVerificacaoHumana(services, configuracao);

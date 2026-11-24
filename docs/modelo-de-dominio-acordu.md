@@ -534,6 +534,12 @@ Dados da Nebrys, não do prestador: sem `TenantId`, sem filtro global e sem entr
 - `Registrar(usuarioId, texto, versao, forma, agora)`. As versões vigentes são a constante `TextosLegais` da Application (a mesma do arquivo do texto no SPA, convenções §4). **Pendente** = texto sem linha na versão vigente (a falta de aceite também conta, F14-119); o `/auth/eu` lista os pendentes da equipe.
 - Só com os textos publicados (`TextosLegais__Publicados`, D16): o cadastro e o aceite de convite da equipe gravam o aceite na mesma transação deles (só os textos ainda pendentes da conta), e o "ciente" grava a versão vigente de cada pendente. Desligada, nada é gravado nem listado. Não é gravação da empresa: segue no só leitura. Só o `RegistroAceites` da Infrastructure usa o tipo (teste de arquitetura).
 
+#### ConviteEmpresa: convite de empresa da Nebrys (RF-AUT-08, F14n; design do F14, D12)
+- Convite para uma empresa nova se cadastrar no modo convite (`Cadastro__Modo`, D11). Tabela `convites_empresa`, global (a empresa ainda não existe), **sem referência a empresa** (ADR 0014, item 7): `Id`, `Email` (normalizado por `Common.Email`), `CriadoEm`, `TokenHash` (SHA-256 do token do último envio, índice único), `EnviadoEm`, `ExpiraEm`, `UsadoEm` e `RevogadoEm`. Concorrência otimista por `xmin`. A entrada da lista de espera de origem entra no F14o.
+- `Emitir(id, email, validade, agora)` devolve o convite e o token em claro (só para o e-mail); `Reenviar(validade, agora)` gera outro token e reinicia a validade (o anterior para de valer), também no vencido; `Revogar(agora)`. Usado ou revogado → `TransicaoInvalidaException` nas duas. `Validar(token, agora)`: nem usado nem revogado, `agora < ExpiraEm` e o hash conferido em tempo constante. `EhDoEmail` compara o e-mail normalizado; `Usar(token, email, agora)` exige os dois (senão `TransicaoInvalidaException`) e grava `UsadoEm`: um cadastro só.
+- `SituacaoEm(agora)` (`SituacaoConviteEmpresa`, não gravada): `USADO`, `REVOGADO`, `PENDENTE` ou `VENCIDO`. A validade vem de `Cadastro__DiasConvite` (7, decisão 7 do G2).
+- A área da Nebrys emite, reenvia e revoga (`Application.Nebrys`, com a trilha sem tenant); o cadastro (`ServicoAutenticacao.RegistrarAsync`) usa o convite pelo `RegistroConvitesEmpresa` da Infrastructure, na mesma transação da empresa, sem conhecer o tipo (teste de arquitetura). Uma linha por e-mail em aberto: a área recusa emitir outro enquanto houver um nem usado nem revogado.
+
 ## 5. Value objects
 
 | VO | Composição | Regras |

@@ -72,6 +72,8 @@ internal static class CasosDeUso
         // Área da Nebrys (F14l): ações sobre a situação das empresas e liberação de documento.
         services.AddScoped<AcoesEmpresasNebrys>();
         services.AddScoped<LiberacaoDocumentos>();
+        // Convites de empresa (F14n): emitir, reenviar e revogar pela área.
+        services.AddScoped<ConvitesEmpresaNebrys>();
         services.AddScoped<ComandosPortal>();
         services.AddScoped<TarefasAbertas>();
         services.AddScoped<LeituraPortal>();
