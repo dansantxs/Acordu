@@ -1,7 +1,7 @@
 {
   "marco": "F14",
   "issue": 182,
-  "etapa": "IMPLEMENTANDO",
+  "etapa": "AGUARDANDO_MERGE",
   "branch": "feat/F14s-demonstracao",
   "pr": {
     "id": "F14s",
@@ -83,7 +83,7 @@
   ],
   "contadores": {
     "devolucoesNaEtapa": 0,
-    "rodadasNoPr": 0
+    "rodadasNoPr": 1
   },
   "verificacao": [
     "node scripts/conferir-specs.mjs",
@@ -116,7 +116,11 @@
     ],
     "G2_F14h": "PR #201 mesclado (18/11), sem comentário nas perguntas: valem as recomendações da D16 (variável única conferida no deploy.yml; ciente 404; pendentes sem migration; nenhum campo novo; convenção §4) e o risco da janela da virada aceito"
   },
-  "ressalvas": [],
+  "ressalvas": [
+    "Testador: expurgo-cadastros e avisos-situacao pulam a demonstração por filtro, sem teste funcional próprio (só leitura do código)",
+    "Revisor: redefinição de senha para conta fictícia ainda chama o provedor (quica); pular quando a conta não tem senha seria mais limpo",
+    "Revisor: TrilhaNebrysTests deixa a demonstração no banco compartilhado ao fim"
+  ],
   "bloqueios": [],
   "atualizadoEm": "2026-11-24",
   "decisoes": [

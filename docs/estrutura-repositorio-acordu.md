@@ -96,7 +96,7 @@ acordu/
 │  │  ├─ Notificacoes/
 │  │  ├─ Configuracoes/
 │  │  ├─ Empresas/                     # situação da empresa: prazos e vencimento do teste (F14)
-│  │  ├─ Exemplos/                     # dados de exemplo (F14r) e o demonstracao.json embutido: os dados fictícios
+│  │  ├─ Exemplos/                     # dados de exemplo (F14r), a semeadura da demonstração (F14s) e o demonstracao.json embutido: os dados fictícios
 │  │  │                                # únicos, lidos também pelo bot do manual (apps/web/ajuda) (D13 do F14)
 │  │  ├─ Nebrys/                       # área da Nebrys: sessão de operação, consultas e DTOs próprios, sem tipo de negócio (ADR 0014)
 │  │  ├─ Portal/                       # casos de uso e DTOs EXCLUSIVOS do portal (ADR 0002)
@@ -111,6 +111,7 @@ acordu/
 │  │  │  ├─ Consultas/                 # SQL do read side (helper com TenantId/ClienteId obrigatórios)
 │  │  │  ├─ Nebrys/                    # consultas da área da Nebrys (ponto revisado de IgnoreQueryFilters, ADR 0014)
 │  │  │  ├─ Exemplos/                  # o que é exemplo e a remoção, no tenant do contexto (F14r)
+│  │  │  ├─ Demonstracao/              # a empresa de demonstração da área: criar, restaurar, indicar (F14s)
 │  │  │  └─ Migrations/
 │  │  ├─ MultiTenancy/                 # filtros globais por TenantId e ClienteId
 │  │  ├─ Armazenamento/                # object storage S3-compatível (R2) + URLs assinadas
@@ -212,7 +213,7 @@ Testes obrigatórios nos níveis de integração **e** API: cross-tenant (RNF-SE
 ## 6. Frontend
 
 - `apps/web`: uma SPA com **duas áreas**: app interno (`features/`) e portal (`portal/`, rota `/portal`, layout mobile-first).
-- **(F14m)** `src/nebrys`: área da Nebrys (rota `/nebrys`, rotas em `src/routes/nebrys`, ADR 0014), carregada sob demanda, com cliente próprio (`nebrys/api.ts`) e a sessão de operação em `shared/sessao/sessaoOperacao.ts`. Não importa `features/` nem é importada por elas (convenções §4). Telas: empresas e liberação de documento (F14m), convites (`/nebrys/convites` e `/nebrys/convites/{id}`) e lista de espera (`/nebrys/lista-espera`) (F14q).
+- **(F14m)** `src/nebrys`: área da Nebrys (rota `/nebrys`, rotas em `src/routes/nebrys`, ADR 0014), carregada sob demanda, com cliente próprio (`nebrys/api.ts`) e a sessão de operação em `shared/sessao/sessaoOperacao.ts`. Não importa `features/` nem é importada por elas (convenções §4). Telas: empresas e liberação de documento (F14m), convites (`/nebrys/convites` e `/nebrys/convites/{id}`) e lista de espera (`/nebrys/lista-espera`) (F14q), empresa de demonstração (`/nebrys/demonstracao`, F14s).
 - Tipos gerados do OpenAPI em `shared/api/interno.d.ts` e `shared/api/portal.d.ts`, a partir de `openapi/*.json` na raiz (contrato versionado, convenções §4); o portal consome só os tipos das rotas `/portal`. A área da Nebrys tem o seu `openapi/nebrys.json` (F14k), com os tipos em `shared/api/nebrys.d.ts` (F14m), usados só por `src/nebrys`.
 - **(F1)** pnpm, `pnpm dev` (proxy de `/api` para a API em `http://localhost:5080`), `pnpm test`, `pnpm build`. Rotas por arquivo em `src/routes`.
 - **(F14q)** Cadastro controlado nas telas de acesso (`features/sessao`, rotas em `src/routes/_acesso/cadastro/`): `/cadastro` (`TelaCadastro`, cadastro ou lista de espera pelo modo da API) e `/cadastro/convite/{token}` (o token sai da URL para `/cadastro/convite`, `CadastroPorConvite`).

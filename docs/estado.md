@@ -1,23 +1,23 @@
 # Acordu — Estado
 
-Visão geral curta, atualizada por cada PR (`docs/processo.md` §1). O histórico está no git, nos PRs e no registro dos designs. Atualizado em 24/11/2026 (F14r, dados de exemplo e o JSON único dos dados fictícios).
+Visão geral curta, atualizada por cada PR (`docs/processo.md` §1). O histórico está no git, nos PRs e no registro dos designs. Atualizado em 24/11/2026 (F14s, empresa de demonstração: último PR do F14).
 
 ## Em revisão
 
-- **F14r — dados de exemplo** (#182): a empresa em teste sem dados vê no Hoje a oferta de carregar um conjunto fictício (clientes, contatos, contratos, solicitações, tarefas e horas), sem nenhum e-mail; os clientes vêm marcados como exemplo, e apagar leva o que a equipe criou dentro deles e deixa o resto (F14-91 a F14-96). `GET/POST/DELETE /configuracoes/exemplos`, só o Dono; recusa como só leitura na empresa VENCIDA ou CANCELADA. Os dados fictícios ficam num arquivo só, `src/Acordu.Application/Exemplos/demonstracao.json`, que a API embute e o bot do manual lê (D13). Migration `ClientesDeExemplo` e capturas pedidas aos bots (`.github/migration-request`, `.github/ajuda-request`); OpenAPI e tipos atualizados.
+- **F14s — empresa de demonstração** (#182, último PR do F14): na área da Nebrys (`/nebrys/demonstracao`), criar a empresa de demonstração com os dados fictícios do manual (o mesmo `demonstracao.json`), ATIVA e fora do ciclo de situação, que nunca vence nem é expurgada; restaurar volta aos dados iniciais sem tocar outra empresa; indicar quem entra nela como Dono, só com conta que já existe (sem conta: recusa no campo, nada criado). Nada sai dela por e-mail: convite e link por e-mail → `422 demonstracao-sem-envio`, link sem e-mail é emitido, avisos descartados (F14-87 a F14-90, F14-110). `/auth/eu` ganha `tenant.demonstracao`, e a casca mostra a faixa da demonstração. Sem migration (a marca veio no F14l); OpenAPI (`nebrys.json`, `interno.json`) e tipos atualizados à mão e com `pnpm api:tipos`. Spec do F14 com status Concluída.
 
-## Marco em andamento
+## Marco concluído
 
-- **F14 — situação da empresa e cadastro controlado** (#182; [spec](specs/F14-lancamento-controlado/spec.md), [design](specs/F14-lancamento-controlado/design.md)): G2 com o PR #186; ADRs 0014 e 0015 aceitos. 113 cenários em 19 PRs (F14a a F14s). Para abrir o cadastro por convite bastam F14a a F14q; dados de exemplo e demonstração por último. Primeiro marco conduzido pelo `/marco`.
+- **F14 — situação da empresa e cadastro controlado** (#182; [spec](specs/F14-lancamento-controlado/spec.md), [design](specs/F14-lancamento-controlado/design.md)): G2 com o PR #186; ADRs 0014 e 0015 aceitos. 113 cenários em 19 PRs (F14a a F14s), todos com teste; o F14s fecha o marco quando for mesclado. Primeiro marco conduzido pelo `/marco`.
 
 ## Onde o produto está
 
-- Backend do v1 completo; frontend F1–F7 e marcos F8–F13 na `main`.
+- Backend do v1 completo; frontend F1–F7 e marcos F8–F13 na `main`; F14 na `main` de F14a a F14r (o F14s fecha o marco).
 - **Produção no ar** desde o primeiro deploy (12/11). Conferidos pelo Daniel em 12 e 13/11: F8-22, F8-26, F8-32 (fumaça de ponta a ponta), F9-47 (Turnstile no cadastro), F13-31 (avisos do deploy), WIF restrito, tokens do R2 separados, Resend verificado, MFA nas cinco contas, alerta de orçamento (R$ 10/mês, 50/90/100%), token de origem (404 direto, 200 pela borda), CORS só para `acordu.app.br` e `TempoReal__Sse=false`.
 
 ## Próximos passos
 
-1. Merge do F14r; depois o `/marco F14 182` segue pelo F14s (empresa de demonstração, que usa o mesmo `demonstracao.json`). **Com o F14q na `main`, abrir o cadastro por convite é trocar a variável `CADASTRO_MODO` do GitHub para `convite` e fazer um deploy (G4)**: `/cadastro` passa a mostrar a lista de espera, e só quem recebe o link da Nebrys cria empresa. Com `aberto`, o cadastro de hoje segue. Ligar `TEXTOS_LEGAIS_PUBLICADOS` só depois da #194, num deploy fora do horário de uso (deploy-ci §7). Email Routing de `contato@acordu.app.br` ativo e testado pelo Daniel em 16/11.
+1. Merge do F14s, que conclui o F14; depois, escolher o próximo marco (`/roadmap`, G1). Para usar a demonstração em produção: deploy com o F14s, criar em `/nebrys/demonstracao` e indicar a própria conta. **Com o F14q na `main`, abrir o cadastro por convite é trocar a variável `CADASTRO_MODO` do GitHub para `convite` e fazer um deploy (G4)**: `/cadastro` passa a mostrar a lista de espera, e só quem recebe o link da Nebrys cria empresa. Com `aberto`, o cadastro de hoje segue. Ligar `TEXTOS_LEGAIS_PUBLICADOS` só depois da #194, num deploy fora do horário de uso (deploy-ci §7). Email Routing de `contato@acordu.app.br` ativo e testado pelo Daniel em 16/11.
 2. Conferências que faltam da produção:
    - deploy: F8-27 e F8-28 (rollback por migration e por health), F8-29 (jobs do Scheduler), hostname do Turnstile;
    - backup: F8-30 e F13-32 na primeira madrugada com o `BACKUP_ATIVO`; F8-31 (restore) antes do primeiro cliente;
@@ -25,8 +25,15 @@ Visão geral curta, atualizada por cada PR (`docs/processo.md` §1). O históric
    - riscos (deploy-ci §10): `max-instances`, limpeza do Artifact Registry e lifecycle do bucket, `acordu_app` sem DDL e autoscaling do Neon;
    - arquivos órfãos no storage se o processo cair entre o commit do expurgo e a remoção (F14i): limpeza por prefixo `{tenantId}/` como melhoria.
 3. Política de privacidade e termos de uso: rascunho na `main` (F14f, #193); marcadores para depois do registro da Nebrys (#194).
+4. Expurgo dos convites de empresa e das entradas convidadas da lista de espera (retenção dos e-mails): #213.
 
 ## Para o Daniel confirmar
+
+- F14s: há uma demonstração só; as contas fictícias nascem sem senha (ninguém entra com elas), e a pessoa indicada é Dona com todas as permissões na demonstração (pode mudar e apagar dados, mas nada sai por e-mail; restaurar volta tudo). A restauração mantém as sessões abertas nela e as pessoas indicadas; uma pessoa indicada que se removeu da equipe da demonstração deixa de ser indicada. Duas criações ao mesmo tempo: a segunda falha (transação serializável), sem segunda demonstração. Se preferir outro comportamento em algum desses pontos, é ajuste pequeno.
+- F14s, escolha fora do design: a demonstração nasce com o envio liberado (sem isso as telas desabilitam convites com "confirme o e-mail"); o bloqueio olha a marca antes da liberação, então nada sai. Recomendação: manter.
+- F14s, escolha fora do design: a criação e a restauração recusam com 422 se houver conta com senha num dos e-mails fictícios (senão essa pessoa entraria como da equipe). Recomendação: manter.
+- F14s, fora dos cenários: `DELETE /nebrys/demonstracao/indicacoes/{usuarioId}` e a ação "Tirar" na tela, para desfazer uma indicação. Recomendação: manter; alternativa: tirar.
+- F14s, fora do design: `EmpresaNebrysDto` não traz a marca de demonstração, então na lista da área ela aparece como ATIVA comum e o detalhe oferece ações que dão 422. Recomendação: incluir a marca depois, ajustando o teste do F14-62.
 
 - F14r: "sem dado" para oferecer os exemplos é a regra do expurgo de cadastro, então convidar alguém para a equipe (vínculo de outra pessoa) já tira a oferta. O expurgo do cadastro abandonado continua contando os exemplos como dado (uma empresa só com exemplos não sai em 7 dias; sai pelo expurgo das só leitura). Se preferir, os dois passam a ignorar os exemplos.
 

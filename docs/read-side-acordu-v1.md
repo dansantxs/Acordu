@@ -204,6 +204,8 @@ Convites de empresa (F14n): a mesma `IConsultasNebrys` lista (`convites_empresa`
 
 Lista de espera (F14o): a mesma `IConsultasNebrys` lista `entradas_lista_espera` por ordem de chegada (`criada_em asc, id asc`, paginação do contrato §1), com o `convite_id` do convite mais recente que saiu de cada entrada (subconsulta em `convites_empresa.entrada_lista_espera_id`, que tem índice pela chave estrangeira). Tabela global, sem filtro nem `IgnoreQueryFilters`. A `situacao` é calculada pela `convidada_em`. Sem índice para a ordem (poucas entradas no nível 0); o `email` tem índice único, que é o "não duplica" da inscrição pública.
 
+Empresa de demonstração (F14s): `IEmpresaDeDemonstracao` (implementada em `Acordu.Infrastructure.Persistence.Demonstracao.EmpresaDeDemonstracao`, fora das consultas da área, porque a gravação dela monta dado de negócio) lê, num **ponto revisado** de `IgnoreQueryFilters`, só o `Tenant` marcado (`demonstracao = true`; há um só, sem índice) e as pessoas indicadas: os vínculos de equipe dela (sem `cliente_id`) juntados às contas, menos as contas fictícias (os e-mails do `demonstracao.json`, comparados na forma normalizada do Identity), com nome e e-mail. Nenhum dado de negócio da demonstração vai para a área. As ações respondem com essa mesma leitura, depois do commit.
+
 ## 8b. Dados de exemplo (F14r; RF-EMP-05; design do F14, D13)
 
 `IDadosDeExemplo` (implementada em `Acordu.Infrastructure.Persistence.Exemplos.DadosDeExemplo`) lê no tenant do contexto, pelos filtros globais (nenhum `IgnoreQueryFilters`):
