@@ -779,6 +779,61 @@ export interface paths {
         patch?: never
         trace?: never
     }
+    '/api/v1/lista-espera': {
+        parameters: {
+            query?: never
+            header?: never
+            path?: never
+            cookie?: never
+        }
+        get?: never
+        put?: never
+        post: {
+            parameters: {
+                query?: never
+                header?: never
+                path?: never
+                cookie?: never
+            }
+            requestBody: {
+                content: {
+                    'application/json': components['schemas']['ListaEsperaRequest']
+                }
+            }
+            responses: {
+                /** @description Accepted */
+                202: {
+                    headers: {
+                        [name: string]: unknown
+                    }
+                    content?: never
+                }
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown
+                    }
+                    content: {
+                        'application/problem+json': components['schemas']['ProblemDetails']
+                    }
+                }
+                /** @description Too Many Requests */
+                429: {
+                    headers: {
+                        [name: string]: unknown
+                    }
+                    content: {
+                        'application/problem+json': components['schemas']['ProblemDetails']
+                    }
+                }
+            }
+        }
+        delete?: never
+        options?: never
+        head?: never
+        patch?: never
+        trace?: never
+    }
     '/api/v1/clientes': {
         parameters: {
             query?: never
@@ -5823,6 +5878,13 @@ export interface components {
         }
         LinkPortalRequest: {
             token: string
+        }
+        ListaEsperaRequest: {
+            nome: null | string
+            email: null | string
+            nomeEmpresa: null | string
+            mensagem?: null | string
+            tokenTurnstile?: null | string
         }
         LoginRequest: {
             email: string

@@ -9,7 +9,8 @@ namespace Acordu.Api.Endpoints;
 /// <summary>
 /// Área da Nebrys (contrato §17, ADR 0014): sessão de operação sem tenant, lista e detalhe das empresas, só com os campos
 /// da relação com a Nebrys (RNF-PRIV-01), ações sobre a situação delas e liberação de documento (F14l), e convites de
-/// empresa (F14n). Quem não tem a sessão de operação recebe <c>404</c> antes de chegar aqui (<see cref="AreaNebrys"/>).
+/// empresa (F14n) e a lista de espera (F14o). Quem não tem a sessão de operação recebe <c>404</c> antes de chegar aqui
+/// (<see cref="AreaNebrys"/>).
 /// Documento OpenAPI próprio (<c>openapi/nebrys.json</c>).
 /// </summary>
 internal static class NebrysEndpoints
@@ -109,6 +110,30 @@ internal static class NebrysEndpoints
             return Results.Ok(await ConviteAsync(consultas, id, cancellationToken));
         })
             .Produces<ConviteEmpresaNebrysDto>();
+
+        // Lista de espera (F14-75 a F14-77, design D12): por ordem de chegada; convidar emite um convite de empresa para o
+        // e-mail da entrada (a mesma resposta da emissão), e descartar apaga a entrada.
+        area.MapGet("/lista-espera", async (
+            int? pagina, int? tamanhoPagina, IConsultasNebrys consultas, CancellationToken cancellationToken) =>
+            Results.Ok(await consultas.ListarListaEsperaAsync(new Paginacao(pagina, tamanhoPagina), cancellationToken)))
+            .Produces<ResultadoPaginado<EntradaListaEsperaNebrysDto>>();
+
+        area.MapPost("/lista-espera/{id:guid}/convite", async (
+            Guid id, ListaEsperaNebrys lista, IConsultasNebrys consultas, CancellationToken cancellationToken) =>
+        {
+            var enviado = await lista.ConvidarAsync(id, cancellationToken);
+            return Results.Created(
+                $"/api/v1/nebrys/convites/{enviado.Id}",
+                new EnvioConviteEmpresaDto(await ConviteAsync(consultas, enviado.Id, cancellationToken), enviado.EmailEnviado));
+        })
+            .Produces<EnvioConviteEmpresaDto>(StatusCodes.Status201Created);
+
+        area.MapDelete("/lista-espera/{id:guid}", async (Guid id, ListaEsperaNebrys lista, CancellationToken cancellationToken) =>
+        {
+            await lista.DescartarAsync(id, cancellationToken);
+            return Results.NoContent();
+        })
+            .Produces(StatusCodes.Status204NoContent);
     }
 
     private static async Task<ConviteEmpresaNebrysDto> ConviteAsync(IConsultasNebrys consultas, Guid id, CancellationToken cancellationToken) =>

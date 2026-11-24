@@ -429,6 +429,104 @@
           }
         }
       }
+    },
+    "/api/v1/nebrys/lista-espera": {
+      "get": {
+        "tags": [
+          "Nebrys"
+        ],
+        "parameters": [
+          {
+            "name": "pagina",
+            "in": "query",
+            "schema": {
+              "pattern": "^-?(?:0|[1-9]\\d*)$",
+              "type": [
+                "integer",
+                "string"
+              ],
+              "format": "int32"
+            }
+          },
+          {
+            "name": "tamanhoPagina",
+            "in": "query",
+            "schema": {
+              "pattern": "^-?(?:0|[1-9]\\d*)$",
+              "type": [
+                "integer",
+                "string"
+              ],
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultadoPaginadoOfEntradaListaEsperaNebrysDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/nebrys/lista-espera/{id}/convite": {
+      "post": {
+        "tags": [
+          "Nebrys"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EnvioConviteEmpresaDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/nebrys/lista-espera/{id}": {
+      "delete": {
+        "tags": [
+          "Nebrys"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          }
+        }
+      }
     }
   },
   "components": {
@@ -688,6 +786,62 @@
           }
         }
       },
+      "EntradaListaEsperaNebrysDto": {
+        "required": [
+          "id",
+          "nome",
+          "email",
+          "nomeEmpresa",
+          "mensagem",
+          "situacao",
+          "criadaEm",
+          "convidadaEm",
+          "conviteId"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "nome": {
+            "type": "string"
+          },
+          "email": {
+            "type": "string"
+          },
+          "nomeEmpresa": {
+            "type": "string"
+          },
+          "mensagem": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "situacao": {
+            "$ref": "#/components/schemas/SituacaoEntradaListaEspera"
+          },
+          "criadaEm": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "convidadaEm": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "conviteId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          }
+        }
+      },
       "EnvioConviteEmpresaDto": {
         "required": [
           "convite",
@@ -814,6 +968,47 @@
           }
         }
       },
+      "ResultadoPaginadoOfEntradaListaEsperaNebrysDto": {
+        "required": [
+          "itens",
+          "pagina",
+          "tamanhoPagina",
+          "total"
+        ],
+        "type": "object",
+        "properties": {
+          "itens": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/EntradaListaEsperaNebrysDto"
+            }
+          },
+          "pagina": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "tamanhoPagina": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "total": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          }
+        }
+      },
       "SessaoOperacaoRequest": {
         "required": [
           "email",
@@ -843,6 +1038,12 @@
           "ATIVA",
           "VENCIDA",
           "CANCELADA"
+        ]
+      },
+      "SituacaoEntradaListaEspera": {
+        "enum": [
+          "AGUARDANDO",
+          "CONVIDADA"
         ]
       },
       "TokenDeOperacao": {
