@@ -1,7 +1,7 @@
 {
   "marco": "F14",
   "issue": 182,
-  "etapa": "IMPLEMENTANDO",
+  "etapa": "AGUARDANDO_MERGE",
   "branch": "feat/F14p-descartavel",
   "pr": {
     "id": "F14p",
@@ -101,7 +101,12 @@
     ],
     "G2_F14h": "PR #201 mesclado (18/11), sem comentário nas perguntas: valem as recomendações da D16 (variável única conferida no deploy.yml; ciente 404; pendentes sem migration; nenhum campo novo; convenção §4) e o risco da janela da virada aceito"
   },
-  "ressalvas": [],
+  "ressalvas": [
+    "Testador: emissão de convite pela área não confere a lista de descartáveis; o cadastro recusa depois",
+    "Testador: lista de espera com e-mail descartável responde 400, não o 202 do F14-53",
+    "Revisor: a lista só é lida na primeira resolução (AddSingleton com factory), não na subida; o comentário diz que a Api não sobe sem o recurso",
+    "Revisor: confirmar a licença CC0 no LICENSE.txt da origem (sem rede para conferir)"
+  ],
   "bloqueios": [],
   "atualizadoEm": "2026-11-24",
   "decisoes": [
