@@ -1,0 +1,131 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 3435 930" width="3435" height="930" role="img" aria-label="Fluxo de negócio do Acordu em BPMN">
+<!-- Gerado por scripts/gerar-fluxo-bpmn.py; não edite à mão. -->
+<style>:root{--fundo:#fbf8f1;--raia:#f4eee2;--tinta:#2a211a;--suave:#6e6153;--linha:#b9ab92;--acento:#8a6a1f}@media (prefers-color-scheme:dark){:root{--fundo:#241d17;--raia:#2b231c;--tinta:#efe6d6;--suave:#a89884;--linha:#5a4c3e;--acento:#d6b25e}}.fundo{fill:var(--fundo)}.raia{fill:var(--raia);stroke:var(--linha)}.borda{fill:none;stroke:var(--linha)}.no{fill:var(--fundo);stroke:var(--tinta);stroke-width:1.5}.fim{fill:var(--fundo);stroke:var(--tinta);stroke-width:3.5}.seta{fill:none;stroke:var(--tinta);stroke-width:1.3}.ponta{fill:var(--tinta)}.marca{stroke:var(--tinta);stroke-width:2.5}.relogio{fill:none;stroke:var(--tinta);stroke-width:1.2}text{font-family:-apple-system,"Segoe UI",Inter,Roboto,Helvetica,Arial,sans-serif;fill:var(--tinta)}.t{font-size:12px}.e{font-size:11px;fill:var(--suave)}.f{font-size:11px;fill:var(--acento)}.r{font-size:13px;font-weight:600}.p{font-size:13px;font-weight:600;fill:var(--suave)}</style>
+<defs><marker id="ponta" viewBox="0 0 10 10" refX="10" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="ponta" d="M0,0 L10,5 L0,10 z"/></marker></defs>
+<rect class="fundo" x="0" y="0" width="3435" height="930"/>
+<rect class="raia" x="30" y="0" width="3405" height="250"/>
+<rect class="borda" x="30" y="0" width="30" height="250"/>
+<g transform="rotate(-90 45 125)"><text class="r" text-anchor="middle" dominant-baseline="central"><tspan x="45" y="125">Operação Nebrys</tspan></text></g>
+<rect class="raia" x="30" y="250" width="3405" height="170"/>
+<rect class="borda" x="30" y="250" width="30" height="170"/>
+<g transform="rotate(-90 45 335)"><text class="r" text-anchor="middle" dominant-baseline="central"><tspan x="45" y="335">Dono da empresa</tspan></text></g>
+<rect class="raia" x="30" y="420" width="3405" height="170"/>
+<rect class="borda" x="30" y="420" width="30" height="170"/>
+<g transform="rotate(-90 45 505)"><text class="r" text-anchor="middle" dominant-baseline="central"><tspan x="45" y="496.875">Equipe</tspan><tspan x="45" y="513.125">(atendente/executor)</tspan></text></g>
+<rect class="raia" x="30" y="590" width="3405" height="170"/>
+<rect class="borda" x="30" y="590" width="30" height="170"/>
+<g transform="rotate(-90 45 675)"><text class="r" text-anchor="middle" dominant-baseline="central"><tspan x="45" y="666.875">Contato do cliente</tspan><tspan x="45" y="683.125">(portal)</tspan></text></g>
+<rect class="raia" x="30" y="760" width="3405" height="170"/>
+<rect class="borda" x="30" y="760" width="30" height="170"/>
+<g transform="rotate(-90 45 845)"><text class="r" text-anchor="middle" dominant-baseline="central"><tspan x="45" y="836.875">Sistema (jobs e</tspan><tspan x="45" y="853.125">e-mails)</tspan></text></g>
+<rect class="borda" x="0" y="0" width="3435" height="930"/>
+<g transform="rotate(-90 15 465)"><text class="p" text-anchor="middle" dominant-baseline="central"><tspan x="15" y="465">Fluxo de negócio: da entrada da empresa ao fechamento da solicitação</tspan></text></g>
+<polyline class="seta" points="195.5,125 287.5,125" marker-end="url(#ponta)"/>
+<polyline class="seta" points="417.5,125 440.5,125 440.5,335 462.5,335" marker-end="url(#ponta)"/>
+<polyline class="seta" points="592.5,335 615.5,335 615.5,845 637.5,845" marker-end="url(#ponta)"/>
+<polyline class="seta" points="767.5,845 790.5,845 790.5,335 812.5,335" marker-end="url(#ponta)"/>
+<polyline class="seta" points="942.5,335 987.5,335" marker-end="url(#ponta)"/>
+<polyline class="seta" points="1117.5,335 1162.5,335" marker-end="url(#ponta)"/>
+<polyline class="seta" points="1292.5,335 1315.5,335 1315.5,675 1337.5,675" marker-end="url(#ponta)"/>
+<polyline class="seta" points="1467.5,675 1512.5,675" marker-end="url(#ponta)"/>
+<polyline class="seta" points="895.5,845 987.5,845" marker-end="url(#ponta)"/>
+<polyline class="seta" points="1117.5,845 1140.5,845 1140.5,125 1162.5,125" marker-end="url(#ponta)"/>
+<polyline class="seta" points="1292.5,125 1377.5,125" marker-end="url(#ponta)"/>
+<polyline class="seta" points="1402.5,100 1402.5,50 1559.5,50" marker-end="url(#ponta)"/>
+<text class="f" text-anchor="start" dominant-baseline="central"><tspan x="1430.5" y="39">Ativar</tspan></text>
+<polyline class="seta" points="1427.5,125 1559.5,125" marker-end="url(#ponta)"/>
+<text class="f" text-anchor="start" dominant-baseline="central"><tspan x="1430.5" y="114">Prorrogar</tspan></text>
+<polyline class="seta" points="1402.5,150 1402.5,200 1559.5,200" marker-end="url(#ponta)"/>
+<text class="f" text-anchor="start" dominant-baseline="central"><tspan x="1430.5" y="189">Cancelar</tspan></text>
+<polyline class="seta" points="1420.5,505 1512.5,505" marker-end="url(#ponta)"/>
+<polyline class="seta" points="1642.5,505 1665.5,505 1665.5,845 1687.5,845" marker-end="url(#ponta)"/>
+<polyline class="seta" points="1642.5,675 1665.5,675 1665.5,845 1687.5,845" marker-end="url(#ponta)"/>
+<polyline class="seta" points="1817.5,845 1840.5,845 1840.5,505 1862.5,505" marker-end="url(#ponta)"/>
+<polyline class="seta" points="1992.5,505 2037.5,505" marker-end="url(#ponta)"/>
+<polyline class="seta" points="2167.5,505 2212.5,505" marker-end="url(#ponta)"/>
+<polyline class="seta" points="1945.5,845 2037.5,845" marker-end="url(#ponta)"/>
+<polyline class="seta" points="2167.5,845 2190.5,845 2190.5,505 2212.5,505" marker-end="url(#ponta)"/>
+<polyline class="seta" points="2342.5,505 2427.5,505" marker-end="url(#ponta)"/>
+<polyline class="seta" points="2452.5,530 2452.5,635" marker-end="url(#ponta)"/>
+<text class="f" text-anchor="start" dominant-baseline="central"><tspan x="2456.5" y="571.5">Sim: AGUARDANDO_CLIENTE</tspan></text>
+<polyline class="seta" points="2387.5,675 2302.5,675 2302.5,545" marker-end="url(#ponta)"/>
+<text class="f" text-anchor="start" dominant-baseline="central"><tspan x="2306.5" y="599">Respondeu</tspan></text>
+<polyline class="seta" points="2477.5,505 2562.5,505" marker-end="url(#ponta)"/>
+<text class="f" text-anchor="start" dominant-baseline="central"><tspan x="2524" y="494">Não</tspan></text>
+<polyline class="seta" points="2692.5,505 2715.5,505 2715.5,845 2737.5,845" marker-end="url(#ponta)"/>
+<polyline class="seta" points="2867.5,845 2912.5,845 2912.5,675 2952.5,675" marker-end="url(#ponta)"/>
+<polyline class="seta" points="3002.5,675 3152.5,675 3152.5,805" marker-end="url(#ponta)"/>
+<text class="f" text-anchor="start" dominant-baseline="central"><tspan x="3081.5" y="664">Aprova</tspan></text>
+<polyline class="seta" points="2977.5,700 2977.5,746 2252.5,746 2252.5,545" marker-end="url(#ponta)"/>
+<text class="f" text-anchor="start" dominant-baseline="central"><tspan x="2981.5" y="712">Reprova: reabre</tspan></text>
+<polyline class="seta" points="3217.5,845 3309.5,845" marker-end="url(#ponta)"/>
+<circle class="no" cx="177.5" cy="125" r="18"/>
+<text class="e" text-anchor="middle" dominant-baseline="central"><tspan x="177.5" y="155">Prestador quer</tspan><tspan x="177.5" y="168.75">usar o Acordu</tspan></text>
+<rect class="no" x="287.5" y="85" width="130" height="80" rx="10"/>
+<text class="t" text-anchor="middle" dominant-baseline="central"><tspan x="352.5" y="117.5">Emitir convite de</tspan><tspan x="352.5" y="132.5">empresa</tspan></text>
+<rect class="no" x="462.5" y="295" width="130" height="80" rx="10"/>
+<text class="t" text-anchor="middle" dominant-baseline="central"><tspan x="527.5" y="312.5">Cadastrar</tspan><tspan x="527.5" y="327.5">empresa:</tspan><tspan x="527.5" y="342.5">CPF/CNPJ, senha,</tspan><tspan x="527.5" y="357.5">aceite dos termos</tspan></text>
+<rect class="no" x="637.5" y="805" width="130" height="80" rx="10"/>
+<text class="t" text-anchor="middle" dominant-baseline="central"><tspan x="702.5" y="822.5">Criar empresa em</tspan><tspan x="702.5" y="837.5">TESTE (30 dias) e</tspan><tspan x="702.5" y="852.5">enviar</tspan><tspan x="702.5" y="867.5">confirmação</tspan></text>
+<rect class="no" x="812.5" y="295" width="130" height="80" rx="10"/>
+<text class="t" text-anchor="middle" dominant-baseline="central"><tspan x="877.5" y="320">Confirmar e-mail</tspan><tspan x="877.5" y="335">(libera convites</tspan><tspan x="877.5" y="350">e e-mails)</tspan></text>
+<circle class="no" cx="877.5" cy="845" r="18"/>
+<circle class="relogio" cx="877.5" cy="845" r="13"/>
+<path class="relogio" d="M877.5,837 L877.5,845 L883.5,848"/>
+<text class="e" text-anchor="middle" dominant-baseline="central"><tspan x="877.5" y="875">Fim do teste (job</tspan><tspan x="877.5" y="888.75">diário)</tspan></text>
+<rect class="no" x="987.5" y="805" width="130" height="80" rx="10"/>
+<text class="t" text-anchor="middle" dominant-baseline="central"><tspan x="1052.5" y="830">Vencer: VENCIDA,</tspan><tspan x="1052.5" y="845">só leitura; Donos</tspan><tspan x="1052.5" y="860">avisados</tspan></text>
+<rect class="no" x="987.5" y="295" width="130" height="80" rx="10"/>
+<text class="t" text-anchor="middle" dominant-baseline="central"><tspan x="1052.5" y="312.5">Configurar:</tspan><tspan x="1052.5" y="327.5">horário útil,</tspan><tspan x="1052.5" y="342.5">equipe, clientes,</tspan><tspan x="1052.5" y="357.5">contratos e SLA</tspan></text>
+<rect class="no" x="1162.5" y="85" width="130" height="80" rx="10"/>
+<text class="t" text-anchor="middle" dominant-baseline="central"><tspan x="1227.5" y="110">Decidir a</tspan><tspan x="1227.5" y="125">situação (também</tspan><tspan x="1227.5" y="140">durante o TESTE)</tspan></text>
+<polygon class="no" points="1402.5,100 1427.5,125 1402.5,150 1377.5,125"/>
+<path class="marca" d="M1394.5,117 L1410.5,133 M1410.5,117 L1394.5,133"/>
+<text class="e" text-anchor="middle" dominant-baseline="central"><tspan x="1402.5" y="88">Decisão</tspan></text>
+<circle class="fim" cx="1577.5" cy="50" r="18"/>
+<text class="e" text-anchor="start" dominant-baseline="central"><tspan x="1603.5" y="50">ATIVA</tspan></text>
+<circle class="fim" cx="1577.5" cy="125" r="18"/>
+<text class="e" text-anchor="start" dominant-baseline="central"><tspan x="1603.5" y="118.125">Prorrogada: volta a</tspan><tspan x="1603.5" y="131.875">TESTE com novo fim</tspan></text>
+<circle class="fim" cx="1577.5" cy="200" r="18"/>
+<text class="e" text-anchor="start" dominant-baseline="central"><tspan x="1603.5" y="186.25">CANCELADA: só leitura,</tspan><tspan x="1603.5" y="200">reativável até o</tspan><tspan x="1603.5" y="213.75">expurgo</tspan></text>
+<rect class="no" x="1162.5" y="295" width="130" height="80" rx="10"/>
+<text class="t" text-anchor="middle" dominant-baseline="central"><tspan x="1227.5" y="320">Convidar contato</tspan><tspan x="1227.5" y="335">do cliente para o</tspan><tspan x="1227.5" y="350">portal</tspan></text>
+<rect class="no" x="1337.5" y="635" width="130" height="80" rx="10"/>
+<text class="t" text-anchor="middle" dominant-baseline="central"><tspan x="1402.5" y="660">Aceitar convite e</tspan><tspan x="1402.5" y="675">criar acesso ao</tspan><tspan x="1402.5" y="690">portal</tspan></text>
+<circle class="no" cx="1402.5" cy="505" r="18"/>
+<text class="e" text-anchor="middle" dominant-baseline="central"><tspan x="1402.5" y="535">Cliente pede por</tspan><tspan x="1402.5" y="548.75">telefone, e-mail,</tspan><tspan x="1402.5" y="562.5">WhatsApp</tspan></text>
+<rect class="no" x="1512.5" y="465" width="130" height="80" rx="10"/>
+<text class="t" text-anchor="middle" dominant-baseline="central"><tspan x="1577.5" y="497.5">Registrar</tspan><tspan x="1577.5" y="512.5">solicitação</tspan></text>
+<rect class="no" x="1512.5" y="635" width="130" height="80" rx="10"/>
+<text class="t" text-anchor="middle" dominant-baseline="central"><tspan x="1577.5" y="667.5">Abrir solicitação</tspan><tspan x="1577.5" y="682.5">no portal</tspan></text>
+<rect class="no" x="1687.5" y="805" width="130" height="80" rx="10"/>
+<text class="t" text-anchor="middle" dominant-baseline="central"><tspan x="1752.5" y="830">Gerar protocolo,</tspan><tspan x="1752.5" y="845">ligar o SLA e</tspan><tspan x="1752.5" y="860">avisar (ABERTA)</tspan></text>
+<rect class="no" x="1862.5" y="465" width="130" height="80" rx="10"/>
+<text class="t" text-anchor="middle" dominant-baseline="central"><tspan x="1927.5" y="490">Triar e dar a 1ª</tspan><tspan x="1927.5" y="505">resposta</tspan><tspan x="1927.5" y="520">(EM_ANDAMENTO)</tspan></text>
+<circle class="no" cx="1927.5" cy="845" r="18"/>
+<circle class="relogio" cx="1927.5" cy="845" r="13"/>
+<path class="relogio" d="M1927.5,837 L1927.5,845 L1933.5,848"/>
+<text class="e" text-anchor="middle" dominant-baseline="central"><tspan x="1927.5" y="875">Todo dia (job)</tspan></text>
+<rect class="no" x="2037.5" y="805" width="130" height="80" rx="10"/>
+<text class="t" text-anchor="middle" dominant-baseline="central"><tspan x="2102.5" y="837.5">Gerar tarefas das</tspan><tspan x="2102.5" y="852.5">recorrências</tspan></text>
+<rect class="no" x="2037.5" y="465" width="130" height="80" rx="10"/>
+<text class="t" text-anchor="middle" dominant-baseline="central"><tspan x="2102.5" y="497.5">Criar tarefas da</tspan><tspan x="2102.5" y="512.5">solicitação</tspan></text>
+<rect class="no" x="2212.5" y="465" width="130" height="80" rx="10"/>
+<text class="t" text-anchor="middle" dominant-baseline="central"><tspan x="2277.5" y="490">Executar tarefa e</tspan><tspan x="2277.5" y="505">apontar horas</tspan><tspan x="2277.5" y="520">(cronômetro)</tspan></text>
+<polygon class="no" points="2452.5,480 2477.5,505 2452.5,530 2427.5,505"/>
+<path class="marca" d="M2444.5,497 L2460.5,513 M2460.5,497 L2444.5,513"/>
+<text class="e" text-anchor="middle" dominant-baseline="central"><tspan x="2452.5" y="454.25">Precisa de algo</tspan><tspan x="2452.5" y="468">do cliente?</tspan></text>
+<rect class="no" x="2387.5" y="635" width="130" height="80" rx="10"/>
+<text class="t" text-anchor="middle" dominant-baseline="central"><tspan x="2452.5" y="652.5">Responder no</tspan><tspan x="2452.5" y="667.5">portal (SLA</tspan><tspan x="2452.5" y="682.5">pausado enquanto</tspan><tspan x="2452.5" y="697.5">aguarda)</tspan></text>
+<rect class="no" x="2562.5" y="465" width="130" height="80" rx="10"/>
+<text class="t" text-anchor="middle" dominant-baseline="central"><tspan x="2627.5" y="490">Resolver com a</tspan><tspan x="2627.5" y="505">solução</tspan><tspan x="2627.5" y="520">(RESOLVIDA)</tspan></text>
+<rect class="no" x="2737.5" y="805" width="130" height="80" rx="10"/>
+<text class="t" text-anchor="middle" dominant-baseline="central"><tspan x="2802.5" y="822.5">Avisar o contato:</tspan><tspan x="2802.5" y="837.5">entrega</tspan><tspan x="2802.5" y="852.5">aguardando</tspan><tspan x="2802.5" y="867.5">aprovação</tspan></text>
+<polygon class="no" points="2977.5,650 3002.5,675 2977.5,700 2952.5,675"/>
+<path class="marca" d="M2969.5,667 L2985.5,683 M2985.5,667 L2969.5,683"/>
+<text class="e" text-anchor="middle" dominant-baseline="central"><tspan x="2977.5" y="638">Aprova a entrega?</tspan></text>
+<rect class="no" x="3087.5" y="805" width="130" height="80" rx="10"/>
+<text class="t" text-anchor="middle" dominant-baseline="central"><tspan x="3152.5" y="822.5">Fechar (FECHADA):</tspan><tspan x="3152.5" y="837.5">na aprovação ou N</tspan><tspan x="3152.5" y="852.5">dias corridos</tspan><tspan x="3152.5" y="867.5">depois, pelo job</tspan></text>
+<circle class="fim" cx="3327.5" cy="845" r="18"/>
+<text class="e" text-anchor="middle" dominant-baseline="central"><tspan x="3327.5" y="875">Solicitação</tspan><tspan x="3327.5" y="888.75">fechada; horas no</tspan><tspan x="3327.5" y="902.5">extrato do</tspan><tspan x="3327.5" y="916.25">contrato</tspan></text>
+</svg>

@@ -6,7 +6,7 @@ Gestão de **atendimento, tarefas e contratos** para prestadores de serviço, co
 
 Construído desde o início como **multi-tenant**.
 
-**Status:** planejamento concluído; código do v1 a iniciar — ver [Status](#status).
+**Status:** v1 em produção em [acordu.app.br](https://acordu.app.br) desde 12/11/2026, com o lançamento controlado (F14) em andamento — ver [Status](#status).
 
 ---
 
@@ -14,6 +14,7 @@ Construído desde o início como **multi-tenant**.
 
 - [Status](#status)
 - [O que o Acordu faz](#o-que-o-acordu-faz)
+- [Como funciona](#como-funciona)
 - [Stack](#stack)
 - [Arquitetura em resumo](#arquitetura-em-resumo)
 - [Estrutura do repositório](#estrutura-do-repositório)
@@ -32,9 +33,13 @@ Construído desde o início como **multi-tenant**.
 | Área | Estado |
 |---|---|
 | Planejamento (ERS, modelo, API, read side, ADRs, segurança) | ✅ concluído |
-| Infraestrutura (Cloud Run + Neon + Cloudflare) | ⏳ a provisionar (ADR 0010) |
-| Código do v1 | ⏳ a iniciar |
-| CI/CD e deploy | ⏳ planejado |
+| Backend do v1 | ✅ completo |
+| Frontend (app interno e portal) | ✅ F1–F7 e marcos F8–F13 |
+| Infraestrutura (Cloud Run + Neon + Cloudflare) | ✅ provisionada (ADR 0010) |
+| CI/CD e deploy | ✅ no ar desde 12/11/2026 |
+| Lançamento controlado (situação da empresa, cadastro por convite, área da Nebrys) | ⏳ F14 em andamento |
+
+O que está em revisão e os próximos passos ficam em [`docs/estado.md`](docs/estado.md), atualizado a cada PR.
 
 ---
 
@@ -46,6 +51,21 @@ Construído desde o início como **multi-tenant**.
 - **Tarefas recorrentes** geradas automaticamente (fechamento mensal, manutenção preventiva...).
 - **Portal do cliente:** abrir e acompanhar solicitações, ver prazo e responsável, aprovar entregas e consultar o **extrato de horas do contrato** — só com o que o prestador marcou como visível.
 - **Solução reutilizável:** cada solicitação resolvida registra a solução, e novas solicitações recebem sugestões de casos semelhantes já resolvidos.
+
+---
+
+## Como funciona
+
+Da entrada da empresa ao fechamento da solicitação, com quem faz cada passo (clique para ampliar):
+
+[![Fluxo de negócio do Acordu em BPMN](docs/fluxo-acordu.svg)](docs/fluxo-acordu.svg)
+
+1. **Entrada:** a Nebrys convida a empresa; o Dono se cadastra e a empresa nasce em teste. No fim do teste ela fica só leitura até a Nebrys ativar, prorrogar ou cancelar.
+2. **Configuração:** horário útil (base do SLA), equipe, clientes, contratos e o convite do contato para o portal.
+3. **Atendimento:** a solicitação entra pelo portal ou pela equipe, ganha protocolo e prazos de SLA, vira tarefas e horas apontadas no contrato.
+4. **Entrega:** o contato aprova (fecha) ou reprova (reabre); sem resposta, fecha sozinha depois de N dias.
+
+O diagrama é BPMN 2.0 ([`docs/fluxo-acordu.bpmn`](docs/fluxo-acordu.bpmn), abre no [bpmn.io](https://demo.bpmn.io) e no Camunda Modeler). O `.bpmn` e o `.svg` são gerados por `scripts/gerar-fluxo-bpmn.py`, e a CI confere que estão em sincronia.
 
 ---
 
@@ -135,8 +155,11 @@ acordu/
 | `docs/adr/0011-desenvolvimento-guiado-por-spec.md` | Spec versionada por marco — **substituído** pelo ADR 0013 em 11/11/2026. |
 | `docs/adr/0012-avisos-de-operacao-pelo-discord.md` | Avisos de operação (erros, jobs, queda, deploy, sugestões) pelo Discord. |
 | `docs/adr/0013-fabrica-agentica-semi-autonoma.md` | Fábrica agêntica: orquestrador, subagentes por papel, portões humanos. |
+| `docs/adr/0014-area-da-nebrys-sessao-de-operacao.md` | Área da Nebrys: sessão de operação sem tenant. |
+| `docs/adr/0015-empresa-somente-leitura-pela-guarda-de-gravacao.md` | Empresa só leitura pela guarda de gravação. |
 | `docs/processo.md` | Como o Acordu é construído: etapas, papéis, portões, onde fica cada coisa. |
 | `docs/estado.md` | O que está em revisão, marco atual e próximos passos. |
+| `docs/fluxo-acordu.bpmn` | Fluxo de negócio em BPMN (e `.svg` para leitura), gerado por `scripts/gerar-fluxo-bpmn.py`. |
 | `docs/specs/` | Spec e design dos marcos (a partir do F8) e templates. |
 | `docs/estrategia-produto-acordu.md` | Visão, mercado, posicionamento, fases e monetização. |
 | `docs/modelo-de-dominio-acordu.md` | Agregados, máquinas de estado, VOs, serviços, eventos. |
@@ -154,8 +177,6 @@ Regra de higiene: **decisão de arquitetura vira ADR**; **convenção de código
 ---
 
 ## Como rodar localmente
-
-> Os passos se ativam conforme o código nasce.
 
 **Pré-requisitos:** .NET 10 SDK, Node 22 com pnpm (`corepack enable`), Docker.
 

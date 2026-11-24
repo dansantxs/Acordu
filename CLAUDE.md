@@ -27,7 +27,7 @@ O processo inteiro (etapas, papéis, portões, onde fica cada coisa, formato de 
 | Código e estrutura | `docs/convencoes-codigo-acordu.md`, `docs/estrutura-repositorio-acordu.md` |
 | Deploy e infra | `docs/deploy-ci-acordu-v1.md`, `docs/setup-infra-acordu.md` (ADR 0010) |
 | Specs dos marcos | `docs/specs/` |
-| Fluxo do sistema (BPMN) | `docs/fluxo-acordu.bpmn` (editar `scripts/gerar-fluxo-bpmn.py` e rodar) |
+| Fluxo do sistema (BPMN) | `docs/fluxo-acordu.bpmn` e `.svg` (editar `scripts/gerar-fluxo-bpmn.py` e rodar) |
 | Processo (etapas, portões, onde fica cada coisa) | `docs/processo.md` (ADR 0013) |
 | Estado do projeto | `docs/estado.md` |
 | Commits e PRs | `docs/convencoes-commit-acordu.md`, `docs/convencoes-pr-acordu.md` |

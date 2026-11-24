@@ -4,7 +4,7 @@ Visão geral curta, atualizada por cada PR (`docs/processo.md` §1). O históric
 
 ## Em revisão
 
-- **Fluxo do sistema em BPMN**: `docs/fluxo-acordu.bpmn`, gerado por `scripts/gerar-fluxo-bpmn.py`, com a regra de atualizar quando o fluxo mudar (processo §1).
+- **Fluxo no README**: `docs/fluxo-acordu.svg` gerado junto com o BPMN e mostrado na seção "Como funciona"; README com o status atual (produção no ar, F14 em andamento) e os ADRs 0014 e 0015.
 - **F14n — convite de empresa e modo do cadastro** (#182): a área da Nebrys emite, reenvia e revoga convites de empresa (API; as telas são do F14q); `Cadastro__Modo` (`convite` ou `aberto`, sem ela `convite`); o registro aceita o convite, com o e-mail dele e uso único. Migration `ConvitesDeEmpresa` pelo bot. **Antes do próximo deploy, criar a variável `CADASTRO_MODO`** (runbook, "Segredos do GitHub"; próximos passos, item 1): sem ela o deploy para.
 
 ## Marco em andamento
