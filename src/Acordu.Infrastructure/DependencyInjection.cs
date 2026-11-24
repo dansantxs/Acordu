@@ -104,6 +104,8 @@ public static class DependencyInjection
 
         services.AddScoped<ConsultaSql>();
         services.AddScoped<IConsultasCliente, ConsultasCliente>();
+        // Dados de exemplo (F14r): o que é exemplo e a remoção, no tenant do contexto.
+        services.AddScoped<Application.Exemplos.IDadosDeExemplo, Persistence.Exemplos.DadosDeExemplo>();
         services.AddScoped<IConsultasCategoria, ConsultasCategoria>();
         services.AddScoped<IConsultasContrato, ConsultasContrato>();
         services.AddScoped<IConsultasRecorrencia, ConsultasRecorrencia>();

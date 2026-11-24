@@ -52,13 +52,13 @@ public sealed class ConsultasCliente : IConsultasCliente
         var linhas = await consulta
             .OrderBy(c => c.Nome).ThenBy(c => c.Id)
             .Skip(paginacao.Pular).Take(paginacao.TamanhoPagina)
-            .Select(c => new { c.Id, c.Nome, c.Documento, c.Ativo, c.RazaoSocial, c.ResponsavelId, c.Etiquetas })
+            .Select(c => new { c.Id, c.Nome, c.Documento, c.Ativo, c.RazaoSocial, c.ResponsavelId, c.Etiquetas, c.Exemplo })
             .ToListAsync(cancellationToken);
         var nomes = await Nomes.DeUsuariosAsync(
             _db, linhas.Where(l => l.ResponsavelId is not null).Select(l => l.ResponsavelId!.Value), cancellationToken);
         var itens = linhas
             .Select(l => new ClienteResumoDto(
-                l.Id, l.Nome, l.Documento, l.Ativo, l.RazaoSocial, Nomes.Pessoa(l.ResponsavelId, nomes), [.. l.Etiquetas]))
+                l.Id, l.Nome, l.Documento, l.Ativo, l.RazaoSocial, Nomes.Pessoa(l.ResponsavelId, nomes), [.. l.Etiquetas], l.Exemplo))
             .ToList();
         return new ResultadoPaginado<ClienteResumoDto>(itens, paginacao.Pagina, paginacao.TamanhoPagina, total);
     }
@@ -102,7 +102,8 @@ public sealed class ConsultasCliente : IConsultasCliente
             cliente.Telefone,
             EnderecoDto.De(cliente.Endereco),
             Nomes.Pessoa(cliente.ResponsavelId, nomes),
-            [.. cliente.Etiquetas]);
+            [.. cliente.Etiquetas],
+            cliente.Exemplo);
     }
 
     /// <summary>Por contato: vínculo de cliente (ATIVO) ou, sem ele, o convite pendente (CONVIDADO).</summary>

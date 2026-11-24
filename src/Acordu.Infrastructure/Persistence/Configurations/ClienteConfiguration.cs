@@ -14,6 +14,8 @@ internal sealed class ClienteConfiguration : IEntityTypeConfiguration<Cliente>
         builder.Property(c => c.Documento).HasMaxLength(14);
         builder.Property(c => c.Observacoes).HasMaxLength(LimitesTexto.Observacoes);
         builder.HasIndex(c => new { c.TenantId, c.Nome });
+        // Dados de exemplo (F14r, design do F14 D13): as empresas anteriores ficam sem exemplo (padrão falso da migration).
+        builder.Property(c => c.Exemplo);
 
         // Cadastro ampliado (16/10).
         builder.Property(c => c.RazaoSocial).HasMaxLength(LimitesTexto.Nome);

@@ -175,6 +175,8 @@ public sealed class ConsultasSolicitacao : IConsultasSolicitacao
     public async Task<IReadOnlyList<Guid>> CandidatasAAlertaDeSlaAsync(DateTimeOffset agora, CancellationToken cancellationToken = default) =>
         await _db.Solicitacoes.AsNoTracking()
             .Where(s => EmAberto.Contains(s.Status) && s.Sla != null && s.Sla.LimiteRisco <= agora)
+            // Dados de exemplo (F14r, RF-EMP-05): fictícios, não geram alerta nem e-mail.
+            .Where(s => !_db.Clientes.Any(c => c.Id == s.ClienteId && c.Exemplo))
             .OrderBy(s => s.Sla!.PrazoResolucao)
             .Select(s => s.Id)
             .ToListAsync(cancellationToken);
