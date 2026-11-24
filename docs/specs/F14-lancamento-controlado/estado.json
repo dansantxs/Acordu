@@ -1,11 +1,11 @@
 {
   "marco": "F14",
   "issue": 182,
-  "etapa": "AGUARDANDO_MERGE",
-  "branch": "feat/F14o-lista-espera",
+  "etapa": "IMPLEMENTANDO",
+  "branch": "feat/F14p-descartavel",
   "pr": {
-    "id": "F14o",
-    "numero": 215
+    "id": "F14p",
+    "numero": null
   },
   "feitos": [
     {
@@ -63,6 +63,10 @@
     {
       "id": "F14n",
       "pr": 212
+    },
+    {
+      "id": "F14o",
+      "pr": 215
     }
   ],
   "contadores": {
@@ -92,17 +96,12 @@
       "PR #203 mesclado (F14k)",
       "PR #205 mesclado (F14l; \"aceito as recomendações\": liberação repetida ou sem teste → 422, ativar/reativar limpam as datas do ciclo, prorrogar TESTE para antes do fim atual aceito)",
       "PR #206 mesclado (F14m)",
-      "PR #212 mesclado (F14n; recomendações aceitas: conta por convite confirmada, um convite em aberto por e-mail, retenção na #213)"
+      "PR #212 mesclado (F14n; recomendações aceitas: conta por convite confirmada, um convite em aberto por e-mail, retenção na #213)",
+      "PR #215 mesclado (F14o; retenção da lista na #194, e-mail repetido não atualiza)"
     ],
     "G2_F14h": "PR #201 mesclado (18/11), sem comentário nas perguntas: valem as recomendações da D16 (variável única conferida no deploy.yml; ciente 404; pendentes sem migration; nenhum campo novo; convenção §4) e o risco da janela da virada aceito"
   },
-  "ressalvas": [
-    "Política de privacidade diz que a entrada some ao convidar, mas a convidada fica até o descarte (decisão do Daniel antes de ligar TEXTOS_LEGAIS_PUBLICADOS)",
-    "E-mail repetido na lista não atualiza a entrada (confirmar)",
-    "Mensagem do 422 de entrada já convidada não cita emitir convite novo quando o anterior foi revogado",
-    "EmitirAsync deixou de ser async: ArgumentNullException síncrono",
-    "Testes de banco dependem da migration ListaDeEspera do bot; ContratoOpenApiTests confere o OpenAPI escrito à mão"
-  ],
+  "ressalvas": [],
   "bloqueios": [],
   "atualizadoEm": "2026-11-24",
   "decisoes": [
@@ -110,6 +109,7 @@
     "18/11 F14h: \"Pôr o aceite atrás da TEXTOS_LEGAIS_PUBLICADOS\" (Daniel, no chat); cenários do estado desligado pedem PR de spec e design (G2 só da mudança) antes do F14h",
     "21/11 F14l: \"aceito as recomendações\" (Daniel, no chat) para as três premissas do \"Para o Daniel decidir\" do PR #205",
     "23/11 F14n: \"aceito as recomendações\" (Daniel, no chat): conta por convite nasce confirmada e fora do expurgo (exceção no RF-AUT-06); um convite em aberto por e-mail (422); retenção dos e-mails dos convites em issue própria",
-    "24/11 F14o: \"aceito as recomendações, ajusta a política na #194\" (Daniel, no chat): a entrada convidada fica até o descarte e a frase da política muda na #194; e-mail repetido não atualiza a entrada"
+    "24/11 F14o: \"aceito as recomendações, ajusta a política na #194\" (Daniel, no chat): a entrada convidada fica até o descarte e a frase da política muda na #194; e-mail repetido não atualiza a entrada",
+    "24/11: variável CADASTRO_MODO criada pelo Daniel no GitHub"
   ]
 }
