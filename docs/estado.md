@@ -5,20 +5,20 @@ Visão geral curta, atualizada por cada PR (`docs/processo.md` §1). O históric
 ## Em revisão
 
 - **Fix #222 — link do convite preso em "Carregando o convite…"** (bug de produção, branch `fix/convite-sessao-inicio`): sem sessão, a primeira carga recebia 401 do refresh e tratava isso como encerramento, que limpava o cache do TanStack Query e derrubava a consulta que a tela de link já tinha feito. Agora só o fim de uma sessão ativa é `encerramento` (limpa o cache e avisa as outras abas); abrir sem sessão fica `anonima` com motivo `inicio`, sem limpar nem avisar. Cobre também `/convite`, `/portal/convite` e `/conta/confirmacao` (que confirmava duas vezes). Testes de regressão em `features/sessao/linksSemSessao.test.tsx`.
-- **F14s — empresa de demonstração** (#182, último PR do F14): na área da Nebrys (`/nebrys/demonstracao`), criar a empresa de demonstração com os dados fictícios do manual (o mesmo `demonstracao.json`), ATIVA e fora do ciclo de situação, que nunca vence nem é expurgada; restaurar volta aos dados iniciais sem tocar outra empresa; indicar quem entra nela como Dono, só com conta que já existe (sem conta: recusa no campo, nada criado). Nada sai dela por e-mail: convite e link por e-mail → `422 demonstracao-sem-envio`, link sem e-mail é emitido, avisos descartados (F14-87 a F14-90, F14-110). `/auth/eu` ganha `tenant.demonstracao`, e a casca mostra a faixa da demonstração. Sem migration (a marca veio no F14l); OpenAPI (`nebrys.json`, `interno.json`) e tipos atualizados à mão e com `pnpm api:tipos`. Spec do F14 com status Concluída.
 
 ## Marco concluído
 
-- **F14 — situação da empresa e cadastro controlado** (#182; [spec](specs/F14-lancamento-controlado/spec.md), [design](specs/F14-lancamento-controlado/design.md)): G2 com o PR #186; ADRs 0014 e 0015 aceitos. 113 cenários em 19 PRs (F14a a F14s), todos com teste; o F14s fecha o marco quando for mesclado. Primeiro marco conduzido pelo `/marco`.
+- **F14 — situação da empresa e cadastro controlado** (#182; [spec](specs/F14-lancamento-controlado/spec.md), [design](specs/F14-lancamento-controlado/design.md)): G2 com o PR #186; ADRs 0014 e 0015 aceitos. 113 cenários em 19 PRs (F14a a F14s), todos com teste; fechado pelo F14s (#220). Primeiro marco conduzido pelo `/marco`.
 
 ## Onde o produto está
 
-- Backend do v1 completo; frontend F1–F7 e marcos F8–F13 na `main`; F14 na `main` de F14a a F14r (o F14s fecha o marco).
+- Backend do v1 completo; frontend F1–F7 e marcos F8–F13 na `main`; F14 inteiro na `main`.
+- **Deploy do F14** em 24/11 (`ae5f5e7`). Em 25/11 o Daniel zerou o banco de produção (schema `public` recriado e migrations aplicadas por um novo deploy) para recomeçar os testes: a migration do F14a pôs as empresas antigas em CANCELADA, e o expurgo apagaria as contas, inclusive a de operação. **Cadastro por convite aberto** (`CADASTRO_MODO=convite`); `TEXTOS_LEGAIS_PUBLICADOS` ausente (desligada). Conferidos pelo Daniel em 25/11: entrada na área da Nebrys, lista de empresas, `/cadastro` mostrando a lista de espera e a entrada chegando à área.
 - **Produção no ar** desde o primeiro deploy (12/11). Conferidos pelo Daniel em 12 e 13/11: F8-22, F8-26, F8-32 (fumaça de ponta a ponta), F9-47 (Turnstile no cadastro), F13-31 (avisos do deploy), WIF restrito, tokens do R2 separados, Resend verificado, MFA nas cinco contas, alerta de orçamento (R$ 10/mês, 50/90/100%), token de origem (404 direto, 200 pela borda), CORS só para `acordu.app.br` e `TempoReal__Sse=false`.
 
 ## Próximos passos
 
-1. Merge do F14s, que conclui o F14; depois, escolher o próximo marco (`/roadmap`, G1). Para usar a demonstração em produção: deploy com o F14s, criar em `/nebrys/demonstracao` e indicar a própria conta. **Com o F14q na `main`, abrir o cadastro por convite é trocar a variável `CADASTRO_MODO` do GitHub para `convite` e fazer um deploy (G4)**: `/cadastro` passa a mostrar a lista de espera, e só quem recebe o link da Nebrys cria empresa. Com `aberto`, o cadastro de hoje segue. Ligar `TEXTOS_LEGAIS_PUBLICADOS` só depois da #194, num deploy fora do horário de uso (deploy-ci §7). Email Routing de `contato@acordu.app.br` ativo e testado pelo Daniel em 16/11.
+1. Escolher o próximo marco (`/roadmap`, G1). Na área da Nebrys, **ativar a empresa da própria Nebrys** (está em TESTE até 25/12; se vencer, a conta de operação é expurgada com ela). Fumaça que falta do modo convite: convidar da lista de espera e cadastrar pelo link. Demonstração: criar em `/nebrys/demonstracao` e indicar a própria conta. Ligar `TEXTOS_LEGAIS_PUBLICADOS` só depois da #194, num deploy fora do horário de uso (deploy-ci §7).
 2. Conferências que faltam da produção:
    - deploy: F8-27 e F8-28 (rollback por migration e por health), F8-29 (jobs do Scheduler), hostname do Turnstile;
    - backup: F8-30 e F13-32 na primeira madrugada com o `BACKUP_ATIVO`; F8-31 (restore) antes do primeiro cliente;
