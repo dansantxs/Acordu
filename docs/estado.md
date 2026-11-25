@@ -4,7 +4,7 @@ Visão geral curta, atualizada por cada PR (`docs/processo.md` §1). O históric
 
 ## Em revisão
 
-- **Melhoria #224 — convite de empresa recusa e-mail descartável** (branch `feat/224-convite-descartavel`): `POST /nebrys/convites` recusa o e-mail de domínio descartável (lista versionada do F14-60) com `400` em `errors.email` e o texto do cadastro, sem convite, e-mail nem trilha; a janela "Novo convite" já mostra o erro no campo. O convite a partir da lista de espera também recusa (a lista de domínios pode ter ganhado o da entrada depois da inscrição), com `422 transicao-invalida` e a explicação na janela, e a entrada continua aguardando.
+- **Melhoria #208 — "Falar no WhatsApp" na ficha do cliente** (branch `feat/208-whatsapp`, só front): atalho para o `wa.me` do cliente e de cada contato com telefone que sirva (`linkWhatsApp`, `shared/format/whatsapp.ts`; sem DDI assume +55), numa aba nova, sem integração e sem `grava` (funciona na empresa só leitura). Não aparece no portal.
 
 ## Marco concluído
 
