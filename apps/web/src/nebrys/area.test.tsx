@@ -14,6 +14,7 @@ const empresa = {
     nome: 'Estúdio Traço',
     documento: '52998224725',
     situacao: 'VENCIDA',
+    demonstracao: false,
     criadaEm: '2026-10-06T13:00:00Z',
     fimDoTeste: '2026-11-05T03:00:00Z',
     somenteLeituraDesde: '2026-11-06T06:40:00Z',
@@ -26,6 +27,21 @@ const empresa = {
 const { versao: _versao, ...resumo } = empresa
 void _versao
 const DETALHE = `/api/v1/nebrys/empresas/${empresa.id}`
+
+/** A empresa de demonstração (#225): ATIVA, sem fim de teste nem documento, com a marca. */
+const demonstracao = {
+    ...empresa,
+    id: '0193a1b2-0000-7000-8000-0000000000de',
+    nome: 'Estúdio Demonstração',
+    documento: null,
+    situacao: 'ATIVA',
+    demonstracao: true,
+    fimDoTeste: null,
+    somenteLeituraDesde: null,
+    expurgoPrevistoEm: null,
+}
+const { versao: _versaoDemonstracao, ...resumoDemonstracao } = demonstracao
+void _versaoDemonstracao
 
 const lista = (itens: unknown[] = [resumo]) => json({ itens, pagina: 1, tamanhoPagina: 25, total: itens.length })
 
@@ -209,6 +225,42 @@ describe('área da Nebrys', () => {
             expect(screen.getByRole('button', { name: 'Cancelar' })).toBeInTheDocument()
             expect(screen.queryByRole('button', { name: 'Reativar' })).not.toBeInTheDocument()
             expect(screen.queryByText(/clientes|solicitações|tarefas|contratos/i)).not.toBeInTheDocument()
+        })
+
+        it('Lista_Demonstracao_EtiquetaSoNaDemonstracao', async () => {
+            operando()
+            semEmpresa({ '/api/v1/nebrys/empresas': () => lista([resumoDemonstracao, resumo]) })
+            await abrir('/nebrys/empresas')
+            const linhaDemonstracao = (await screen.findByRole('link', { name: 'Estúdio Demonstração' })).closest('tr')!
+            const linhaComum = screen.getByRole('link', { name: 'Estúdio Traço' }).closest('tr')!
+            expect(within(linhaDemonstracao).getByText('Demonstração')).toBeInTheDocument()
+            expect(within(linhaDemonstracao).getByText('Ativa')).toBeInTheDocument()
+            expect(within(linhaComum).queryByText('Demonstração')).not.toBeInTheDocument()
+        })
+
+        it('Detalhe_Demonstracao_EtiquetaSemAsAcoesELinkParaADemonstracao', async () => {
+            operando()
+            const chamadas = semEmpresa({ [`/api/v1/nebrys/empresas/${demonstracao.id}`]: () => json(demonstracao) })
+            await abrir(`/nebrys/empresas/${demonstracao.id}`)
+            expect(await screen.findByRole('heading', { name: 'Estúdio Demonstração' })).toBeInTheDocument()
+            expect(screen.getByText('Demonstração', { selector: 'span' })).toBeInTheDocument()
+            for (const acao of ['Ativar', 'Prorrogar o teste', 'Cancelar', 'Reativar'])
+                expect(screen.queryByRole('button', { name: acao })).not.toBeInTheDocument()
+            expect(screen.getByRole('link', { name: 'Abrir a demonstração' })).toHaveAttribute(
+                'href',
+                '/nebrys/demonstracao',
+            )
+            expect(chamadas.some((c) => c.metodo !== 'GET' && c.caminho.startsWith('/api/v1/nebrys'))).toBe(false)
+        })
+
+        it('Detalhe_EmpresaComum_SemEtiquetaComAsAcoes', async () => {
+            operando()
+            semEmpresa({ [DETALHE]: () => json({ ...empresa, situacao: 'ATIVA', somenteLeituraDesde: null }) })
+            await abrir(`/nebrys/empresas/${empresa.id}`)
+            expect(await screen.findByRole('heading', { name: 'Estúdio Traço' })).toBeInTheDocument()
+            expect(screen.getByRole('button', { name: 'Cancelar' })).toBeInTheDocument()
+            expect(screen.queryByText('Demonstração', { selector: 'span' })).not.toBeInTheDocument()
+            expect(screen.queryByRole('link', { name: 'Abrir a demonstração' })).not.toBeInTheDocument()
         })
 
         it('Ativar_MandaOIfMatchDaVersaoEMostraASituacaoNova', async () => {
