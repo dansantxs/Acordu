@@ -22,4 +22,11 @@ public static class Email
             ? throw new ArgumentException("E-mail inválido: antes do @, use letras sem acento.", parametro)
             : valor;
     }
+
+    /// <summary>
+    /// Endereço que nunca é entregue: domínio no TLD <c>.invalid</c>, reservado pela RFC 2606. É o dos dados fictícios
+    /// (exemplos e demonstração, RF-NEB-02): para ele nada é enviado. Nulo ou vazio, falso.
+    /// </summary>
+    public static bool NuncaEntregue(string? email) =>
+        !string.IsNullOrWhiteSpace(email) && email.TrimEnd().EndsWith(".invalid", StringComparison.OrdinalIgnoreCase);
 }

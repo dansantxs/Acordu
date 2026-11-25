@@ -46,6 +46,28 @@ public sealed class DemonstracaoTests(ApiFixture api) : IAsyncLifetime
         corpo.GetProperty("indicadas").GetArrayLength().Should().Be(0);
     }
 
+    // ---------- #225: a marca na lista e no detalhe da área ----------
+
+    [Fact]
+    public async Task ListarEDetalhar_Demonstracao_SoElaComAMarca()
+    {
+        var token = await OperadorNebrys.TokenAsync(api);
+        var id = (await Demonstracoes.CriarAsync(api, token)).GetProperty("empresaId").GetGuid();
+        var comum = await Equipe.CriarAsync(api);
+
+        var lista = await EmpresasDaAreaAsync(token);
+        var (_, detalhe) = await AreaAsync(HttpMethod.Get, $"/api/v1/nebrys/empresas/{id}", token);
+        var (_, detalheComum) = await AreaAsync(HttpMethod.Get, $"/api/v1/nebrys/empresas/{comum.TenantId}", token);
+
+        lista.Single(e => Cenarios.Id(e) == id).GetProperty("demonstracao").GetBoolean().Should().BeTrue();
+        lista.Single(e => Cenarios.Id(e) == comum.TenantId).GetProperty("demonstracao").GetBoolean().Should().BeFalse();
+        lista.Where(e => e.GetProperty("demonstracao").GetBoolean()).Select(Cenarios.Id)
+            .Should().ContainSingle("há uma demonstração só").Which.Should().Be(id);
+        detalhe.GetProperty("demonstracao").GetBoolean().Should().BeTrue();
+        detalhe.GetProperty("situacao").GetString().Should().Be("ATIVA");
+        detalheComum.GetProperty("demonstracao").GetBoolean().Should().BeFalse();
+    }
+
     // ---------- F14-87: criar ----------
 
     [Fact]
@@ -108,6 +130,42 @@ public sealed class DemonstracaoTests(ApiFixture api) : IAsyncLifetime
         using var login = await http.PostAsJsonAsync(
             new Uri("/api/v1/auth/login", UriKind.Relative), new { email = Dados.Pessoas[0].Email, senha = Equipe.Senha });
         login.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
+    }
+
+    [Fact]
+    public async Task EsqueciSenha_ContaFicticia_RespostaNeutraESemEmail() // RF-NEB-02, #226: nada sai da demonstração
+    {
+        var token = await OperadorNebrys.TokenAsync(api);
+        await Demonstracoes.CriarAsync(api, token);
+        var comum = await Equipe.CriarAsync(api);
+        var desconhecido = $"ninguem-{Guid.NewGuid():N}@exemplo.com";
+
+        var (statusDesconhecido, corpoDesconhecido) = await EsqueciAsync(desconhecido);
+        foreach (var email in ContasFicticias())
+        {
+            var (status, corpo) = await EsqueciAsync(email);
+            status.Should().Be(statusDesconhecido, "a resposta não revela nada ({0})", email);
+            corpo.Should().Be(corpoDesconhecido);
+            api.Emails.Para(email).Should().BeEmpty("a conta fictícia não recebe a redefinição ({0})", email);
+        }
+
+        statusDesconhecido.Should().Be(HttpStatusCode.Accepted);
+        await using (var escopo = api.App.Services.CreateAsyncScope())
+        {
+            var usuarios = escopo.ServiceProvider.GetRequiredService<UserManager<Usuario>>();
+            await using var db = api.DaEquipe(Guid.NewGuid());
+            foreach (var email in ContasFicticias())
+            {
+                var conta = await usuarios.FindByEmailAsync(email);
+                (await db.Set<TokenConta>().IgnoreQueryFilters().CountAsync(t => t.UsuarioId == conta!.Id))
+                    .Should().Be(0, "nenhum link de redefinição é emitido ({0})", email);
+            }
+        }
+
+        var (statusComum, corpoComum) = await EsqueciAsync(comum.EmailDono);
+        statusComum.Should().Be(statusDesconhecido);
+        corpoComum.Should().Be(corpoDesconhecido);
+        api.Emails.Para(comum.EmailDono).Should().Contain(m => m.Categoria == "redefinicao-senha", "a conta comum continua recebendo");
     }
 
     [Fact]
@@ -525,6 +583,14 @@ public sealed class DemonstracaoTests(ApiFixture api) : IAsyncLifetime
 
     // ---------- apoio ----------
 
+    /// <summary>Pede a redefinição de senha (rota pública) e devolve o status e o corpo como texto.</summary>
+    private async Task<(HttpStatusCode Status, string Corpo)> EsqueciAsync(string email)
+    {
+        using var http = api.NovoHttp();
+        using var resposta = await http.PostAsJsonAsync(new Uri("/api/v1/auth/senha/esqueci", UriKind.Relative), new { email });
+        return (resposta.StatusCode, await resposta.Content.ReadAsStringAsync());
+    }
+
     /// <summary>Os e-mails das contas e dos contatos fictícios.</summary>
     private static IEnumerable<string> EmailsFicticios() =>
         Dados.Pessoas.Select(p => p.Email).Concat(Dados.Clientes.Select(c => c.Contato.Email));
@@ -624,6 +690,21 @@ public sealed class DemonstracaoTests(ApiFixture api) : IAsyncLifetime
         using var eu = await OperadorNebrys.EnviarAsync(api.NovoHttp(), HttpMethod.Get, "/api/v1/auth/eu", token);
         eu.StatusCode.Should().Be(HttpStatusCode.OK);
         return await eu.Content.ReadFromJsonAsync<JsonElement>();
+    }
+
+    /// <summary>Todas as páginas da lista de empresas da área: a coleção compartilha o banco.</summary>
+    private async Task<List<JsonElement>> EmpresasDaAreaAsync(string token)
+    {
+        var itens = new List<JsonElement>();
+        for (var pagina = 1; ; pagina++)
+        {
+            var (status, corpo) = await AreaAsync(HttpMethod.Get, $"/api/v1/nebrys/empresas?pagina={pagina}&tamanhoPagina=200", token);
+            status.Should().Be(HttpStatusCode.OK);
+            var desta = corpo.GetProperty("itens").EnumerateArray().ToList();
+            itens.AddRange(desta);
+            if (desta.Count == 0 || itens.Count >= corpo.GetProperty("total").GetInt32())
+                return itens;
+        }
     }
 
     private async Task<(HttpStatusCode Status, JsonElement Corpo)> AreaAsync(

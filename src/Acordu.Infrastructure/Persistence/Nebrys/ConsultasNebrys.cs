@@ -51,7 +51,7 @@ public sealed class ConsultasNebrys : IConsultasNebrys
             .ToListAsync(cancellationToken);
         return new ResultadoPaginado<EmpresaResumoNebrysDto>(
             linhas.Select(l => new EmpresaResumoNebrysDto(
-                l.Id, l.Nome, l.Documento, l.Situacao, l.CriadoEm, l.FimDoTeste, l.SomenteLeituraDesde, l.CanceladaEm,
+                l.Id, l.Nome, l.Documento, l.Situacao, l.Demonstracao, l.CriadoEm, l.FimDoTeste, l.SomenteLeituraDesde, l.CanceladaEm,
                 ExpurgoPrevistoEm(l), Criador(l), l.PessoasNaEquipe)).ToList(),
             paginacao.Pagina,
             paginacao.TamanhoPagina,
@@ -65,7 +65,7 @@ public sealed class ConsultasNebrys : IConsultasNebrys
         return l is null
             ? null
             : new EmpresaNebrysDto(
-                l.Id, l.Nome, l.Documento, l.Situacao, l.CriadoEm, l.FimDoTeste, l.SomenteLeituraDesde, l.CanceladaEm,
+                l.Id, l.Nome, l.Documento, l.Situacao, l.Demonstracao, l.CriadoEm, l.FimDoTeste, l.SomenteLeituraDesde, l.CanceladaEm,
                 ExpurgoPrevistoEm(l), Criador(l), l.PessoasNaEquipe, l.Versao.ToString(CultureInfo.InvariantCulture));
     }
 
@@ -136,6 +136,7 @@ public sealed class ConsultasNebrys : IConsultasNebrys
             Nome = t.Nome,
             Documento = t.Documento,
             Situacao = t.Situacao,
+            Demonstracao = t.Demonstracao,
             CriadoEm = t.CriadoEm,
             FimDoTeste = t.FimDoTeste,
             SomenteLeituraDesde = t.SomenteLeituraDesde,
@@ -162,6 +163,8 @@ public sealed class ConsultasNebrys : IConsultasNebrys
         public string? Documento { get; init; }
 
         public SituacaoEmpresa Situacao { get; init; }
+
+        public bool Demonstracao { get; init; }
 
         public DateTimeOffset CriadoEm { get; init; }
 
