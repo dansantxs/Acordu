@@ -122,7 +122,7 @@ Termos usados nos cenários:
 | F15-76 | item na triagem | alguém com `solicitacao.criar` o descarta | o item e os anexos dele são apagados; nada é respondido ao remetente | — |
 | F15-77 | item na triagem há 30 dias sem ser tratado (pergunta 9) | roda o diário | o item e os anexos dele são apagados | — |
 | F15-78 | itens na triagem das empresas A e B | uma pessoa de A lista, abre, converte ou descarta pelo id de um item de B | a lista de A não mostra os de B; pelo id, `404` (isolamento entre tenants) | — |
-| F15-79 | contato do portal (conta ou link) | tenta alcançar a triagem | `404`, como as demais rotas da equipe | — |
+| F15-79 | contato do portal (conta ou link) | tenta alcançar a triagem | `403`, como as demais rotas da equipe (ADR 0002, item 4) | — |
 | F15-80 | empresa só leitura | alguém com a permissão lê a triagem / converte, junta ou descarta | a leitura responde como antes; converter, juntar e descartar são recusados como gravação da empresa (`422 empresa-somente-leitura`), sem mudar nada | — |
 | F15-81 | duas pessoas tratam o mesmo item ao mesmo tempo | as duas confirmam | só uma ação vale; a outra recebe a recusa de que o item já foi tratado, sem segunda solicitação nem mensagem | — |
 

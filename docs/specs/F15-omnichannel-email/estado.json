@@ -23,8 +23,9 @@
     "G2": null
   },
   "ressalvas": [],
-  "bloqueios": [
-    "F15-79: o \"então\" pede 404 para o contato na triagem, mas as rotas da equipe dão 403 ao papel Cliente (ADR 0002 item 4, contrato §14). Pergunta ao Daniel."
-  ],
-  "atualizadoEm": "2026-11-25"
+  "bloqueios": [],
+  "atualizadoEm": "2026-11-25",
+  "decisoes": [
+    "25/11 F15-79: \"Troca para 403\" (Daniel, no chat): contato que tenta a triagem recebe 403, como as demais rotas da equipe (ADR 0002, item 4)"
+  ]
 }

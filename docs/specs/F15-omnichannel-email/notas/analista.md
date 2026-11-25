@@ -13,3 +13,8 @@ Premissas usadas na spec (25/11/2026). O corpo da issue #183 não foi lido pelo 
 - Valores (25 MB, 10/h por remetente, 300/dia por empresa, 30/h por solicitação, 30 dias de triagem) são recomendação para o G2, não decisão.
 - Não decidido aqui (é do arquiteto): provedor de entrada (Cloudflare Email Routing + Worker ou inbound do Resend), formato do webhook, forma do endereço da conversa (sub-endereço com token, cabeçalhos `In-Reply-To`/`References`), como se lê o resultado de SPF/DKIM/DMARC, como se tira a citação, tipos de erro e rotas.
 - `docs/estrategia-produto-acordu.md` §8 ainda lista "Entrada por e-mail" na v2: não mexi (não é documento de requisito); o orquestrador ou o arquiteto podem ajustar no mesmo PR. O contrato da API (§15, "entradas previstas para a v2") também fica para o design.
+
+## Devolução de 25/11 (F15-79)
+
+- F15-79 trocado de `404` para `403`, "como as demais rotas da equipe (ADR 0002, item 4)". Motivo: decisão do Daniel no chat ("Troca para 403"), a partir da dúvida do arquiteto (`notas/arquiteto.md`); as rotas da equipe já respondem `403` ao contato (ADR 0002 item 4, contrato §14).
+- Conta e link valem igual, por isso o texto é um só: a sessão de link também recebe `403` nas rotas da equipe (contrato §6d3, "rotas sem ✓L → 403"; §14). No código, a política `Politicas.Equipe` recusa qualquer token com `cliente_id`, que o de link também tem; `PortalLinkTests` confere `/api/v1/clientes` → `403` com a sessão de link.
