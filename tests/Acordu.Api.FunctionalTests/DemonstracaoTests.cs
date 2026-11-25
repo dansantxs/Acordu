@@ -46,6 +46,28 @@ public sealed class DemonstracaoTests(ApiFixture api) : IAsyncLifetime
         corpo.GetProperty("indicadas").GetArrayLength().Should().Be(0);
     }
 
+    // ---------- #225: a marca na lista e no detalhe da área ----------
+
+    [Fact]
+    public async Task ListarEDetalhar_Demonstracao_SoElaComAMarca()
+    {
+        var token = await OperadorNebrys.TokenAsync(api);
+        var id = (await Demonstracoes.CriarAsync(api, token)).GetProperty("empresaId").GetGuid();
+        var comum = await Equipe.CriarAsync(api);
+
+        var lista = await EmpresasDaAreaAsync(token);
+        var (_, detalhe) = await AreaAsync(HttpMethod.Get, $"/api/v1/nebrys/empresas/{id}", token);
+        var (_, detalheComum) = await AreaAsync(HttpMethod.Get, $"/api/v1/nebrys/empresas/{comum.TenantId}", token);
+
+        lista.Single(e => Cenarios.Id(e) == id).GetProperty("demonstracao").GetBoolean().Should().BeTrue();
+        lista.Single(e => Cenarios.Id(e) == comum.TenantId).GetProperty("demonstracao").GetBoolean().Should().BeFalse();
+        lista.Where(e => e.GetProperty("demonstracao").GetBoolean()).Select(Cenarios.Id)
+            .Should().ContainSingle("há uma demonstração só").Which.Should().Be(id);
+        detalhe.GetProperty("demonstracao").GetBoolean().Should().BeTrue();
+        detalhe.GetProperty("situacao").GetString().Should().Be("ATIVA");
+        detalheComum.GetProperty("demonstracao").GetBoolean().Should().BeFalse();
+    }
+
     // ---------- F14-87: criar ----------
 
     [Fact]
@@ -668,6 +690,21 @@ public sealed class DemonstracaoTests(ApiFixture api) : IAsyncLifetime
         using var eu = await OperadorNebrys.EnviarAsync(api.NovoHttp(), HttpMethod.Get, "/api/v1/auth/eu", token);
         eu.StatusCode.Should().Be(HttpStatusCode.OK);
         return await eu.Content.ReadFromJsonAsync<JsonElement>();
+    }
+
+    /// <summary>Todas as páginas da lista de empresas da área: a coleção compartilha o banco.</summary>
+    private async Task<List<JsonElement>> EmpresasDaAreaAsync(string token)
+    {
+        var itens = new List<JsonElement>();
+        for (var pagina = 1; ; pagina++)
+        {
+            var (status, corpo) = await AreaAsync(HttpMethod.Get, $"/api/v1/nebrys/empresas?pagina={pagina}&tamanhoPagina=200", token);
+            status.Should().Be(HttpStatusCode.OK);
+            var desta = corpo.GetProperty("itens").EnumerateArray().ToList();
+            itens.AddRange(desta);
+            if (desta.Count == 0 || itens.Count >= corpo.GetProperty("total").GetInt32())
+                return itens;
+        }
     }
 
     private async Task<(HttpStatusCode Status, JsonElement Corpo)> AreaAsync(

@@ -10,13 +10,23 @@ import { Pagina } from '@/shared/ui/Pagina'
 import { Paginacao } from '@/shared/ui/Paginacao'
 import { encerrarSeRecusada, type SituacaoEmpresa } from './api'
 import { consultaEmpresas, TAMANHO_PAGINA, type FiltrosEmpresas } from './consultas'
-import { data, ESTILO_SITUACAO, FILTRO_SITUACAO, marcoDaSituacao, ROTULO_SITUACAO, SITUACOES } from './situacao'
+import {
+    data,
+    ESTILO_DEMONSTRACAO,
+    ESTILO_SITUACAO,
+    FILTRO_SITUACAO,
+    marcoDaSituacao,
+    ROTULO_DEMONSTRACAO,
+    ROTULO_SITUACAO,
+    SITUACOES,
+} from './situacao'
 
 const TODAS = 'todas'
 
 /**
  * Empresas (F14-61): só os campos da relação com a Nebrys, das criadas por último, com filtro por situação. Nenhum dado
- * de negócio (F14-62): a API não manda, e a tela não tem para onde levar.
+ * de negócio (F14-62): a API não manda, e a tela não tem para onde levar. A demonstração (#225) leva a etiqueta ao lado
+ * da situação.
  */
 export function ListaEmpresas({ filtros }: { filtros: FiltrosEmpresas }) {
     const navegar = useNavigate()
@@ -88,6 +98,13 @@ export function ListaEmpresas({ filtros }: { filtros: FiltrosEmpresas }) {
                                                 >
                                                     {ROTULO_SITUACAO[e.situacao]}
                                                 </span>
+                                                {e.demonstracao && (
+                                                    <span
+                                                        className={`ml-1 rounded-couro px-2 py-0.5 text-xs whitespace-nowrap ${ESTILO_DEMONSTRACAO}`}
+                                                    >
+                                                        {ROTULO_DEMONSTRACAO}
+                                                    </span>
+                                                )}
                                                 {marco && (
                                                     <span className="mt-1 block text-xs text-suave">{marco}</span>
                                                 )}

@@ -989,7 +989,7 @@ Operação da Nebrys sobre as empresas (RF-NEB-01): só os dados da relação co
 
 ```json
 // GET /nebrys/empresas/{id} → 200 (a linha da lista é igual, sem "versao")
-{ "id": "01a1...", "nome": "Estúdio Traço", "documento": "52998224725", "situacao": "VENCIDA",
+{ "id": "01a1...", "nome": "Estúdio Traço", "documento": "52998224725", "situacao": "VENCIDA", "demonstracao": false,
   "criadaEm": "2026-10-06T13:00:00Z", "fimDoTeste": "2026-11-05T13:00:00Z",
   "somenteLeituraDesde": "2026-11-06T06:40:00Z", "canceladaEm": null, "expurgoPrevistoEm": "2026-12-06T06:40:00Z",
   "criador": { "nome": "Ana", "email": "ana@estudiotraco.com.br" }, "pessoasNaEquipe": 3, "versao": "1043" }
@@ -997,6 +997,7 @@ Operação da Nebrys sobre as empresas (RF-NEB-01): só os dados da relação co
 
 - `documento`: CPF ou CNPJ normalizado (nulo nas empresas anteriores ao F14g). Datas como no `/auth/eu` (§2): `somenteLeituraDesde` é a data do vencimento na VENCIDA (e fica na CANCELADA que veio dela), `canceladaEm` a do cancelamento, `expurgoPrevistoEm` = `somenteLeituraDesde` + `Empresas__DiasAteExpurgo` (calculada; nula fora do só leitura).
 - `criador`: nome e e-mail da conta que criou a empresa; nulo se a conta não existe mais. `pessoasNaEquipe`: vínculos da equipe, sem os contatos do portal.
+- `demonstracao` (booleano, #225): a empresa de demonstração (RF-NEB-02, F14s), sempre `ATIVA` e fora do ciclo de situação; nenhuma ação de situação vale para ela (`422`). A SPA mostra a etiqueta "Demonstração" na lista e no detalhe e, no detalhe, troca as ações pelo link para `/nebrys/demonstracao`. É da relação com a Nebrys, não dado de negócio (ADR 0014).
 - `versao`: a do `Tenant` (`xmin`), para o `If-Match` das ações sobre a empresa (F14l, design D5).
 - **Sem dado de negócio:** nem campo nem rota para clientes, contatos, solicitações, tarefas, horas, contratos ou anexos (F14-62). As consultas leem só o `Tenant`, a conta de quem o criou e a contagem da equipe (read side, "Área da Nebrys").
 
@@ -1078,7 +1079,7 @@ Operação da Nebrys sobre as empresas (RF-NEB-01): só os dados da relação co
 ```
 
 - O `GET` responde `200` também sem demonstração: o `404` da área continua sendo só a barreira.
-- `POST /nebrys/demonstracao` (sem corpo) → `201` com o corpo do `GET` (`Location: /api/v1/nebrys/demonstracao`). A empresa nasce `ATIVA`, com a marca de demonstração, sem `fimDoTeste` nem documento, fora do ciclo de situação: nenhuma ação de situação vale (`422`, F14-69), o diário nunca a vence nem a expurga, e nenhum aviso de situação sai. Nasce com os dados fictícios inteiros: a equipe (contas fictícias em `.invalid`, **sem senha**: ninguém entra com elas), papéis e calendário padrão, categorias, clientes com contato e contrato, projeto, solicitações, tarefas, horas, recorrências, o cronômetro rodando e um contato com acesso ao portal. Nada vai à outbox e nenhum e-mail sai. Já existe uma → `422 transicao-invalida` (restaure-a); um dos e-mails fictícios é de uma conta com senha → `422`, sem criar nada. Aparece na lista de empresas (§17, acima) como `ATIVA`.
+- `POST /nebrys/demonstracao` (sem corpo) → `201` com o corpo do `GET` (`Location: /api/v1/nebrys/demonstracao`). A empresa nasce `ATIVA`, com a marca de demonstração, sem `fimDoTeste` nem documento, fora do ciclo de situação: nenhuma ação de situação vale (`422`, F14-69), o diário nunca a vence nem a expurga, e nenhum aviso de situação sai. Nasce com os dados fictícios inteiros: a equipe (contas fictícias em `.invalid`, **sem senha**: ninguém entra com elas), papéis e calendário padrão, categorias, clientes com contato e contrato, projeto, solicitações, tarefas, horas, recorrências, o cronômetro rodando e um contato com acesso ao portal. Nada vai à outbox e nenhum e-mail sai. Já existe uma → `422 transicao-invalida` (restaure-a); um dos e-mails fictícios é de uma conta com senha → `422`, sem criar nada. Aparece na lista de empresas (§17, acima) como `ATIVA`, com `demonstracao: true`.
 - `POST …/restauracao` (sem corpo) → `200` com o corpo do `GET`: apaga tudo o que tem o tenant da demonstração (dados, papéis, vínculos, convites, notificações, trilha dela, anexos no storage depois do commit) e semeia de novo, com o protocolo recomeçando em 1. Ficam a empresa (com o nome e a configuração iniciais), as contas e as sessões abertas nela; as pessoas indicadas voltam como Dono. Nenhuma outra empresa é tocada (F14-88). Sem demonstração → `404`.
 - `POST …/indicacoes` (F14-90): a conta do e-mail entra na demonstração como Dono e passa a vê-la na troca de empresa (`/auth/eu`, `tenants`); quem não foi indicado não a vê nem troca para ela (`403`). E-mail vazio ou inválido → `400` em `errors.email`. **Sem conta no Acordu** (ou de uma conta fictícia) → `400` em `errors.email` com a explicação ("Este e-mail não tem conta no Acordu. A demonstração não manda convite…"), sem criar conta, vínculo nem e-mail (F14-110). Já está na demonstração → `422 transicao-invalida`. Sem demonstração → `404`.
 - `DELETE …/indicacoes/{usuarioId}` → `204`: o vínculo sai e as sessões dela na demonstração são revogadas (param na renovação). Conta que não é indicada (as fictícias) ou sem demonstração → `404`.
