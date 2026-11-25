@@ -1,0 +1,28 @@
+{
+  "marco": "F15",
+  "issue": 183,
+  "etapa": "ESPECIFICANDO",
+  "branch": "docs/F15-spec",
+  "pr": {
+    "id": null,
+    "numero": null
+  },
+  "feitos": [],
+  "contadores": {
+    "devolucoesNaEtapa": 0,
+    "rodadasNoPr": 0
+  },
+  "verificacao": [
+    "node scripts/conferir-specs.mjs",
+    "dotnet build",
+    "dotnet test",
+    "cd apps/web && pnpm test && pnpm lint && pnpm build"
+  ],
+  "portoes": {
+    "G1": "aceito suas recomendações (25/11, /roadmap: Omnichannel A, #183)",
+    "G2": null
+  },
+  "ressalvas": [],
+  "bloqueios": [],
+  "atualizadoEm": "2026-11-25"
+}
