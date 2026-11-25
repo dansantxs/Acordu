@@ -18,3 +18,24 @@ Premissas usadas na spec (25/11/2026). O corpo da issue #183 não foi lido pelo 
 
 - F15-79 trocado de `404` para `403`, "como as demais rotas da equipe (ADR 0002, item 4)". Motivo: decisão do Daniel no chat ("Troca para 403"), a partir da dúvida do arquiteto (`notas/arquiteto.md`); as rotas da equipe já respondem `403` ao contato (ADR 0002 item 4, contrato §14).
 - Conta e link valem igual, por isso o texto é um só: a sessão de link também recebe `403` nas rotas da equipe (contrato §6d3, "rotas sem ✓L → 403"; §14). No código, a política `Politicas.Equipe` recusa qualquer token com `cliente_id`, que o de link também tem; `PortalLinkTests` confere `/api/v1/clientes` → `403` com a sessão de link.
+
+## Devolução do /plano, 1ª (25/11, "siga com todos")
+
+Itens da spec do `notas/plano-1.md`; os de design (2, 6, 16, 18, 19) ficam com o arquiteto. Numeração mantida; números novos: F15-45, F15-46, F15-57, F15-82 a F15-84, F15-93 a F15-109.
+
+- 1: F15-74 exige também `cliente.gerenciar` (contrato §4.2, `POST /clientes/{id}/contatos`); F15-82 é a negação (`403`, nada muda, converter com contato existente segue liberado). RF-SOL-15 da ERS ganhou a permissão.
+- 3: F15-81 é a corrida (`409 triagem-ja-tratada`, como no D10 do design); F15-83 é o item que já saiu (`404`). Sem `If-Match` é do design.
+- 4: F15-11 tira os prefixos `Re:`/`Fwd:`/`Enc:` repetidos (alinhado ao design §1.2); F15-12 cobre o assunto que fica vazio depois disso.
+- 5: F15-84 (cliente inativo, `422 transicao-invalida`, como na reativação de contato), F15-99 (e-mail já de contato ativo, `422` do RF-CLI-02), F15-100 (`409 solicitacao-encerrada`), F15-101 (cliente ou solicitação de outra empresa, `404`), F15-102 (contato inativo ou de outro cliente, `400` no campo, como no link por solicitação, contrato §7).
+- 7: RNF-SEG-02 da ERS ganhou a exceção (a confirmar com a pergunta 8), e a linha de teste do RNF-SEG-02 diz que responder não dá visão; F15-38 cita.
+- 8: F15-23 ficou só com a resposta; F15-97 (abertura) e F15-103 (chegada à triagem).
+- 9: termo "nota do sistema" e F15-98 (nunca no portal nem em aviso; a equipe a vê como do sistema). F15-15 passa a dizer "nota do sistema".
+- 10: F15-57 (marcadora no aviso, só com o recebimento ligado) e F15-46 (resposta acima da marcadora); F15-94 (`422` sem domínio configurado); F15-90 a F15-92: todo retido conta para o mesmo aviso no sino, no máximo um por hora, a quem tem `solicitacao.criar` (como o D12).
+- 11: decidido pelo mais coerente, como recomendado no handoff: a solicitação nova do F15-33 é de **quem respondeu** (o contato da solicitação ou o colega do F15-38), porque é quem escreveu e quem recebe o aviso de recebida. RF-SOL-11 e pergunta 3 alinhados. O Daniel confirma no G2 com a pergunta 3.
+- 12: F15-17 diz sino sempre, e-mail interno com preferências (RF-NOT-04) e liberação (RF-AUT-06, só o criador antes). F15-105 (conversão sem liberação: sem aviso de recebida) e F15-106 (junção: nada ao contato; equipe como no F15-30).
+- 13: F15-107 e F15-108: os expurgos por prazo rodam também na empresa só leitura, como os que já existem (trilha, sino, atividade: `ExpurgoAtividades` apaga de todos os tenants; segurança §5, "gravações fora do change tracker que seguem no só leitura: … os expurgos"). ADR 0015 item 4 tira dos jobs por tenant só recorrências, alertas, cronômetros e fechamento automático; RF-EMP-02 cita esses. A ERS não mudou.
+- 14: F15-93 e F15-104 (trilha); F15-45 (RF-SOL-09: a resposta não mexe no prazo do fechamento, contado de `ResolvidaEm`, modelo §4.3); cabeçalho com RF-SOL-09, RF-NOT-03, RF-NOT-04, RNF-SEG-05, RNF-SEG-08, RNF-OPS-01 e ADR 0008; F15-109 (log sem endereço nem conteúdo, API e adaptador).
+- 15: F15-16 e F15-50 verificados pelos cabeçalhos de resposta em teste, Gmail e Outlook à mão no primeiro deploy; F15-89 verificado no teste do adaptador de entrada e na API; F15-26 e F15-27 dizem o que se observa (item na triagem com o motivo; solicitação com o contato original) e como se verifica (resultado simulado em teste, e-mail real no primeiro deploy). O spike do carimbo antes do G2 fica com o Daniel.
+- 17: F15-95 (o `GET` da configuração traz endereço e opção a qualquer pessoa da equipe) e F15-96 (demonstração sem endereço; ligar `422 transicao-invalida`, como o design D9).
+- 20: saíram da spec SPF/DKIM/DMARC (F15-26, termo "remetente conhecido"), a lista de cabeçalhos do "e-mail automático" e o `Auto-Submitted` (F15-55). Termo novo "registro de entrada", sem dizer o que guarda nem o prazo. O RNF-SEG-11 da ERS ainda cita SPF/DKIM/DMARC e `Auto-Submitted`: não mexi (não estava no pedido).
+- F15-108 depende do termo "registro de entrada"; o prazo (7 dias no D6) é do design.
