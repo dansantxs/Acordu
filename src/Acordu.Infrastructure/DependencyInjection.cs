@@ -89,6 +89,8 @@ public static class DependencyInjection
         services.AddSingleton<ApagadorDeEmpresa>();
         services.AddSingleton<ExpurgoCadastros>();
         services.AddSingleton<Operacao.ExpurgoOcorrenciasErro>();
+        // Expurgo dos convites de empresa encerrados (#213): só banco e relógio, como os outros expurgos de retenção.
+        services.AddSingleton<Persistence.ConvitesEmpresa.ExpurgoConvitesEmpresa>();
         services.AddSingleton<Operacao.MarcasDeOperacao>();
         services.AddScoped<Application.Sugestoes.ISugestoes, Persistence.Sugestoes.RegistroSugestoes>();
         services.AddSingleton<Application.Abstractions.Operacao.IMarcasDeOperacao>(sp => sp.GetRequiredService<Operacao.MarcasDeOperacao>());

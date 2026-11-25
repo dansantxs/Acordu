@@ -106,7 +106,7 @@ public sealed class OperacaoTests
         propriedades.Should().BeEquivalentTo(["UsuarioId", "Texto", "Versao", "Forma", "RegistradoEm"]);
     }
 
-    [Fact] // Design do F14, D4 e D12 (F14n)
+    [Fact] // Design do F14, D4 e D12 (F14n); o expurgo do diário (#213) fica no namespace do registro
     public void ConviteEmpresa_SoOCadastroEAAreaDaNebrysUsam()
     {
         const string convite = "Acordu.Domain.Entities.ConviteEmpresa";
@@ -120,8 +120,8 @@ public sealed class OperacaoTests
             .GetResult();
 
         fora.IsSuccessful.Should().BeTrue(
-            "a tabela global dos convites de empresa é do registro dos convites e da área da Nebrys; o cadastro usa o registro "
-            + "(ADR 0014, item 7); violações: {0}",
+            "a tabela global dos convites de empresa é do registro dos convites, do expurgo deles no diário (#213) e da área "
+            + "da Nebrys; o cadastro usa o registro (ADR 0014, item 7); violações: {0}",
             string.Join(", ", fora.FailingTypeNames ?? []));
     }
 

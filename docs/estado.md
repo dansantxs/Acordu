@@ -7,6 +7,7 @@ Visão geral curta, atualizada por cada PR (`docs/processo.md` §1). O históric
 - **Melhoria #191 — só leitura nos controles fora do `Botao`** (branch `fix/191-so-leitura-controles`): na empresa só leitura, os menus "⋯" do quadro e do plano da semana, o arrastar, os campos do painel que salvam ao mudar (responsável, prioridade, categoria, projeto, prazo, dia planejado, estimativa, visível no portal, checklist) e os botões de texto que gravam (contatos, portal do contato, equipe, papéis, categorias, horas, comentários, cronômetro, cancelar tarefa e solicitação, revogar link) ficam indisponíveis com a explicação da faixa, pelo `useBloqueioDeGravacao` e pelos compartilhados `BotaoTexto`, `MenuAcoes` e `CampoSelecao` com `grava`. Seguir, sino e Minha conta seguem disponíveis. Testes em `features/casca/controlesSomenteLeitura.test.tsx`.
 
 - **Fix #222 — link do convite preso em "Carregando o convite…"** (bug de produção, branch `fix/convite-sessao-inicio`): sem sessão, a primeira carga recebia 401 do refresh e tratava isso como encerramento, que limpava o cache do TanStack Query e derrubava a consulta que a tela de link já tinha feito. Agora só o fim de uma sessão ativa é `encerramento` (limpa o cache e avisa as outras abas); abrir sem sessão fica `anonima` com motivo `inicio`, sem limpar nem avisar. Cobre também `/convite`, `/portal/convite` e `/conta/confirmacao` (que confirmava duas vezes). Testes de regressão em `features/sessao/linksSemSessao.test.tsx`.
+- **Melhoria #213 — expurgo dos convites de empresa** (branch `feat/213-expurgo-convites`): passo `expurgo-convites` no job diário, depois do `expurgo-empresas`, que apaga o convite 90 dias (constante, como os outros expurgos de retenção) depois de usado, revogado ou vencido; o pendente válido fica, e as entradas da lista de espera não mudam (ficam até o descarte, decisão de 24/11). Conta em `convitesRemovidos` e no resumo do #deploy. A política de privacidade ganha a frase na #194.
 
 ## Marco concluído
 
@@ -27,8 +28,7 @@ Visão geral curta, atualizada por cada PR (`docs/processo.md` §1). O históric
    - monitoramento: F13-02 (Error Reporting), trace do F13a, pilhas do Firefox e do Safari (F13d), vigia e KV (F13h);
    - riscos (deploy-ci §10): `max-instances`, limpeza do Artifact Registry e lifecycle do bucket, `acordu_app` sem DDL e autoscaling do Neon;
    - arquivos órfãos no storage se o processo cair entre o commit do expurgo e a remoção (F14i): limpeza por prefixo `{tenantId}/` como melhoria.
-3. Política de privacidade e termos de uso: rascunho na `main` (F14f, #193); marcadores para depois do registro da Nebrys (#194).
-4. Expurgo dos convites de empresa e das entradas convidadas da lista de espera (retenção dos e-mails): #213.
+3. Política de privacidade e termos de uso: rascunho na `main` (F14f, #193); marcadores para depois do registro da Nebrys (#194), que também acrescenta a retenção dos convites ("Convites: o e-mail fica até 90 dias depois de usado, revogado ou vencido", #213).
 
 ## Para o Daniel confirmar
 
