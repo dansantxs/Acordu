@@ -111,6 +111,42 @@ public sealed class DemonstracaoTests(ApiFixture api) : IAsyncLifetime
     }
 
     [Fact]
+    public async Task EsqueciSenha_ContaFicticia_RespostaNeutraESemEmail() // RF-NEB-02, #226: nada sai da demonstração
+    {
+        var token = await OperadorNebrys.TokenAsync(api);
+        await Demonstracoes.CriarAsync(api, token);
+        var comum = await Equipe.CriarAsync(api);
+        var desconhecido = $"ninguem-{Guid.NewGuid():N}@exemplo.com";
+
+        var (statusDesconhecido, corpoDesconhecido) = await EsqueciAsync(desconhecido);
+        foreach (var email in ContasFicticias())
+        {
+            var (status, corpo) = await EsqueciAsync(email);
+            status.Should().Be(statusDesconhecido, "a resposta não revela nada ({0})", email);
+            corpo.Should().Be(corpoDesconhecido);
+            api.Emails.Para(email).Should().BeEmpty("a conta fictícia não recebe a redefinição ({0})", email);
+        }
+
+        statusDesconhecido.Should().Be(HttpStatusCode.Accepted);
+        await using (var escopo = api.App.Services.CreateAsyncScope())
+        {
+            var usuarios = escopo.ServiceProvider.GetRequiredService<UserManager<Usuario>>();
+            await using var db = api.DaEquipe(Guid.NewGuid());
+            foreach (var email in ContasFicticias())
+            {
+                var conta = await usuarios.FindByEmailAsync(email);
+                (await db.Set<TokenConta>().IgnoreQueryFilters().CountAsync(t => t.UsuarioId == conta!.Id))
+                    .Should().Be(0, "nenhum link de redefinição é emitido ({0})", email);
+            }
+        }
+
+        var (statusComum, corpoComum) = await EsqueciAsync(comum.EmailDono);
+        statusComum.Should().Be(statusDesconhecido);
+        corpoComum.Should().Be(corpoDesconhecido);
+        api.Emails.Para(comum.EmailDono).Should().Contain(m => m.Categoria == "redefinicao-senha", "a conta comum continua recebendo");
+    }
+
+    [Fact]
     public async Task Criar_JaExiste_422SemOutra() // há uma demonstração só
     {
         var token = await OperadorNebrys.TokenAsync(api);
@@ -524,6 +560,14 @@ public sealed class DemonstracaoTests(ApiFixture api) : IAsyncLifetime
     }
 
     // ---------- apoio ----------
+
+    /// <summary>Pede a redefinição de senha (rota pública) e devolve o status e o corpo como texto.</summary>
+    private async Task<(HttpStatusCode Status, string Corpo)> EsqueciAsync(string email)
+    {
+        using var http = api.NovoHttp();
+        using var resposta = await http.PostAsJsonAsync(new Uri("/api/v1/auth/senha/esqueci", UriKind.Relative), new { email });
+        return (resposta.StatusCode, await resposta.Content.ReadAsStringAsync());
+    }
 
     /// <summary>Os e-mails das contas e dos contatos fictícios.</summary>
     private static IEnumerable<string> EmailsFicticios() =>
