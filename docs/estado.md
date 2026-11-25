@@ -1,9 +1,10 @@
 # Acordu — Estado
 
-Visão geral curta, atualizada por cada PR (`docs/processo.md` §1). O histórico está no git, nos PRs e no registro dos designs. Atualizado em 24/11/2026 (F14s, empresa de demonstração: último PR do F14).
+Visão geral curta, atualizada por cada PR (`docs/processo.md` §1). O histórico está no git, nos PRs e no registro dos designs. Atualizado em 25/11/2026 (fix #222, sessão na abertura sem conta).
 
 ## Em revisão
 
+- **Fix #222 — link do convite preso em "Carregando o convite…"** (bug de produção, branch `fix/convite-sessao-inicio`): sem sessão, a primeira carga recebia 401 do refresh e tratava isso como encerramento, que limpava o cache do TanStack Query e derrubava a consulta que a tela de link já tinha feito. Agora só o fim de uma sessão ativa é `encerramento` (limpa o cache e avisa as outras abas); abrir sem sessão fica `anonima` com motivo `inicio`, sem limpar nem avisar. Cobre também `/convite`, `/portal/convite` e `/conta/confirmacao` (que confirmava duas vezes). Testes de regressão em `features/sessao/linksSemSessao.test.tsx`.
 - **F14s — empresa de demonstração** (#182, último PR do F14): na área da Nebrys (`/nebrys/demonstracao`), criar a empresa de demonstração com os dados fictícios do manual (o mesmo `demonstracao.json`), ATIVA e fora do ciclo de situação, que nunca vence nem é expurgada; restaurar volta aos dados iniciais sem tocar outra empresa; indicar quem entra nela como Dono, só com conta que já existe (sem conta: recusa no campo, nada criado). Nada sai dela por e-mail: convite e link por e-mail → `422 demonstracao-sem-envio`, link sem e-mail é emitido, avisos descartados (F14-87 a F14-90, F14-110). `/auth/eu` ganha `tenant.demonstracao`, e a casca mostra a faixa da demonstração. Sem migration (a marca veio no F14l); OpenAPI (`nebrys.json`, `interno.json`) e tipos atualizados à mão e com `pnpm api:tipos`. Spec do F14 com status Concluída.
 
 ## Marco concluído
