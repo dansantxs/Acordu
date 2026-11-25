@@ -15,7 +15,8 @@ namespace Acordu.Application.Nebrys;
 /// própria requisição, depois do commit, como os da conta: não há tenant para a outbox, e o token não pode ficar em claro
 /// em lugar nenhum. A falha no envio não desfaz a ação e volta como <c>emailEnviado: false</c> (a Nebrys reenvia). Toda
 /// ação vai para a trilha sem tenant, com o operador e o e-mail afetado (D14), nunca o token. O convite pode sair de uma
-/// entrada da lista de espera (F14-76, F14o), que fica guardada nele como origem.
+/// entrada da lista de espera (F14-76, F14o), que fica guardada nele como origem. E-mail de domínio descartável não recebe
+/// convite (#224; RF-AUT-10, F14-60): o cadastro com ele seria recusado, e o convite ficaria pendente sem uso.
 /// </summary>
 public sealed class ConvitesEmpresaNebrys
 {
@@ -24,6 +25,15 @@ public sealed class ConvitesEmpresaNebrys
 
     /// <summary>Categoria do e-mail do convite (log do envio, sem conteúdo).</summary>
     public const string CategoriaEmail = "convite-empresa";
+
+    /// <summary>
+    /// Recusa do convite a partir de uma entrada da lista cujo e-mail é de domínio descartável (#224): a inscrição já recusa
+    /// esse e-mail, mas a lista de domínios pode ter ganhado o dele depois. A rota não tem corpo, então a recusa não é de
+    /// campo: é <c>422 transicao-invalida</c> (a entrada não passa a convidada), com o texto para a Nebrys.
+    /// </summary>
+    public const string EntradaComEmailDescartavel =
+        "O e-mail desta entrada é de um endereço temporário (descartável), e o cadastro com ele seria recusado: "
+        + "o convite não foi emitido.";
 
     private const string AlvoConvite = "convite";
 
@@ -34,6 +44,7 @@ public sealed class ConvitesEmpresaNebrys
     private readonly IEnviadorEmail _email;
     private readonly EnderecosPublicos _enderecos;
     private readonly OpcoesCadastro _cadastro;
+    private readonly IDominiosDescartaveis _descartaveis;
 
     public ConvitesEmpresaNebrys(
         IConvitesEmpresa convites,
@@ -42,7 +53,8 @@ public sealed class ConvitesEmpresaNebrys
         TimeProvider relogio,
         IEnviadorEmail email,
         EnderecosPublicos enderecos,
-        OpcoesCadastro cadastro)
+        OpcoesCadastro cadastro,
+        IDominiosDescartaveis descartaveis)
     {
         ArgumentNullException.ThrowIfNull(convites);
         ArgumentNullException.ThrowIfNull(trilha);
@@ -51,6 +63,7 @@ public sealed class ConvitesEmpresaNebrys
         ArgumentNullException.ThrowIfNull(email);
         ArgumentNullException.ThrowIfNull(enderecos);
         ArgumentNullException.ThrowIfNull(cadastro);
+        ArgumentNullException.ThrowIfNull(descartaveis);
         _convites = convites;
         _trilha = trilha;
         _unidade = unidade;
@@ -58,11 +71,13 @@ public sealed class ConvitesEmpresaNebrys
         _email = email;
         _enderecos = enderecos;
         _cadastro = cadastro;
+        _descartaveis = descartaveis;
     }
 
     /// <summary>
     /// Emite o convite e envia o link (F14-72): o convite fica pendente, com a validade. E-mail vazio ou inválido →
-    /// <c>400</c> no campo <c>email</c>; e-mail que já tem um convite em aberto (nem usado nem revogado, vencido ou não) →
+    /// <c>400</c> no campo <c>email</c>; e-mail de domínio descartável → <c>400</c> no <c>email</c>, com o texto do cadastro
+    /// (#224, F14-60); e-mail que já tem um convite em aberto (nem usado nem revogado, vencido ou não) →
     /// <c>422 transicao-invalida</c>: a Nebrys reenvia ou revoga o que existe.
     /// </summary>
     public Task<ConviteEnviado> EmitirAsync(ConviteEmpresaRequest corpo, CancellationToken cancellationToken = default)
@@ -74,7 +89,8 @@ public sealed class ConvitesEmpresaNebrys
     /// <summary>
     /// Emite o convite a partir de uma entrada da lista de espera (F14-76, por <see cref="ListaEsperaNebrys"/>): para o
     /// e-mail dela, com a entrada de origem no convite, e a entrada fica convidada na mesma gravação, com a trilha das duas.
-    /// Entrada já convidada, ou e-mail com convite em aberto → <c>422 transicao-invalida</c>, sem gravar nem enviar.
+    /// Entrada já convidada, e-mail de domínio descartável (#224) ou e-mail com convite em aberto →
+    /// <c>422 transicao-invalida</c>, sem gravar nem enviar.
     /// </summary>
     public Task<ConviteEnviado> EmitirDaListaAsync(EntradaListaEspera entrada, CancellationToken cancellationToken = default)
     {
@@ -89,6 +105,12 @@ public sealed class ConvitesEmpresaNebrys
         // A entrada primeiro: a já convidada recebe a explicação dela, e não a do convite em aberto que saiu dela.
         origem?.Convidar(agora);
         var (convite, token) = ConviteEmpresa.Emitir(Guid.CreateVersion7(), email, _cadastro.ValidadeConvite, agora, origem?.Id);
+        // Depois do formato (o e-mail já normalizado) e antes do banco: nada gravado, nenhum e-mail, sem trilha (#224).
+        if (origem is null)
+            MensagensDeCadastro.RecusarDescartavel(_descartaveis, convite.Email, CampoEmail);
+        else if (_descartaveis.EhDescartavel(convite.Email))
+            throw new TransicaoInvalidaException(EntradaComEmailDescartavel);
+
         if (await _convites.HaEmAbertoAsync(convite.Email, cancellationToken))
         {
             throw new TransicaoInvalidaException(

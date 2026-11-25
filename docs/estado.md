@@ -1,13 +1,10 @@
 # Acordu — Estado
 
-Visão geral curta, atualizada por cada PR (`docs/processo.md` §1). O histórico está no git, nos PRs e no registro dos designs. Atualizado em 25/11/2026 (fix #222, sessão na abertura sem conta).
+Visão geral curta, atualizada por cada PR (`docs/processo.md` §1). O histórico está no git, nos PRs e no registro dos designs. Atualizado em 25/11/2026 (melhoria #224, convite da área recusa e-mail descartável).
 
 ## Em revisão
 
-- **Melhoria #191 — só leitura nos controles fora do `Botao`** (branch `fix/191-so-leitura-controles`): na empresa só leitura, os menus "⋯" do quadro e do plano da semana, o arrastar, os campos do painel que salvam ao mudar (responsável, prioridade, categoria, projeto, prazo, dia planejado, estimativa, visível no portal, checklist) e os botões de texto que gravam (contatos, portal do contato, equipe, papéis, categorias, horas, comentários, cronômetro, cancelar tarefa e solicitação, revogar link) ficam indisponíveis com a explicação da faixa, pelo `useBloqueioDeGravacao` e pelos compartilhados `BotaoTexto`, `MenuAcoes` e `CampoSelecao` com `grava`. Seguir, sino e Minha conta seguem disponíveis. Testes em `features/casca/controlesSomenteLeitura.test.tsx`.
-
-- **Fix #222 — link do convite preso em "Carregando o convite…"** (bug de produção, branch `fix/convite-sessao-inicio`): sem sessão, a primeira carga recebia 401 do refresh e tratava isso como encerramento, que limpava o cache do TanStack Query e derrubava a consulta que a tela de link já tinha feito. Agora só o fim de uma sessão ativa é `encerramento` (limpa o cache e avisa as outras abas); abrir sem sessão fica `anonima` com motivo `inicio`, sem limpar nem avisar. Cobre também `/convite`, `/portal/convite` e `/conta/confirmacao` (que confirmava duas vezes). Testes de regressão em `features/sessao/linksSemSessao.test.tsx`.
-- **Melhoria #213 — expurgo dos convites de empresa** (branch `feat/213-expurgo-convites`): passo `expurgo-convites` no job diário, depois do `expurgo-empresas`, que apaga o convite 90 dias (constante, como os outros expurgos de retenção) depois de usado, revogado ou vencido; o pendente válido fica, e as entradas da lista de espera não mudam (ficam até o descarte, decisão de 24/11). Conta em `convitesRemovidos` e no resumo do #deploy. A política de privacidade ganha a frase na #194.
+- **Melhoria #224 — convite de empresa recusa e-mail descartável** (branch `feat/224-convite-descartavel`): `POST /nebrys/convites` recusa o e-mail de domínio descartável (lista versionada do F14-60) com `400` em `errors.email` e o texto do cadastro, sem convite, e-mail nem trilha; a janela "Novo convite" já mostra o erro no campo. O convite a partir da lista de espera também recusa (a lista de domínios pode ter ganhado o da entrada depois da inscrição), com `422 transicao-invalida` e a explicação na janela, e a entrada continua aguardando.
 
 ## Marco concluído
 
@@ -39,8 +36,6 @@ Visão geral curta, atualizada por cada PR (`docs/processo.md` §1). O históric
 - F14s, fora do design: `EmpresaNebrysDto` não traz a marca de demonstração, então na lista da área ela aparece como ATIVA comum e o detalhe oferece ações que dão 422. Recomendação: incluir a marca depois, ajustando o teste do F14-62.
 
 - F14r: "sem dado" para oferecer os exemplos é a regra do expurgo de cadastro, então convidar alguém para a equipe (vínculo de outra pessoa) já tira a oferta. O expurgo do cadastro abandonado continua contando os exemplos como dado (uma empresa só com exemplos não sai em 7 dias; sai pelo expurgo das só leitura). Se preferir, os dois passam a ignorar os exemplos.
-
-- F14p: a Nebrys ainda emite convite de empresa para e-mail de domínio descartável, e o cadastro com esse convite é recusado no e-mail (F14-60 vale com ou sem convite). Se preferir, a emissão na área passa a recusar também (melhoria pequena).
 
 - P1-06 e P1-21 com o "então" mudado no P1b (#178).
 - Conferências manuais do P1 no primeiro uso de cada comando: `/roadmap` (P1-26, P1-27: usado em 12/11 para escolher o F14), `/marco` no F14 (P1-11 a P1-19, P1-23 a P1-25), `/deploy` no próximo deploy (P1-28, P1-29; o primeiro não foi pelo comando), `/triagem` no primeiro aviso e na primeira sugestão (P1-30 a P1-32). Registrar no design do P1 quando acontecer.

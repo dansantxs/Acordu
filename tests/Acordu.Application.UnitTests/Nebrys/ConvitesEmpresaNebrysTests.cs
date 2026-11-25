@@ -92,6 +92,36 @@ public sealed class ConvitesEmpresaNebrysTests
         m.Trilha.Registros.Should().BeEmpty();
     }
 
+    [Fact] // #224: o cadastro recusaria o e-mail (F14-60), então o convite não sai
+    public async Task Emitir_EmailDescartavel_400NoEmailSemGravarEnviarNemTrilha()
+    {
+        var m = new Montagem(descartavel: "descartavel.test");
+
+        var acao = () => m.Casos.EmitirAsync(new ConviteEmpresaRequest(" Ana@Descartavel.TEST "));
+
+        var erro = (await acao.Should().ThrowAsync<ArgumentException>()).Which;
+        erro.ParamName.Should().Be(ConvitesEmpresaNebrys.CampoEmail);
+        erro.Message.Should().StartWith(MensagensDeCadastro.EmailDescartavel);
+        m.Dominios.Conferidos.Should().ContainSingle().Which.Should().Be("ana@descartavel.test", "confere o e-mail já normalizado");
+        m.Convites.Adicionados.Should().BeEmpty();
+        m.Convites.ConsultasEmAberto.Should().Be(0, "a recusa vem antes do banco");
+        m.Unidade.Salvamentos.Should().Be(0);
+        m.Email.Mensagens.Should().BeEmpty();
+        m.Trilha.Registros.Should().BeEmpty();
+    }
+
+    [Fact] // #224: o domínio comum segue recebendo o convite
+    public async Task Emitir_EmailDeDominioComum_ConfereAListaEEmite()
+    {
+        var m = new Montagem(descartavel: "descartavel.test");
+
+        var enviado = await m.Casos.EmitirAsync(new ConviteEmpresaRequest("ana@exemplo.com"));
+
+        enviado.EmailEnviado.Should().BeTrue();
+        m.Dominios.Conferidos.Should().ContainSingle().Which.Should().Be("ana@exemplo.com");
+        m.Convites.Adicionados.Should().ContainSingle();
+    }
+
     [Fact] // F14-73
     public async Task Reenviar_Pendente_LinkNovoOAnteriorParaDeValerETrilhaComAntesEDepois()
     {
@@ -167,15 +197,18 @@ public sealed class ConvitesEmpresaNebrysTests
 
     private sealed class Montagem
     {
-        public Montagem(bool falharEnvio = false)
+        public Montagem(bool falharEnvio = false, string? descartavel = null)
         {
             Email = new EmailFalso(falharEnvio, Unidade);
+            Dominios = new DominiosFalsos(descartavel);
             Casos = new ConvitesEmpresaNebrys(
                 Convites, Trilha, Unidade, new RelogioFixo(Agora), Email, new EnderecosPublicos(new Uri("https://acordu.app.br/")),
-                new OpcoesCadastro(ModoCadastro.Convite, 7));
+                new OpcoesCadastro(ModoCadastro.Convite, 7), Dominios);
         }
 
         public ConvitesFalsos Convites { get; } = new();
+
+        public DominiosFalsos Dominios { get; }
 
         public TrilhaFalsa Trilha { get; } = new();
 
@@ -194,13 +227,29 @@ public sealed class ConvitesEmpresaNebrysTests
 
         public HashSet<string> EmAberto { get; } = [];
 
+        public int ConsultasEmAberto { get; private set; }
+
         public void Adicionar(ConviteEmpresa convite) => Adicionados.Add(convite);
 
         public Task<ConviteEmpresa?> ObterAsync(Guid id, CancellationToken cancellationToken = default) =>
             Task.FromResult(Existentes.FirstOrDefault(c => c.Id == id));
 
-        public Task<bool> HaEmAbertoAsync(string emailNormalizado, CancellationToken cancellationToken = default) =>
-            Task.FromResult(EmAberto.Contains(emailNormalizado));
+        public Task<bool> HaEmAbertoAsync(string emailNormalizado, CancellationToken cancellationToken = default)
+        {
+            ConsultasEmAberto++;
+            return Task.FromResult(EmAberto.Contains(emailNormalizado));
+        }
+    }
+
+    private sealed class DominiosFalsos(string? descartavel) : IDominiosDescartaveis
+    {
+        public List<string> Conferidos { get; } = [];
+
+        public bool EhDescartavel(string email)
+        {
+            Conferidos.Add(email);
+            return descartavel is not null && email.EndsWith($"@{descartavel}", StringComparison.Ordinal);
+        }
     }
 
     private sealed class TrilhaFalsa : ITrilhaDaOperacao
