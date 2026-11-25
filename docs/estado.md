@@ -1,10 +1,10 @@
 # Acordu — Estado
 
-Visão geral curta, atualizada por cada PR (`docs/processo.md` §1). O histórico está no git, nos PRs e no registro dos designs. Atualizado em 25/11/2026 (melhoria #224, convite da área recusa e-mail descartável).
+Visão geral curta, atualizada por cada PR (`docs/processo.md` §1). O histórico está no git, nos PRs e no registro dos designs. Atualizado em 25/11/2026 (melhoria #225, marca de demonstração na área da Nebrys).
 
 ## Em revisão
 
-- **Melhoria #224 — convite de empresa recusa e-mail descartável** (branch `feat/224-convite-descartavel`): `POST /nebrys/convites` recusa o e-mail de domínio descartável (lista versionada do F14-60) com `400` em `errors.email` e o texto do cadastro, sem convite, e-mail nem trilha; a janela "Novo convite" já mostra o erro no campo. O convite a partir da lista de espera também recusa (a lista de domínios pode ter ganhado o da entrada depois da inscrição), com `422 transicao-invalida` e a explicação na janela, e a entrada continua aguardando.
+- **Melhoria #225 — marca de demonstração na área da Nebrys** (branch `feat/225-marca-demonstracao`): a lista e o detalhe das empresas (`EmpresaResumoNebrysDto`, `EmpresaNebrysDto`) trazem `demonstracao` (booleano); a área mostra a etiqueta "Demonstração" ao lado da situação e, no detalhe da demonstração, troca as ações de situação (que dariam `422`) pelo link para `/nebrys/demonstracao`. Nenhuma rota nova.
 
 ## Marco concluído
 
@@ -33,7 +33,6 @@ Visão geral curta, atualizada por cada PR (`docs/processo.md` §1). O históric
 - F14s, escolha fora do design: a demonstração nasce com o envio liberado (sem isso as telas desabilitam convites com "confirme o e-mail"); o bloqueio olha a marca antes da liberação, então nada sai. Recomendação: manter.
 - F14s, escolha fora do design: a criação e a restauração recusam com 422 se houver conta com senha num dos e-mails fictícios (senão essa pessoa entraria como da equipe). Recomendação: manter.
 - F14s, fora dos cenários: `DELETE /nebrys/demonstracao/indicacoes/{usuarioId}` e a ação "Tirar" na tela, para desfazer uma indicação. Recomendação: manter; alternativa: tirar.
-- F14s, fora do design: `EmpresaNebrysDto` não traz a marca de demonstração, então na lista da área ela aparece como ATIVA comum e o detalhe oferece ações que dão 422. Recomendação: incluir a marca depois, ajustando o teste do F14-62.
 
 - F14r: "sem dado" para oferecer os exemplos é a regra do expurgo de cadastro, então convidar alguém para a equipe (vínculo de outra pessoa) já tira a oferta. O expurgo do cadastro abandonado continua contando os exemplos como dado (uma empresa só com exemplos não sai em 7 dias; sai pelo expurgo das só leitura). Se preferir, os dois passam a ignorar os exemplos.
 

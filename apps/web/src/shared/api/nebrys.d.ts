@@ -794,6 +794,7 @@ export interface components {
             nome: string
             documento: null | string
             situacao: components['schemas']['SituacaoEmpresa']
+            demonstracao: boolean
             /** Format: date-time */
             criadaEm: string
             /** Format: date-time */
@@ -815,6 +816,7 @@ export interface components {
             nome: string
             documento: null | string
             situacao: components['schemas']['SituacaoEmpresa']
+            demonstracao: boolean
             /** Format: date-time */
             criadaEm: string
             /** Format: date-time */

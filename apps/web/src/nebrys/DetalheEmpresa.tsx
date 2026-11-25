@@ -17,9 +17,11 @@ import { consultaEmpresa } from './consultas'
 import {
     ACOES_POR_SITUACAO,
     data,
+    ESTILO_DEMONSTRACAO,
     ESTILO_SITUACAO,
     marcoDaSituacao,
     ROTULO_ACAO,
+    ROTULO_DEMONSTRACAO,
     ROTULO_SITUACAO,
     type Acao,
 } from './situacao'
@@ -64,7 +66,8 @@ async function agir(empresa: Empresa, acao: Acao, ate?: string): Promise<Empresa
 /**
  * Detalhe de uma empresa (F14-62) e as ações sobre a situação (F14-65 a F14-69, F14-106, F14-107). Cada ação manda o
  * `If-Match` com a `versao` lida (D5): `409` recarrega a empresa e avisa; `422` mostra a explicação da API; `404` diz
- * que a empresa não existe mais.
+ * que a empresa não existe mais. A demonstração (#225) fica fora do ciclo de situação e não tem as ações (a API recusaria
+ * com `422`): no lugar delas, o caminho para a tela da demonstração.
  */
 export function DetalheEmpresa({ id }: { id: string }) {
     const consulta = useQuery(consultaEmpresa(id))
@@ -98,6 +101,11 @@ export function DetalheEmpresa({ id }: { id: string }) {
                         <span className={`rounded-couro px-2 py-0.5 text-xs ${ESTILO_SITUACAO[e.situacao]}`}>
                             {ROTULO_SITUACAO[e.situacao]}
                         </span>
+                        {e.demonstracao && (
+                            <span className={`ml-1 rounded-couro px-2 py-0.5 text-xs ${ESTILO_DEMONSTRACAO}`}>
+                                {ROTULO_DEMONSTRACAO}
+                            </span>
+                        )}
                         {marco && <span className="mt-1 block text-suave">{marco}</span>}
                     </Dado>
                     <Dado rotulo="CPF ou CNPJ">
@@ -120,7 +128,7 @@ export function DetalheEmpresa({ id }: { id: string }) {
                     <Dado rotulo="Expurgo previsto">{e.expurgoPrevistoEm ? data(e.expurgoPrevistoEm) : '—'}</Dado>
                 </dl>
             </section>
-            <AcoesEmpresa empresa={e} aoAvisar={setAviso} />
+            {e.demonstracao ? <SituacaoDaDemonstracao /> : <AcoesEmpresa empresa={e} aoAvisar={setAviso} />}
         </Pagina>
     )
 }
@@ -130,6 +138,24 @@ function VoltarParaLista() {
         <Link to="/nebrys/empresas" className="underline-offset-4 hover:underline">
             Empresas
         </Link>
+    )
+}
+
+/** No lugar das ações: a demonstração se cuida na tela dela (restaurar, indicar quem entra). */
+function SituacaoDaDemonstracao() {
+    return (
+        <section aria-labelledby="acoes-empresa" className="flex flex-col gap-3">
+            <h2 id="acoes-empresa" className="font-titulo text-xl font-semibold">
+                Situação
+            </h2>
+            <p className="text-sm text-suave">
+                A empresa de demonstração fica fora do ciclo de situação: nunca vence nem é expurgada, e não se ativa,
+                prorroga, cancela ou reativa. Restaurar os dados e indicar quem entra ficam na tela da demonstração.
+            </p>
+            <Link to="/nebrys/demonstracao" className="w-fit font-semibold underline underline-offset-4">
+                Abrir a demonstração
+            </Link>
+        </section>
     )
 }
 

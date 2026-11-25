@@ -38,6 +38,7 @@ public sealed class AcoesNebrysTests(ApiFixture api)
 
         status.Should().Be(HttpStatusCode.OK, "corpo: {0}", corpo);
         corpo.GetProperty("situacao").GetString().Should().Be("ATIVA");
+        corpo.GetProperty("demonstracao").GetBoolean().Should().BeFalse("empresa comum (#225)");
         corpo.GetProperty("fimDoTeste").ValueKind.Should().Be(JsonValueKind.Null);
         corpo.GetProperty("somenteLeituraDesde").ValueKind.Should().Be(JsonValueKind.Null);
         corpo.GetProperty("expurgoPrevistoEm").ValueKind.Should().Be(JsonValueKind.Null);
@@ -57,6 +58,7 @@ public sealed class AcoesNebrysTests(ApiFixture api)
 
         status.Should().Be(HttpStatusCode.OK, "corpo: {0}", corpo);
         corpo.GetProperty("situacao").GetString().Should().Be("ATIVA");
+        corpo.GetProperty("demonstracao").GetBoolean().Should().BeFalse("empresa comum (#225)");
         corpo.GetProperty("fimDoTeste").ValueKind.Should().Be(JsonValueKind.Null);
         (await GravavelDesdeAsync(equipe.TenantId)).Should().BeNull("a empresa em teste não estava só leitura");
         await Cenarios.ClienteAsync(equipe);
@@ -77,6 +79,7 @@ public sealed class AcoesNebrysTests(ApiFixture api)
 
         status.Should().Be(HttpStatusCode.OK, "corpo: {0}", corpo);
         corpo.GetProperty("situacao").GetString().Should().Be("TESTE");
+        corpo.GetProperty("demonstracao").GetBoolean().Should().BeFalse("empresa comum (#225)");
         corpo.GetProperty("fimDoTeste").GetDateTimeOffset().Should().Be(InicioDoDia(ate.AddDays(1)));
         corpo.GetProperty("somenteLeituraDesde").ValueKind.Should().Be(JsonValueKind.Null);
         await Cenarios.ClienteAsync(equipe, "Cliente depois da prorrogação");
@@ -94,6 +97,7 @@ public sealed class AcoesNebrysTests(ApiFixture api)
 
         status.Should().Be(HttpStatusCode.OK, "corpo: {0}", corpo);
         corpo.GetProperty("situacao").GetString().Should().Be("TESTE");
+        corpo.GetProperty("demonstracao").GetBoolean().Should().BeFalse("empresa comum (#225)");
         corpo.GetProperty("fimDoTeste").GetDateTimeOffset().Should().Be(InicioDoDia(ate.AddDays(1)));
         (await GravavelDesdeAsync(equipe.TenantId)).Should().BeNull();
     }
@@ -127,6 +131,7 @@ public sealed class AcoesNebrysTests(ApiFixture api)
 
         status.Should().Be(HttpStatusCode.OK, "corpo: {0}", corpo);
         corpo.GetProperty("situacao").GetString().Should().Be("CANCELADA");
+        corpo.GetProperty("demonstracao").GetBoolean().Should().BeFalse("empresa comum (#225)");
         corpo.GetProperty("canceladaEm").GetDateTimeOffset().Should().Be(agora);
         corpo.GetProperty("somenteLeituraDesde").GetDateTimeOffset().Should().Be(agora);
         corpo.GetProperty("expurgoPrevistoEm").GetDateTimeOffset().Should().Be(agora + PrazoAteExpurgo);
@@ -145,6 +150,7 @@ public sealed class AcoesNebrysTests(ApiFixture api)
 
         status.Should().Be(HttpStatusCode.OK, "corpo: {0}", corpo);
         corpo.GetProperty("situacao").GetString().Should().Be("CANCELADA");
+        corpo.GetProperty("demonstracao").GetBoolean().Should().BeFalse("empresa comum (#225)");
         corpo.GetProperty("canceladaEm").GetDateTimeOffset().Should().Be(api.Relogio.Agora);
         corpo.GetProperty("somenteLeituraDesde").GetDateTimeOffset().Should().Be(vencimento);
         corpo.GetProperty("expurgoPrevistoEm").GetDateTimeOffset().Should().Be(vencimento + PrazoAteExpurgo);
@@ -165,6 +171,7 @@ public sealed class AcoesNebrysTests(ApiFixture api)
 
         status.Should().Be(HttpStatusCode.OK, "corpo: {0}", corpo);
         corpo.GetProperty("situacao").GetString().Should().Be("ATIVA");
+        corpo.GetProperty("demonstracao").GetBoolean().Should().BeFalse("empresa comum (#225)");
         corpo.GetProperty("canceladaEm").ValueKind.Should().Be(JsonValueKind.Null);
         corpo.GetProperty("somenteLeituraDesde").ValueKind.Should().Be(JsonValueKind.Null);
         corpo.GetProperty("expurgoPrevistoEm").ValueKind.Should().Be(JsonValueKind.Null);
@@ -369,6 +376,7 @@ public sealed class AcoesNebrysTests(ApiFixture api)
 
         status.Should().Be(HttpStatusCode.OK, "corpo: {0}", corpo);
         corpo.GetProperty("situacao").GetString().Should().Be("TESTE");
+        corpo.GetProperty("demonstracao").GetBoolean().Should().BeFalse("empresa comum (#225)");
         corpo.GetProperty("fimDoTeste").GetDateTimeOffset().Should().Be(InicioDoDia(Hoje().AddDays(1)));
     }
 

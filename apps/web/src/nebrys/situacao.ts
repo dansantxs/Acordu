@@ -32,6 +32,10 @@ export const ESTILO_SITUACAO: Record<SituacaoEmpresa, string> = {
     CANCELADA: 'bg-trilho text-suave',
 }
 
+/** Etiqueta da empresa de demonstração (#225), ao lado da situação: ela é ATIVA, mas fora do ciclo. */
+export const ROTULO_DEMONSTRACAO = 'Demonstração'
+export const ESTILO_DEMONSTRACAO = 'bg-acento-suave text-acento-texto'
+
 export type Acao = 'ativacao' | 'prorrogacao' | 'cancelamento' | 'reativacao'
 
 /** As ações que valem em cada situação (contrato §17, tabela de transições); a API confere de novo (`422`). */
