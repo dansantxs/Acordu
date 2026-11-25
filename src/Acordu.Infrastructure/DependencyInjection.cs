@@ -139,6 +139,7 @@ public static class DependencyInjection
         services.AddScoped<Persistence.Aceites.RegistroAceites>();
         // Convites de empresa (F14n, design D12): o cadastro usa o registro; as ações da área, a porta.
         services.AddScoped<Persistence.ConvitesEmpresa.RegistroConvitesEmpresa>();
+        services.AddSingleton<Persistence.ConvitesEmpresa.ExpurgoConvitesEmpresa>();
         services.AddScoped<Application.Nebrys.IConvitesEmpresa>(sp => sp.GetRequiredService<Persistence.ConvitesEmpresa.RegistroConvitesEmpresa>());
         // Lista de espera (F14o, design D12): a página pública grava pela inscrição; as ações da área, pela porta.
         services.AddScoped<Persistence.ListaEspera.RegistroListaEspera>();
