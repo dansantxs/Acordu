@@ -51,6 +51,22 @@ describe('portal: base', () => {
         expect(itens).toEqual(['Sair'])
     })
 
+    it('Portal_Lista_SemFalarNoWhatsApp (#208)', async () => {
+        comContato({
+            'GET /api/v1/portal/solicitacoes': () => pagina([resumo('s1', 12, 'Site fora do ar', 'EM_ANDAMENTO')]),
+        })
+        await abrir('/portal')
+        await screen.findByRole('link', { name: /Site fora do ar/ })
+        expect(screen.queryByRole('link', { name: /WhatsApp/ })).not.toBeInTheDocument()
+    })
+
+    it('Portal_Telas_NaoUsamOAtalhoDoWhatsApp (#208)', () => {
+        const fontes = import.meta.glob(['./*.tsx', '!./*.test.tsx'], { query: '?raw', import: 'default', eager: true })
+        expect(Object.keys(fontes).length).toBeGreaterThan(0)
+        for (const [arquivo, fonte] of Object.entries(fontes))
+            expect(String(fonte), arquivo).not.toMatch(/LinkWhatsApp|linkWhatsApp|wa\.me/)
+    })
+
     it('lista em andamento, conta o que espera o contato e troca de grupo pelo endereço', async () => {
         const chamadas = comContato({
             'GET /api/v1/portal/solicitacoes': (_, url) =>

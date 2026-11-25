@@ -15,6 +15,14 @@ export const NOTAS: NotaVersao[] = [
     {
         data: '2026-11-25',
         publico: 'equipe',
+        titulo: 'Falar no WhatsApp com o cliente',
+        itens: [
+            'Na ficha do cliente, ao lado do telefone do cliente e de cada contato, "WhatsApp" abre a conversa numa aba nova. O Acordu não envia nem guarda a mensagem, e o atalho funciona mesmo com a empresa só leitura.',
+        ],
+    },
+    {
+        data: '2026-11-25',
+        publico: 'equipe',
         titulo: 'Só leitura mais clara nos painéis',
         itens: [
             'Com a empresa só leitura, além dos botões, ficam indisponíveis os menus ⋯ do quadro e do plano da semana, o arrastar, os campos do painel que salvam ao mudar (responsável, prazo, estimativa, checklist) e as ações de texto como "Convidar para o portal", "Editar" e "Excluir". Cada um explica o motivo, sem precisar tentar.',
