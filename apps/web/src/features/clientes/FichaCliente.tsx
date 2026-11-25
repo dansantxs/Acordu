@@ -8,7 +8,7 @@ import { avisar, avisarErro } from '@/shared/avisos/avisos'
 import { formatarCep, formatarDocumento, formatarTelefone } from '@/shared/format/mascaras'
 import type { Perfil } from '@/shared/sessao/perfil'
 import { Alerta } from '@/shared/ui/Alerta'
-import { Botao } from '@/shared/ui/Botao'
+import { Botao, BotaoTexto } from '@/shared/ui/Botao'
 import { Confirmacao } from '@/shared/ui/Confirmacao'
 import { EstadoVazio } from '@/shared/ui/EstadoVazio'
 import { Icone } from '@/shared/ui/Icone'
@@ -308,20 +308,22 @@ function Ficha({
                                                 )}
                                                 {editavel && (
                                                     <>
-                                                        <Button
+                                                        <BotaoTexto
+                                                            grava
                                                             onPress={() => setContatoEmEdicao(contato)}
                                                             aria-label={`Editar ${contato.nome}`}
                                                             className="text-acento-texto hover:underline"
                                                         >
                                                             Editar
-                                                        </Button>
-                                                        <Button
+                                                        </BotaoTexto>
+                                                        <BotaoTexto
+                                                            grava
                                                             onPress={() => setContatoInativando(contato)}
                                                             aria-label={`Inativar ${contato.nome}`}
                                                             className="text-suave hover:underline"
                                                         >
                                                             Inativar
-                                                        </Button>
+                                                        </BotaoTexto>
                                                     </>
                                                 )}
                                             </span>
@@ -350,14 +352,15 @@ function Ficha({
                                                     {contato.nome} · {contato.email}
                                                 </span>
                                                 {editavel && (
-                                                    <Button
+                                                    <BotaoTexto
+                                                        grava
                                                         onPress={() => reativacaoContato.mutate(contato)}
                                                         isDisabled={reativacaoContato.isPending}
                                                         aria-label={`Reativar ${contato.nome}`}
                                                         className="text-acento-texto hover:underline"
                                                     >
                                                         Reativar
-                                                    </Button>
+                                                    </BotaoTexto>
                                                 )}
                                             </li>
                                         ))}

@@ -5,7 +5,7 @@ import { consultaCategorias } from '@/features/solicitacoes/consultas'
 import { errosDeCampo, mensagemDeErro } from '@/shared/api/mensagens'
 import { avisar, avisarErro } from '@/shared/avisos/avisos'
 import { Alerta } from '@/shared/ui/Alerta'
-import { Botao } from '@/shared/ui/Botao'
+import { Botao, BotaoTexto } from '@/shared/ui/Botao'
 import { CampoTexto } from '@/shared/ui/CampoTexto'
 import { EstadoVazio } from '@/shared/ui/EstadoVazio'
 import { Janela } from '@/shared/ui/Janela'
@@ -83,20 +83,22 @@ export function SecaoCategorias() {
                             <li key={c.id} className="flex items-center justify-between gap-3 px-4 py-2.5">
                                 <span>{c.nome}</span>
                                 <span className="flex gap-3">
-                                    <Button
+                                    <BotaoTexto
+                                        grava
                                         onPress={() => setRenomeando(c)}
                                         aria-label={`Renomear ${c.nome}`}
                                         className="text-acento-texto hover:underline"
                                     >
                                         Renomear
-                                    </Button>
-                                    <Button
+                                    </BotaoTexto>
+                                    <BotaoTexto
+                                        grava
                                         onPress={() => situacao.mutate({ c, ativa: false })}
                                         aria-label={`Inativar ${c.nome}`}
                                         className="text-suave hover:underline"
                                     >
                                         Inativar
-                                    </Button>
+                                    </BotaoTexto>
                                 </span>
                             </li>
                         ))}
@@ -117,13 +119,14 @@ export function SecaoCategorias() {
                                 {inativas.map((c) => (
                                     <li key={c.id} className="flex items-center justify-between gap-3 px-4 py-2">
                                         <span>{c.nome}</span>
-                                        <Button
+                                        <BotaoTexto
+                                            grava
                                             onPress={() => situacao.mutate({ c, ativa: true })}
                                             aria-label={`Reativar ${c.nome}`}
                                             className="text-acento-texto hover:underline"
                                         >
                                             Reativar
-                                        </Button>
+                                        </BotaoTexto>
                                     </li>
                                 ))}
                             </ul>

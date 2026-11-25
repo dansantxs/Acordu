@@ -1,12 +1,12 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useMemo, useState } from 'react'
-import { Button } from 'react-aria-components'
 import { mensagemDeErro } from '@/shared/api/mensagens'
 import { avisar } from '@/shared/avisos/avisos'
 import { consultaEquipe } from '@/shared/equipe/consultaEquipe'
 import { dataHora } from '@/shared/format/prazo'
 import { AnexosParaBaixar, CaixaMensagem, TextoComMencoes } from '@/shared/mensagens/Mensagens'
 import { Alerta } from '@/shared/ui/Alerta'
+import { BotaoTexto } from '@/shared/ui/Botao'
 import { Confirmacao } from '@/shared/ui/Confirmacao'
 import { comentar, consultaComentarios, excluirComentario, type Comentario } from './consultas'
 
@@ -63,7 +63,8 @@ export function Comentarios({
                                 </span>
                                 <time dateTime={c.registradoEm}>{dataHora(c.registradoEm, fuso)}</time>
                                 {c.autor.id === usuarioId && podeComentar && (
-                                    <Button
+                                    <BotaoTexto
+                                        grava
                                         onPress={() => {
                                             exclusao.reset()
                                             setExcluindo(c)
@@ -71,7 +72,7 @@ export function Comentarios({
                                         className="ml-auto text-xs text-suave hover:text-vermelho hover:underline"
                                     >
                                         Excluir
-                                    </Button>
+                                    </BotaoTexto>
                                 )}
                             </p>
                             {c.texto && <TextoComMencoes texto={c.texto} nomes={nomes} />}

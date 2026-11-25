@@ -1,13 +1,13 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useId, useState } from 'react'
-import { Button, Form, Radio, RadioGroup } from 'react-aria-components'
+import { Form, Radio, RadioGroup } from 'react-aria-components'
 import { SEM_ENVIO } from '@/features/sessao/AvisoConfirmacao'
 import { mensagemDeErro } from '@/shared/api/mensagens'
 import { avisar } from '@/shared/avisos/avisos'
 import { dataHora } from '@/shared/format/prazo'
 import { useAgora } from '@/shared/hooks/useAgora'
 import { Alerta } from '@/shared/ui/Alerta'
-import { Botao } from '@/shared/ui/Botao'
+import { Botao, BotaoTexto } from '@/shared/ui/Botao'
 import { Confirmacao } from '@/shared/ui/Confirmacao'
 import { Janela } from '@/shared/ui/Janela'
 import {
@@ -75,7 +75,8 @@ export function AcoesPortal({
         <>
             {!acesso ? (
                 <>
-                    <Button
+                    <BotaoTexto
+                        grava
                         onPress={() => setAberta('convite')}
                         aria-label={`Convidar ${contato.nome} para o portal`}
                         className={`${botao} disabled:text-suave disabled:no-underline`}
@@ -83,7 +84,7 @@ export function AcoesPortal({
                         aria-describedby={envioLiberado ? undefined : motivo}
                     >
                         Convidar para o portal
-                    </Button>
+                    </BotaoTexto>
                     {!envioLiberado && (
                         <span id={motivo} className="text-xs text-suave">
                             {SEM_ENVIO}
@@ -92,7 +93,8 @@ export function AcoesPortal({
                 </>
             ) : acesso.situacao === 'CONVIDADO' ? (
                 <>
-                    <Button
+                    <BotaoTexto
+                        grava
                         onPress={() => setAberta('convite')}
                         aria-label={`Reenviar convite de ${contato.nome}`}
                         className={`${botao} disabled:text-suave disabled:no-underline`}
@@ -100,36 +102,39 @@ export function AcoesPortal({
                         aria-describedby={envioLiberado ? undefined : motivo}
                     >
                         Reenviar convite
-                    </Button>
+                    </BotaoTexto>
                     {!envioLiberado && (
                         <span id={motivo} className="text-xs text-suave">
                             {SEM_ENVIO}
                         </span>
                     )}
-                    <Button
+                    <BotaoTexto
+                        grava
                         onPress={() => setAberta('revogacao')}
                         aria-label={`Cancelar convite de ${contato.nome}`}
                         className="text-suave hover:underline"
                     >
                         Cancelar convite
-                    </Button>
+                    </BotaoTexto>
                 </>
             ) : (
                 <>
-                    <Button
+                    <BotaoTexto
+                        grava
                         onPress={() => setAberta('escopo')}
                         aria-label={`Mudar acesso de ${contato.nome}`}
                         className={botao}
                     >
                         Mudar acesso
-                    </Button>
-                    <Button
+                    </BotaoTexto>
+                    <BotaoTexto
+                        grava
                         onPress={() => setAberta('revogacao')}
                         aria-label={`Revogar acesso de ${contato.nome}`}
                         className="text-suave hover:underline"
                     >
                         Revogar acesso
-                    </Button>
+                    </BotaoTexto>
                 </>
             )}
             {(aberta === 'convite' || aberta === 'escopo') && (

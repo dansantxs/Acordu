@@ -88,6 +88,26 @@ export function useGravacao(): Gravacao {
     return useContext(ContextoGravacao)
 }
 
+export interface BloqueioDeGravacao {
+    /** O controle grava e a empresa está só leitura: fica indisponível. */
+    bloqueado: boolean
+    /** `aria-describedby` do controle: o que ele já tinha mais, se bloqueado, a explicação da casca. */
+    descritoPor: string | undefined
+}
+
+/**
+ * A mesma regra do `<Botao grava>` para qualquer controle que grava dado da empresa (#191): menus, campos que salvam
+ * ao mudar, botões de texto e o arrastar. `grava` falso (o que é da pessoa) nunca bloqueia.
+ */
+export function useBloqueioDeGravacao(grava = true, descritoPor?: string): BloqueioDeGravacao {
+    const gravacao = useGravacao()
+    const bloqueado = grava && !gravacao.podeGravar
+    return {
+        bloqueado,
+        descritoPor: bloqueado ? [descritoPor, gravacao.idMotivo].filter(Boolean).join(' ') || undefined : descritoPor,
+    }
+}
+
 /** Tipos de erro da recusa por só leitura: o da equipe e o neutro do portal (contrato §13). */
 const TIPOS_RECUSA = ['empresa-somente-leitura', 'portal-indisponivel']
 

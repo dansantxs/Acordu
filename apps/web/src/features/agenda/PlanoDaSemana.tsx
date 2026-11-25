@@ -7,17 +7,16 @@ import {
     GridListItem,
     Header,
     isTextDropItem,
-    Menu,
     MenuItem,
     MenuSection,
-    MenuTrigger,
-    Popover,
     Separator,
     useDragAndDrop,
 } from 'react-aria-components'
 import { avisar, avisarErro } from '@/shared/avisos/avisos'
 import { diaPorExtenso, somarDias } from '@/shared/format/datas'
 import { formatarDuracao } from '@/shared/format/duracao'
+import { useBloqueioDeGravacao } from '@/shared/sessao/gravacao'
+import { MenuAcoes } from '@/shared/ui/MenuAcoes'
 import type { Agenda, CapacidadeSemana, ItemAgenda } from './consultas'
 import { planejarTarefa } from './consultas'
 import { ChipItem } from './LinhaDoTempo'
@@ -39,7 +38,8 @@ interface Destino {
 /**
  * Plano da semana (F6d, decisão 4): uma coluna por pessoa (mais "Sem responsável") e uma linha por dia útil. Arrastar
  * uma tarefa muda o dia planejado e, entre colunas, o responsável, com desfazer no aviso; o menu "Mover para" faz o
- * mesmo pelo teclado e no toque. Solicitações e recorrências aparecem, mas não se movem (prazo do SLA e regra).
+ * mesmo pelo teclado e no toque. Solicitações e recorrências aparecem, mas não se movem (prazo do SLA e regra). Com a
+ * empresa só leitura (#191) não se arrasta, e o "⋯" fica indisponível com a explicação.
  */
 export function PlanoDaSemana({
     agenda,
@@ -233,10 +233,12 @@ function Celula({
     const navegar = useNavigate()
     const tarefas = itens.filter((i) => i.tipo === 'TAREFA')
     const fixos = itens.filter((i) => i.tipo !== 'TAREFA')
-    const recebe = linha !== ATRASADAS && podeEditar
+    const { bloqueado } = useBloqueioDeGravacao()
+    const arrasta = podeEditar && !bloqueado
+    const recebe = linha !== ATRASADAS && arrasta
     const rotulo = `${coluna.nome}, ${linha === ATRASADAS ? 'atrasadas' : diaPorExtenso(linha)}`
     const { dragAndDropHooks } = useDragAndDrop({
-        isDisabled: !podeEditar,
+        isDisabled: !arrasta,
         getItems: (chaves) =>
             [...chaves].map((chave) => ({ [TIPO_ARRASTO]: String(chave), 'text/plain': String(chave) })),
         acceptedDragTypes: [TIPO_ARRASTO],
@@ -263,7 +265,7 @@ function Celula({
             <GridList
                 aria-label={rotulo}
                 items={tarefas}
-                dragAndDropHooks={dragAndDropHooks}
+                dragAndDropHooks={arrasta ? dragAndDropHooks : undefined}
                 onAction={(chave) => void navegar({ to: '/tarefas/$id', params: { id: String(chave) } })}
                 renderEmptyState={() => <span className="block min-h-6" />}
                 className="flex flex-1 flex-col gap-1 rounded-couro outline-none data-[drop-target]:bg-acento-suave data-[drop-target]:ring-2 data-[drop-target]:ring-acento"
@@ -274,7 +276,7 @@ function Celula({
                         textValue={t.titulo}
                         className={`flex items-start gap-1 rounded-couro border-l-4 bg-superficie px-1.5 py-1 text-xs shadow-sm outline-none data-[dragging]:opacity-50 data-[focus-visible]:ring-2 data-[focus-visible]:ring-acento ${t.situacao === 'VENCIDO' ? 'border-vermelho' : 'border-linha'}`}
                     >
-                        {podeEditar && (
+                        {arrasta && (
                             <Button slot="drag" aria-label={`Arrastar ${t.titulo}`} className="cursor-grab text-suave">
                                 ⋮⋮
                             </Button>
@@ -320,44 +322,40 @@ function MoverPara({
 }) {
     const item = 'cursor-default px-3 py-1.5 text-sm outline-none data-[focused]:bg-trilho'
     return (
-        <MenuTrigger>
-            <Button aria-label={`Mover ${tarefa.titulo}`} className="rounded-couro px-1 text-suave hover:bg-trilho">
-                ⋯
-            </Button>
-            <Popover className="max-h-96 min-w-48 overflow-y-auto rounded-couro border border-linha bg-superficie py-1 shadow-lg">
-                <Menu
-                    aria-label="Mover para"
-                    className="outline-none"
-                    onAction={(chave) => {
-                        const [tipo, valor] = String(chave).split(':') as [string, string]
-                        // Sair de "Atrasadas" sem escolher dia vai para o primeiro dia da semana.
-                        const dia = atual.dia === ATRASADAS ? dias[0]! : atual.dia
-                        aoMover(tarefa, tipo === 'dia' ? { dia: valor, pessoa: atual.pessoa } : { dia, pessoa: valor })
-                    }}
-                >
-                    <MenuSection>
-                        <Header className="px-3 pt-1 pb-0.5 text-xs font-semibold text-suave">Dia</Header>
-                        {dias
-                            .filter((d) => d !== atual.dia)
-                            .map((d) => (
-                                <MenuItem key={d} id={`dia:${d}`} className={item}>
-                                    <span className="first-letter:uppercase">{diaPorExtenso(d)}</span>
-                                </MenuItem>
-                            ))}
-                    </MenuSection>
-                    <Separator className="my-1 border-t border-linha" />
-                    <MenuSection>
-                        <Header className="px-3 pt-1 pb-0.5 text-xs font-semibold text-suave">Pessoa</Header>
-                        {colunas
-                            .filter((c) => c.id !== atual.pessoa)
-                            .map((c) => (
-                                <MenuItem key={c.id} id={`pessoa:${c.id}`} className={item}>
-                                    {c.nome}
-                                </MenuItem>
-                            ))}
-                    </MenuSection>
-                </Menu>
-            </Popover>
-        </MenuTrigger>
+        <MenuAcoes
+            grava
+            rotulo={`Mover ${tarefa.titulo}`}
+            rotuloMenu="Mover para"
+            classeBotao="rounded-couro px-1 text-suave hover:bg-trilho"
+            classeMenu="max-h-96 min-w-48 overflow-y-auto rounded-couro border border-linha bg-superficie py-1 shadow-lg"
+            aoEscolher={(chave) => {
+                const [tipo, valor] = String(chave).split(':') as [string, string]
+                // Sair de "Atrasadas" sem escolher dia vai para o primeiro dia da semana.
+                const dia = atual.dia === ATRASADAS ? dias[0]! : atual.dia
+                aoMover(tarefa, tipo === 'dia' ? { dia: valor, pessoa: atual.pessoa } : { dia, pessoa: valor })
+            }}
+        >
+            <MenuSection>
+                <Header className="px-3 pt-1 pb-0.5 text-xs font-semibold text-suave">Dia</Header>
+                {dias
+                    .filter((d) => d !== atual.dia)
+                    .map((d) => (
+                        <MenuItem key={d} id={`dia:${d}`} className={item}>
+                            <span className="first-letter:uppercase">{diaPorExtenso(d)}</span>
+                        </MenuItem>
+                    ))}
+            </MenuSection>
+            <Separator className="my-1 border-t border-linha" />
+            <MenuSection>
+                <Header className="px-3 pt-1 pb-0.5 text-xs font-semibold text-suave">Pessoa</Header>
+                {colunas
+                    .filter((c) => c.id !== atual.pessoa)
+                    .map((c) => (
+                        <MenuItem key={c.id} id={`pessoa:${c.id}`} className={item}>
+                            {c.nome}
+                        </MenuItem>
+                    ))}
+            </MenuSection>
+        </MenuAcoes>
     )
 }
