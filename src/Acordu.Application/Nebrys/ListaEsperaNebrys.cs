@@ -36,8 +36,8 @@ public sealed class ListaEsperaNebrys
 
     /// <summary>
     /// Convida a partir da entrada (F14-76): um convite de empresa sai para o e-mail dela, com a entrada de origem, e a
-    /// entrada fica convidada, na mesma gravação. Entrada já convidada, ou e-mail que já tem um convite em aberto →
-    /// <c>422 transicao-invalida</c>, sem gravar nem enviar; inexistente → <c>404</c>.
+    /// entrada fica convidada, na mesma gravação. Entrada já convidada, e-mail de domínio descartável (#224) ou e-mail que
+    /// já tem um convite em aberto → <c>422 transicao-invalida</c>, sem gravar nem enviar; inexistente → <c>404</c>.
     /// </summary>
     public async Task<ConviteEnviado> ConvidarAsync(Guid id, CancellationToken cancellationToken = default) =>
         await _convites.EmitirDaListaAsync(await CarregarAsync(id, cancellationToken), cancellationToken);
