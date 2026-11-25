@@ -5,7 +5,6 @@ Visão geral curta, atualizada por cada PR (`docs/processo.md` §1). O históric
 ## Em revisão
 
 - **Melhoria #224 — convite de empresa recusa e-mail descartável** (branch `feat/224-convite-descartavel`): `POST /nebrys/convites` recusa o e-mail de domínio descartável (lista versionada do F14-60) com `400` em `errors.email` e o texto do cadastro, sem convite, e-mail nem trilha; a janela "Novo convite" já mostra o erro no campo. O convite a partir da lista de espera também recusa (a lista de domínios pode ter ganhado o da entrada depois da inscrição), com `422 transicao-invalida` e a explicação na janela, e a entrada continua aguardando.
-- **Fix #222 — link do convite preso em "Carregando o convite…"** (bug de produção, branch `fix/convite-sessao-inicio`): sem sessão, a primeira carga recebia 401 do refresh e tratava isso como encerramento, que limpava o cache do TanStack Query e derrubava a consulta que a tela de link já tinha feito. Agora só o fim de uma sessão ativa é `encerramento` (limpa o cache e avisa as outras abas); abrir sem sessão fica `anonima` com motivo `inicio`, sem limpar nem avisar. Cobre também `/convite`, `/portal/convite` e `/conta/confirmacao` (que confirmava duas vezes). Testes de regressão em `features/sessao/linksSemSessao.test.tsx`.
 
 ## Marco concluído
 
@@ -26,8 +25,7 @@ Visão geral curta, atualizada por cada PR (`docs/processo.md` §1). O históric
    - monitoramento: F13-02 (Error Reporting), trace do F13a, pilhas do Firefox e do Safari (F13d), vigia e KV (F13h);
    - riscos (deploy-ci §10): `max-instances`, limpeza do Artifact Registry e lifecycle do bucket, `acordu_app` sem DDL e autoscaling do Neon;
    - arquivos órfãos no storage se o processo cair entre o commit do expurgo e a remoção (F14i): limpeza por prefixo `{tenantId}/` como melhoria.
-3. Política de privacidade e termos de uso: rascunho na `main` (F14f, #193); marcadores para depois do registro da Nebrys (#194).
-4. Expurgo dos convites de empresa e das entradas convidadas da lista de espera (retenção dos e-mails): #213.
+3. Política de privacidade e termos de uso: rascunho na `main` (F14f, #193); marcadores para depois do registro da Nebrys (#194), que também acrescenta a retenção dos convites ("Convites: o e-mail fica até 90 dias depois de usado, revogado ou vencido", #213).
 
 ## Para o Daniel confirmar
 

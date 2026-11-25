@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Link } from '@tanstack/react-router'
 import { useState } from 'react'
-import { Button, Form } from 'react-aria-components'
+import { Form } from 'react-aria-components'
 import { consultaTarefa } from '@/features/tarefas/consultas'
 import { mensagemDeErro } from '@/shared/api/mensagens'
 import { ErroApi } from '@/shared/api/problema'
@@ -18,7 +18,7 @@ import {
 import { formatarDuracao, lerDuracao } from '@/shared/format/duracao'
 import { useAgora } from '@/shared/hooks/useAgora'
 import { Alerta } from '@/shared/ui/Alerta'
-import { Botao } from '@/shared/ui/Botao'
+import { Botao, BotaoTexto } from '@/shared/ui/Botao'
 import { CampoTexto } from '@/shared/ui/CampoTexto'
 import { Confirmacao } from '@/shared/ui/Confirmacao'
 import { Janela } from '@/shared/ui/Janela'
@@ -64,12 +64,13 @@ export function IndicadorCronometro() {
                     {c.tarefa.nome}
                 </Link>
             </span>
-            <Button
+            <BotaoTexto
+                grava
                 onPress={() => setParando(true)}
                 className="rounded-couro border border-lateral-linha px-2 py-1 text-xs font-semibold hover:bg-lateral-ativo"
             >
                 {c.esquecido ? 'Parar e ajustar' : 'Parar'}
-            </Button>
+            </BotaoTexto>
             {c.esquecido && <span className="w-full text-xs font-semibold">Ficou ligado?</span>}
             <JanelaParada cronometro={c} aberta={parando} aoMudar={setParando} />
         </div>
@@ -350,13 +351,14 @@ function FormularioParada({ cronometro: c, aoFechar }: { cronometro: Cronometro;
                 )}
             </div>
             <div className="flex flex-wrap items-center justify-end gap-3">
-                <Button
+                <BotaoTexto
+                    grava
                     onPress={() => setDescartando(true)}
                     isDisabled={parada.isPending}
                     className="mr-auto text-sm text-suave hover:text-vermelho hover:underline"
                 >
                     Descartar sem apontar
-                </Button>
+                </BotaoTexto>
                 <Botao variante="secundario" onPress={aoFechar} isDisabled={parada.isPending}>
                     Continuar contando
                 </Botao>

@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useId, useState } from 'react'
-import { Button, Form } from 'react-aria-components'
+import { Form } from 'react-aria-components'
 import { pode } from '@/features/casca/navegacao'
 import { SEM_ENVIO } from '@/features/sessao/AvisoConfirmacao'
 import {
@@ -23,7 +23,7 @@ import { formatarDuracao, lerDuracao } from '@/shared/format/duracao'
 import { dataHora } from '@/shared/format/prazo'
 import type { Perfil } from '@/shared/sessao/perfil'
 import { Alerta } from '@/shared/ui/Alerta'
-import { Botao } from '@/shared/ui/Botao'
+import { Botao, BotaoTexto } from '@/shared/ui/Botao'
 import { CampoSelecao } from '@/shared/ui/CampoSelecao'
 import { CampoTexto } from '@/shared/ui/CampoTexto'
 import { Confirmacao } from '@/shared/ui/Confirmacao'
@@ -138,30 +138,33 @@ export function SecaoEquipe({ perfil }: { perfil: Perfil }) {
                                     <span className="flex gap-3">
                                         {gerenciaPapeis && (
                                             <>
-                                                <Button
+                                                <BotaoTexto
+                                                    grava
                                                     onPress={() => setAcao({ tipo: 'papel', pessoa: p })}
                                                     aria-label={`Trocar o papel de ${p.nome}`}
                                                     className="text-acento-texto hover:underline"
                                                 >
                                                     Papel
-                                                </Button>
-                                                <Button
+                                                </BotaoTexto>
+                                                <BotaoTexto
+                                                    grava
                                                     onPress={() => setAcao({ tipo: 'capacidade', pessoa: p })}
                                                     aria-label={`Capacidade de ${p.nome}`}
                                                     className="text-acento-texto hover:underline"
                                                 >
                                                     Capacidade
-                                                </Button>
+                                                </BotaoTexto>
                                             </>
                                         )}
                                         {podeRemover && !eu && (
-                                            <Button
+                                            <BotaoTexto
+                                                grava
                                                 onPress={() => setAcao({ tipo: 'remocao', pessoa: p })}
                                                 aria-label={`Remover ${p.nome}`}
                                                 className="text-suave hover:text-vermelho hover:underline"
                                             >
                                                 Remover
-                                            </Button>
+                                            </BotaoTexto>
                                         )}
                                     </span>
                                 </li>
@@ -194,13 +197,14 @@ export function SecaoEquipe({ perfil }: { perfil: Perfil }) {
                                                 ? `vale até ${dataHora(c.expiraEm, perfil.tenant.fusoHorario)}`
                                                 : 'e-mail saindo'}
                                         </span>
-                                        <Button
+                                        <BotaoTexto
+                                            grava
                                             onPress={() => revogacao.mutate(c)}
                                             aria-label={`Cancelar o convite de ${c.email}`}
                                             className="text-suave hover:underline"
                                         >
                                             Cancelar
-                                        </Button>
+                                        </BotaoTexto>
                                     </li>
                                 ))}
                             </ul>
