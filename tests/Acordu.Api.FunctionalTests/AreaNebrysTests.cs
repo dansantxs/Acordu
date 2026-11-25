@@ -40,6 +40,7 @@ public sealed partial class AreaNebrysTests(ApiFixture api)
         empresa.GetProperty("nome").GetString().Should().Be("Estúdio Traço");
         empresa.GetProperty("documento").GetString().Should().Be(documento);
         empresa.GetProperty("situacao").GetString().Should().Be("TESTE");
+        empresa.GetProperty("demonstracao").GetBoolean().Should().BeFalse();
         empresa.GetProperty("criadaEm").GetDateTimeOffset().Should().Be(criadaEm);
         empresa.GetProperty("fimDoTeste").GetDateTimeOffset().Should().Be(criadaEm + TimeSpan.FromDays(30));
         empresa.GetProperty("somenteLeituraDesde").ValueKind.Should().Be(JsonValueKind.Null);
@@ -129,9 +130,11 @@ public sealed partial class AreaNebrysTests(ApiFixture api)
         var detalhe = JsonDocument.Parse(texto).RootElement;
         detalhe.EnumerateObject().Select(p => p.Name).Should().BeEquivalentTo(
         [
-            "id", "nome", "documento", "situacao", "criadaEm", "fimDoTeste", "somenteLeituraDesde", "canceladaEm",
-            "expurgoPrevistoEm", "criador", "pessoasNaEquipe", "versao",
+            "id", "nome", "documento", "situacao", "demonstracao", "criadaEm", "fimDoTeste", "somenteLeituraDesde",
+            "canceladaEm", "expurgoPrevistoEm", "criador", "pessoasNaEquipe", "versao",
         ]);
+        // A marca de demonstração (#225) é da relação com a Nebrys, não dado de negócio (ADR 0014).
+        detalhe.GetProperty("demonstracao").GetBoolean().Should().BeFalse();
         detalhe.GetProperty("criador").EnumerateObject().Select(p => p.Name).Should().BeEquivalentTo(["nome", "email"]);
         texto.Should().NotContain("Padaria Segredo do Prestador").And.NotContain("Tarefa secreta").And.NotContain("banner");
         Cenarios.Id(detalhe).Should().Be(equipe.TenantId);
