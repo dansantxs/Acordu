@@ -4,6 +4,7 @@ Visão geral curta, atualizada por cada PR (`docs/processo.md` §1). O históric
 
 ## Em revisão
 
+- **Melhoria #226 — redefinição de senha não sai para conta fictícia** (branch `feat/226-senha-conta-ficticia`): `POST /auth/senha/esqueci` para um e-mail em `.invalid` (as contas fictícias da demonstração, RF-NEB-02) não emite token nem chama o provedor de e-mail; a resposta continua a neutra (`202`, sem corpo). Conta comum continua recebendo o link.
 - **Melhoria #224 — convite de empresa recusa e-mail descartável** (branch `feat/224-convite-descartavel`): `POST /nebrys/convites` recusa o e-mail de domínio descartável (lista versionada do F14-60) com `400` em `errors.email` e o texto do cadastro, sem convite, e-mail nem trilha; a janela "Novo convite" já mostra o erro no campo. O convite a partir da lista de espera também recusa (a lista de domínios pode ter ganhado o da entrada depois da inscrição), com `422 transicao-invalida` e a explicação na janela, e a entrada continua aguardando.
 
 ## Marco concluído
