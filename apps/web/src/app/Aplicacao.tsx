@@ -2,7 +2,8 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { createRouter, RouterProvider } from '@tanstack/react-router'
 import { routeTree } from '../routeTree.gen'
 import { RegiaoAvisos } from '../shared/avisos/RegiaoAvisos'
-import { assinar, estadoSessao, iniciarSessao } from '../shared/sessao/sessao'
+import { limparCacheAoTrocarSessao } from '../shared/sessao/cacheDaSessao'
+import { iniciarSessao } from '../shared/sessao/sessao'
 import { ErroTela } from '../shared/ui/ErroTela'
 // Registra o renovador da sessão no cliente HTTP antes da primeira renovação.
 import '../shared/api/cliente'
@@ -28,14 +29,7 @@ declare module '@tanstack/react-router' {
     }
 }
 
-// Outra empresa, outro usuário ou fim da sessão (nesta aba ou em outra): nada do cache vale mais, e as guardas
-// das rotas decidem de novo para onde ir. Renovação comum não mexe em nada.
-assinar(() => {
-    const { motivo } = estadoSessao()
-    if (motivo !== 'troca' && motivo !== 'encerramento') return
-    consultas.clear()
-    void roteador.invalidate()
-})
+limparCacheAoTrocarSessao(consultas, () => void roteador.invalidate())
 void iniciarSessao()
 
 export function Aplicacao() {
