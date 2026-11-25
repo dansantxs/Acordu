@@ -1,6 +1,7 @@
 import type { Key } from 'react-aria-components'
 import { Button, ComboBox, FieldError, Input, ListBox, ListBoxItem, Popover, Text } from 'react-aria-components'
 import { contem } from '../format/texto'
+import { useBloqueioDeGravacao } from '../sessao/gravacao'
 import { Icone } from './Icone'
 import { Rotulo } from './Rotulo'
 
@@ -15,7 +16,8 @@ const NENHUM = '__nenhum__'
 /**
  * Lista de escolha em que dá para digitar e filtrar (pedido de 16/10), sem diferenciar maiúsculas nem acentos. Abre ao
  * focar ou clicar; Esc ou sair do campo sem escolher volta ao valor anterior. `vazio` é a opção "nenhum" (vira
- * `null`); sem ela, a escolha é obrigatória para mudar.
+ * `null`); sem ela, a escolha é obrigatória para mudar. `grava`: a escolha salva na hora dado da empresa (campo do
+ * painel); com a empresa só leitura o campo fica indisponível, ligado à explicação da casca (#191).
  */
 export function CampoSelecao({
     rotulo,
@@ -28,6 +30,7 @@ export function CampoSelecao({
     name,
     isRequired = false,
     rotuloOculto = false,
+    grava = false,
     className = '',
 }: {
     rotulo: string
@@ -41,8 +44,10 @@ export function CampoSelecao({
     name?: string
     isRequired?: boolean
     rotuloOculto?: boolean
+    grava?: boolean
     className?: string
 }) {
+    const bloqueio = useBloqueioDeGravacao(grava)
     const itens: Opcao[] = vazio ? [{ id: NENHUM, rotulo: vazio }, ...opcoes] : opcoes
     return (
         <ComboBox
@@ -58,10 +63,12 @@ export function CampoSelecao({
             defaultFilter={(texto, digitado) => contem(texto, digitado)}
             menuTrigger="focus"
             isRequired={isRequired}
-            className={`flex flex-col gap-1 ${className}`}
+            isDisabled={bloqueio.bloqueado}
+            aria-describedby={bloqueio.descritoPor}
+            className={`group flex flex-col gap-1 ${className}`}
         >
             <Rotulo texto={rotulo} obrigatorio={isRequired} oculto={rotuloOculto} />
-            <div className="flex items-center rounded-couro border border-linha bg-superficie focus-within:outline-2 focus-within:outline-acento">
+            <div className="flex items-center rounded-couro border border-linha bg-superficie focus-within:outline-2 focus-within:outline-acento group-data-[disabled]:opacity-60">
                 <Input
                     placeholder={dica ?? vazio}
                     // Focar seleciona o texto: digitar já substitui a escolha atual pela busca.

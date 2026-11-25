@@ -14,7 +14,7 @@ import { errosDeCampo, mensagemDeErro } from '@/shared/api/mensagens'
 import { ErroApi } from '@/shared/api/problema'
 import { avisar } from '@/shared/avisos/avisos'
 import { Alerta } from '@/shared/ui/Alerta'
-import { Botao } from '@/shared/ui/Botao'
+import { Botao, BotaoTexto } from '@/shared/ui/Botao'
 import { CampoSelecao } from '@/shared/ui/CampoSelecao'
 import { CampoTexto } from '@/shared/ui/CampoTexto'
 import { Confirmacao } from '@/shared/ui/Confirmacao'
@@ -90,20 +90,22 @@ export function SecaoPapeis() {
                                         </Button>
                                     ) : (
                                         <>
-                                            <Button
+                                            <BotaoTexto
+                                                grava
                                                 onPress={() => setAberto({ modo: 'editar', papel: p })}
                                                 aria-label={`Editar ${p.nome}`}
                                                 className="text-acento-texto hover:underline"
                                             >
                                                 Editar
-                                            </Button>
-                                            <Button
+                                            </BotaoTexto>
+                                            <BotaoTexto
+                                                grava
                                                 onPress={() => setExcluindo(p)}
                                                 aria-label={`Excluir ${p.nome}`}
                                                 className="text-suave hover:text-vermelho hover:underline"
                                             >
                                                 Excluir
-                                            </Button>
+                                            </BotaoTexto>
                                         </>
                                     )}
                                 </span>

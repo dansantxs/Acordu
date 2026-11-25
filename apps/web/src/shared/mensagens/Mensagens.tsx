@@ -5,6 +5,7 @@ import { baixarAnexo, MAXIMO_ANEXOS, TAMANHO_MAXIMO, tamanhoLegivel } from '../a
 import { avisarErro } from '../avisos/avisos'
 import { mencaoEmDigitacao, partesDoTexto, textoComTokens, type Mencionado } from '../format/mencoes'
 import { contem } from '../format/texto'
+import { useBloqueioDeGravacao } from '../sessao/gravacao'
 import { Alerta } from '../ui/Alerta'
 import { Botao } from '../ui/Botao'
 import { Icone } from '../ui/Icone'
@@ -159,8 +160,10 @@ export function CaixaMensagem({
     }
 
     const vazio = !texto.trim() && anexos.length === 0
+    // Com a empresa só leitura (ou o envio indisponível no portal), nem o Ctrl+Enter envia: a mesma regra dos botões.
+    const { bloqueado } = useBloqueioDeGravacao()
     async function mandar(acao = enviar) {
-        if (vazio || enviando) return
+        if (vazio || enviando || bloqueado) return
         setEnviando(true)
         setErro(null)
         try {

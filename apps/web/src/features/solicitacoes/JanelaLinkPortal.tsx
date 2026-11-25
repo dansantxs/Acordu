@@ -1,12 +1,12 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
-import { Button, Checkbox, Form } from 'react-aria-components'
+import { Checkbox, Form } from 'react-aria-components'
 import { consultaCliente } from '@/features/clientes/consultas'
 import { errosDeCampo, mensagemDeErro } from '@/shared/api/mensagens'
 import { avisar, avisarErro } from '@/shared/avisos/avisos'
 import { dataHora } from '@/shared/format/prazo'
 import { Alerta } from '@/shared/ui/Alerta'
-import { Botao } from '@/shared/ui/Botao'
+import { Botao, BotaoTexto } from '@/shared/ui/Botao'
 import { CampoSelecao } from '@/shared/ui/CampoSelecao'
 import { Janela } from '@/shared/ui/Janela'
 import {
@@ -116,13 +116,14 @@ function Conteudo({
                                     {l.contatoNome}{' '}
                                     <span className="text-suave">· até {dataHora(l.expiraEm, fuso)}</span>
                                 </span>
-                                <Button
+                                <BotaoTexto
+                                    grava
                                     onPress={() => revogacao.mutate(l.acessoId)}
                                     isDisabled={revogacao.isPending}
                                     className="text-sm text-suave hover:text-vermelho hover:underline"
                                 >
                                     Revogar
-                                </Button>
+                                </BotaoTexto>
                             </li>
                         ))}
                     </ul>

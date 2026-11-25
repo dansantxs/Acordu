@@ -13,6 +13,15 @@ export interface NotaVersao {
 
 export const NOTAS: NotaVersao[] = [
     {
+        data: '2026-11-25',
+        publico: 'equipe',
+        titulo: 'Só leitura mais clara nos painéis',
+        itens: [
+            'Com a empresa só leitura, além dos botões, ficam indisponíveis os menus ⋯ do quadro e do plano da semana, o arrastar, os campos do painel que salvam ao mudar (responsável, prazo, estimativa, checklist) e as ações de texto como "Convidar para o portal", "Editar" e "Excluir". Cada um explica o motivo, sem precisar tentar.',
+            'Seguir itens, o sino, as suas preferências e Minha conta continuam funcionando.',
+        ],
+    },
+    {
         data: '2026-11-24',
         publico: 'equipe',
         titulo: 'Dados de exemplo para conhecer o Acordu',

@@ -1,22 +1,14 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import {
-    Button,
-    GridList,
-    GridListItem,
-    isTextDropItem,
-    Menu,
-    MenuItem,
-    MenuTrigger,
-    Popover,
-    useDragAndDrop,
-} from 'react-aria-components'
+import { Button, GridList, GridListItem, isTextDropItem, MenuItem, useDragAndDrop } from 'react-aria-components'
 import { useNavigate } from '@tanstack/react-router'
 import { useSugestaoConclusaoProjeto } from '@/features/projetos/sugestaoConclusao'
 import { useSugestaoResolucao } from '@/features/solicitacoes/sugestaoResolucao'
 import { mensagemDeErro } from '@/shared/api/mensagens'
 import { avisar, avisarErro } from '@/shared/avisos/avisos'
 import { intervaloDePolling } from '@/shared/config/ambiente'
+import { useBloqueioDeGravacao } from '@/shared/sessao/gravacao'
 import { Alerta } from '@/shared/ui/Alerta'
+import { MenuAcoes } from '@/shared/ui/MenuAcoes'
 import {
     consultaQuadro,
     DIAS_CONCLUIDAS_NO_QUADRO,
@@ -36,7 +28,7 @@ type Pagina = { itens: TarefaResumo[]; total: number | string }
 /**
  * Quadro (RF-TAR-02, plano do F3): colunas por status; arrastar muda o status pela máquina de estados e o aviso
  * oferece desfazer (decidido em 20/10). Cancelar fica fora do quadro. O menu "Mover para" de cada cartão faz o mesmo pelo
- * teclado e no toque.
+ * teclado e no toque. Com a empresa só leitura (#191) não se arrasta, e o "⋯" fica indisponível com a explicação.
  */
 export function Quadro({
     filtros,
@@ -137,8 +129,10 @@ function ColunaDoQuadro({
 }) {
     const titulo = STATUS_TAREFA[coluna]
     const navegar = useNavigate()
+    const { bloqueado } = useBloqueioDeGravacao()
+    const arrasta = podeEditar && !bloqueado
     const { dragAndDropHooks } = useDragAndDrop({
-        isDisabled: !podeEditar,
+        isDisabled: !arrasta,
         getItems: (chaves) =>
             [...chaves].map((chave) => ({ [TIPO_ARRASTO]: String(chave), 'text/plain': String(chave) })),
         acceptedDragTypes: [TIPO_ARRASTO],
@@ -172,7 +166,7 @@ function ColunaDoQuadro({
                     })
                 }
                 items={tarefas}
-                dragAndDropHooks={dragAndDropHooks}
+                dragAndDropHooks={arrasta ? dragAndDropHooks : undefined}
                 renderEmptyState={() => <p className="px-2 py-6 text-center text-xs text-suave">Nada aqui.</p>}
                 className="flex min-h-24 flex-col gap-2 rounded-couro outline-none data-[drop-target]:bg-acento-suave data-[drop-target]:ring-2 data-[drop-target]:ring-acento"
             >
@@ -184,7 +178,7 @@ function ColunaDoQuadro({
                         className="flex flex-col gap-1 rounded-couro border border-linha bg-superficie p-3 text-sm shadow-sm outline-none data-[dragging]:opacity-50 data-[focus-visible]:ring-2 data-[focus-visible]:ring-acento"
                     >
                         <div className="flex items-start gap-2">
-                            {podeEditar && (
+                            {arrasta && (
                                 <Button
                                     slot="drag"
                                     aria-label={`Arrastar ${t.titulo}`}
@@ -210,30 +204,21 @@ function ColunaDoQuadro({
 
 function MoverPara({ tarefa, aoMover }: { tarefa: TarefaResumo; aoMover: (t: TarefaResumo, para: Coluna) => void }) {
     return (
-        <MenuTrigger>
-            <Button
-                aria-label={`Mover ${tarefa.titulo}`}
-                className="rounded-couro px-1 text-suave hover:bg-trilho hover:text-tinta"
-            >
-                ⋯
-            </Button>
-            <Popover className="min-w-44 rounded-couro border border-linha bg-superficie py-1 shadow-lg">
-                <Menu
-                    aria-label="Mover para"
-                    onAction={(chave) => aoMover(tarefa, chave as Coluna)}
-                    className="outline-none"
+        <MenuAcoes
+            grava
+            rotulo={`Mover ${tarefa.titulo}`}
+            rotuloMenu="Mover para"
+            aoEscolher={(chave) => aoMover(tarefa, chave as Coluna)}
+        >
+            {COLUNAS.filter((c) => c !== tarefa.status).map((c) => (
+                <MenuItem
+                    key={c}
+                    id={c}
+                    className="cursor-default px-3 py-1.5 text-sm outline-none data-[focused]:bg-acento-suave"
                 >
-                    {COLUNAS.filter((c) => c !== tarefa.status).map((c) => (
-                        <MenuItem
-                            key={c}
-                            id={c}
-                            className="cursor-default px-3 py-1.5 text-sm outline-none data-[focused]:bg-acento-suave"
-                        >
-                            Mover para {STATUS_TAREFA[c].toLowerCase()}
-                        </MenuItem>
-                    ))}
-                </Menu>
-            </Popover>
-        </MenuTrigger>
+                    Mover para {STATUS_TAREFA[c].toLowerCase()}
+                </MenuItem>
+            ))}
+        </MenuAcoes>
     )
 }

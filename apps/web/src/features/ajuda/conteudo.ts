@@ -481,7 +481,7 @@ export const SECOES_AJUDA: SecaoAjuda[] = [
         dicas: [
             'Nos últimos 7 dias do teste, uma faixa no topo de todas as telas mostra quantos dias faltam e com quem falar para ativar.',
             'Os Donos também recebem por e-mail: 7 dias e 1 dia antes do fim do teste, no dia em que a empresa fica só leitura (com a data em que os dados serão apagados) e 7 dias antes de apagar. Antes de confirmar o e-mail de quem criou a empresa, só essa pessoa recebe.',
-            'Quando o teste acaba sem ativação (ou a conta é cancelada), a empresa fica só leitura: dá para consultar tudo, inclusive os relatórios e os anexos, mas não criar nem mudar nada. Os botões de gravar aparecem indisponíveis, e a faixa explica desde quando e até quando os dados ficam guardados.',
+            'Quando o teste acaba sem ativação (ou a conta é cancelada), a empresa fica só leitura: dá para consultar tudo, inclusive os relatórios e os anexos, mas não criar nem mudar nada. Os botões de gravar, os menus ⋯, os campos que salvam ao mudar e o arrastar no quadro e no plano da semana ficam indisponíveis, e a faixa explica desde quando e até quando os dados ficam guardados.',
             'No só leitura continuam valendo entrar, sair, trocar de empresa, a sua senha, o sino, as suas preferências de aviso, o link da agenda, seguir itens, o "Ciente" dos termos e da política e "Sugerir melhoria".',
             'Os dados ficam guardados por 30 dias depois do início do só leitura; depois disso, são apagados. Ativar a conta antes disso devolve tudo como estava.',
             'Nesse tempo, nada sai para os clientes: sem avisos por e-mail, sem recorrências geradas. O portal continua mostrando o que eles já viam, mas não aceita envios.',

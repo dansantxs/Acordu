@@ -1,7 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Link, useNavigate } from '@tanstack/react-router'
 import { useCallback, useEffect, useId, useRef, useState } from 'react'
-import { Button } from 'react-aria-components'
 import { pode } from '@/features/casca/navegacao'
 import { SEM_ENVIO } from '@/features/sessao/AvisoConfirmacao'
 import { mensagemDeErro } from '@/shared/api/mensagens'
@@ -13,7 +12,7 @@ import { dataHora, prazoRelativo } from '@/shared/format/prazo'
 import { quando } from '@/shared/format/quando'
 import type { Perfil } from '@/shared/sessao/perfil'
 import { Alerta } from '@/shared/ui/Alerta'
-import { Botao } from '@/shared/ui/Botao'
+import { Botao, BotaoTexto } from '@/shared/ui/Botao'
 import { CampoSelecao } from '@/shared/ui/CampoSelecao'
 import { Seguidores } from '@/shared/colaboracao/Seguidores'
 import { Dado, PainelLateral } from '@/shared/ui/PainelLateral'
@@ -269,6 +268,7 @@ function Detalhe({
             <section aria-label="Atendimento" className="grid gap-4 sm:grid-cols-2">
                 {editavel ? (
                     <CampoSelecao
+                        grava
                         rotulo="Responsável"
                         opcoes={(equipe.data ?? []).map((p) => ({ id: p.id, rotulo: p.nome }))}
                         valor={s.responsavel?.id ?? null}
@@ -287,6 +287,7 @@ function Detalhe({
                 )}
                 {editavel && s.status !== 'RESOLVIDA' ? (
                     <CampoSelecao
+                        grava
                         rotulo="Prioridade"
                         opcoes={(Object.keys(PRIORIDADE) as Prioridade[]).map((p) => ({
                             id: p,
@@ -310,6 +311,7 @@ function Detalhe({
                 )}
                 {editavel && categoriasAtivas.length > 0 ? (
                     <CampoSelecao
+                        grava
                         rotulo="Categoria"
                         opcoes={categoriasAtivas.map((c) => ({ id: c.id, rotulo: c.nome }))}
                         valor={s.categoriaId}
@@ -617,12 +619,13 @@ function AcoesStatus({
                 </Botao>
             ))}
             {acoes.includes('cancelamento') && (
-                <Button
+                <BotaoTexto
+                    grava
                     onPress={() => executar('cancelamento')}
                     className="ml-auto rounded-couro px-2 py-1 text-sm text-suave hover:text-vermelho hover:underline"
                 >
                     {ROTULO_ACAO.cancelamento}
-                </Button>
+                </BotaoTexto>
             )}
 
             <JanelaResolucao

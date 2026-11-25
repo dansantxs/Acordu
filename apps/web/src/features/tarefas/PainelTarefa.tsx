@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Link, useNavigate } from '@tanstack/react-router'
 import { useCallback, useEffect, useId, useRef, useState, type FormEvent } from 'react'
-import { Button, Checkbox, Form, Switch } from 'react-aria-components'
+import { Checkbox, Form, Switch } from 'react-aria-components'
 import { pode } from '@/features/casca/navegacao'
 import { opcional } from '@/features/clientes/consultas'
 import { consultaProjetosDoCliente } from '@/features/projetos/consultas'
@@ -12,9 +12,10 @@ import { ErroApi } from '@/shared/api/problema'
 import { avisar, avisarErro } from '@/shared/avisos/avisos'
 import { consultaEquipe } from '@/shared/equipe/consultaEquipe'
 import { formatarDuracao, lerDuracao } from '@/shared/format/duracao'
+import { useBloqueioDeGravacao } from '@/shared/sessao/gravacao'
 import type { Perfil } from '@/shared/sessao/perfil'
 import { Alerta } from '@/shared/ui/Alerta'
-import { Botao } from '@/shared/ui/Botao'
+import { Botao, BotaoTexto } from '@/shared/ui/Botao'
 import { CampoSelecao } from '@/shared/ui/CampoSelecao'
 import { CampoTexto } from '@/shared/ui/CampoTexto'
 import { Confirmacao } from '@/shared/ui/Confirmacao'
@@ -53,7 +54,8 @@ const ID_TITULO = 'titulo-tarefa'
 /**
  * Detalhe da tarefa em painel sobre a lista ou o quadro (plano do F3, 20/10), no padrão das solicitações (convenções
  * §4). Status pelos botões, sem desfazer; responsável muda na hora com desfazer; prazo, dia planejado, estimativa e
- * visibilidade salvam ao mudar.
+ * visibilidade salvam ao mudar. Com a empresa só leitura (#191), esses campos, a checklist e o cancelar ficam
+ * indisponíveis com a explicação da casca; seguir a tarefa é da pessoa e segue disponível.
  */
 export function PainelTarefa({ perfil, id }: { perfil: Perfil; id: string }) {
     const navegar = useNavigate()
@@ -118,6 +120,7 @@ function Detalhe({
     const [editando, setEditando] = useState(false)
     const podeEditar = pode(perfil, 'tarefa.editar')
     const editavel = podeEditar && t.status !== 'CANCELADA'
+    const bloqueio = useBloqueioDeGravacao()
 
     function guardar(nova: Tarefa) {
         consultas.setQueryData(chave, nova)
@@ -216,6 +219,7 @@ function Detalhe({
             <section aria-label="Planejamento" className="grid gap-4 sm:grid-cols-2">
                 {editavel ? (
                     <CampoSelecao
+                        grava
                         rotulo="Responsável"
                         opcoes={(equipe.data ?? []).map((p) => ({ id: p.id, rotulo: p.nome }))}
                         valor={t.responsavel?.id ?? null}
@@ -265,7 +269,8 @@ function Detalhe({
                         <p className="text-sm font-semibold">No portal</p>
                         <Switch
                             isSelected={t.visivelCliente}
-                            isDisabled={!editavel}
+                            isDisabled={!editavel || bloqueio.bloqueado}
+                            aria-describedby={editavel ? bloqueio.descritoPor : undefined}
                             onChange={(visivelCliente) => salvar({ visivelCliente })}
                             className="group flex items-center gap-2 py-2 text-sm"
                         >
@@ -339,6 +344,7 @@ function CampoData({
     aoMudar: (valor: string | null) => void
 }) {
     const id = useId()
+    const bloqueio = useBloqueioDeGravacao(true, descricao ? `${id}-d` : undefined)
     if (!editavel)
         return (
             <Dado rotulo={rotulo}>
@@ -355,12 +361,13 @@ function CampoData({
                 type="date"
                 defaultValue={valor ?? ''}
                 key={valor ?? ''}
-                aria-describedby={descricao ? `${id}-d` : undefined}
+                disabled={bloqueio.bloqueado}
+                aria-describedby={bloqueio.descritoPor}
                 onChange={(e) => {
                     const novo = e.target.value || null
                     if (novo !== valor && (novo === null || /^\d{4}-\d{2}-\d{2}$/.test(novo))) aoMudar(novo)
                 }}
-                className="rounded-couro border border-linha bg-superficie px-3 py-2 text-sm text-tinta"
+                className="rounded-couro border border-linha bg-superficie px-3 py-2 text-sm text-tinta disabled:opacity-60"
             />
             {descricao && (
                 <p id={`${id}-d`} className="text-xs text-suave">
@@ -386,6 +393,7 @@ function CampoDuracao({
     const id = useId()
     const [texto, setTexto] = useState(valor != null ? formatarDuracao(valor) : '')
     const [invalido, setInvalido] = useState(false)
+    const bloqueio = useBloqueioDeGravacao(true, `${id}-d`)
     if (!editavel) return <Dado rotulo={rotulo}>{valor != null ? formatarDuracao(valor) : '—'}</Dado>
 
     function confirmar() {
@@ -413,8 +421,9 @@ function CampoDuracao({
                 onBlur={confirmar}
                 onKeyDown={(e) => e.key === 'Enter' && confirmar()}
                 aria-invalid={invalido || undefined}
-                aria-describedby={`${id}-d`}
-                className="rounded-couro border border-linha bg-superficie px-3 py-2 text-sm text-tinta aria-[invalid]:border-vermelho"
+                disabled={bloqueio.bloqueado}
+                aria-describedby={bloqueio.descritoPor}
+                className="rounded-couro border border-linha bg-superficie px-3 py-2 text-sm text-tinta disabled:opacity-60 aria-[invalid]:border-vermelho"
             />
             <p id={`${id}-d`} className={`text-xs ${invalido ? 'text-vermelho' : 'text-suave'}`}>
                 {invalido ? 'Não entendi. Use 1h30, 1:30 ou 90.' : 'Ex.: 1h30, 1:30 ou 90 (minutos).'}
@@ -444,12 +453,13 @@ function Checklist({ tarefa: t, editavel, aoMudar }: { tarefa: Tarefa; editavel:
         onSettled: aoMudar,
         onError: avisarErro,
     })
+    const bloqueio = useBloqueioDeGravacao()
     const feitos = t.checklist.filter((i) => i.feito).length
     if (!editavel && t.checklist.length === 0) return null
 
     function enviar(evento: FormEvent) {
         evento.preventDefault()
-        if (novo.trim()) adicao.mutate(novo.trim())
+        if (novo.trim() && !bloqueio.bloqueado) adicao.mutate(novo.trim())
     }
     return (
         <section aria-labelledby="checklist" className="flex flex-col gap-2">
@@ -467,7 +477,8 @@ function Checklist({ tarefa: t, editavel, aoMudar }: { tarefa: Tarefa; editavel:
                         <li key={item.id} className="group flex items-center gap-2 text-sm">
                             <Checkbox
                                 isSelected={item.feito}
-                                isDisabled={!editavel}
+                                isDisabled={!editavel || bloqueio.bloqueado}
+                                aria-describedby={editavel ? bloqueio.descritoPor : undefined}
                                 onChange={(feito) => marcacao.mutate({ itemId: item.id, texto: item.texto, feito })}
                                 className="group/c flex flex-1 items-center gap-2 py-1"
                             >
@@ -490,13 +501,14 @@ function Checklist({ tarefa: t, editavel, aoMudar }: { tarefa: Tarefa; editavel:
                                 <span className={item.feito ? 'text-suave line-through' : ''}>{item.texto}</span>
                             </Checkbox>
                             {editavel && (
-                                <Button
+                                <BotaoTexto
+                                    grava
                                     aria-label={`Tirar "${item.texto}"`}
                                     onPress={() => remocao.mutate(item.id)}
                                     className="grid size-6 place-items-center rounded-couro text-suave opacity-60 hover:bg-trilho hover:text-tinta hover:opacity-100 focus-visible:opacity-100"
                                 >
                                     <Icone nome="fechar" className="size-3" />
-                                </Button>
+                                </BotaoTexto>
                             )}
                         </li>
                     ))}
@@ -513,7 +525,9 @@ function Checklist({ tarefa: t, editavel, aoMudar }: { tarefa: Tarefa; editavel:
                         maxLength={500}
                         onChange={(e) => setNovo(e.target.value)}
                         placeholder="Adicionar item"
-                        className="min-w-0 flex-1 rounded-couro border border-linha bg-superficie px-3 py-1.5 text-sm text-tinta placeholder:text-suave"
+                        disabled={bloqueio.bloqueado}
+                        aria-describedby={bloqueio.descritoPor}
+                        className="min-w-0 flex-1 rounded-couro border border-linha bg-superficie px-3 py-1.5 text-sm text-tinta placeholder:text-suave disabled:opacity-60"
                     />
                     <Botao
                         grava
@@ -578,6 +592,7 @@ function CampoProjeto({
     })
     return (
         <CampoSelecao
+            grava
             rotulo="Projeto"
             opcoes={opcoes}
             valor={t.projetoId}
@@ -647,7 +662,8 @@ function AcoesStatus({
                 </Botao>
             ))}
             {acoes.includes('cancelamento') && (
-                <Button
+                <BotaoTexto
+                    grava
                     onPress={() => {
                         transicao.reset()
                         setCancelando(true)
@@ -655,7 +671,7 @@ function AcoesStatus({
                     className="ml-auto rounded-couro px-2 py-1 text-sm text-suave hover:text-vermelho hover:underline"
                 >
                     {ROTULO_ACAO_TAREFA.cancelamento}
-                </Button>
+                </BotaoTexto>
             )}
             <Confirmacao
                 titulo="Cancelar esta tarefa?"

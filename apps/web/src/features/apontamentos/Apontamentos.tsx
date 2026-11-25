@@ -1,7 +1,7 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { Link } from '@tanstack/react-router'
 import { useState } from 'react'
-import { Button, Form } from 'react-aria-components'
+import { Form } from 'react-aria-components'
 import { CampoTarefa } from '@/features/tarefas/CampoTarefa'
 import type { TarefaResumo } from '@/features/tarefas/consultas'
 import { mensagemDeErro } from '@/shared/api/mensagens'
@@ -9,7 +9,7 @@ import { avisar } from '@/shared/avisos/avisos'
 import { hojeNoFuso } from '@/shared/format/datas'
 import { formatarDuracao, lerDuracao } from '@/shared/format/duracao'
 import { Alerta } from '@/shared/ui/Alerta'
-import { Botao } from '@/shared/ui/Botao'
+import { Botao, BotaoTexto } from '@/shared/ui/Botao'
 import { CampoTexto } from '@/shared/ui/CampoTexto'
 import { Confirmacao } from '@/shared/ui/Confirmacao'
 import { Janela } from '@/shared/ui/Janela'
@@ -282,14 +282,16 @@ export function LinhasApontamento({
                             <span>{a.faturavel ? 'faturável' : 'não faturável'}</span>
                             {podeMexer(a) && (
                                 <>
-                                    <Button
+                                    <BotaoTexto
+                                        grava
                                         onPress={() => setEditando(a)}
                                         className="text-acento-texto hover:underline"
                                         aria-label={`Editar ${formatarDuracao(Number(a.duracaoMinutos))} de ${a.descricao}`}
                                     >
                                         Editar
-                                    </Button>
-                                    <Button
+                                    </BotaoTexto>
+                                    <BotaoTexto
+                                        grava
                                         onPress={() => {
                                             exclusao.reset()
                                             setExcluindo(a)
@@ -298,7 +300,7 @@ export function LinhasApontamento({
                                         aria-label={`Excluir ${formatarDuracao(Number(a.duracaoMinutos))} de ${a.descricao}`}
                                     >
                                         Excluir
-                                    </Button>
+                                    </BotaoTexto>
                                 </>
                             )}
                         </span>
