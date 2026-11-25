@@ -1,13 +1,20 @@
 using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;
+using Acordu.Api.Composicao;
 using Acordu.Api.FunctionalTests.Apoio;
 using Acordu.Api.Jobs;
+using Acordu.Domain.Entities;
+using Microsoft.AspNetCore.TestHost;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace Acordu.Api.FunctionalTests;
 
-/// <summary>Spec do F8, cenários F8-06 e F8-07: o disparo diário do Scheduler (ADR 0010 §5).</summary>
+/// <summary>
+/// Spec do F8, cenários F8-06 e F8-07: o disparo diário do Scheduler (ADR 0010 §5); e o expurgo dos convites de empresa
+/// (#213).
+/// </summary>
 [Collection(ColecaoApi.Nome)]
 public sealed class JobDiarioTests(ApiFixture api)
 {
@@ -52,6 +59,43 @@ public sealed class JobDiarioTests(ApiFixture api)
             .GetProperty("status").GetString().Should().Be("FECHADA");
     }
 
+    [Fact] // #213
+    public async Task Diario_ConviteDeEmpresaRevogadoHa93Dias_ApagaEContaNoResumoEOVencidoHaMenosFica()
+    {
+        var token = await OperadorNebrys.TokenAsync(api);
+        var revogado = await EmitidoAsync(token);
+        using (var resposta = await OperadorNebrys.EnviarAsync(
+            api.NovoHttp(), HttpMethod.Post, $"/api/v1/nebrys/convites/{revogado}/revogacao", token))
+            resposta.StatusCode.Should().Be(HttpStatusCode.OK);
+        // Pendente com a validade padrão (7 dias): em 93 dias está vencido há 86, menos que a retenção.
+        var vencido = await EmitidoAsync(token);
+        var discord = new DiscordFalso();
+        await using var app = await api.NovaApiAsync(
+            new Dictionary<string, string?> { ["Discord:Deploy"] = DiscordFalso.Deploy, ["Discord:Alertas"] = DiscordFalso.Alertas },
+            servicos: s => s.AddHttpClient(ComposicaoApi.NomeClienteDiscord).ConfigurePrimaryHttpMessageHandler(() => discord));
+
+        // 93 dias: um dia só deste teste, porque a marca do resumo do dia fica no banco compartilhado.
+        var inicio = api.Relogio.Agora;
+        api.Relogio.Agora = inicio.AddDays(93);
+        JsonElement resultado;
+        try
+        {
+            using var http = app.GetTestClient();
+            resultado = await DiarioAsync(http);
+        }
+        finally
+        {
+            api.Relogio.Agora = inicio;
+        }
+
+        resultado.GetProperty("convitesRemovidos").GetInt32().Should().BeGreaterThanOrEqualTo(1);
+        resultado.GetProperty("falhas").GetInt32().Should().Be(0);
+        discord.Textos(DiscordFalso.Deploy).Should().ContainSingle().Which.Should().MatchRegex("convites [1-9][0-9]*,");
+        await using var db = api.DaEquipe(Guid.NewGuid());
+        (await db.Set<ConviteEmpresa>().AnyAsync(c => c.Id == revogado)).Should().BeFalse("revogado há 93 dias");
+        (await db.Set<ConviteEmpresa>().AnyAsync(c => c.Id == vencido)).Should().BeTrue("vencido há 86 dias");
+    }
+
     [Theory]
     [InlineData(null)]
     [InlineData("token-errado")]
@@ -65,5 +109,24 @@ public sealed class JobDiarioTests(ApiFixture api)
         using var resposta = await http.SendAsync(requisicao);
 
         resposta.StatusCode.Should().Be(HttpStatusCode.NotFound);
+    }
+
+    private async Task<Guid> EmitidoAsync(string token)
+    {
+        using var corpo = JsonContent.Create(new { email = $"convite-diario-{Guid.NewGuid():N}@exemplo.com" });
+        using var resposta = await OperadorNebrys.EnviarAsync(api.NovoHttp(), HttpMethod.Post, "/api/v1/nebrys/convites", token, corpo);
+        var texto = await resposta.Content.ReadAsStringAsync();
+        resposta.StatusCode.Should().Be(HttpStatusCode.Created, "corpo: {0}", texto);
+        using var documento = JsonDocument.Parse(texto);
+        return documento.RootElement.GetProperty("convite").GetProperty("id").GetGuid();
+    }
+
+    private static async Task<JsonElement> DiarioAsync(HttpClient http)
+    {
+        using var requisicao = new HttpRequestMessage(HttpMethod.Post, new Uri("/internal/jobs/diario", UriKind.Relative));
+        requisicao.Headers.Add(JobsEndpoints.CabecalhoToken, ApiFixture.TokenJobs);
+        using var resposta = await http.SendAsync(requisicao);
+        resposta.StatusCode.Should().Be(HttpStatusCode.OK);
+        return await resposta.Content.ReadFromJsonAsync<JsonElement>();
     }
 }
