@@ -11,6 +11,7 @@ using Acordu.Infrastructure.Operacao;
 using Acordu.Infrastructure.Persistence.Auditoria;
 using Acordu.Infrastructure.Persistence.Atividades;
 using Acordu.Infrastructure.Persistence.Cadastros;
+using Acordu.Infrastructure.Persistence.ConvitesEmpresa;
 using Acordu.Infrastructure.Persistence.Notificacoes;
 using Acordu.Infrastructure.Persistence.Outbox;
 
@@ -122,9 +123,10 @@ internal static partial class JobsEndpoints
     /// O disparo diário do Scheduler (ADR 0010 §5; o plano gratuito tem 3 jobs): vencimento dos testes (F14a; primeiro,
     /// para a recém-vencida já ficar fora dos passos seguintes), avisos de situação aos Donos (F14j; logo depois, para o
     /// aviso do vencimento sair no mesmo diário), fechamento automático, expurgo da auditoria, expurgo das notificações e
-    /// do feed, expurgo dos cadastros abandonados (RF-AUT-07), das empresas só leitura há o prazo (RF-EMP-03, F14i), das
-    /// ocorrências de erro e das marcas de operação (ADR 0012), em sequência; no fim, os avisos do F13c. Um passo que
-    /// falha é logado, entra em <c>falhas</c> e não impede os seguintes; os endpoints individuais continuam para disparo manual.
+    /// do feed, expurgo dos cadastros abandonados (RF-AUT-07), das empresas só leitura há o prazo (RF-EMP-03, F14i), dos
+    /// convites de empresa encerrados há 90 dias (#213), das ocorrências de erro e das marcas de operação (ADR 0012), em
+    /// sequência; no fim, os avisos do F13c. Um passo que falha é logado, entra em <c>falhas</c> e não impede os seguintes;
+    /// os endpoints individuais continuam para disparo manual.
     /// </summary>
     private static void MapDiario(RouteGroupBuilder jobs) =>
         jobs.MapPost("/diario", async (
@@ -135,6 +137,7 @@ internal static partial class JobsEndpoints
             ExpurgoAtividades atividades,
             ExpurgoCadastros cadastros,
             ExpurgoEmpresas empresas,
+            ExpurgoConvitesEmpresa convites,
             ExpurgoOcorrenciasErro ocorrencias,
             MarcasDeOperacao marcas,
             AvisosDosJobs avisos,
@@ -191,6 +194,8 @@ internal static partial class JobsEndpoints
                         falhasEmpresas = expurgo.Falhas;
                         return expurgo.Expurgadas;
                     }),
+                    // Convite de empresa usado, revogado ou vencido há mais de 90 dias (#213): o e-mail não fica sem prazo.
+                    new("expurgo-convites", convites.ExecutarAsync),
                     new("expurgo-ocorrencias-erro", ocorrencias.ExecutarAsync),
                     new("expurgo-marcas-operacao", marcas.ExpurgarAsync),
                 ],
@@ -210,7 +215,8 @@ internal static partial class JobsEndpoints
                     ("fechadas", resultado.Contagens[2]), ("auditoria", resultado.Contagens[3]),
                     ("notificações", resultado.Contagens[4]), ("atividades", resultado.Contagens[5]),
                     ("cadastros", resultado.Contagens[6]), ("empresas expurgadas", resultado.Contagens[7]),
-                    ("ocorrências de erro", resultado.Contagens[8]), ("marcas", resultado.Contagens[9]),
+                    ("convites", resultado.Contagens[8]), ("ocorrências de erro", resultado.Contagens[9]),
+                    ("marcas", resultado.Contagens[10]),
                 ],
                 cancellationToken);
 
@@ -224,8 +230,9 @@ internal static partial class JobsEndpoints
                 atividadesRemovidas = resultado.Contagens[5],
                 cadastrosRemovidos = resultado.Contagens[6],
                 empresasExpurgadas = resultado.Contagens[7],
-                ocorrenciasErroRemovidas = resultado.Contagens[8],
-                marcasOperacaoRemovidas = resultado.Contagens[9],
+                convitesRemovidos = resultado.Contagens[8],
+                ocorrenciasErroRemovidas = resultado.Contagens[9],
+                marcasOperacaoRemovidas = resultado.Contagens[10],
                 falhas = resultado.Falhas + falhasVencimento + falhasSituacao + falhasFechamento + falhasCadastros + falhasEmpresas,
             });
         });
