@@ -44,12 +44,15 @@ public sealed record CriadorEmpresaDto(string Nome, string? Email);
 /// Linha da lista de empresas (F14-61): só os campos da relação com a Nebrys. Datas da situação como no <c>/auth/eu</c>:
 /// <see cref="SomenteLeituraDesde"/> é a data do vencimento na VENCIDA, <see cref="CanceladaEm"/> a do cancelamento, e
 /// <see cref="ExpurgoPrevistoEm"/> é calculada (início do só leitura + <c>Empresas__DiasAteExpurgo</c>).
+/// <see cref="Demonstracao"/> é a marca da empresa de demonstração (F14s, #225): ATIVA, fora do ciclo de situação, sem
+/// ações de situação (a API recusa com <c>422</c>); é da relação com a Nebrys, não dado de negócio (ADR 0014).
 /// </summary>
 public sealed record EmpresaResumoNebrysDto(
     Guid Id,
     string Nome,
     string? Documento,
     SituacaoEmpresa Situacao,
+    bool Demonstracao,
     DateTimeOffset CriadaEm,
     DateTimeOffset? FimDoTeste,
     DateTimeOffset? SomenteLeituraDesde,
@@ -59,7 +62,7 @@ public sealed record EmpresaResumoNebrysDto(
     int PessoasNaEquipe);
 
 /// <summary>
-/// Detalhe da empresa na área (F14-62): os mesmos campos da lista e a <see cref="Versao"/> do <c>Tenant</c> (<c>xmin</c>),
+/// Detalhe da empresa na área (F14-62): os mesmos campos da lista (com a marca de demonstração) e a <see cref="Versao"/> do <c>Tenant</c> (<c>xmin</c>),
 /// que as ações do F14l mandam no <c>If-Match</c> (D5). Nada de clientes, contatos, solicitações, tarefas, horas,
 /// contratos ou anexos: não há campo nem rota para eles.
 /// </summary>
@@ -68,6 +71,7 @@ public sealed record EmpresaNebrysDto(
     string Nome,
     string? Documento,
     SituacaoEmpresa Situacao,
+    bool Demonstracao,
     DateTimeOffset CriadaEm,
     DateTimeOffset? FimDoTeste,
     DateTimeOffset? SomenteLeituraDesde,

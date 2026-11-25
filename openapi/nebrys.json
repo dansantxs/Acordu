@@ -764,6 +764,7 @@
           "nome",
           "documento",
           "situacao",
+          "demonstracao",
           "criadaEm",
           "fimDoTeste",
           "somenteLeituraDesde",
@@ -790,6 +791,9 @@
           },
           "situacao": {
             "$ref": "#/components/schemas/SituacaoEmpresa"
+          },
+          "demonstracao": {
+            "type": "boolean"
           },
           "criadaEm": {
             "type": "string",
@@ -852,6 +856,7 @@
           "nome",
           "documento",
           "situacao",
+          "demonstracao",
           "criadaEm",
           "fimDoTeste",
           "somenteLeituraDesde",
@@ -877,6 +882,9 @@
           },
           "situacao": {
             "$ref": "#/components/schemas/SituacaoEmpresa"
+          },
+          "demonstracao": {
+            "type": "boolean"
           },
           "criadaEm": {
             "type": "string",
