@@ -86,6 +86,21 @@ public sealed class ListaEsperaNebrysTests
         m.Email.Mensagens.Should().BeEmpty();
     }
 
+    [Fact] // #224: a lista de domínios ganhou o do e-mail depois da inscrição
+    public async Task Convidar_EmailDescartavel_TransicaoInvalidaSemGravarEnviarNemTrilha()
+    {
+        var m = new Montagem(descartavel: "descartavel.test");
+        var entrada = m.Entrada("ana@descartavel.test");
+
+        var acao = () => m.Lista.ConvidarAsync(entrada.Id);
+
+        await acao.Should().ThrowAsync<TransicaoInvalidaException>().WithMessage(ConvitesEmpresaNebrys.EntradaComEmailDescartavel);
+        m.Convites.Adicionados.Should().BeEmpty();
+        m.Unidade.Salvamentos.Should().Be(0);
+        m.Email.Mensagens.Should().BeEmpty();
+        m.Trilha.Registros.Should().BeEmpty();
+    }
+
     [Fact] // F14-76: a falha do envio não desfaz o convite nem a marca
     public async Task Convidar_EmailForaDoAr_GravaEDevolveEmailNaoEnviado()
     {
@@ -131,12 +146,12 @@ public sealed class ListaEsperaNebrysTests
 
     private sealed class Montagem
     {
-        public Montagem(bool falharEnvio = false)
+        public Montagem(bool falharEnvio = false, string? descartavel = null)
         {
             Email = new EmailFalso(falharEnvio, Unidade);
             var convites = new ConvitesEmpresaNebrys(
                 Convites, Trilha, Unidade, new RelogioFixo(Agora), Email, new EnderecosPublicos(new Uri("https://acordu.app.br/")),
-                new OpcoesCadastro(ModoCadastro.Convite, 7));
+                new OpcoesCadastro(ModoCadastro.Convite, 7), new DominiosFalsos(descartavel));
             Lista = new ListaEsperaNebrys(Entradas, convites, Trilha, Unidade);
         }
 
@@ -186,6 +201,12 @@ public sealed class ListaEsperaNebrysTests
 
         public Task<bool> HaEmAbertoAsync(string emailNormalizado, CancellationToken cancellationToken = default) =>
             Task.FromResult(EmAberto.Contains(emailNormalizado));
+    }
+
+    private sealed class DominiosFalsos(string? descartavel) : IDominiosDescartaveis
+    {
+        public bool EhDescartavel(string email) =>
+            descartavel is not null && email.EndsWith($"@{descartavel}", StringComparison.Ordinal);
     }
 
     private sealed class TrilhaFalsa : ITrilhaDaOperacao
