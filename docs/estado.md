@@ -1,10 +1,10 @@
 # Acordu — Estado
 
-Visão geral curta, atualizada por cada PR (`docs/processo.md` §1). O histórico está no git, nos PRs e no registro dos designs. Atualizado em 25/11/2026 (melhoria #225, marca de demonstração na área da Nebrys).
+Visão geral curta, atualizada por cada PR (`docs/processo.md` §1). O histórico está no git, nos PRs e no registro dos designs. Atualizado em 25/11/2026 (deploy do pacote de melhorias, `d6cb193`).
 
 ## Em revisão
 
-- **Melhoria #208 — "Falar no WhatsApp" na ficha do cliente** (branch `feat/208-whatsapp`, só front): atalho para o `wa.me` do cliente e de cada contato com telefone que sirva (`linkWhatsApp`, `shared/format/whatsapp.ts`; sem DDI assume +55), numa aba nova, sem integração e sem `grava` (funciona na empresa só leitura). Não aparece no portal.
+- Registro do deploy do pacote de melhorias (25/11).
 
 ## Marco concluído
 
@@ -14,6 +14,7 @@ Visão geral curta, atualizada por cada PR (`docs/processo.md` §1). O históric
 
 - Backend do v1 completo; frontend F1–F7 e marcos F8–F13 na `main`; F14 inteiro na `main`.
 - **Deploy do F14** em 24/11 (`ae5f5e7`). Em 25/11 o Daniel zerou o banco de produção (schema `public` recriado e migrations aplicadas por um novo deploy) para recomeçar os testes: a migration do F14a pôs as empresas antigas em CANCELADA, e o expurgo apagaria as contas, inclusive a de operação. **Cadastro por convite aberto** (`CADASTRO_MODO=convite`); `TEXTOS_LEGAIS_PUBLICADOS` ausente (desligada). Conferidos pelo Daniel em 25/11: entrada na área da Nebrys, lista de empresas, `/cadastro` mostrando a lista de espera e a entrada chegando à área.
+- **Deploy do pacote de melhorias** em 25/11 (`d6cb193`): fix #222 (link do convite sem sessão), #191 (só leitura nos controles), #213 (expurgo dos convites), #224 (convite para e-mail descartável recusado), #225 (marca de demonstração na área), #226 (redefinição de senha não sai para conta fictícia) e #208 ("Falar no WhatsApp"). Sem migration nem variável nova. O passo `expurgo-convites` roda no primeiro diário depois do deploy.
 - **Produção no ar** desde o primeiro deploy (12/11). Conferidos pelo Daniel em 12 e 13/11: F8-22, F8-26, F8-32 (fumaça de ponta a ponta), F9-47 (Turnstile no cadastro), F13-31 (avisos do deploy), WIF restrito, tokens do R2 separados, Resend verificado, MFA nas cinco contas, alerta de orçamento (R$ 10/mês, 50/90/100%), token de origem (404 direto, 200 pela borda), CORS só para `acordu.app.br` e `TempoReal__Sse=false`.
 
 ## Próximos passos
