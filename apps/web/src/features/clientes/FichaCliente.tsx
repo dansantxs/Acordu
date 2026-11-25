@@ -30,6 +30,7 @@ import { ContratosCliente, EmAbertoCliente, ResumoCliente } from './SecoesFicha'
 import { Etiquetas } from './Etiquetas'
 import { JanelaCliente } from './JanelaCliente'
 import { JanelaContato } from './JanelaContato'
+import { LinkWhatsApp } from './LinkWhatsApp'
 
 function Dado({ rotulo, largo = false, children }: { rotulo: string; largo?: boolean; children: ReactNode }) {
     return (
@@ -239,7 +240,14 @@ function Ficha({
                                 </a>
                             )}
                         </Dado>
-                        <Dado rotulo="Telefone">{cliente.telefone && formatarTelefone(cliente.telefone)}</Dado>
+                        <Dado rotulo="Telefone">
+                            {cliente.telefone && (
+                                <span className="flex flex-wrap items-center gap-x-3">
+                                    {formatarTelefone(cliente.telefone)}
+                                    <LinkWhatsApp telefone={cliente.telefone} nome={cliente.nome} />
+                                </span>
+                            )}
+                        </Dado>
                         <Dado rotulo="Endereço" largo>
                             {cliente.endereco && <EnderecoPostal endereco={cliente.endereco} />}
                         </Dado>
@@ -292,7 +300,12 @@ function Ficha({
                                             <a href={`mailto:${contato.email}`} className="hover:underline">
                                                 {contato.email}
                                             </a>
-                                            {contato.telefone && <span>{formatarTelefone(contato.telefone)}</span>}
+                                            {contato.telefone && (
+                                                <span className="flex flex-wrap items-center gap-x-3">
+                                                    {formatarTelefone(contato.telefone)}
+                                                    <LinkWhatsApp telefone={contato.telefone} nome={contato.nome} />
+                                                </span>
+                                            )}
                                         </span>
                                         <span className="text-xs">
                                             <SituacaoPortal contato={contato} fuso={fuso} />

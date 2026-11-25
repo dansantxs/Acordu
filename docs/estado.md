@@ -4,7 +4,7 @@ Visão geral curta, atualizada por cada PR (`docs/processo.md` §1). O históric
 
 ## Em revisão
 
-- **Melhoria #226 — redefinição de senha não sai para conta fictícia** (branch `feat/226-senha-conta-ficticia`): `POST /auth/senha/esqueci` para um e-mail em `.invalid` (as contas fictícias da demonstração, RF-NEB-02) não emite token nem chama o provedor de e-mail; a resposta continua a neutra (`202`, sem corpo). Conta comum continua recebendo o link.
+- **Melhoria #208 — "Falar no WhatsApp" na ficha do cliente** (branch `feat/208-whatsapp`, só front): atalho para o `wa.me` do cliente e de cada contato com telefone que sirva (`linkWhatsApp`, `shared/format/whatsapp.ts`; sem DDI assume +55), numa aba nova, sem integração e sem `grava` (funciona na empresa só leitura). Não aparece no portal.
 
 ## Marco concluído
 

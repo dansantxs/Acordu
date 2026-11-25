@@ -121,3 +121,68 @@ describe('ficha do cliente', () => {
         expect(screen.queryByText('Contratos ativos')).not.toBeInTheDocument()
     })
 })
+
+describe('ficha do cliente: falar no WhatsApp (#208)', () => {
+    beforeEach(() => reiniciarParaTestes())
+    afterEach(() => vi.unstubAllGlobals())
+
+    const contato = (id: string, nome: string, telefone: string | null) => ({
+        id,
+        nome,
+        email: `${id}@bomgrao.com`,
+        telefone,
+        cargo: null,
+        ativo: true,
+        temConta: false,
+        acessoPortal: null,
+    })
+    const comTelefones = (telefone: string | null) =>
+        comPerfil(['cliente.ver'], {
+            'GET /api/v1/equipe': () => json([]),
+            [`GET /api/v1/clientes/${C}`]: () =>
+                json({
+                    ...cliente,
+                    telefone,
+                    contatos: [
+                        contato('k1', 'Marta Souza', '(14) 99999-0000'),
+                        contato('k2', 'Rui Lima', null),
+                        contato('k3', 'Lia Prado', '1234'),
+                    ],
+                }),
+            'GET /api/v1/contratos': () => pagina([]),
+        })
+
+    it('LinkWhatsApp_ClienteComTelefone_AbreOWaMeNumaAbaNova', async () => {
+        comTelefones('(14) 3222-0101')
+        await abrir(`/clientes/${C}`)
+        const link = await screen.findByRole('link', {
+            name: 'Falar no WhatsApp com Padaria Bom Grão (abre em outra aba)',
+        })
+        expect(link).toHaveAttribute('href', 'https://wa.me/551432220101')
+        expect(link).toHaveAttribute('target', '_blank')
+        expect(link).toHaveAttribute('rel', 'noopener noreferrer')
+    })
+
+    it('LinkWhatsApp_ClienteSemTelefone_NaoAparece', async () => {
+        comTelefones(null)
+        await abrir(`/clientes/${C}`)
+        expect(await screen.findByText('Razão social')).toBeInTheDocument()
+        expect(screen.queryByRole('link', { name: /WhatsApp/ })).not.toBeInTheDocument()
+    })
+
+    it('LinkWhatsApp_ClienteComTelefoneInvalido_NaoAparece', async () => {
+        comTelefones('99-0000')
+        await abrir(`/clientes/${C}`)
+        expect(await screen.findByText('(99) 0000')).toBeInTheDocument()
+        expect(screen.queryByRole('link', { name: /WhatsApp/ })).not.toBeInTheDocument()
+    })
+
+    it('LinkWhatsApp_ContatosNaFicha_SoQuemTemTelefoneQueServe', async () => {
+        comTelefones(null)
+        await abrir(`/clientes/${C}?secao=contatos`)
+        const link = await screen.findByRole('link', { name: 'Falar no WhatsApp com Marta Souza (abre em outra aba)' })
+        expect(link).toHaveAttribute('href', 'https://wa.me/5514999990000')
+        expect(link).toHaveAttribute('target', '_blank')
+        expect(screen.getAllByRole('link', { name: /WhatsApp/ })).toHaveLength(1)
+    })
+})

@@ -256,6 +256,20 @@ describe('links de texto da ficha do cliente na empresa só leitura (#191)', () 
         }
     })
 
+    it('LinkWhatsApp_FichaEmpresaVencida_DisponivelPorqueNaoGrava (#208)', async () => {
+        const comTelefone = {
+            ...cliente,
+            telefone: '(14) 3222-0101',
+            contatos: cliente.contatos.map((c) => ({ ...c, telefone: '14999990000' })),
+        }
+        app(PERMISSOES, VENCIDA, { [`GET /api/v1/clientes/${C}`]: () => json(comTelefone) })
+        await abrir(`/clientes/${C}?secao=contatos`)
+        const link = await screen.findByRole('link', { name: 'Falar no WhatsApp com Marta Souza (abre em outra aba)' })
+        expect(link).toHaveAttribute('href', 'https://wa.me/5514999990000')
+        expect(link).not.toHaveAttribute('aria-disabled')
+        expect(link).not.toHaveAccessibleDescription()
+    })
+
     it('BotaoTexto_FichaContatoEmpresaEmTeste_ConvidarAbreAJanela', async () => {
         app(PERMISSOES, EM_TESTE, { [`GET /api/v1/clientes/${C}`]: () => json(cliente) })
         await abrir(`/clientes/${C}?secao=contatos`)

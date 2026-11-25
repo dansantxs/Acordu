@@ -213,6 +213,7 @@ export const SECOES_AJUDA: SecaoAjuda[] = [
             'Cadastre o cliente começando pelo CPF ou CNPJ: com o CNPJ, o Acordu busca os dados abertos da Receita e preenche o que estiver vazio (nome, razão social, endereço e telefone). Depois, responsável na equipe e etiquetas.',
             'Na ficha: Resumo (régua dos contratos), Em aberto, Contratos, Contatos e portal, Arquivos e Movimentos.',
             'Em "Contatos e portal", adicione os contatos e convide para o portal. "Só as próprias" mostra ao contato só as solicitações dele; "Todas do cliente", todas.',
+            'Ao lado do telefone do cliente e de cada contato, "WhatsApp" abre a conversa no WhatsApp numa aba nova. Telefone sem DDI é tratado como do Brasil (+55); para outro país, cadastre com + e o código. O Acordu não envia nem guarda a conversa.',
         ],
         dicas: [
             'O telefone que vem da Receita costuma ser do escritório de contabilidade: confira antes de salvar. O e-mail não vem, e para empresário individual (MEI) os dados abertos não trazem rua nem telefone: o Acordu usa CEP, bairro e cidade e completa a rua pelo CEP. Se a empresa não estiver ativa na Receita, aparece um aviso, mas dá para salvar.',
