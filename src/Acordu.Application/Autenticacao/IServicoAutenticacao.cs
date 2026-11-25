@@ -100,7 +100,7 @@ public interface IServicoAutenticacao
 
     /// <summary>
     /// Envia o link de redefinição de senha (1 h; invalida o anterior) se o e-mail tiver conta. Não revela se tem: quem
-    /// chama responde igual nos dois casos.
+    /// chama responde igual nos dois casos. Conta em <c>.invalid</c> (fictícia, RF-NEB-02): nada é enviado nem emitido.
     /// </summary>
     Task SolicitarRedefinicaoSenhaAsync(string email, CancellationToken cancellationToken = default);
 

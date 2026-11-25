@@ -546,7 +546,9 @@ public sealed partial class ServicoAutenticacao : IServicoAutenticacao
     public async Task SolicitarRedefinicaoSenhaAsync(string email, CancellationToken cancellationToken = default)
     {
         var usuario = string.IsNullOrWhiteSpace(email) ? null : await _usuarios.FindByEmailAsync(email.Trim());
-        if (usuario is null)
+        // Conta fictícia da demonstração (RF-NEB-02, #226): e-mail em .invalid, sem senha; nada sai e nenhum token é
+        // emitido. A resposta é a mesma da conta que não existe, sem revelar nada.
+        if (usuario is null || Domain.Common.Email.NuncaEntregue(usuario.Email))
             return;
 
         var token = await EmitirTokenAsync(usuario.Id, FinalidadeTokenConta.RedefinicaoSenha, ValidadeRedefinicao, cancellationToken);

@@ -27,4 +27,26 @@ public sealed class EmailTests
     [InlineData("a b@exemplo.com")]
     public void FormatoInvalido_EhRecusado(string email) =>
         ((Action)(() => Email.Normalizar(email, "email"))).Should().Throw<ArgumentException>();
+
+    [Theory] // RF-NEB-02, #226: o TLD .invalid (RFC 2606) dos dados fictícios nunca é entregue
+    [InlineData("ana.prado@clinica-aurora.invalid")]
+    [InlineData("ANA@EXEMPLO.INVALID")]
+    [InlineData("ana@mail.clinica.invalid")]
+    [InlineData("ana@exemplo.Invalid ")]
+    public void NuncaEntregue_DominioInvalid_Verdadeiro(string email) =>
+        Email.NuncaEntregue(email).Should().BeTrue();
+
+    [Theory]
+    [InlineData("ana@exemplo.com")]
+    [InlineData("ana@invalid.com.br")]
+    [InlineData("ana@exemploinvalid")]
+    [InlineData("ana@invalid.com")]
+    [InlineData("ana@x.invalidos")]
+    [InlineData("ana@exemplo.invalid.com")]
+    [InlineData("ana.invalid@exemplo.com")]
+    [InlineData("   ")]
+    [InlineData("")]
+    [InlineData(null)]
+    public void NuncaEntregue_DominioComumOuVazio_Falso(string? email) =>
+        Email.NuncaEntregue(email).Should().BeFalse();
 }

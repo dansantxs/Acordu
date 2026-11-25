@@ -4,7 +4,7 @@ Visão geral curta, atualizada por cada PR (`docs/processo.md` §1). O históric
 
 ## Em revisão
 
-- **Melhoria #225 — marca de demonstração na área da Nebrys** (branch `feat/225-marca-demonstracao`): a lista e o detalhe das empresas (`EmpresaResumoNebrysDto`, `EmpresaNebrysDto`) trazem `demonstracao` (booleano); a área mostra a etiqueta "Demonstração" ao lado da situação e, no detalhe da demonstração, troca as ações de situação (que dariam `422`) pelo link para `/nebrys/demonstracao`. Nenhuma rota nova.
+- **Melhoria #226 — redefinição de senha não sai para conta fictícia** (branch `feat/226-senha-conta-ficticia`): `POST /auth/senha/esqueci` para um e-mail em `.invalid` (as contas fictícias da demonstração, RF-NEB-02) não emite token nem chama o provedor de e-mail; a resposta continua a neutra (`202`, sem corpo). Conta comum continua recebendo o link.
 
 ## Marco concluído
 
