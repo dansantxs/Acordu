@@ -1,10 +1,10 @@
 # Acordu — Estado
 
-Visão geral curta, atualizada por cada PR (`docs/processo.md` §1). O histórico está no git, nos PRs e no registro dos designs. Atualizado em 25/11/2026 (deploy do F14 e cadastro por convite aberto).
+Visão geral curta, atualizada por cada PR (`docs/processo.md` §1). O histórico está no git, nos PRs e no registro dos designs. Atualizado em 25/11/2026 (fix #222, sessão na abertura sem conta).
 
 ## Em revisão
 
-- Registro do deploy do F14 (24 e 25/11) e das conferências feitas pelo Daniel.
+- **Fix #222 — link do convite preso em "Carregando o convite…"** (bug de produção, branch `fix/convite-sessao-inicio`): sem sessão, a primeira carga recebia 401 do refresh e tratava isso como encerramento, que limpava o cache do TanStack Query e derrubava a consulta que a tela de link já tinha feito. Agora só o fim de uma sessão ativa é `encerramento` (limpa o cache e avisa as outras abas); abrir sem sessão fica `anonima` com motivo `inicio`, sem limpar nem avisar. Cobre também `/convite`, `/portal/convite` e `/conta/confirmacao` (que confirmava duas vezes). Testes de regressão em `features/sessao/linksSemSessao.test.tsx`.
 
 ## Marco concluído
 

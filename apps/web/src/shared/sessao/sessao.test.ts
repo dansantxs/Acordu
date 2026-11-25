@@ -72,6 +72,59 @@ describe('sessão', () => {
         expect(tokenAtual()).toBeNull()
     })
 
+    describe('#222: abrir sem sessão não é encerramento', () => {
+        const avisos = () => vi.spyOn(BroadcastChannel.prototype, 'postMessage')
+
+        it('IniciarSessao_RefreshRecusado_FicaAnonimaComMotivoInicioSemAvisarAsOutrasAbas', async () => {
+            const postagens = avisos()
+            definirRenovador(async () => null)
+            await iniciarSessao()
+            expect(estadoSessao()).toEqual({ situacao: 'anonima', motivo: 'inicio' })
+            expect(postagens).not.toHaveBeenCalled()
+        })
+
+        it('TentarDeNovo_DepoisDeIndisponivelERefreshRecusado_FicaAnonimaComMotivoInicio', async () => {
+            definirRenovador(
+                vi.fn().mockRejectedValueOnce(new TypeError('Failed to fetch')).mockResolvedValueOnce(null),
+            )
+            await iniciarSessao()
+            expect(await tentarDeNovo()).toEqual({ situacao: 'anonima', motivo: 'inicio' })
+        })
+
+        it('Renovar_SessaoAtivaRecusada_EncerraComMotivoEncerramentoEAvisaAsOutrasAbas', async () => {
+            definirRenovador(async () => ({ accessToken: 'a7', expiraEm: daquiA(3_600_000) }))
+            await iniciarSessao()
+            const postagens = avisos()
+            definirRenovador(async () => null)
+            expect(await renovar()).toBe(false)
+            expect(estadoSessao()).toEqual({ situacao: 'anonima', motivo: 'encerramento' })
+            expect(tokenAtual()).toBeNull()
+            expect(postagens).toHaveBeenCalledWith({ tipo: 'encerrada' })
+        })
+
+        it('Canal_EncerradaEmAbaQueAindaCarrega_FicaAnonimaComMotivoInicio', async () => {
+            const outraAba = new BroadcastChannel('acordu-sessao')
+            try {
+                outraAba.postMessage({ tipo: 'encerrada' })
+                await vi.waitFor(() => expect(estadoSessao()).toEqual({ situacao: 'anonima', motivo: 'inicio' }))
+            } finally {
+                outraAba.close()
+            }
+        })
+
+        it('Canal_EncerradaEmAbaComSessaoAtiva_EncerraComMotivoEncerramento', async () => {
+            abrirSessao({ accessToken: 'a8', expiraEm: daquiA(3_600_000) })
+            const outraAba = new BroadcastChannel('acordu-sessao')
+            try {
+                outraAba.postMessage({ tipo: 'encerrada' })
+                await vi.waitFor(() => expect(estadoSessao()).toEqual({ situacao: 'anonima', motivo: 'encerramento' }))
+                expect(tokenAtual()).toBeNull()
+            } finally {
+                outraAba.close()
+            }
+        })
+    })
+
     it('trata como vencido o token a menos de um minuto do fim', () => {
         abrirSessao({ accessToken: 'a4', expiraEm: daquiA(30_000) })
         expect(tokenVencendo()).toBe(true)

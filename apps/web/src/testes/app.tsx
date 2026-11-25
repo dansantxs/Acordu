@@ -5,6 +5,7 @@ import { vi } from 'vitest'
 import { routeTree } from '@/routeTree.gen'
 import '@/shared/api/cliente'
 import { RegiaoAvisos } from '@/shared/avisos/RegiaoAvisos'
+import { limparCacheAoTrocarSessao } from '@/shared/sessao/cacheDaSessao'
 import { iniciarSessao } from '@/shared/sessao/sessao'
 
 /** Apoio dos testes de tela: o app inteiro (rotas reais) com a API simulada por caminho. */
@@ -45,7 +46,8 @@ export const perfil = {
 /** Tempo real sem sinais: a conexão fecha e a casca tenta de novo mais tarde (sem afetar o teste). */
 const semEventos = () => new Response(null, { status: 204 })
 
-export type Rotas = Record<string, (corpo: unknown, url: URL) => Response>
+/** A resposta pode demorar (promessa): serve para simular a ordem em que as chamadas voltam. */
+export type Rotas = Record<string, (corpo: unknown, url: URL) => Response | Promise<Response>>
 
 export interface Chamada {
     metodo: string
@@ -141,4 +143,27 @@ export async function abrir(caminho: string) {
         </QueryClientProvider>,
     )
     return roteador
+}
+
+/**
+ * Como o `Aplicacao` em produção: renderiza sem esperar a primeira renovação, e a sessão limpa o cache ao mudar
+ * (`limparCacheAoTrocarSessao`). As consultas da tela podem sair antes de o refresh responder. Devolve também a
+ * promessa da primeira carga da sessão.
+ */
+export function abrirComoNaProducao(caminho: string) {
+    const consultas = new QueryClient({ defaultOptions: { queries: { retry: false } } })
+    const roteador = createRouter({
+        routeTree,
+        context: { consultas },
+        history: createMemoryHistory({ initialEntries: [caminho] }),
+    })
+    limparCacheAoTrocarSessao(consultas, () => void roteador.invalidate())
+    const inicio = iniciarSessao()
+    render(
+        <QueryClientProvider client={consultas}>
+            <RouterProvider router={roteador} />
+            <RegiaoAvisos />
+        </QueryClientProvider>,
+    )
+    return { roteador, consultas, inicio }
 }

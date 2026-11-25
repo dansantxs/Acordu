@@ -20,7 +20,11 @@ export interface TokenDeAcesso {
  */
 export type Situacao = 'carregando' | 'anonima' | 'ativa' | 'indisponivel'
 
-/** Por que a sessão mudou: `troca` é outra empresa ou outro usuário (o cache inteiro deixa de valer). */
+/**
+ * Por que a sessão mudou: `troca` é outra empresa ou outro usuário, e `encerramento` é o fim de uma sessão que existia
+ * (nos dois, o cache inteiro deixa de valer). A primeira carga sai de `carregando` com `inicio`, com ou sem sessão: o
+ * app que abre sem sessão não encerrou nada, e as consultas que as telas públicas já fizeram continuam valendo (#222).
+ */
 export type Motivo = 'inicio' | 'renovacao' | 'troca' | 'encerramento'
 
 export interface EstadoSessao {
@@ -98,13 +102,20 @@ function limpar(): void {
     mudar({ situacao: 'anonima', motivo: 'encerramento' })
 }
 
+/** Primeira carga sem sessão (refresh recusado antes de haver sessão): nada a encerrar nem a avisar às outras abas. */
+function ficarAnonima(): void {
+    token = null
+    clearTimeout(temporizador)
+    mudar({ situacao: 'anonima', motivo: 'inicio' })
+}
+
 /** Sessão aberta por login, registro, aceite de convite ou troca de empresa: vale também para as outras abas. */
 export function abrirSessao(novo: TokenDeAcesso): void {
     guardar(novo, 'troca')
     canal?.postMessage({ tipo: 'token', token: novo, troca: true } satisfies Mensagem)
 }
 
-/** Sessão encerrada aqui (logout ou refresh recusado): as outras abas também saem. */
+/** Sessão encerrada aqui (logout ou refresh recusado de uma sessão ativa): as outras abas também saem. */
 export function encerrarSessao(): void {
     limpar()
     canal?.postMessage({ tipo: 'encerrada' } satisfies Mensagem)
@@ -116,8 +127,9 @@ async function comLock<T>(tarefa: () => Promise<T>): Promise<T> {
 }
 
 /**
- * Pede um access token novo. `true` se a sessão continua ativa; `false` se a API recusou o refresh (a sessão é
- * encerrada). Erro de rede propaga, sem encerrar nem repetir.
+ * Pede um access token novo. `true` se a sessão continua ativa; `false` se a API recusou o refresh: a sessão ativa é
+ * encerrada (em todas as abas); sem sessão ainda (primeira carga), a aba só fica anônima. Erro de rede propaga, sem
+ * encerrar nem repetir.
  */
 export function renovar(): Promise<boolean> {
     if (emAndamento) return emAndamento
@@ -127,7 +139,8 @@ export function renovar(): Promise<boolean> {
         if (token && token.expiraEm !== antes && !tokenVencendo()) return true
         const novo = await renovador()
         if (!novo) {
-            encerrarSessao()
+            if (estado.situacao === 'ativa') encerrarSessao()
+            else ficarAnonima()
             return false
         }
         guardar(novo, estado.situacao === 'ativa' ? 'renovacao' : 'inicio')
@@ -174,7 +187,9 @@ export function aguardarSessao(): Promise<EstadoSessao> {
 canal?.addEventListener('message', (evento: MessageEvent<Mensagem>) => {
     const mensagem = evento.data
     if (mensagem.tipo === 'encerrada') {
-        if (estado.situacao !== 'anonima') limpar()
+        // Só uma sessão ativa se encerra; a aba que ainda carregava (ou ficou indisponível) só fica anônima.
+        if (estado.situacao === 'ativa') limpar()
+        else if (estado.situacao !== 'anonima') ficarAnonima()
         return
     }
     guardar(mensagem.token, mensagem.troca ? 'troca' : estado.situacao === 'ativa' ? 'renovacao' : 'inicio')
