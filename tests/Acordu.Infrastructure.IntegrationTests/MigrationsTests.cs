@@ -240,27 +240,32 @@ public sealed class MigrationsTests(BancoFixture banco)
             await db.SaveChangesAsync();
         }
 
-        var anterior = Tenant.Criar(Guid.NewGuid(), "Gravada antes", Dados.Agora, Guid.NewGuid(), TimeSpan.FromDays(30));
+        // A gravação anterior da transação é a de um registro global, como no cadastro (a conta e o registro do documento
+        // vêm antes da empresa); o contexto é o da equipe da empresa nova, como o cadastro define antes de gravar.
+        var anterior = DocumentoTeste.Registrar(
+            Convert.ToHexStringLower(System.Security.Cryptography.RandomNumberGenerator.GetBytes(32)), Dados.Agora);
         var b = Tenant.Criar(Guid.NewGuid(), "Padaria Bom Grão", Dados.Agora, Guid.NewGuid(), TimeSpan.FromDays(30));
         typeof(Tenant).GetProperty(nameof(Tenant.CodigoEntrada))!.SetValue(b, a.CodigoEntrada);
-        await using (var sistema = banco.Contexto(Quem.Sistema()))
+        await using (var db = banco.DaEquipe(b.Id))
         {
             // Como o cadastro: tudo numa transação, e a colisão chega depois de outra gravação já feita nela.
-            await using var transacao = await sistema.Database.BeginTransactionAsync();
-            sistema.Add(anterior);
-            await sistema.SaveChangesAsync();
-            sistema.Add(b);
+            await using var transacao = await db.Database.BeginTransactionAsync();
+            db.Add(anterior);
+            await db.SaveChangesAsync();
+            db.Add(b);
 
-            var colisao = await ((Func<Task>)(() => sistema.SaveChangesAsync())).Should().ThrowAsync<DbUpdateException>();
+            var colisao = await ((Func<Task>)(() => db.SaveChangesAsync())).Should().ThrowAsync<DbUpdateException>();
             CodigosDeEntrada.Disputa(colisao.Which).Should().BeTrue();
             b.SortearOutroCodigoEntrada();
-            await sistema.SaveChangesAsync();
+            await db.SaveChangesAsync();
             await transacao.CommitAsync();
         }
 
         await using var leitura = banco.Contexto(Quem.Sistema());
-        var gravadas = await leitura.Tenants.AsNoTracking().Where(t => t.Id == a.Id || t.Id == b.Id || t.Id == anterior.Id).ToListAsync();
-        gravadas.Should().HaveCount(3, "a gravação anterior da transação sobreviveu à colisão");
+        var gravadas = await leitura.Tenants.AsNoTracking().Where(t => t.Id == a.Id || t.Id == b.Id).ToListAsync();
+        gravadas.Should().HaveCount(2);
+        (await leitura.Set<DocumentoTeste>().AsNoTracking().CountAsync(d => d.Hash == anterior.Hash))
+            .Should().Be(1, "a gravação anterior da transação sobreviveu à colisão");
         var codigoA = gravadas.Single(t => t.Id == a.Id).CodigoEntrada;
         var codigoB = gravadas.Single(t => t.Id == b.Id).CodigoEntrada;
         codigoB.Should().NotBe(codigoA);
