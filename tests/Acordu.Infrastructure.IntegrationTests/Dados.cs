@@ -51,7 +51,7 @@ internal static class Dados
     public static Interacao Interacao(Guid tenant, Guid cliente, Guid solicitacaoId) =>
         Domain.Entities.Interacao.Registrar(
             Guid.NewGuid(), tenant, cliente, solicitacaoId, Guid.NewGuid(), false, "Segue a arte", Visibilidade.Externa,
-            [new NovoAnexo("arte.png", "image/png", 1024, $"anexos/{Guid.NewGuid()}")],
+            CanalMensagem.Acordu, [new NovoAnexo("arte.png", "image/png", 1024, $"anexos/{Guid.NewGuid()}")],
             new PoliticaAnexos(20L * 1024 * 1024, ["image/png"], 5), Agora);
 
     public static RecorrenciaTarefa Recorrencia(Guid tenant, Guid cliente) =>

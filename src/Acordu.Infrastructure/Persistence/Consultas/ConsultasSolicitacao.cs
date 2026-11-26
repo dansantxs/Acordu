@@ -154,6 +154,7 @@ public sealed class ConsultasSolicitacao : IConsultasSolicitacao
             i.AutorEhCliente,
             i.Texto,
             i.Visibilidade,
+            i.Canal,
             i.RegistradaEm,
             [.. i.Anexos.OrderBy(a => a.NomeArquivo, StringComparer.Ordinal).Select(a => new AnexoDto(a.Id, a.NomeArquivo, a.TipoConteudo, a.TamanhoBytes))]))];
     }

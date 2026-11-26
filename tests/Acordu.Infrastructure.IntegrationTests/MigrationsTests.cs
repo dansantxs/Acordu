@@ -1,5 +1,6 @@
 using Acordu.Domain.Entities;
 using Acordu.Domain.Enums;
+using Acordu.Domain.ValueObjects;
 using Acordu.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 
@@ -113,6 +114,40 @@ public sealed class MigrationsTests(BancoFixture banco)
             intacta.FimDoTeste.Should().Be(Dados.Agora.AddDays(30));
             intacta.CanceladaEm.Should().BeNull();
         }
+    }
+
+    [Fact] // F15-62
+    public async Task PreenchimentoDoF15a_MensagensAnteriores_DoContatoNoPortalEDaEquipeNoAcordu()
+    {
+        var tenant = Guid.NewGuid();
+        var cliente = Dados.Cliente(tenant);
+        var solicitacao = Dados.Solicitacao(tenant, cliente.Id);
+        var daEquipe = Dados.Interacao(tenant, cliente.Id, solicitacao.Id);
+        var doContato = Interacao.Registrar(
+            Guid.NewGuid(), tenant, cliente.Id, solicitacao.Id, Guid.NewGuid(), true, "Segue o logo", Visibilidade.Externa,
+            CanalMensagem.Portal, [], new PoliticaAnexos(1024, ["image/png"], 5), Dados.Agora);
+        var porEmail = Interacao.Registrar(
+            Guid.NewGuid(), tenant, cliente.Id, solicitacao.Id, Guid.NewGuid(), true, "Já é do F15", Visibilidade.Externa,
+            CanalMensagem.Email, [], new PoliticaAnexos(1024, ["image/png"], 5), Dados.Agora);
+        await using (var db = banco.DaEquipe(tenant))
+        {
+            db.AddRange(cliente, solicitacao, daEquipe, doContato, porEmail);
+            await db.SaveChangesAsync();
+            // Como a migration encontra as mensagens anteriores ao F15: a coluna nova vazia.
+            await db.Database.ExecuteSqlAsync(
+                $"UPDATE interacoes SET canal = '' WHERE id IN ({daEquipe.Id}, {doContato.Id})");
+        }
+
+        await using (var sistema = banco.Contexto(Quem.Sistema()))
+            await sistema.Database.ExecuteSqlRawAsync(ScriptsDeDados.PreencherCanalDasInteracoes);
+
+        await using var leitura = banco.DaEquipe(tenant);
+        var canais = await leitura.Interacoes.AsNoTracking()
+            .Where(i => i.SolicitacaoId == solicitacao.Id)
+            .ToDictionaryAsync(i => i.Id, i => i.Canal);
+        canais[daEquipe.Id].Should().Be(CanalMensagem.Acordu);
+        canais[doContato.Id].Should().Be(CanalMensagem.Portal);
+        canais[porEmail.Id].Should().Be(CanalMensagem.Email, "o preenchimento só pega as linhas que a coluna nova recebeu vazias");
     }
 
     [Fact]
