@@ -25,7 +25,20 @@ public static class LeitorMime
             return null;
 
         var remetentes = mensagem.From.Mailboxes.Select(m => m.Address).ToList();
-        return new MensagemDeEntrada(ChaveDeEntrada.NormalizarMessageId(mensagem.MessageId), remetentes, limitado.Hash());
+        return new MensagemDeEntrada(
+            ChaveDeEntrada.NormalizarMessageId(mensagem.MessageId), remetentes, limitado.Hash(), Sinais(mensagem));
+    }
+
+    /// <summary>Os cabeçalhos da lista do e-mail automático (design D12), como vieram.</summary>
+    private static SinaisDeAutomatico Sinais(MimeMessage mensagem)
+    {
+        var cabecalhos = mensagem.Headers;
+        return new SinaisDeAutomatico(
+            AutoSubmitted: cabecalhos["Auto-Submitted"]?.Trim(),
+            Precedence: cabecalhos["Precedence"]?.Trim(),
+            ListaDeDistribuicao: cabecalhos.Contains("List-Id") || cabecalhos.Contains("List-Unsubscribe"),
+            RespostaAutomatica: cabecalhos.Contains("X-Autoreply") || cabecalhos.Contains("X-Autorespond"),
+            TipoDoCorpo: mensagem.Body?.ContentType.MimeType);
     }
 
     private static async Task<MimeMessage?> CarregarAsync(Stream corpo, CancellationToken cancellationToken)
