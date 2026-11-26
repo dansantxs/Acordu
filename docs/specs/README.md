@@ -12,3 +12,4 @@ Uma pasta por marco: `docs/specs/<marco>-<nome-curto>/`, com `spec.md` (o quê) 
 | F13 | [Monitoramento pelo Discord e "Sugerir melhoria"](F13-monitoramento-sugestoes/spec.md) | — | Concluída |
 | P1 | [Fábrica agêntica semi-autônoma](P1-fabrica-agentica/spec.md) | [design](P1-fabrica-agentica/design.md) | Concluída |
 | F14 | [Situação da empresa e cadastro controlado](F14-lancamento-controlado/spec.md) | [design](F14-lancamento-controlado/design.md) | Concluída |
+| F15 | [Omnichannel A: solicitação por e-mail e situação pelo canal de origem](F15-omnichannel-email/spec.md) | [design](F15-omnichannel-email/design.md) | Aprovada |

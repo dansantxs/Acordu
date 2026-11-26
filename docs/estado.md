@@ -1,10 +1,14 @@
 # Acordu — Estado
 
-Visão geral curta, atualizada por cada PR (`docs/processo.md` §1). O histórico está no git, nos PRs e no registro dos designs. Atualizado em 25/11/2026 (deploy do pacote de melhorias, `d6cb193`).
+Visão geral curta, atualizada por cada PR (`docs/processo.md` §1). O histórico está no git, nos PRs e no registro dos designs. Atualizado em 26/11/2026 (spec e design do F15, Omnichannel A, no G2).
 
 ## Em revisão
 
-- Registro do deploy do pacote de melhorias (25/11).
+- **F15 — spec e design (G2)** (#183, branch `docs/F15-spec`): solicitação por e-mail (RF-SOL-11 saiu da v2), resposta na conversa, avisos pelo canal de origem (RF-NOT-06), canal na conversa (RF-SOL-14), triagem dos não identificados (RF-SOL-15) e entrada segura (RNF-SEG-11). 97 cenários em 15 PRs (F15a a F15o, em série). ADR 0016 proposto (entrada pela borda: Cloudflare Email Routing → Email Worker → API; avisos pelo canal de origem). 11 perguntas ao Daniel na spec §4.
+
+## Marco em andamento
+
+- **F15 — Omnichannel A** (#183; [spec](specs/F15-omnichannel-email/spec.md), [design](specs/F15-omnichannel-email/design.md)): aguardando o G2. Provisionamento manual do Daniel (DNS/MX do subdomínio de entrada, Email Routing, secret do Worker) no PR que o design indica.
 
 ## Marco concluído
 

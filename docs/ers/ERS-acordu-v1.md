@@ -4,7 +4,7 @@
 | | |
 |---|---|
 | **Versão** | 0.1 (rascunho para revisão) |
-| **Data** | 13/11/2026 |
+| **Data** | 25/11/2026 |
 | **Produto** | Acordu |
 | **Norma de referência** | ABNT NBR ISO/IEC/IEEE 29148:2018 (estrutura de SRS), forma condensada |
 | **Documento de origem** | `estrategia-produto-acordu.md` (visão, público, posicionamento) |
@@ -20,8 +20,8 @@ Especificar os requisitos do release **v1** do Acordu: um sistema para pequenos 
 ### 1.2 Escopo
 Aplicação web (SPA) apoiada por uma API REST, **multi-tenant** desde o início (SaaS).
 
-- **Faz no v1:** cadastro/autenticação e multiusuário (RBAC); clientes e contatos; contratos (mensal fixo, banco de horas, avulso) com SLA; solicitações com protocolo, status e SLA; tarefas, projetos e apontamento de horas; tarefas recorrentes; portal do cliente (status externo, SLA, extrato de horas, aprovação de entrega); registro de solução e sugestão de solicitações semelhantes já resolvidas; notificações por e-mail; dashboard interno.
-- **Não faz no v1:** entrada de solicitação por e-mail e WhatsApp, base de conhecimento com artigos publicados, projeção do contrato, relatório mensal em PDF (todos **v2**); faturamento/cobrança, NFS-e, IA (rascunho de artigos, triagem, resumo) (**v3+**); app mobile nativo.
+- **Faz no v1:** cadastro/autenticação e multiusuário (RBAC); clientes e contatos; contratos (mensal fixo, banco de horas, avulso) com SLA; solicitações com protocolo, status e SLA; tarefas, projetos e apontamento de horas; tarefas recorrentes; portal do cliente (status externo, SLA, extrato de horas, aprovação de entrega); registro de solução e sugestão de solicitações semelhantes já resolvidas; notificações por e-mail; entrada de solicitação por e-mail, com a resposta aos avisos na conversa (F15); dashboard interno.
+- **Não faz no v1:** entrada de solicitação por WhatsApp (#184), base de conhecimento com artigos publicados, projeção do contrato, relatório mensal em PDF (todos **v2**); faturamento/cobrança, NFS-e, IA (rascunho de artigos, triagem, resumo) (**v3+**); app mobile nativo.
 
 ### 1.3 Visão geral do produto
 
@@ -101,7 +101,7 @@ Convenções: **RF** = requisito funcional, **RNF** = não funcional. Verificaç
 
 ### 3.1 Interfaces externas
 - **Usuário:** SPA responsiva; o **portal do cliente** é uma área da mesma SPA com layout e rotas próprias (`/portal`), otimizada para celular.
-- **Software:** API REST autenticada (JSON); e-mail transacional (Resend); armazenamento de anexos em objeto (S3-compatível — Cloudflare R2).
+- **Software:** API REST autenticada (JSON); e-mail transacional (Resend); recebimento de e-mail para a entrada de solicitações (F15; provedor e forma de entrega no design do F15, sem SDK, ADR 0010); armazenamento de anexos em objeto (S3-compatível — Cloudflare R2).
 - **Dados:** PostgreSQL 17 gerenciado (Neon), banco próprio do Acordu.
 - **Localização:** pt-BR, fuso configurável por tenant (padrão `America/Sao_Paulo`), formatos brasileiros.
 
@@ -177,9 +177,11 @@ Convenções: **RF** = requisito funcional, **RNF** = não funcional. Verificaç
 | RF-SOL-08 | Uma solicitação pode originar **uma ou mais tarefas**; seu tempo total é a soma dos apontamentos dessas tarefas. | T |
 | RF-SOL-09 | Resolução automática para FECHADA após N dias em RESOLVIDA sem manifestação do cliente (padrão 5 dias). | T |
 | RF-SOL-10 | Reabrir solicitação RESOLVIDA (equipe ou cliente) dentro do prazo do RF-SOL-09. | T |
-| RF-SOL-11 **(v2)** | Criar solicitação a partir de e-mail recebido, com threading de respostas. | T |
+| RF-SOL-11 | **Solicitação por e-mail** (F15, 25/11; era v2): cada empresa tem um endereço de entrada próprio, que a equipe vê nas configurações e quem tem `configuracao.gerenciar` liga ou desliga (desligado por padrão). Ligado, o e-mail de um contato conhecido (e-mail de exatamente um contato ativo, de cliente ativo, com o remetente autenticado) abre solicitação com protocolo e origem EMAIL: assunto → título, corpo em texto → descrição, anexos dentro da política (RNF-SEG-07) como primeira mensagem do contato, contrato como no portal. A resposta do contato a um aviso (RF-NOT-06) entra como mensagem EXTERNA na conversa da solicitação certa (*threading* pelo endereço da conversa ou pelos cabeçalhos dos e-mails do Acordu, nunca só pelo "#N" do assunto), sem a citação do e-mail anterior, com os efeitos de uma resposta pelo portal (RF-POR-05); em FECHADA ou CANCELADA não entra (RF-SOL-13) e abre uma solicitação nova do mesmo cliente, para quem respondeu, que cita a anterior. Também vale resposta de outro contato ativo do mesmo cliente. Empresa só leitura não grava nem responde nada (RF-EMP-02). Valores e escolhas a confirmar no G2 do F15 (spec, perguntas 1 a 10). | T |
 | RF-SOL-12 **(v2)** | Criar solicitação a partir de WhatsApp (API oficial via provedor). | T |
 | RF-SOL-13 | Solicitação FECHADA ou CANCELADA não recebe resposta ao cliente nem anexo, da equipe ou do portal; nota interna da equipe sem anexo continua (registro posterior). RESOLVIDA segue aberta à conversa enquanto pode ser reaberta. (F11, 06/11) | T |
+| RF-SOL-14 | **Canal de cada mensagem** (F15, 25/11): toda mensagem da conversa guarda por onde entrou (Acordu, pela equipe no app; Portal; E-mail; WhatsApp no #184), mostrado à equipe e, nas mensagens EXTERNAS, ao contato. As mensagens anteriores ao F15 ficam Portal (do contato) ou Acordu (da equipe). | T |
+| RF-SOL-15 | **Triagem dos e-mails não identificados** (F15, 25/11): o e-mail ao endereço de entrada que não dá para atribuir a um contato (remetente desconhecido, contato ou cliente inativo, contato em mais de um cliente, remetente que falha na autenticação, resposta de quem não é contato do cliente da solicitação) não cria nada sozinho: entra numa triagem da empresa, sem resposta ao remetente. Quem tem `solicitacao.criar` converte em solicitação (escolhendo cliente e contato, ou cadastrando o remetente como contato, o que exige também `cliente.gerenciar`), junta a uma solicitação aberta à conversa (com `solicitacao.comentar`) ou descarta, com registro na trilha; item não tratado em 30 dias é apagado no diário (a confirmar no G2 do F15). | T |
 
 **Tarefas e projetos**
 | ID | Requisito | Verif. |
@@ -255,6 +257,7 @@ Convenções: **RF** = requisito funcional, **RNF** = não funcional. Verificaç
 | RF-NOT-03 | Notificações dentro do app (sino) para usuários internos. | D |
 | RF-NOT-04 | Usuário configura quais notificações por e-mail recebe (exceto as obrigatórias de conta). | D |
 | RF-NOT-05 | Notificação do sistema operacional pelo navegador, opcional por pessoa, com o app aberto (inclusive minimizado): avisos do sino, lembrete e cronômetro esquecido (F12). | D |
+| RF-NOT-06 | **Avisos pelo canal de origem** (F15, 25/11): os avisos do RF-NOT-01 saem pelo canal por onde a solicitação veio; no v1 todos saem por e-mail (origens INTERNA, PORTAL e EMAIL), e WhatsApp entra no #184 pelo mesmo mecanismo. Na origem EMAIL, o aviso segue na mesma conversa do e-mail que abriu a solicitação. Com o recebimento por e-mail ligado, todo aviso responde para o endereço da conversa da solicitação, e a resposta entra nela (RF-SOL-11); desligado, os avisos ficam como antes do F15. Os avisos vão marcados como mensagem automática. | T |
 
 **Dashboard interno**
 | ID | Requisito | Verif. |
@@ -276,7 +279,7 @@ Convenções: **RF** = requisito funcional, **RNF** = não funcional. Verificaç
 | ID | Requisito | Verif. |
 |---|---|---|
 | RNF-SEG-01 | Isolamento multi-tenant por `TenantId` via *global query filter*; recurso de outro tenant → 404. | T |
-| RNF-SEG-02 | **Isolamento por cliente dentro do tenant:** usuário com papel Cliente só enxerga dados do seu `ClienteId` (e, se configurado, só as próprias solicitações). Imposto na Application e na consulta, nunca só na UI. Teste obrigatório: contato do cliente A nunca vê dados do cliente B do mesmo tenant. | T |
+| RNF-SEG-02 | **Isolamento por cliente dentro do tenant:** usuário com papel Cliente só enxerga dados do seu `ClienteId` (e, se configurado, só as próprias solicitações). Imposto na Application e na consulta, nunca só na UI. Teste obrigatório: contato do cliente A nunca vê dados do cliente B do mesmo tenant. **Exceção (F15, 25/11; a confirmar no G2 do F15, pergunta 8 da spec):** por e-mail, qualquer contato ativo do cliente pode responder a um aviso de uma solicitação desse cliente, mesmo com escopo PROPRIAS e sem ser o contato dela; a mensagem entra na conversa e ele continua sem ver a solicitação no portal (RF-SOL-11). | T |
 | RNF-SEG-03 | Itens INTERNOS nunca são serializados em respostas destinadas ao portal (DTOs de portal separados dos internos). | T |
 | RNF-SEG-04 | Senhas com hash forte (Identity/PBKDF2 ou Argon2). | I |
 | RNF-SEG-05 | RBAC imposto no backend por caso de uso; sem permissão → 403. | T |
@@ -285,6 +288,7 @@ Convenções: **RF** = requisito funcional, **RNF** = não funcional. Verificaç
 | RNF-SEG-08 | Rate limiting no login, no portal e no envio de formulários públicos. | T |
 | RNF-SEG-09 | Headers de segurança e HTTPS obrigatório (Cloudflare na borda; ADR 0010). | I |
 | RNF-SEG-10 | **Proteção do cadastro contra automação** (04/11): desafio Cloudflare Turnstile no cadastro, validado no servidor (sem SDK, por HTTP; desligado em dev e testes por configuração), e limite próprio de cadastros por IP (padrão 3 por hora), separado do limite das demais rotas de `/auth`. | T |
+| RNF-SEG-11 | **Entrada por e-mail segura** (F15, 25/11): o e-mail ao endereço de uma empresa só grava nela (nunca em outra, nem pelo endereço da conversa de uma solicitação de outra empresa) e só entra numa solicitação se o remetente é contato ativo do cliente dela; o endereço de entrada não é derivado só do nome da empresa; remetente cujo domínio não confirma que o e-mail saiu dele não abre nem responde nada sozinho; e-mails automáticos (respostas automáticas, avisos de entrega, mensagens em massa), os do próprio Acordu, spam e vírus são ignorados, sem resposta (sem laço nem *backscatter*); entrega repetida não duplica; limites de tamanho do e-mail, por remetente, por empresa e por solicitação (valores a confirmar no G2 do F15); nada do conteúdo nem dos endereços vai ao log (RNF-OPS-01). | T |
 
 **Auditoria**
 | ID | Requisito | Verif. |
@@ -540,7 +544,7 @@ Observações de modelagem:
 - **Tempo em minutos inteiros** (`int`), nunca `float` (ADR 0004). Conversão para horas só na apresentação.
 - `(TenantId, Numero)` único em `Solicitacao`; `(RecorrenciaId, DataReferencia)` único em `Tarefa` (idempotência do RF-REC-03).
 - O **consumo do contrato não é estado persistido**: é read model (soma de apontamentos faturáveis + ajustes no período).
-- `OrigemSolicitacao` já prevê EMAIL e WHATSAPP (v2) para não exigir migration de enum depois.
+- `OrigemSolicitacao` já prevê EMAIL e WHATSAPP para não exigir migration de enum depois; EMAIL passa a ser usada no F15 (RF-SOL-11), WHATSAPP no #184.
 - **Convites** (RF-USR-01 e RF-CLI-03): `ConviteEquipe` convida um e-mail para um papel **interno**; `ConvitePortal` convida um **contato** para o portal, com o escopo do vínculo (é raiz com `ClienteId`, sob o filtro do ADR 0002). Os dois guardam só o **hash** do token, valem 7 dias a partir do envio, são de uso único e ficam pendentes até serem aceitos ou revogados (`aceitoEm`/`revogadoEm`). Reenviar gera token novo e invalida o anterior. O aceite cria o `Vinculo` (e o `Usuario`, se a conta não existe) e registra o `usuarioId`. Papel Cliente nunca entra por `ConviteEquipe`, nem papel interno por `ConvitePortal`.
 - **Refresh tokens** ficam na tabela de identidade (hash, usuário, tenant, validade, consumo e revogação), fora do domínio; o transporte da sessão está no ADR 0007.
 - Valores monetários de contrato (mensalidade, valor-hora) ficam **fora do v1** — entram com o faturamento (v3), usando o value object `Dinheiro`.
@@ -643,12 +647,13 @@ Pirâmide de testes (xUnit + AwesomeAssertions, Testcontainers, WebApplicationFa
 
 ### 6.2 Testes críticos de isolamento
 - **RNF-SEG-01:** acesso cross-tenant → vazio/404 (integração e API).
-- **RNF-SEG-02:** contato do cliente A não lê, lista, comenta nem baixa anexo do cliente B do mesmo tenant; contato com escopo PROPRIAS não vê solicitações de colegas.
+- **RNF-SEG-02:** contato do cliente A não lê, lista, comenta nem baixa anexo do cliente B do mesmo tenant; contato com escopo PROPRIAS não vê solicitações de colegas, nem depois de responder por e-mail a um aviso de uma delas (exceção do F15).
 - **RNF-SEG-03:** nenhuma resposta do portal contém interação, tarefa ou apontamento INTERNO.
 - **RNF-SEG-06:** link de acesso expirado, revogado ou de outra solicitação → negado.
 - **RF-EMP-02:** empresa vencida ou cancelada não grava nem envia nada, na equipe, no portal e nos jobs; a mesma pessoa grava normalmente em outra empresa onde tem vínculo.
 - **RF-NEB-01:** usuário de empresa (inclusive Dono) e contato do portal nunca alcançam a área da Nebrys (404); a área não expõe dado de negócio dos prestadores.
 - **RF-AUT-06:** empresa com criador sem e-mail confirmado não consegue convidar, emitir link do portal nem disparar aviso a terceiros; depois da confirmação, consegue.
+- **RF-SOL-11, RNF-SEG-11 (F15):** e-mail ao endereço da empresa A nunca cria nada na B, mesmo com o remetente contato da B ou com o endereço da conversa de uma solicitação da B; resposta de quem não é contato do cliente da solicitação não entra nela; a triagem de A não mostra nem trata itens da B.
 
 ### 6.3 Rastreabilidade
 Cada requisito com verificação **T** tem ao menos um teste automatizado associado.

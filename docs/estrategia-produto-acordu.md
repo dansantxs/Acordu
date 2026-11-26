@@ -154,11 +154,11 @@ Implicação arquitetural (ADR 0002):
 - Tarefas recorrentes.
 - Portal do cliente (status, SLA, extrato de horas).
 - Notificações por e-mail (Resend).
+- Entrada por e-mail: o e-mail ao endereço da empresa vira solicitação, a resposta aos avisos entra na conversa e os avisos seguem pelo canal de origem (F15, trazido da v2 em 25/11/2026; WhatsApp no #184).
 - Dashboard interno: fila, SLA em risco, horas por cliente/contrato.
 - Campo de **solução** ao concluir solicitação + sugestão de **solicitações semelhantes resolvidas** (sem IA).
 
 **v2:**
-- Entrada por e-mail (e-mail vira solicitação).
 - **Ajustes para verticais de projeto** (arquitetura, engenharia, estúdios — §3.1): contrato por projeto com preço fechado e etapas; limite de revisões por etapa; entregas versionadas com aprovação formal e arquivos maiores; cronograma de fases com marcos externos; registro de visitas de obra.
 - **Base de conhecimento:** artigos internos/externos, publicação no portal, "transformar solução em artigo".
 - Projeção do contrato (§7.4).
@@ -272,3 +272,4 @@ Implicação arquitetural (ADR 0002):
 | 16/10/2026 | Verticais: **v1** atende agência, contabilidade, consultoria, manutenção, TI terceirizada e freelancer com equipe; **arquitetura, engenharia e estúdios** precisam de ajustes (contrato por projeto com etapas, limite de revisões, entregas versionadas) e ficam para a **v2**, após validação | Hipótese |
 | 26/10/2026 | Conta Oracle desativada de vez (nova só com CNPJ) e **o Acordu passa a ser o único produto da Nebrys**: serverless gratuito (Cloud Run + Neon + Cloudflare Pages, Worker e R2), API em `api.acordu.app.br`, polling no lugar do SSE no nível 0, tick a cada 15 min no expediente (ADR 0010) | Decidido |
 | 04/11/2026 | **Faturamento e NFS-e** (§8.1): v2 rascunho da nota; v3 emissão por gateway atrás de `IEmissorNfse`; API nacional direta só com volume e CNPJ próprio; regras fiscais revisadas por contador antes da spec | Hipótese |
+| 25/11/2026 | **Entrada por e-mail** sai da v2 e entra no v1 (marco F15, issue #183): endereço por empresa, resposta na conversa, triagem dos não identificados e avisos pelo canal de origem; o mecanismo de canal serve ao WhatsApp (#184) | Decidido (G1) |
