@@ -32,7 +32,7 @@ Termos usados nos cenários:
 - **Nota do sistema**: nota INTERNA escrita pelo próprio Acordu, não por uma pessoa da equipe (F15-15, F15-98).
 - "Pergunta N" aponta para a seção 4; enquanto o G2 não decide, os cenários seguem a recomendação. Tipos de erro novos, nomes de campo, rotas, cabeçalhos, provedor de entrada e formato do webhook ficam para o design.
 
-### Endereço de entrada e configuração (F15b; F15-05 no F15d; F15-02 e F15-08 no F15j)
+### Endereço de entrada e configuração (F15b; F15-05 no F15d; F15-02 e F15-08 no F15o)
 
 | Id | Dado | Quando | Então | Teste |
 |---|---|---|---|---|
@@ -50,7 +50,7 @@ Termos usados nos cenários:
 | F15-95 | empresa com o endereço de entrada | qualquer pessoa da equipe (inclusive sem `configuracao.gerenciar`) lê a configuração da empresa pela API | a resposta traz o endereço de entrada e se o recebimento está ligado, ao lado dos campos de hoje | — |
 | F15-96 | empresa de demonstração (RF-NEB-02) | um Dono lê a configuração da empresa pela API, ou tenta ligar o recebimento | a configuração vem sem endereço de entrada e com o recebimento desligado; ligar é recusado (`422 transicao-invalida`); nada muda | — |
 
-### Nova solicitação por e-mail (F15e; F15-19 e F15-22 no F15d; F15-20 e F15-24 a F15-26 no F15f; F15-23 no F15g)
+### Nova solicitação por e-mail (F15f; F15-14, F15-15 e F15-98 no F15g; F15-19 e F15-22 no F15d; F15-20 e F15-24 a F15-26 no F15h; F15-23 no F15i)
 
 | Id | Dado | Quando | Então | Teste |
 |---|---|---|---|---|
@@ -77,7 +77,7 @@ Termos usados nos cenários:
 | F15-97 | o mesmo e-mail novo de remetente conhecido entregue duas vezes ao Acordu (reenvio do provedor) | as duas entregas chegam | só uma solicitação é criada, e o aviso de recebida e o aviso à equipe saem uma vez | — |
 | F15-98 | solicitação com a nota do sistema dos anexos recusados (F15-15, F15-34) | o contato abre a solicitação no portal (conta ou link), ou sai qualquer aviso ao contato | a nota nunca aparece no portal nem em aviso (RNF-SEG-03); a equipe a vê na conversa como nota do sistema, não de uma pessoa da equipe; ao contato, só a lista dos arquivos não aceitos no aviso (F15-15) | — |
 
-### Resposta por e-mail na conversa, threading (F15g)
+### Resposta por e-mail na conversa, threading (F15i; F15-33 a F15-36, F15-38, F15-39 e F15-46 no F15j)
 
 | Id | Dado | Quando | Então | Teste |
 |---|---|---|---|---|
@@ -99,7 +99,7 @@ Termos usados nos cenários:
 | F15-43 | recebimento desligado depois de um aviso enviado com o recebimento ligado | o contato responde a esse aviso | nada é gravado (F15-05) | — |
 | F15-44 | mensagem do contato que entrou por e-mail | o contato abre a solicitação no portal (conta ou link) | vê a mensagem como dele, com os anexos, no canal E-mail (F15-61) | — |
 
-### Avisos pelo canal de origem (F15c; F15-50 no F15e; F15-56 no F15g)
+### Avisos pelo canal de origem (F15c; F15-50 no F15f; F15-56 no F15i)
 
 | Id | Dado | Quando | Então | Teste |
 |---|---|---|---|---|
@@ -120,7 +120,7 @@ Termos usados nos cenários:
 | F15-61 | a mesma solicitação | o contato abre a conversa no portal | cada mensagem EXTERNA mostra o canal; nenhuma INTERNA aparece (RF-POR-04, pergunta 11) | — |
 | F15-62 | mensagens gravadas antes do F15 | a conversa abre | as do contato aparecem no canal Portal e as da equipe no canal Acordu | — |
 
-### Triagem dos e-mails não identificados (F15h; F15-70 no F15f; F15-71 e F15-72 no F15j)
+### Triagem dos e-mails não identificados (F15m; F15-71, F15-72, F15-76, F15-77, F15-79 e F15-107 no F15k; F15-73, F15-74, F15-78, F15-82, F15-84, F15-99 e F15-105 no F15l; F15-70 e F15-103 no F15h)
 
 | Id | Dado | Quando | Então | Teste |
 |---|---|---|---|---|
@@ -149,7 +149,7 @@ Termos usados nos cenários:
 | F15-106 | item na triagem, empresa liberada ou não | alguém o junta a uma solicitação (F15-75) | nenhum aviso sai ao contato escolhido (a mensagem é dele, F15-56); o responsável e os seguidores são avisados como no F15-30, com o e-mail sujeito às preferências (RF-NOT-04) e à liberação (RF-AUT-06) e o sino sempre | — |
 | F15-107 | empresa só leitura com item na triagem há 30 dias sem ser tratado | roda o diário | o item e os anexos dele são apagados como no F15-77: os expurgos por prazo seguem na empresa só leitura (RF-EMP-02 trata do que a empresa grava e envia; o expurgo só apaga dado pessoal vencido, como a trilha e o sino) | — |
 
-### Respostas automáticas, spam e limites (F15d; F15-86 no F15g; F15-90 a F15-92 no F15i)
+### Respostas automáticas, spam e limites (F15e; F15-89 no F15d; F15-86 no F15i; F15-90 a F15-92 e F15-109 no F15n)
 
 | Id | Dado | Quando | Então | Teste |
 |---|---|---|---|---|
