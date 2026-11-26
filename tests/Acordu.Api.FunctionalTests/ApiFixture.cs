@@ -39,6 +39,9 @@ public sealed class ApiFixture : IAsyncLifetime
     /// <summary>Domínio de entrada por e-mail nos testes (F15b, design do F15 D2), o de produção.</summary>
     public const string DominioEntrada = "entrada.acordu.app.br";
 
+    /// <summary>Token da rota de entrada por e-mail nos testes (F15d, design do F15 D5).</summary>
+    public const string TokenEntrada = "token-da-entrada-dos-testes";
+
     private readonly PostgreSqlContainer _postgres = new PostgreSqlBuilder("postgres:17").Build();
     private WebApplication? _app;
 
@@ -105,6 +108,8 @@ public sealed class ApiFixture : IAsyncLifetime
             ["Cadastro:Modo"] = "aberto",
             // Entrada por e-mail (F15b): os testes do domínio ausente (F15-94) sobem outra Api com o valor nulo.
             ["EmailEntrada:Dominio"] = DominioEntrada,
+            // Rota de entrada por e-mail (F15d): os testes sem token sobem outra Api com o valor nulo.
+            ["EmailEntrada:Token"] = TokenEntrada,
             ["RateLimit:Auth:PorMinuto"] = "100000",
             ["RateLimit:Refresh:PorMinuto"] = "100000",
             ["RateLimit:Portal:PorMinuto"] = "100000",
