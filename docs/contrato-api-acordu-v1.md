@@ -1105,7 +1105,7 @@ Operação da Nebrys sobre as empresas (RF-NEB-01): só os dados da relação co
 
 ## 18. Entrada por e-mail (F15, ADR 0016)
 
-### `POST /internal/email/entrada` — e-mail recebido (RF-SOL-11; design do F15, D1, D5, D6 e D12; F15d)
+### `POST /internal/email/entrada` — e-mail recebido (RF-SOL-11; design do F15, D1, D5, D6, D11 e D12; F15d, F15e)
 
 Chamada só pelo Worker `acordu-email-entrada` (Cloudflare Email Routing, regra *catch-all* do subdomínio de entrada), pela borda (`api.acordu.app.br`, com o `X-Origem-Token` do ADR 0010 §3). Fora do OpenAPI, como `/internal/jobs/*`: não é rota de cliente.
 
@@ -1125,13 +1125,18 @@ Respostas (ADR 0016, item 2):
 
 | Status | Quando |
 |---|---|
-| `202` sem corpo | tudo o que foi tratado **ou** ignorado de propósito, **sem dizer qual**: destino que não é de empresa nenhuma (F15-22), empresa com o recebimento desligado (F15-05) ou só leitura (F15-19), MIME ilegível, repetição da mesma entrega e, nos PRs seguintes, automático, laço, filtro e limite. |
+| `202` sem corpo | tudo o que foi tratado **ou** ignorado de propósito, **sem dizer qual**: destino que não é de empresa nenhuma (F15-22), empresa com o recebimento desligado (F15-05) ou só leitura (F15-19), MIME ilegível, repetição da mesma entrega, e-mail automático (F15-85), laço (F15-88), spam ou vírus pelo filtro do provedor (F15-87) e, no F15n, limite. |
 | `413` | o corpo passa de `EmailEntrada__TamanhoMaximoBytes` (padrão 25 MiB, F15-89): pelo `Content-Length` antes de ler ou, sem ele, na leitura; nada é gravado. O Worker recusa antes, pelo tamanho da mensagem. |
 | `404` | sem `X-Email-Token` certo (comparado em tempo constante) ou sem `EmailEntrada__Token` configurado (a rota inteira responde `404`). |
 | `5xx` | falha inesperada: o Worker lança erro, o Email Routing devolve falha temporária ao servidor de origem, e ele repete mais tarde; a idempotência absorve a repetição. |
 
-- **Ordem das conferências** (D12): token → tamanho declarado → destino → empresa (desconhecida, só leitura, desligada) → leitura do MIME (tamanho real) → registro na empresa. Os descartes antes da empresa não leem o corpo e não gravam nada, nem o registro de entrada.
+- **Ordem das conferências** (D12): token → tamanho declarado → destino → empresa (desconhecida, só leitura, desligada) → leitura do MIME (tamanho real) → repetição → automático, laço e filtro → registro na empresa. Os descartes antes da empresa não leem o corpo e não gravam nada, nem o registro de entrada.
 - **Destino → empresa** (ADR 0016, item 3): o destinatário do envelope, sem diferenciar maiúsculas, é `{código}@{domínio}` ou `{código}+{token}@{domínio}`; outro domínio ou código fora do formato é desconhecido. O código é procurado entre todas as empresas numa consulta revisada da Infrastructure; o resto roda num escopo com o tenant fixado, com os filtros e as guardas de isolamento e de só leitura.
 - **Registro de entrada** (D6): cada e-mail aceito para uma empresa grava um `EmailRecebido` (chave de idempotência, hash do remetente, instante da recepção e resultado), sem assunto, texto nem endereços em claro. A chave é o SHA-256 do `Message-ID` e do destino, ou do MIME inteiro e do destino sem `Message-ID`; a repetição esbarra no índice único por empresa e responde `202` sem gravar. Até o F15f, todo e-mail aceito fica `IGNORADO` (design §3): nada visível é criado.
-- `X-Email-Remetente`, `X-Email-Autenticidade` e `X-Email-Filtro` entram no tratamento a partir do F15e (automáticos e filtro) e do F15f (autenticidade); a rota já os recebe. O horário é o da recepção, nunca o `Date` do e-mail.
-- Nada do endereço, do assunto nem do conteúdo vai ao log da API ou do Worker: só a contagem por desfecho (convenções §5).
+- **Automático, laço e filtro** (F15e; D11 e D12; ADR 0016, item 9): depois da empresa e antes da identificação, viram **descarte registrado**: o `EmailRecebido` fica `IGNORADO` (a repetição continua idempotente), nada é criado (nem solicitação, nem mensagem, nem triagem) e nada é respondido; a resposta é o mesmo `202`. Nessa ordem:
+  - **automático** (F15-85, F15-86): `X-Email-Remetente` vazio ou `<>` (devolução); remetente do envelope ou do `From` com a parte local `mailer-daemon`, `postmaster`, `noreply` ou `no-reply`; `Auto-Submitted` diferente de `no` (RFC 3834); `Precedence: bulk`, `junk` ou `list`; `List-Id` ou `List-Unsubscribe`; `X-Autoreply` ou `X-Autorespond`; corpo `multipart/report` (aviso de entrega). Sem o cabeçalho `X-Email-Remetente`, o envelope não conta;
+  - **laço** (F15-88): o `From` ou o envelope no domínio de entrada (`EmailEntrada__Dominio`) ou no domínio do remetente dos avisos (`Email__Remetente`);
+  - **filtro** (F15-87): `X-Email-Filtro` `spam` ou `virus`, sem diferenciar maiúsculas; outro valor, ou nenhum, segue.
+- `X-Email-Autenticidade` entra no tratamento no F15f (remetente conhecido só com `pass`); a rota já o recebe. O horário é o da recepção, nunca o `Date` do e-mail.
+- **Retenção** (F15-108; D6 e D16): o passo `expurgo-email-entrada` do diário apaga o `EmailRecebido` com mais de `EmailEntrada__DiasRegistro` dias (padrão 7, de 1 a 90), em todas as empresas, inclusive as só leitura; a contagem sai em `emailsRecebidosRemovidos` (deploy-ci §5).
+- Nada do endereço, do assunto nem do conteúdo vai ao log da API ou do Worker: só a contagem por desfecho (convenções §5), com `Automatica`, `Laco` e `Filtrada` para os descartes do F15e.

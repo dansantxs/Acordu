@@ -2,15 +2,16 @@
   "marco": "F15",
   "issue": 183,
   "etapa": "AGUARDANDO_MERGE",
-  "branch": "feat/F15d-rota-entrada",
+  "branch": "feat/F15e-automaticos-e-expurgo",
   "pr": {
-    "id": "F15d",
-    "numero": 239
+    "id": "F15e",
+    "numero": null
   },
   "feitos": [
     "F15a (#235)",
     "F15b (#236)",
-    "F15c (#237)"
+    "F15c (#237)",
+    "F15d (#239)"
   ],
   "contadores": {
     "devolucoesNaEtapa": 0,
@@ -28,16 +29,18 @@
     "G3": [
       "F15a: PR #235 mesclado (26/11/2026)",
       "F15b: PR #236 mesclado (26/11/2026)",
-      "F15c: PR #237 mesclado (26/11/2026)"
+      "F15c: PR #237 mesclado (26/11/2026)",
+      "F15d: PR #239 mesclado (26/11/2026)"
     ]
   },
   "ressalvas": [
     "Ver notas/plano-2.md (menores 4 a 11) para os PRs de código",
     "Do F15a: em Mensagens.tsx, juntar o comentário \"Peças de mensagem com @menções e anexos\" a TextoComMencoes",
-    "Testador F15d: lixo não vazio pode ser aceito pelo MimeKit como mensagem sem cabeçalhos e virar IGNORADO, não Malformada; o teste só afirma 202",
-    "Testador F15d: corrida empresa vira só leitura entre a consulta e o commit sem teste; só a guarda de persistência",
-    "Testador F15d: sem teste de que o log da API fica sem endereço (só o do Worker)",
-    "Migration EmailsRecebidos (bot), setReject e carimbo de autenticação reais: CI e provisionamento"
+    "Testador F15e: o teste do envelope vazio pode falhar se o TestHost entregar o cabeçalho vazio como ausente (defeito do teste)",
+    "Testador F15e: contagens do expurgo com >= pelo banco compartilhado da coleção",
+    "noreply como remetente de sistema de entrega é leitura do desenvolvedor",
+    "Testes C# validados só pela CI",
+    "Revisor F15e: o Worker manda o envelope vazio como string vazia; normalizar para <> num PR de Worker"
   ],
   "bloqueios": [],
   "atualizadoEm": "2026-11-26",
