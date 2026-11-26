@@ -20,7 +20,7 @@ from xml.sax.saxutils import escape, quoteattr
 DOCS = Path(__file__).resolve().parent.parent / 'docs'
 RAIAS = [  # nome, altura
     ("Operação Nebrys", 250),
-    ("Dono da empresa", 170),
+    ("Prestador (Dono da empresa)", 170),
     ("Equipe (atendente/executor)", 170),
     ("Contato do cliente (portal)", 170),
     ("Sistema (jobs e e-mails)", 170),

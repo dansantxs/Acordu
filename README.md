@@ -37,7 +37,7 @@ Construído desde o início como **multi-tenant**.
 | Frontend (app interno e portal) | ✅ F1–F7 e marcos F8–F13 |
 | Infraestrutura (Cloud Run + Neon + Cloudflare) | ✅ provisionada (ADR 0010) |
 | CI/CD e deploy | ✅ no ar desde 12/11/2026 |
-| Lançamento controlado (situação da empresa, cadastro por convite, área da Nebrys) | ✅ F14 concluído em 24/11/2026 |
+| Lançamento controlado (situação da empresa, cadastro por convite, área da Nebrys) | ✅ F14 concluído (#220) |
 | Solicitação por e-mail e avisos pelo canal de origem (ADR 0016) | ⏳ F15 em andamento |
 
 O que está em revisão e os próximos passos ficam em [`docs/estado.md`](docs/estado.md), atualizado a cada PR.
@@ -241,7 +241,9 @@ Imagem **amd64** no GitHub Actions → **Artifact Registry** → nova revisão n
 
 ## Roadmap
 
-**v1:** clientes e contatos, contratos com SLA, solicitações, tarefas, projetos, apontamentos, tarefas recorrentes, portal do cliente, solução e sugestão de semelhantes, notificações por e-mail, dashboard, multi-tenant com RBAC, lançamento controlado (cadastro por convite, lista de espera, área da Nebrys) e solicitação por e-mail (F15, em andamento).
+**v1:** clientes e contatos, contratos com SLA, solicitações, tarefas, projetos, apontamentos, tarefas recorrentes, portal do cliente, solução e sugestão de semelhantes, notificações por e-mail, dashboard, multi-tenant com RBAC, lançamento controlado (cadastro por convite, lista de espera, área da Nebrys).
+
+**Em andamento:** solicitação por e-mail e avisos pelo canal de origem (F15).
 
 **Depois:** solicitações por WhatsApp, base de conhecimento publicada no portal, projeção do consumo do contrato, relatório mensal em PDF, faturamento, IA assistiva (sempre com revisão humana), app mobile.
 

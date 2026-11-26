@@ -8,7 +8,7 @@
 <g transform="rotate(-90 45 125)"><text class="r" text-anchor="middle" dominant-baseline="central"><tspan x="45" y="125">Operação Nebrys</tspan></text></g>
 <rect class="raia" x="30" y="250" width="3405" height="170"/>
 <rect class="borda" x="30" y="250" width="30" height="170"/>
-<g transform="rotate(-90 45 335)"><text class="r" text-anchor="middle" dominant-baseline="central"><tspan x="45" y="335">Dono da empresa</tspan></text></g>
+<g transform="rotate(-90 45 335)"><text class="r" text-anchor="middle" dominant-baseline="central"><tspan x="45" y="326.875">Prestador (Dono da</tspan><tspan x="45" y="343.125">empresa)</tspan></text></g>
 <rect class="raia" x="30" y="420" width="3405" height="170"/>
 <rect class="borda" x="30" y="420" width="30" height="170"/>
 <g transform="rotate(-90 45 505)"><text class="r" text-anchor="middle" dominant-baseline="central"><tspan x="45" y="496.875">Equipe</tspan><tspan x="45" y="513.125">(atendente/executor)</tspan></text></g>
