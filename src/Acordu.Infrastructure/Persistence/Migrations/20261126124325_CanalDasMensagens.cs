@@ -17,6 +17,10 @@ namespace Acordu.Infrastructure.Persistence.Migrations
                 maxLength: 40,
                 nullable: false,
                 defaultValue: "");
+
+            // Mensagens anteriores ao F15 (F15-62): do contato → PORTAL, da equipe → ACORDU. Só as linhas que a
+            // coluna nova recebeu vazias.
+            migrationBuilder.Sql(ScriptsDeDados.PreencherCanalDasInteracoes);
         }
 
         /// <inheritdoc />
