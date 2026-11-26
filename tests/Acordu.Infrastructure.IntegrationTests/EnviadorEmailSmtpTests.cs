@@ -55,6 +55,26 @@ public sealed class EnviadorEmailSmtpTests(MailpitFixture mailpit) : IClassFixtu
     }
 
     [Fact]
+    public async Task Enviar_ComCabecalhos_ChegamAoMailpitComReplyTo() // F15-51, F15-55
+    {
+        var opcoes = new OpcoesEmail(null, "nao-responda@send.acordu.app.br", "Acordu", false, mailpit.Host, mailpit.Smtp);
+        var enviador = new EnviadorEmailSmtp(opcoes, NullLogger<EnviadorEmailSmtp>.Instance);
+        var para = $"carlos-{Guid.NewGuid():N}@exemplo.com";
+        var cabecalhos = new Dictionary<string, string> { ["Auto-Submitted"] = "auto-generated" };
+
+        await enviador.EnviarAsync(new MensagemEmail(
+            para, "Nova mensagem na solicitação #3", "Olá!", "aviso-mensagem", "Estúdio Traço",
+            "k7m2qdxz+abcdefghjkmnpqrs@entrada.acordu.app.br", cabecalhos));
+
+        using var http = new HttpClient { BaseAddress = mailpit.Api };
+        var busca = await http.GetFromJsonAsync<JsonElement>($"search?query={Uri.EscapeDataString("to:" + para)}");
+        var id = busca.GetProperty("messages")[0].GetProperty("ID").GetString();
+        var headers = await http.GetFromJsonAsync<JsonElement>($"message/{id}/headers");
+        headers.GetProperty("Auto-Submitted")[0].GetString().Should().Be("auto-generated");
+        headers.GetProperty("Reply-To")[0].GetString().Should().Contain("k7m2qdxz+abcdefghjkmnpqrs@entrada.acordu.app.br");
+    }
+
+    [Fact]
     public void SemServidor_Recusa()
     {
         var acao = () => new EnviadorEmailSmtp(new OpcoesEmail(null, "a@b.c", "Acordu", false), NullLogger<EnviadorEmailSmtp>.Instance);

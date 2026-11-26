@@ -7,8 +7,9 @@ namespace Acordu.Infrastructure.Email;
 
 /// <summary>
 /// Envio pela API HTTP do Resend (<c>POST /emails</c>), sem SDK (ADR 0010). Texto e HTML do mesmo conteúdo: o HTML é o
-/// texto escapado, com quebras de linha e links clicáveis. Resposta fora de 2xx lança exceção (a outbox tenta de novo),
-/// sem o corpo da mensagem no erro.
+/// texto escapado, com quebras de linha e links clicáveis. Os cabeçalhos a mais (avisos ao contato: mensagem automática,
+/// F15-55) vão no campo <c>headers</c>. Resposta fora de 2xx lança exceção (a outbox tenta de novo), sem o corpo da
+/// mensagem no erro.
 /// </summary>
 public sealed class EnviadorEmailResend : IEnviadorEmail
 {
@@ -38,7 +39,8 @@ public sealed class EnviadorEmailResend : IEnviadorEmail
                 mensagem.Assunto,
                 mensagem.Texto,
                 FormatoEmail.Html(mensagem.Texto),
-                mensagem.ResponderPara is null ? null : [mensagem.ResponderPara])),
+                mensagem.ResponderPara is null ? null : [mensagem.ResponderPara],
+                mensagem.Cabecalhos is { Count: > 0 } cabecalhos ? cabecalhos : null)),
         };
         requisicao.Headers.Authorization = new AuthenticationHeaderValue("Bearer", _opcoes.ChaveResend);
 
@@ -63,5 +65,7 @@ public sealed class EnviadorEmailResend : IEnviadorEmail
         [property: JsonPropertyName("text")] string Texto,
         [property: JsonPropertyName("html")] string Html,
         [property: JsonPropertyName("reply_to"), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-        IReadOnlyList<string>? ResponderPara);
+        IReadOnlyList<string>? ResponderPara,
+        [property: JsonPropertyName("headers"), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+        IReadOnlyDictionary<string, string>? Cabecalhos);
 }

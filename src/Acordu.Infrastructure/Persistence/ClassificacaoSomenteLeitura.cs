@@ -34,6 +34,7 @@ public static class ClassificacaoSomenteLeitura
         typeof(ComentarioTarefa),
         typeof(Contador),
         typeof(Contrato),
+        typeof(ConversaPorEmail),
         typeof(ConviteEquipe),
         typeof(ConvitePortal),
         typeof(Cronometro),

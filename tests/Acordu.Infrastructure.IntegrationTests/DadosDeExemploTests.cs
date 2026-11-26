@@ -32,7 +32,7 @@ public sealed class DadosDeExemploTests(BancoFixture banco)
 
         DadosDeExemplo.TiposComCliente(db).Should().BeEquivalentTo(new[]
         {
-            typeof(AcessoPortal), typeof(AjusteSaldo), typeof(Apontamento), typeof(Contrato), typeof(ConvitePortal),
+            typeof(AcessoPortal), typeof(AjusteSaldo), typeof(Apontamento), typeof(Contrato), typeof(ConversaPorEmail), typeof(ConvitePortal),
             typeof(Interacao), typeof(Projeto), typeof(RecorrenciaTarefa), typeof(Solicitacao), typeof(Tarefa),
             typeof(Vinculo), typeof(Atividade),
         });

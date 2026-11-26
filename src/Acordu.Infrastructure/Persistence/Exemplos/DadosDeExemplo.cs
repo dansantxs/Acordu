@@ -38,6 +38,7 @@ public sealed class DadosDeExemplo : IDadosDeExemplo
         typeof(Cliente),
         typeof(ComentarioTarefa),
         typeof(Contrato),
+        typeof(ConversaPorEmail),
         typeof(ConviteEquipe),
         typeof(ConvitePortal),
         typeof(Cronometro),
@@ -79,6 +80,7 @@ public sealed class DadosDeExemplo : IDadosDeExemplo
             || await _db.Projetos.AnyAsync(x => !exemplos.Contains(x.ClienteId), cancellationToken)
             || await _db.Recorrencias.AnyAsync(x => !exemplos.Contains(x.ClienteId), cancellationToken)
             || await _db.AcessosPortal.AnyAsync(x => !exemplos.Contains(x.ClienteId), cancellationToken)
+            || await _db.ConversasPorEmail.AnyAsync(x => !exemplos.Contains(x.ClienteId), cancellationToken)
             || await _db.ConvitesPortal.AnyAsync(x => !exemplos.Contains(x.ClienteId), cancellationToken)
             || await _db.Tarefas.AnyAsync(x => x.ClienteId == null || !exemplos.Contains(x.ClienteId.Value), cancellationToken)
             || await _db.Apontamentos.AnyAsync(x => x.ClienteId == null || !exemplos.Contains(x.ClienteId.Value), cancellationToken)

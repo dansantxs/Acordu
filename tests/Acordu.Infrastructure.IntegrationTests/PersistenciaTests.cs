@@ -224,6 +224,40 @@ public sealed class PersistenciaTests(BancoFixture banco)
         lido.Validar(token, Dados.Agora.AddDays(1)).Should().BeTrue();
     }
 
+    [Fact] // F15-51 (design D3 e D9)
+    public async Task ConversaPorEmail_TokenEFioGravadosERelidos()
+    {
+        var cliente = Dados.Cliente(_tenant);
+        var interna = Dados.Solicitacao(_tenant, cliente.Id);
+        var porEmail = Dados.Solicitacao(_tenant, cliente.Id);
+        var conversa = Dados.Conversa(_tenant, cliente.Id, interna.Id);
+        var aberta = ConversaPorEmail.DaAberturaPorEmail(
+            Guid.NewGuid(), _tenant, cliente.Id, porEmail.Id, "<abc@mail.gmail.com>", "Forno parou", Dados.Agora);
+        await Gravar(cliente, interna, porEmail, conversa, aberta);
+
+        await using var db = banco.DaEquipe(_tenant);
+        var lida = await db.ConversasPorEmail.SingleAsync(c => c.SolicitacaoId == interna.Id);
+        lida.Token.Should().Be(conversa.Token);
+        lida.ClienteId.Should().Be(cliente.Id);
+        lida.MessageIdOrigem.Should().BeNull();
+        lida.CriadaEm.Should().Be(Dados.Agora);
+        var doEmail = await db.ConversasPorEmail.SingleAsync(c => c.Token == aberta.Token);
+        doEmail.MessageIdOrigem.Should().Be("<abc@mail.gmail.com>");
+        doEmail.AssuntoOrigem.Should().Be("Forno parou");
+    }
+
+    [Fact] // design D9: uma conversa por solicitação
+    public async Task ConversaPorEmail_SegundaDaMesmaSolicitacao_IndiceUnicoRecusa()
+    {
+        var cliente = Dados.Cliente(_tenant);
+        var solicitacao = Dados.Solicitacao(_tenant, cliente.Id);
+        await Gravar(cliente, solicitacao, Dados.Conversa(_tenant, cliente.Id, solicitacao.Id));
+
+        var acao = () => Gravar(Dados.Conversa(_tenant, cliente.Id, solicitacao.Id));
+
+        await acao.Should().ThrowAsync<DbUpdateException>();
+    }
+
     [Fact]
     public async Task Calendario_ExpedienteEFeriados()
     {

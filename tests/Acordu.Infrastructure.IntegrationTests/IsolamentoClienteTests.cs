@@ -31,6 +31,7 @@ public sealed class IsolamentoClienteTests(BancoFixture banco) : IAsyncLifetime
                 solicitacao,
                 Dados.Interacao(_tenant, cliente.Id, solicitacao.Id),
                 Dados.Acesso(_tenant, cliente.Id, solicitacao.Id).Acesso,
+                Dados.Conversa(_tenant, cliente.Id, solicitacao.Id),
                 Dados.Projeto(_tenant, cliente.Id),
                 tarefa,
                 Dados.Apontamento(_tenant, cliente.Id, tarefa.Id, contrato.Id),
@@ -54,6 +55,7 @@ public sealed class IsolamentoClienteTests(BancoFixture banco) : IAsyncLifetime
         (await db.Solicitacoes.ToListAsync()).Should().OnlyContain(e => e.ClienteId == a).And.HaveCount(1);
         (await db.Interacoes.ToListAsync()).Should().OnlyContain(e => e.ClienteId == a).And.HaveCount(1);
         (await db.AcessosPortal.ToListAsync()).Should().OnlyContain(e => e.ClienteId == a).And.HaveCount(1);
+        (await db.ConversasPorEmail.ToListAsync()).Should().OnlyContain(e => e.ClienteId == a).And.HaveCount(1);
         (await db.Projetos.ToListAsync()).Should().OnlyContain(e => e.ClienteId == a).And.HaveCount(1);
         (await db.Tarefas.ToListAsync()).Should().OnlyContain(e => e.ClienteId == a).And.HaveCount(1);
         (await db.Apontamentos.ToListAsync()).Should().OnlyContain(e => e.ClienteId == a).And.HaveCount(1);

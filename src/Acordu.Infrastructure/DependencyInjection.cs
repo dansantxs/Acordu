@@ -72,6 +72,7 @@ public static class DependencyInjection
         services.AddScoped<IMembrosDaEquipe, MembrosDaEquipe>();
         services.AddScoped<ITenantAtual, TenantAtual>();
         services.AddScoped<IAcessosDoPortal, AcessosDoPortal>();
+        services.AddScoped<Application.EntradaEmail.IConversasPorEmail, Persistence.EntradaEmail.ConversasPorEmail>();
         services.AddScoped<IVinculos, Vinculos>();
         services.AddScoped<IPessoasDaEquipe, PessoasDaEquipe>();
         services.AddScoped<IMarcadoresDeAviso, MarcadoresDeAviso>();

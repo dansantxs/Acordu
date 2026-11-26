@@ -63,6 +63,9 @@ internal static class Dados
     public static AcessoPortalEmitido Acesso(Guid tenant, Guid cliente, Guid solicitacaoId) =>
         AcessoPortal.Emitir(Guid.NewGuid(), tenant, cliente, solicitacaoId, Guid.NewGuid(), Agora, TimeSpan.FromDays(30));
 
+    public static ConversaPorEmail Conversa(Guid tenant, Guid cliente, Guid solicitacaoId) =>
+        ConversaPorEmail.Criar(Guid.NewGuid(), tenant, cliente, solicitacaoId, Agora);
+
     public static Cronometro Cronometro(Guid tenant) =>
         Domain.Entities.Cronometro.Iniciar(Guid.NewGuid(), tenant, Guid.NewGuid(), Guid.NewGuid(), Agora);
 }

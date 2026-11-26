@@ -18,6 +18,7 @@ using Acordu.Application.Exemplos;
 using Acordu.Application.ListaEspera;
 using Acordu.Application.Nebrys;
 using Acordu.Application.Notificacoes;
+using Acordu.Application.Notificacoes.Canais;
 using Acordu.Application.Papeis;
 using Acordu.Application.Portal;
 using Acordu.Application.AcessosPortal;
@@ -106,7 +107,10 @@ internal static class CasosDeUso
         services.AddScoped<IManipuladorPosCommit<ConvitePortalCriado>, EnvioConvitePortal>();
         services.AddScoped<IManipuladorPosCommit<ConviteEquipeCriado>, EnvioConviteEquipe>();
 
-        // E-mails ao contato da solicitação (RF-NOT-01): uma classe, quatro eventos.
+        // E-mails ao contato da solicitação (RF-NOT-01): uma classe, quatro eventos, entregues pelo canal da origem
+        // (RF-NOT-06, design do F15 D7): um canal novo é uma implementação de ICanalDeAviso registrada aqui.
+        services.AddScoped<ICanalDeAviso, CanalEmail>();
+        services.AddScoped<SeletorDeCanal>();
         services.AddScoped<AvisosAoContato>();
         services.AddScoped<IManipuladorPosCommit<SolicitacaoAberta>>(sp => sp.GetRequiredService<AvisosAoContato>());
         services.AddScoped<IManipuladorPosCommit<InteracaoRegistrada>>(sp => sp.GetRequiredService<AvisosAoContato>());
