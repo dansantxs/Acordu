@@ -21,10 +21,11 @@ public sealed class InteracaoTests
         string? texto = "Segue a arte revisada.",
         Visibilidade visibilidade = Visibilidade.Externa,
         bool autorEhCliente = false,
-        IReadOnlyList<NovoAnexo>? anexos = null) =>
+        IReadOnlyList<NovoAnexo>? anexos = null,
+        CanalMensagem? canal = null) =>
         Interacao.Registrar(
             Guid.NewGuid(), Calendarios.Tenant, Contratos.Cliente, Solicitacao, Autor, autorEhCliente, texto, visibilidade,
-            anexos ?? [], Politica, Brasilia(6, 11));
+            canal ?? (autorEhCliente ? CanalMensagem.Portal : CanalMensagem.Acordu), anexos ?? [], Politica, Brasilia(6, 11));
 
     [Fact]
     public void Registrar_ComTexto_GuardaDadosEEmiteEvento()
@@ -170,5 +171,49 @@ public sealed class InteracaoTests
         var interacao = Registrar($"@{{{Guid.NewGuid()}}} oi", Visibilidade.Externa, autorEhCliente: true);
 
         interacao.Eventos.Should().HaveCount(1);
+    }
+
+    [Theory] // F15-60
+    [InlineData(Visibilidade.Externa)]
+    [InlineData(Visibilidade.Interna)]
+    public void Registrar_DaEquipePeloAcordu_GuardaOCanal(Visibilidade visibilidade)
+    {
+        Registrar(visibilidade: visibilidade, canal: CanalMensagem.Acordu).Canal.Should().Be(CanalMensagem.Acordu);
+    }
+
+    [Theory] // F15-60, F15-61
+    [InlineData(CanalMensagem.Portal)]
+    [InlineData(CanalMensagem.Email)]
+    [InlineData(CanalMensagem.Whatsapp)]
+    public void Registrar_DoContatoPorCanalDeFora_GuardaOCanal(CanalMensagem canal)
+    {
+        Registrar(autorEhCliente: true, canal: canal).Canal.Should().Be(canal);
+    }
+
+    [Theory] // ADR 0016, item 6
+    [InlineData(CanalMensagem.Portal)]
+    [InlineData(CanalMensagem.Email)]
+    [InlineData(CanalMensagem.Whatsapp)]
+    public void Registrar_DaEquipeForaDoAcordu_LancaExcecao(CanalMensagem canal)
+    {
+        var acao = () => Registrar(canal: canal);
+
+        acao.Should().Throw<ArgumentException>().WithParameterName("canal");
+    }
+
+    [Fact] // ADR 0016, item 6
+    public void Registrar_DoContatoPeloAcordu_LancaExcecao()
+    {
+        var acao = () => Registrar(autorEhCliente: true, canal: CanalMensagem.Acordu);
+
+        acao.Should().Throw<ArgumentException>().WithParameterName("canal");
+    }
+
+    [Fact]
+    public void Registrar_CanalForaDoEnum_LancaExcecao()
+    {
+        var acao = () => Registrar(canal: (CanalMensagem)99);
+
+        acao.Should().Throw<ArgumentOutOfRangeException>().WithParameterName("canal");
     }
 }

@@ -35,6 +35,9 @@ public sealed class Interacao : RaizComCliente
 
     public Visibilidade Visibilidade { get; private set; }
 
+    /// <summary>Por onde a mensagem entrou (RF-SOL-14): a equipe só pelo ACORDU; o contato nunca por ele.</summary>
+    public CanalMensagem Canal { get; private set; }
+
     public DateTimeOffset RegistradaEm { get; private set; }
 
     public IReadOnlyList<Anexo> Anexos => _anexos;
@@ -43,6 +46,8 @@ public sealed class Interacao : RaizComCliente
     /// Registra a interação. Exige texto ou ao menos um anexo; autor cliente só registra EXTERNA. Anexos são
     /// validados contra a <paramref name="politica"/> (<see cref="AnexoInvalidoException"/>). Menções (<c>@{id}</c>) só
     /// valem em interação INTERNA da equipe e emitem <see cref="PessoasMencionadas"/>; no texto do cliente não são lidas.
+    /// O <paramref name="canal"/> é obrigatório (ADR 0016, item 6): da equipe, só <see cref="CanalMensagem.Acordu"/>; do
+    /// contato, qualquer outro.
     /// </summary>
     public static Interacao Registrar(
         Guid id,
@@ -53,6 +58,7 @@ public sealed class Interacao : RaizComCliente
         bool autorEhCliente,
         string? texto,
         Visibilidade visibilidade,
+        CanalMensagem canal,
         IReadOnlyList<NovoAnexo> anexos,
         PoliticaAnexos politica,
         DateTimeOffset agora,
@@ -66,6 +72,12 @@ public sealed class Interacao : RaizComCliente
             throw new ArgumentOutOfRangeException(nameof(visibilidade), visibilidade, "Visibilidade inválida.");
         if (autorEhCliente && visibilidade != Visibilidade.Externa)
             throw new ArgumentException("Interação do cliente é sempre EXTERNA.", nameof(visibilidade));
+        if (!Enum.IsDefined(canal))
+            throw new ArgumentOutOfRangeException(nameof(canal), canal, "Canal inválido.");
+        if (autorEhCliente && canal == CanalMensagem.Acordu)
+            throw new ArgumentException("Mensagem do contato nunca entra pelo canal Acordu.", nameof(canal));
+        if (!autorEhCliente && canal != CanalMensagem.Acordu)
+            throw new ArgumentException("A equipe escreve só pelo canal Acordu.", nameof(canal));
 
         var textoValido = Common.Texto.Opcional(texto, LimitesTexto.TextoInteracao, nameof(texto));
         if (textoValido is null && anexos.Count == 0)
@@ -83,6 +95,7 @@ public sealed class Interacao : RaizComCliente
             AutorEhCliente = autorEhCliente,
             Texto = textoValido,
             Visibilidade = visibilidade,
+            Canal = canal,
             RegistradaEm = agora.ToUniversalTime(),
         };
         foreach (var anexo in anexos)
