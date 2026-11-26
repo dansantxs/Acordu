@@ -1,14 +1,14 @@
 # Acordu — Estado
 
-Visão geral curta, atualizada por cada PR (`docs/processo.md` §1). O histórico está no git, nos PRs e no registro dos designs. Atualizado em 26/11/2026 (F15b, endereço de entrada e recebimento por e-mail, em revisão).
+Visão geral curta, atualizada por cada PR (`docs/processo.md` §1). O histórico está no git, nos PRs e no registro dos designs. Atualizado em 26/11/2026 (F15c, avisos pelo canal de origem, em revisão).
 
 ## Em revisão
 
-- **F15b — endereço de entrada e recebimento por e-mail** (#183, branch `feat/F15b-endereco-entrada`; F15-01, F15-03, F15-04, F15-06, F15-07, F15-09, F15-93 a F15-96): `Tenant.CodigoEntrada` (8 caracteres sem ambíguos, sorteado na criação, único entre as empresas; nulo na demonstração) e `Tenant.RecebimentoEmail` (desligado); `enderecoEntrada` e `recebimentoEmail` no `GET /configuracoes/empresa`; `PUT /configuracoes/recebimento-email` com `configuracao.gerenciar`, recusas de só leitura, de domínio ausente e da demonstração, e a trilha `configuracao.recebimento-email`; migration `EnderecoDeEntrada` (pelo bot) com o código das empresas existentes por `gen_random_uuid()`; `EmailEntrada__Dominio` (variável `EMAIL_ENTRADA_DOMINIO`, obrigatória no `deploy.yml`). **Antes do merge:** criar a variável `EMAIL_ENTRADA_DOMINIO` = `entrada.acordu.app.br` no GitHub.
+- **F15c — avisos pelo canal de origem** (#183, branch `feat/F15c-avisos-pelo-canal`; F15-51 a F15-55, F15-57): porta de canal dos avisos ao contato (`ICanalDeAviso`, `SeletorDeCanal` pela origem, `CanalEmail`; ADR 0016, item 7); `ConversaPorEmail` com o token de 16 caracteres, criada no primeiro aviso com o recebimento ligado; com ele ligado, os avisos respondem para `{código}+{token}@entrada.acordu.app.br` e começam pela linha marcadora; desligado, saem como antes (Reply-To no "responder para"); todo aviso com `Auto-Submitted: auto-generated` e `X-Auto-Response-Suppress` (campo `headers` do Resend); migration `ConversasPorEmail` (pelo bot). Sem rota nem variável nova. **No primeiro deploy:** num e-mail real com o recebimento ligado (o Daniel liga a própria empresa pelo `PUT /configuracoes/recebimento-email`), conferir o Reply-To, o `Auto-Submitted` e a marcadora.
 
 ## Marco em andamento
 
-- **F15 — Omnichannel A** (#183; [spec](specs/F15-omnichannel-email/spec.md), [design](specs/F15-omnichannel-email/design.md)): G2 aprovado (PR #234, recomendações de todas as D e das 11 perguntas; ADR 0016 aceito). 15 PRs em série (F15a a F15o). Entregue: F15a (canal de cada mensagem, #235). Em revisão: F15b. Provisionamento manual do Daniel (DNS/MX do subdomínio de entrada, Email Routing, secret do Worker) no PR que o design indica.
+- **F15 — Omnichannel A** (#183; [spec](specs/F15-omnichannel-email/spec.md), [design](specs/F15-omnichannel-email/design.md)): G2 aprovado (PR #234, recomendações de todas as D e das 11 perguntas; ADR 0016 aceito). 15 PRs em série (F15a a F15o). Entregues: F15a (canal de cada mensagem, #235) e F15b (endereço de entrada e recebimento por e-mail, #236). Em revisão: F15c. Provisionamento manual do Daniel (DNS/MX do subdomínio de entrada, Email Routing, secret do Worker) no PR que o design indica.
 
 ## Marco concluído
 

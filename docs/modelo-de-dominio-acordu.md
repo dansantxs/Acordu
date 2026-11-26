@@ -229,6 +229,16 @@ class ConvitePortal <<aggregate root>> {
   +Revogar(agora)
 }
 
+class ConversaPorEmail <<aggregate root>> {
+  +Id, TenantId, ClienteId
+  +SolicitacaoId, Token, MessageIdOrigem?, AssuntoOrigem?, CriadaEm
+  --
+  +Criar(..., solicitacaoId, agora)
+  +DaAberturaPorEmail(..., messageId, assunto, agora)
+  +SortearToken(): string
+  +TokenValido(token): bool
+}
+
 class CalendarioUtil <<aggregate root>> {
   +TenantId (chave)
   +FusoHorario: string
@@ -255,6 +265,7 @@ Tarefa ..> RecorrenciaTarefa : ref por Id
 Apontamento ..> Tarefa : ref por Id
 Apontamento ..> Contrato : ref por Id
 Interacao ..> Solicitacao : ref por Id
+ConversaPorEmail ..> Solicitacao : ref por Id
 Solicitacao ..> Contrato : ref por Id
 AjusteSaldo ..> Contrato : ref por Id
 @enduml
@@ -354,6 +365,12 @@ No portal, para quem pode aprovar a entrega, a RESOLVIDA aparece como `AGUARDAND
 `AGUARDANDO_TERCEIRO` aparece ao cliente como "Em andamento" de propósito: o problema do fornecedor é do prestador, não do cliente — e o relógio do SLA **não** pausa nesse estado.
 
 - **Emite:** `SolicitacaoAberta`, `SolicitacaoStatusAlterado` (em **toda** mudança de status, com status externo anterior e novo), `SolicitacaoResolvida`, `SolicitacaoReaberta`, `SolicitacaoAtribuida`, `PrimeiraRespostaRegistrada`.
+
+### 4.3.1 ConversaPorEmail (RF-NOT-06, RF-SOL-11, F15c)
+- Raiz própria com `ClienteId` (fora do agregado `Solicitacao`, para não pôr dado de um canal no agregado central; design do F15, D9): **uma por solicitação** (índice único `(tenant_id, solicitacao_id)`). Guarda o `Token` do endereço da conversa `{código}+{token}@{domínio de entrada}` (D3; ADR 0016, item 3), o `MessageIdOrigem` e o `AssuntoOrigem` do e-mail que abriu a solicitação (nulos fora da origem EMAIL; fio dos avisos, D4) e `CriadaEm`.
+- `Token`: 16 símbolos de `23456789abcdefghjkmnpqrstuvwxyz` (o alfabeto do código de entrada, ~78 bits), sorteado por `SortearToken()` (`RandomNumberGenerator`), único na empresa (índice `(tenant_id, token)`). É identificador de roteamento, não credencial (convenções §1): fica em claro porque vai em todo aviso. `TokenValido` confere tamanho e alfabeto.
+- `Criar(id, tenantId, clienteId, solicitacaoId, agora)`: nas origens INTERNA e PORTAL, criada pela Application no **primeiro aviso com o recebimento ligado** (`AvisosAoContato`, como o link sem senha); com o recebimento desligado nada é criado. `DaAberturaPorEmail(..., messageId, assunto, agora)`: na abertura por e-mail (F15f), com o `Message-ID` obrigatório e o assunto (vazio se o e-mail não tinha).
+- Dado da empresa no só leitura; dado no expurgo do cadastro; apagada com os clientes de exemplo (tem `ClienteId`) e com a empresa.
 
 ### 4.4 RelogioSla (value object dentro de Solicitacao) — ver ADR 0003
 Imutável: cada operação devolve um novo relógio. Campos: `AbertoEm`, `InicioCiclo` (abertura ou última reabertura), `TempoPrimeiraResposta` e `TempoResolucao` (minutos úteis da prioridade vigente), `PausadoNoCiclo` (minutos úteis já pausados no ciclo, sem a pausa em curso), `PausadoDesde?` e os instantes derivados `PrazoPrimeiraResposta`, `PrazoResolucao` e `LimiteRisco`.

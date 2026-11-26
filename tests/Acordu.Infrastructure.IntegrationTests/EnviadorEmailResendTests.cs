@@ -65,6 +65,33 @@ public sealed class EnviadorEmailResendTests
     }
 
     [Fact]
+    public async Task Enviar_ComCabecalhos_VaoNoCampoHeaders() // F15-55
+    {
+        var handler = new HandlerFalso(HttpStatusCode.OK);
+        using var http = new HttpClient(handler);
+        var cabecalhos = new Dictionary<string, string> { ["Auto-Submitted"] = "auto-generated", ["X-Auto-Response-Suppress"] = "OOF, AutoReply" };
+
+        await new EnviadorEmailResend(http, Opcoes).EnviarAsync(
+            new MensagemEmail("a@b.com", "Oi", "Oi", "aviso-mensagem", "Estúdio Traço", null, cabecalhos));
+
+        var headers = JsonDocument.Parse(handler.Corpo!).RootElement.GetProperty("headers");
+        headers.GetProperty("Auto-Submitted").GetString().Should().Be("auto-generated");
+        headers.GetProperty("X-Auto-Response-Suppress").GetString().Should().Be("OOF, AutoReply");
+        headers.EnumerateObject().Should().HaveCount(2);
+    }
+
+    [Fact]
+    public async Task Enviar_SemCabecalhos_SemCampoHeaders()
+    {
+        var handler = new HandlerFalso(HttpStatusCode.OK);
+        using var http = new HttpClient(handler);
+
+        await new EnviadorEmailResend(http, Opcoes).EnviarAsync(new MensagemEmail("a@b.com", "Oi", "Oi", "convite-portal"));
+
+        JsonDocument.Parse(handler.Corpo!).RootElement.TryGetProperty("headers", out _).Should().BeFalse();
+    }
+
+    [Fact]
     public async Task Enviar_RespostaDeErro_LancaSemExporOConteudo()
     {
         using var http = new HttpClient(new HandlerFalso(HttpStatusCode.UnprocessableEntity));

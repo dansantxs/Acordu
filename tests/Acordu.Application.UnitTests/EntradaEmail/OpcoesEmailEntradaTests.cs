@@ -74,5 +74,56 @@ public sealed class OpcoesEmailEntradaTests
         acao.Should().Throw<ArgumentException>().WithParameterName("dominio");
     }
 
+    [Fact]
+    public void EnderecoDaConversa_EmpresaComCodigo_CodigoMaisTokenArrobaDominio() // F15-51 (design D3)
+    {
+        var empresa = Empresa();
+        var conversa = Conversa(empresa);
+
+        var endereco = OpcoesEmailEntrada.DaConfiguracao("entrada.acordu.app.br").EnderecoDaConversa(empresa, conversa);
+
+        endereco.Should().Be($"{empresa.CodigoEntrada}+{conversa.Token}@entrada.acordu.app.br");
+    }
+
+    [Fact]
+    public void EnderecoDaConversa_SemDominio_Nulo()
+    {
+        var empresa = Empresa();
+
+        OpcoesEmailEntrada.DaConfiguracao(null).EnderecoDaConversa(empresa, Conversa(empresa)).Should().BeNull();
+    }
+
+    [Fact]
+    public void EnderecoDaConversa_ConversaDeOutraEmpresa_LancaExcecao()
+    {
+        var acao = () => OpcoesEmailEntrada.DaConfiguracao("entrada.acordu.app.br").EnderecoDaConversa(Empresa(), Conversa(Empresa()));
+
+        acao.Should().Throw<ArgumentException>().WithParameterName("conversa");
+    }
+
+    [Theory]
+    [InlineData("entrada.acordu.app.br", true, true)]
+    [InlineData("entrada.acordu.app.br", false, false)]
+    [InlineData(null, true, false)]
+    public void AvisosPelaConversa_DominioERecebimento_SoComOsDois(string? dominio, bool ligado, bool esperado) // F15-51, F15-52
+    {
+        var empresa = Empresa();
+        if (ligado)
+            empresa.LigarRecebimentoEmail();
+
+        OpcoesEmailEntrada.DaConfiguracao(dominio).AvisosPelaConversa(empresa).Should().Be(esperado);
+    }
+
+    [Fact]
+    public void AvisosPelaConversa_Demonstracao_Falso()
+    {
+        var demonstracao = Tenant.CriarDemonstracao(Guid.NewGuid(), "Estúdio Aurora", Agora, Guid.NewGuid());
+
+        OpcoesEmailEntrada.DaConfiguracao("entrada.acordu.app.br").AvisosPelaConversa(demonstracao).Should().BeFalse();
+    }
+
+    private static ConversaPorEmail Conversa(Tenant empresa) =>
+        ConversaPorEmail.Criar(Guid.NewGuid(), empresa.Id, Guid.NewGuid(), Guid.NewGuid(), Agora);
+
     private static Tenant Empresa() => Tenant.Criar(Guid.NewGuid(), "Estúdio Traço", Agora, Guid.NewGuid(), TimeSpan.FromDays(30));
 }

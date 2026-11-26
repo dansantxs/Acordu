@@ -91,6 +91,8 @@ public sealed class AcorduDbContext : IdentityUserContext<Usuario, Guid>
 
     public DbSet<AcessoPortal> AcessosPortal => Set<AcessoPortal>();
 
+    public DbSet<ConversaPorEmail> ConversasPorEmail => Set<ConversaPorEmail>();
+
     public DbSet<ConvitePortal> ConvitesPortal => Set<ConvitePortal>();
 
     public DbSet<ConviteEquipe> ConvitesEquipe => Set<ConviteEquipe>();
@@ -169,6 +171,7 @@ public sealed class AcorduDbContext : IdentityUserContext<Usuario, Guid>
         builder.ApplyConfiguration(new SolicitacaoConfiguration());
         builder.ApplyConfiguration(new InteracaoConfiguration());
         builder.ApplyConfiguration(new AcessoPortalConfiguration());
+        builder.ApplyConfiguration(new ConversaPorEmailConfiguration());
         builder.ApplyConfiguration(new ConvitePortalConfiguration());
         builder.ApplyConfiguration(new ConviteEquipeConfiguration());
         builder.ApplyConfiguration(new ProjetoConfiguration());
@@ -223,6 +226,7 @@ public sealed class AcorduDbContext : IdentityUserContext<Usuario, Guid>
         FiltrarTenantECliente<Solicitacao>(modelBuilder);
         FiltrarTenantECliente<Interacao>(modelBuilder);
         FiltrarTenantECliente<AcessoPortal>(modelBuilder);
+        FiltrarTenantECliente<ConversaPorEmail>(modelBuilder);
         FiltrarTenantECliente<ConvitePortal>(modelBuilder);
         FiltrarTenantECliente<Projeto>(modelBuilder);
         FiltrarTenantECliente<RecorrenciaTarefa>(modelBuilder);

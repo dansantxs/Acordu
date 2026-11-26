@@ -94,9 +94,10 @@ acordu/
 │  │  ├─ Recorrencias/
 │  │  ├─ Dashboard/
 │  │  ├─ Notificacoes/
+│  │  │  └─ Canais/                    # porta de canal dos avisos ao contato, seletor pela origem e o canal de e-mail (F15c, ADR 0016 item 7)
 │  │  ├─ Configuracoes/
 │  │  ├─ Empresas/                     # situação da empresa: prazos e vencimento do teste (F14)
-│  │  ├─ EntradaEmail/                 # entrada por e-mail (F15, ADR 0016): configuração do domínio de entrada (F15b)
+│  │  ├─ EntradaEmail/                 # entrada por e-mail (F15, ADR 0016): configuração do domínio de entrada (F15b), endereço da conversa (F15c)
 │  │  ├─ Exemplos/                     # dados de exemplo (F14r), a semeadura da demonstração (F14s) e o demonstracao.json embutido: os dados fictícios
 │  │  │                                # únicos, lidos também pelo bot do manual (apps/web/ajuda) (D13 do F14)
 │  │  ├─ Nebrys/                       # área da Nebrys: sessão de operação, consultas e DTOs próprios, sem tipo de negócio (ADR 0014)
@@ -113,7 +114,7 @@ acordu/
 │  │  │  ├─ Nebrys/                    # consultas da área da Nebrys (ponto revisado de IgnoreQueryFilters, ADR 0014)
 │  │  │  ├─ Exemplos/                  # o que é exemplo e a remoção, no tenant do contexto (F14r)
 │  │  │  ├─ Demonstracao/              # a empresa de demonstração da área: criar, restaurar, indicar (F14s)
-│  │  │  ├─ EntradaEmail/              # entrada por e-mail (F15): unicidade do código de entrada (F15b)
+│  │  │  ├─ EntradaEmail/              # entrada por e-mail (F15): unicidade do código de entrada (F15b), conversa da solicitação (F15c)
 │  │  │  └─ Migrations/
 │  │  ├─ MultiTenancy/                 # filtros globais por TenantId e ClienteId
 │  │  ├─ Armazenamento/                # object storage S3-compatível (R2) + URLs assinadas

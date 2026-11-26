@@ -27,6 +27,7 @@ public static class ClassificacaoDoExpurgo
         typeof(Cliente),
         typeof(ComentarioTarefa),
         typeof(Contrato),
+        typeof(ConversaPorEmail),
         typeof(ConviteEquipe),
         typeof(ConvitePortal),
         typeof(Cronometro),

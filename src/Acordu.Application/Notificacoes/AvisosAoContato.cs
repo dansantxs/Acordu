@@ -2,6 +2,8 @@ using Acordu.Application.Abstractions;
 using Acordu.Application.Abstractions.Eventos;
 using Acordu.Application.AcessosPortal;
 using Acordu.Application.Common;
+using Acordu.Application.EntradaEmail;
+using Acordu.Application.Notificacoes.Canais;
 using Acordu.Domain.Entities;
 using Acordu.Domain.Enums;
 using Acordu.Domain.Events;
@@ -13,6 +15,11 @@ namespace Acordu.Application.Notificacoes;
 /// equipe, aguardando você e resolvida (com o pedido de aprovação). Sem contato, ou com contato/cliente inativo, nada
 /// sai; o que o próprio contato fez (a resposta dele) não gera e-mail para ele. Empresa não liberada (RF-AUT-06): o
 /// aviso é descartado, sem gerar link.
+/// <para>
+/// O aviso sai pelo canal da origem (RF-NOT-06; design do F15, D7): este manipulador decide o quê e para quem, monta o
+/// conteúdo e o entrega ao <see cref="SeletorDeCanal"/>. Com o recebimento por e-mail ligado, o aviso leva o endereço da
+/// conversa da solicitação (D3), e a <see cref="ConversaPorEmail"/> nasce no primeiro aviso, como o link sem senha.
+/// </para>
 /// </summary>
 /// <remarks>
 /// Link do e-mail (decidido em 13/10): contato com conta recebe o link da solicitação no portal; sem conta, um link de
@@ -31,8 +38,11 @@ public sealed class AvisosAoContato :
     private readonly IRepositorio<AcessoPortal> _acessos;
     private readonly IAcessosDoPortal _acessosDoPortal;
     private readonly IVinculos _vinculos;
+    private readonly IRepositorio<ConversaPorEmail> _novasConversas;
+    private readonly IConversasPorEmail _conversas;
     private readonly ITenantAtual _tenant;
-    private readonly IEnviadorEmail _email;
+    private readonly SeletorDeCanal _canais;
+    private readonly OpcoesEmailEntrada _entrada;
     private readonly EnderecosPublicos _enderecos;
     private readonly RelogioDoTenant _relogio;
     private readonly IUnitOfWork _unidade;
@@ -45,8 +55,11 @@ public sealed class AvisosAoContato :
         IRepositorio<AcessoPortal> acessos,
         IAcessosDoPortal acessosDoPortal,
         IVinculos vinculos,
+        IRepositorio<ConversaPorEmail> novasConversas,
+        IConversasPorEmail conversas,
         ITenantAtual tenant,
-        IEnviadorEmail email,
+        SeletorDeCanal canais,
+        OpcoesEmailEntrada entrada,
         EnderecosPublicos enderecos,
         RelogioDoTenant relogio,
         IUnitOfWork unidade,
@@ -58,8 +71,11 @@ public sealed class AvisosAoContato :
         ArgumentNullException.ThrowIfNull(acessos);
         ArgumentNullException.ThrowIfNull(acessosDoPortal);
         ArgumentNullException.ThrowIfNull(vinculos);
+        ArgumentNullException.ThrowIfNull(novasConversas);
+        ArgumentNullException.ThrowIfNull(conversas);
         ArgumentNullException.ThrowIfNull(tenant);
-        ArgumentNullException.ThrowIfNull(email);
+        ArgumentNullException.ThrowIfNull(canais);
+        ArgumentNullException.ThrowIfNull(entrada);
         ArgumentNullException.ThrowIfNull(enderecos);
         ArgumentNullException.ThrowIfNull(relogio);
         ArgumentNullException.ThrowIfNull(unidade);
@@ -70,8 +86,11 @@ public sealed class AvisosAoContato :
         _acessos = acessos;
         _acessosDoPortal = acessosDoPortal;
         _vinculos = vinculos;
+        _novasConversas = novasConversas;
+        _conversas = conversas;
         _tenant = tenant;
-        _email = email;
+        _canais = canais;
+        _entrada = entrada;
         _enderecos = enderecos;
         _relogio = relogio;
         _unidade = unidade;
@@ -95,10 +114,12 @@ public sealed class AvisosAoContato :
     public async Task TratarAsync(InteracaoRegistrada evento, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(evento);
+        // Nota INTERNA nunca vira aviso nem aparece em e-mail ao contato (F15-53, RNF-SEG-03); a mensagem do próprio
+        // contato não gera aviso para ele.
         if (evento.Visibilidade != Visibilidade.Externa || evento.AutorEhCliente)
             return;
         var interacao = await _interacoes.ObterPorIdAsync(evento.InteracaoId, cancellationToken);
-        if (interacao is null)
+        if (interacao is null || interacao.Visibilidade != Visibilidade.Externa)
             return;
 
         var mensagem = string.IsNullOrWhiteSpace(interacao.Texto) ? "(mensagem com anexos)" : interacao.Texto;
@@ -181,8 +202,35 @@ public sealed class AvisosAoContato :
         var tenant = await _tenant.ObterAsync(cancellationToken);
         var prestador = tenant.NomePortal ?? tenant.Nome;
         var link = await LinkAsync(solicitacao, cliente, contato, cancellationToken);
+        var conversa = await EnderecoDaConversaAsync(tenant, solicitacao, cancellationToken);
         var (assunto, texto) = montar(new Aviso(solicitacao, contato, prestador, link, tenant.DiasFechamentoAutomatico));
-        await _email.EnviarAsync(new MensagemEmail(contato.Email, assunto, texto, categoria, prestador, tenant.ResponderPara), cancellationToken);
+        await _canais.EnviarAsync(
+            new AvisoAoContato(
+                categoria, contato.Nome, contato.Email, prestador, assunto, texto, solicitacao.Id, solicitacao.Numero,
+                solicitacao.Origem, tenant.ResponderPara, conversa),
+            cancellationToken);
+    }
+
+    /// <summary>
+    /// Com o recebimento por e-mail ligado, o endereço da conversa da solicitação (F15-51), criando a conversa no primeiro
+    /// aviso (design do F15, D9); desligado, nulo, e nada é criado (F15-52). Dois avisos da mesma solicitação ao mesmo
+    /// tempo esbarram no índice único da conversa: o segundo falha antes de enviar, e a outbox o repete, já com a conversa.
+    /// </summary>
+    private async Task<string?> EnderecoDaConversaAsync(Tenant tenant, Solicitacao solicitacao, CancellationToken cancellationToken)
+    {
+        if (!_entrada.AvisosPelaConversa(tenant))
+            return null;
+
+        var conversa = await _conversas.DaSolicitacaoAsync(solicitacao.Id, cancellationToken);
+        if (conversa is null)
+        {
+            conversa = ConversaPorEmail.Criar(
+                Guid.CreateVersion7(), solicitacao.TenantId, solicitacao.ClienteId, solicitacao.Id, _relogio.Agora);
+            _novasConversas.Adicionar(conversa);
+            await _unidade.SalvarAsync(cancellationToken);
+        }
+
+        return _entrada.EnderecoDaConversa(tenant, conversa);
     }
 
     private async Task<Uri?> LinkAsync(Solicitacao solicitacao, Cliente cliente, Contato contato, CancellationToken cancellationToken)

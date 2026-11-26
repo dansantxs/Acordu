@@ -40,6 +40,11 @@ public sealed partial class EnviadorEmailSmtp : IEnviadorEmail
         email.To.Add(mensagem.Para);
         if (mensagem.ResponderPara is not null)
             email.ReplyToList.Add(mensagem.ResponderPara);
+        if (mensagem.Cabecalhos is { } cabecalhos)
+        {
+            foreach (var (nome, valor) in cabecalhos)
+                email.Headers.Add(nome, valor);
+        }
         email.AlternateViews.Add(
             AlternateView.CreateAlternateViewFromString(FormatoEmail.Html(mensagem.Texto), Encoding.UTF8, MediaTypeNames.Text.Html));
 
