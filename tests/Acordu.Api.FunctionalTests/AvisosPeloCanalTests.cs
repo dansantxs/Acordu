@@ -233,8 +233,8 @@ public sealed class AvisosPeloCanalTests(ApiFixture api)
             new { solucao = new { texto = "Logo trocada" } });
     }
 
-    private static Task LigarAsync(Equipe equipe, bool ligado) =>
-        equipe.EsperarAsync(HttpStatusCode.OK, HttpMethod.Put, "/api/v1/configuracoes/recebimento-email", new { ligado });
+    private static async Task LigarAsync(Equipe equipe, bool ligado) =>
+        await equipe.EsperarAsync(HttpStatusCode.OK, HttpMethod.Put, "/api/v1/configuracoes/recebimento-email", new { ligado });
 
     private static async Task ResponderParaAsync(Equipe equipe)
     {
