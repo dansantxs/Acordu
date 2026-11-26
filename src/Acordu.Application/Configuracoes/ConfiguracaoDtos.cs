@@ -29,9 +29,22 @@ public sealed record ConfiguracaoPortalRequest(string? NomeExibido, int DiasFech
 
 /// <summary>
 /// Empresa (contrato §6, F5a): nome, endereço que recebe as respostas dos e-mails ao contato e SLA sugerido nos
-/// contratos novos (o da empresa ou, sem ele, o do sistema; <see cref="SlaPersonalizado"/> diz qual).
+/// contratos novos (o da empresa ou, sem ele, o do sistema; <see cref="SlaPersonalizado"/> diz qual). F15b: o endereço de
+/// entrada por e-mail (nulo na demonstração e sem o domínio de entrada configurado) e se o recebimento está ligado
+/// (F15-95, F15-96).
 /// </summary>
 public sealed record ConfiguracaoEmpresaDto(
-    string Nome, string? ResponderPara, IReadOnlyList<PrazoSlaDto> SlaPadrao, bool SlaPersonalizado);
+    string Nome,
+    string? ResponderPara,
+    IReadOnlyList<PrazoSlaDto> SlaPadrao,
+    bool SlaPersonalizado,
+    string? EnderecoEntrada,
+    bool RecebimentoEmail);
 
 public sealed record ConfiguracaoEmpresaRequest(string? Nome, string? ResponderPara, IReadOnlyList<PrazoSlaDto>? SlaPadrao);
+
+/// <summary>Corpo do <c>PUT /configuracoes/recebimento-email</c> (F15-03, F15-04): <c>ligado</c> obrigatório.</summary>
+public sealed record RecebimentoEmailRequest(bool? Ligado);
+
+/// <summary>Resposta do <c>PUT /configuracoes/recebimento-email</c>: o endereço de entrada e se o recebimento ficou ligado.</summary>
+public sealed record RecebimentoEmailDto(string? EnderecoEntrada, bool RecebimentoEmail);

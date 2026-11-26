@@ -2,6 +2,7 @@ using System.Globalization;
 using Acordu.Application.Abstractions;
 using Acordu.Application.Common;
 using Acordu.Application.Contratos;
+using Acordu.Application.EntradaEmail;
 using Acordu.Domain.Acesso;
 using Acordu.Domain.Common;
 using Acordu.Domain.Entities;
@@ -21,12 +22,20 @@ public sealed class ComandosConfiguracao
     private readonly ITenantAtual _tenant;
     private readonly IUnitOfWork _unidade;
     private readonly LogotipoPortal _logotipo;
+    private readonly OpcoesEmailEntrada _entrada;
 
     public ComandosConfiguracao(
-        ITenantContext contexto, ICalendarios calendarios, ITenantAtual tenant, IUnitOfWork unidade, LogotipoPortal logotipo)
+        ITenantContext contexto,
+        ICalendarios calendarios,
+        ITenantAtual tenant,
+        IUnitOfWork unidade,
+        LogotipoPortal logotipo,
+        OpcoesEmailEntrada entrada)
     {
         ArgumentNullException.ThrowIfNull(logotipo);
+        ArgumentNullException.ThrowIfNull(entrada);
         _logotipo = logotipo;
+        _entrada = entrada;
         ArgumentNullException.ThrowIfNull(contexto);
         ArgumentNullException.ThrowIfNull(calendarios);
         ArgumentNullException.ThrowIfNull(tenant);
@@ -92,7 +101,11 @@ public sealed class ComandosConfiguracao
         return Portal(tenant);
     }
 
-    public static ConfiguracaoEmpresaDto Empresa(Tenant tenant)
+    /// <summary>
+    /// A configuração da empresa, com o endereço de entrada e o recebimento por e-mail (F15-95): o endereço vem nulo na
+    /// demonstração (F15-96) e sem o domínio de entrada configurado (F15-94).
+    /// </summary>
+    public ConfiguracaoEmpresaDto Empresa(Tenant tenant)
     {
         ArgumentNullException.ThrowIfNull(tenant);
         return new ConfiguracaoEmpresaDto(
@@ -101,10 +114,12 @@ public sealed class ComandosConfiguracao
             [.. tenant.SlaSugerido.Prazos
                 .OrderByDescending(p => p.Prioridade)
                 .Select(p => new PrazoSlaDto(p.Prioridade, p.PrimeiraResposta.Minutos, p.Resolucao.Minutos))],
-            tenant.SlaPadrao is not null);
+            tenant.SlaPadrao is not null,
+            _entrada.EnderecoDe(tenant),
+            tenant.RecebimentoEmail);
     }
 
-    /// <summary>Leitura liberada à equipe: o cadastro de contrato usa o SLA sugerido.</summary>
+    /// <summary>Leitura liberada à equipe: o cadastro de contrato usa o SLA sugerido; o endereço de entrada também (F15-95).</summary>
     public async Task<ConfiguracaoEmpresaDto> ObterEmpresaAsync(CancellationToken cancellationToken = default) =>
         Empresa(await _tenant.ObterAsync(cancellationToken));
 
