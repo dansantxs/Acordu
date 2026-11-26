@@ -508,6 +508,68 @@ namespace Acordu.Infrastructure.Persistence.Migrations
                     b.ToTable("contratos", (string)null);
                 });
 
+            modelBuilder.Entity("Acordu.Domain.Entities.ConversaPorEmail", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<string>("AssuntoOrigem")
+                        .HasMaxLength(998)
+                        .HasColumnType("character varying(998)")
+                        .HasColumnName("assunto_origem");
+
+                    b.Property<Guid>("ClienteId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("cliente_id");
+
+                    b.Property<DateTimeOffset>("CriadaEm")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("criada_em");
+
+                    b.Property<string>("MessageIdOrigem")
+                        .HasMaxLength(998)
+                        .HasColumnType("character varying(998)")
+                        .HasColumnName("message_id_origem");
+
+                    b.Property<Guid>("SolicitacaoId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("solicitacao_id");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
+                    b.Property<string>("Token")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("character(16)")
+                        .HasColumnName("token")
+                        .IsFixedLength();
+
+                    b.Property<uint>("Versao")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("xid")
+                        .HasColumnName("xmin");
+
+                    b.HasKey("Id")
+                        .HasName("pk_conversas_por_email");
+
+                    b.HasIndex("TenantId", "ClienteId")
+                        .HasDatabaseName("ix_conversas_por_email_tenant_id_cliente_id");
+
+                    b.HasIndex("TenantId", "SolicitacaoId")
+                        .IsUnique()
+                        .HasDatabaseName("ix_conversas_por_email_tenant_id_solicitacao_id");
+
+                    b.HasIndex("TenantId", "Token")
+                        .IsUnique()
+                        .HasDatabaseName("ix_conversas_por_email_tenant_id_token");
+
+                    b.ToTable("conversas_por_email", (string)null);
+                });
+
             modelBuilder.Entity("Acordu.Domain.Entities.ConviteEmpresa", b =>
                 {
                     b.Property<Guid>("Id")
