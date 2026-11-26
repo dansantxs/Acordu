@@ -27,4 +27,13 @@ public enum DesfechoEntrada
 
     /// <summary>Registrado na empresa (até o F15f, como <c>IGNORADO</c>; design §3).</summary>
     Registrada = 7,
+
+    /// <summary>E-mail automático (F15-85, F15-86; D12): registrado como <c>IGNORADO</c>, nada criado nem respondido.</summary>
+    Automatica = 8,
+
+    /// <summary>Remetente do próprio Acordu (laço, F15-88; D12): registrado como <c>IGNORADO</c>, nada respondido.</summary>
+    Laco = 9,
+
+    /// <summary>Spam ou vírus pelo filtro do provedor (F15-87; D11): registrado como <c>IGNORADO</c>, sem triagem.</summary>
+    Filtrada = 10,
 }

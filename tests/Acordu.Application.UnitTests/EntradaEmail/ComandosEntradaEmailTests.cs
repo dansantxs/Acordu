@@ -8,7 +8,8 @@ namespace Acordu.Application.UnitTests.EntradaEmail;
 
 /// <summary>
 /// Design do F15, D6 e §3 (ADR 0016, item 8): o e-mail aceito para a empresa deixa um registro de entrada, sem conteúdo,
-/// e a repetição da mesma entrega não grava de novo. Até o F15f, o resultado é sempre IGNORADO.
+/// e a repetição da mesma entrega não grava de novo. Até o F15f, o resultado é sempre IGNORADO; o automático, o laço e o
+/// filtro (F15e) dão o desfecho do descarte.
 /// </summary>
 public sealed class ComandosEntradaEmailTests
 {
@@ -23,7 +24,8 @@ public sealed class ComandosEntradaEmailTests
             new RegistrosEmMemoria(_repositorio),
             _repositorio,
             _unidade,
-            new RelogioFixo(Falsos.Agora));
+            new RelogioFixo(Falsos.Agora),
+            OpcoesEmailEntrada.DaConfiguracao("entrada.acordu.app.br", remetenteDosAvisos: "nao-responda@send.acordu.app.br"));
 
     private static MensagemDeEntrada Mensagem(string? messageId = "abc@mail.exemplo.com") =>
         new(messageId, ["ana@cliente.com.br"], new string('a', 64));
@@ -63,6 +65,39 @@ public sealed class ComandosEntradaEmailTests
         await Comandos().ReceberAsync(Mensagem("outro@mail.exemplo.com"), Destino);
 
         _repositorio.Itens.Should().HaveCount(2);
+    }
+
+    [Theory] // F15-85, F15-87, F15-88: descarte registrado, como IGNORADO, sem criar nada
+    [InlineData("automatico", DesfechoEntrada.Automatica)]
+    [InlineData("laco", DesfechoEntrada.Laco)]
+    [InlineData("filtro", DesfechoEntrada.Filtrada)]
+    public async Task ReceberAsync_AutomaticoLacoOuFiltro_RegistraIgnoradoComODescarte(string caso, DesfechoEntrada esperado)
+    {
+        var mensagem = caso switch
+        {
+            "automatico" => Mensagem() with { Sinais = new SinaisDeAutomatico(AutoSubmitted: "auto-replied") },
+            "laco" => Mensagem() with { Remetentes = ["nao-responda@send.acordu.app.br"] },
+            _ => Mensagem() with { Filtro = "spam" },
+        };
+
+        var desfecho = await Comandos().ReceberAsync(mensagem, Destino);
+
+        desfecho.Should().Be(esperado);
+        var registro = _repositorio.Itens.Should().ContainSingle().Subject;
+        registro.Resultado.Should().Be(ResultadoEntradaEmail.Ignorado);
+        _unidade.Gravacoes.Should().Be(1);
+    }
+
+    [Fact]
+    public async Task ReceberAsync_AutomaticoRepetido_RepetidaSemGravar() // a repetição vem antes do descarte (D6)
+    {
+        var automatico = Mensagem() with { Sinais = new SinaisDeAutomatico(TipoDoCorpo: "multipart/report") };
+        await Comandos().ReceberAsync(automatico, Destino);
+
+        var desfecho = await Comandos().ReceberAsync(automatico, Destino);
+
+        desfecho.Should().Be(DesfechoEntrada.Repetida);
+        _repositorio.Itens.Should().ContainSingle();
     }
 
     [Fact]
