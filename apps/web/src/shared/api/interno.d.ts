@@ -4132,6 +4132,45 @@ export interface paths {
         patch?: never
         trace?: never
     }
+    '/api/v1/configuracoes/recebimento-email': {
+        parameters: {
+            query?: never
+            header?: never
+            path?: never
+            cookie?: never
+        }
+        get?: never
+        put: {
+            parameters: {
+                query?: never
+                header?: never
+                path?: never
+                cookie?: never
+            }
+            requestBody: {
+                content: {
+                    'application/json': components['schemas']['RecebimentoEmailRequest']
+                }
+            }
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown
+                    }
+                    content: {
+                        'application/json': components['schemas']['RecebimentoEmailDto']
+                    }
+                }
+            }
+        }
+        post?: never
+        delete?: never
+        options?: never
+        head?: never
+        patch?: never
+        trace?: never
+    }
     '/api/v1/configuracoes/portal': {
         parameters: {
             query?: never
@@ -5560,6 +5599,8 @@ export interface components {
             responderPara: null | string
             slaPadrao: components['schemas']['PrazoSlaDto'][]
             slaPersonalizado: boolean
+            enderecoEntrada: null | string
+            recebimentoEmail: boolean
         }
         ConfiguracaoEmpresaRequest: {
             nome: null | string
@@ -6217,6 +6258,13 @@ export interface components {
             cliente: string
             /** Format: date */
             data: string
+        }
+        RecebimentoEmailDto: {
+            enderecoEntrada: null | string
+            recebimentoEmail: boolean
+        }
+        RecebimentoEmailRequest: {
+            ligado: null | boolean
         }
         RecorrenciaDto: {
             /** Format: uuid */
