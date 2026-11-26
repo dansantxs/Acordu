@@ -44,7 +44,7 @@ namespace Acordu.Api.Composicao;
 /// <c>Cadastro__Modo</c> (<c>convite</c> ou <c>aberto</c>; sem ela, <c>convite</c>; F14n, D11) e <c>Cadastro__DiasConvite</c>
 /// (padrão 7; F14n, D12), <c>EmailEntrada__Dominio</c> (domínio dos endereços de entrada por e-mail; sem ela, sem endereço;
 /// F15b, D2), <c>EmailEntrada__Token</c> (token da rota de entrada por e-mail; sem ele, a rota responde 404; F15d, D5) e
-/// <c>EmailEntrada__TamanhoMaximoBytes</c> (padrão 25 MiB; F15d, D12) e
+/// <c>EmailEntrada__TamanhoMaximoBytes</c> (padrão 25 MiB; F15d, D12), <c>EmailEntrada__DiasRegistro</c> (padrão 7; F15e, D6) e
 /// <c>Email__ResendChave</c>, <c>Email__Remetente</c>, <c>Email__NomeRemetente</c> e <c>Email__Smtp__Host</c>/<c>Email__Smtp__Porta</c> (Mailpit, só em desenvolvimento), <c>Email__RegistrarConteudo</c> (só em
 /// desenvolvimento).
 /// </summary>
@@ -116,11 +116,17 @@ internal static class ComposicaoApi
         services.AddSingleton(OpcoesCadastro.DaConfiguracao(configuracao["Cadastro:Modo"], configuracao["Cadastro:DiasConvite"]));
         // Domínio dos endereços de entrada por e-mail (F15b, design do F15 D2): sem ele, nenhuma empresa tem endereço e ligar o
         // recebimento é recusado (F15-94); valor presente e inválido impede a subida.
-        // O tamanho máximo do e-mail recebido (F15d, D12): padrão 25 MiB.
+        // O tamanho máximo do e-mail recebido (F15d, D12): padrão 25 MiB. A retenção do registro de entrada (F15e, D6): padrão
+        // 7 dias. O domínio do remetente dos avisos (o mesmo padrão do envio) reconhece o laço (F15e, D12).
         services.AddSingleton(OpcoesEmailEntrada.DaConfiguracao(
-            configuracao["EmailEntrada:Dominio"], configuracao["EmailEntrada:TamanhoMaximoBytes"]));
+            configuracao["EmailEntrada:Dominio"],
+            configuracao["EmailEntrada:TamanhoMaximoBytes"],
+            configuracao["EmailEntrada:DiasRegistro"],
+            configuracao["Email:Remetente"] ?? Infrastructure.Email.OpcoesEmail.RemetentePadrao));
         // A rota de entrada (F15d): destino → empresa e o escopo dela, como os jobs.
         services.AddSingleton<Infrastructure.Email.Entrada.RecebedorDeEmail>();
+        // Passo expurgo-email-entrada do diário (F15e, D16): depende da retenção configurada acima.
+        services.AddSingleton<Infrastructure.Persistence.EntradaEmail.ExpurgoEmailEntrada>();
         AdicionarEmail(services, configuracao);
         AdicionarArmazenamento(services, configuracao);
         AdicionarVerificacaoHumana(services, configuracao);
