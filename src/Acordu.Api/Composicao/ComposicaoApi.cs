@@ -14,6 +14,7 @@ using Acordu.Application.Operacao;
 using Acordu.Application.Autenticacao;
 using Acordu.Application.Cadastro;
 using Acordu.Application.Empresas;
+using Acordu.Application.EntradaEmail;
 using Acordu.Application.Nebrys;
 using Acordu.Infrastructure;
 using Acordu.Infrastructure.Armazenamento;
@@ -40,7 +41,8 @@ namespace Acordu.Api.Composicao;
 /// <c>Nebrys__Operadores</c> (e-mails dos operadores da área da Nebrys, separados por vírgula; sem ela, a área responde 404; F14k),
 /// <c>TextosLegais__Publicados</c> (<c>true</c> ou <c>false</c>, padrão desligado; F14h, D16),
 /// <c>Cadastro__Modo</c> (<c>convite</c> ou <c>aberto</c>; sem ela, <c>convite</c>; F14n, D11) e <c>Cadastro__DiasConvite</c>
-/// (padrão 7; F14n, D12) e
+/// (padrão 7; F14n, D12), <c>EmailEntrada__Dominio</c> (domínio dos endereços de entrada por e-mail; sem ela, sem endereço;
+/// F15b, D2) e
 /// <c>Email__ResendChave</c>, <c>Email__Remetente</c>, <c>Email__NomeRemetente</c> e <c>Email__Smtp__Host</c>/<c>Email__Smtp__Porta</c> (Mailpit, só em desenvolvimento), <c>Email__RegistrarConteudo</c> (só em
 /// desenvolvimento).
 /// </summary>
@@ -110,6 +112,9 @@ internal static class ComposicaoApi
         // Modo do cadastro e validade do convite de empresa (F14n, design D11 e D12): sem o modo, convite (fail-closed);
         // valor presente e inválido impede a subida.
         services.AddSingleton(OpcoesCadastro.DaConfiguracao(configuracao["Cadastro:Modo"], configuracao["Cadastro:DiasConvite"]));
+        // Domínio dos endereços de entrada por e-mail (F15b, design do F15 D2): sem ele, nenhuma empresa tem endereço e ligar o
+        // recebimento é recusado (F15-94); valor presente e inválido impede a subida.
+        services.AddSingleton(OpcoesEmailEntrada.DaConfiguracao(configuracao["EmailEntrada:Dominio"]));
         AdicionarEmail(services, configuracao);
         AdicionarArmazenamento(services, configuracao);
         AdicionarVerificacaoHumana(services, configuracao);

@@ -36,6 +36,9 @@ public sealed class ApiFixture : IAsyncLifetime
     /// <summary>Canal da Nebrys nos testes (decisão 14 do G2 do F14).</summary>
     public const string ContatoNebrys = "contato@acordu.app.br";
 
+    /// <summary>Domínio de entrada por e-mail nos testes (F15b, design do F15 D2), o de produção.</summary>
+    public const string DominioEntrada = "entrada.acordu.app.br";
+
     private readonly PostgreSqlContainer _postgres = new PostgreSqlBuilder("postgres:17").Build();
     private WebApplication? _app;
 
@@ -100,6 +103,8 @@ public sealed class ApiFixture : IAsyncLifetime
             ["TextosLegais:Publicados"] = "true",
             // Cadastro aberto (design do F14, D11): os testes do modo convite sobem outra Api com "convite" ou sem o modo.
             ["Cadastro:Modo"] = "aberto",
+            // Entrada por e-mail (F15b): os testes do domínio ausente (F15-94) sobem outra Api com o valor nulo.
+            ["EmailEntrada:Dominio"] = DominioEntrada,
             ["RateLimit:Auth:PorMinuto"] = "100000",
             ["RateLimit:Refresh:PorMinuto"] = "100000",
             ["RateLimit:Portal:PorMinuto"] = "100000",
