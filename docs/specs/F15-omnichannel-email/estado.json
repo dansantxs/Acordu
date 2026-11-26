@@ -1,11 +1,11 @@
 {
   "marco": "F15",
   "issue": 183,
-  "etapa": "AGUARDANDO_G2",
-  "branch": "docs/F15-spec",
+  "etapa": "IMPLEMENTANDO",
+  "branch": "feat/F15a-canal-mensagem",
   "pr": {
-    "id": "G2",
-    "numero": 234
+    "id": "F15a",
+    "numero": null
   },
   "feitos": [],
   "contadores": {
@@ -20,7 +20,8 @@
   ],
   "portoes": {
     "G1": "aceito suas recomendações (25/11, /roadmap: Omnichannel A, #183)",
-    "G2": null
+    "G2": "PR #234 mesclado (26/11/2026), recomendações de D1 a D16 e das 11 perguntas da spec §4; F15-71/72 no F15k",
+    "G3": []
   },
   "ressalvas": [
     "Ver notas/plano-2.md (menores 4 a 11) para os PRs de código"
