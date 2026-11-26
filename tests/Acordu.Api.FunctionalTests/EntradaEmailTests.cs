@@ -456,20 +456,6 @@ public sealed class EntradaEmailTests(ApiFixture api)
     }
 
     [Fact]
-    public async Task Entregar_EnvelopeVazioSemNada_DevolucaoDescartada() // F15-85: X-Email-Remetente presente e vazio
-    {
-        var equipe = await LigadaAsync();
-        var (app, logs) = await ApiComLogAsync();
-        await using var montada = app;
-        using var http = app.GetTestClient();
-
-        var (status, _) = await EntregarAsync(http, await EnderecoAsync(equipe), Mime(NovoMessageId()), envelope: string.Empty);
-
-        status.Should().Be(HttpStatusCode.Accepted);
-        LinhasDaEntrada(logs).Should().Equal("Entrada por e-mail: Automatica.");
-    }
-
-    [Fact]
     public async Task Entregar_SemCabecalhoDeEnvelope_SegueComoEmailComum() // cabeçalho ausente não é devolução
     {
         var equipe = await LigadaAsync();

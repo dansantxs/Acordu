@@ -117,7 +117,8 @@ export async function receber(mensagem: Mensagem, env: Env, buscar: typeof fetch
             'Content-Type': 'message/rfc822',
             'User-Agent': 'acordu-email-entrada',
             'X-Email-Token': env.TOKEN_ENTRADA,
-            'X-Email-Remetente': ascii(mensagem.from),
+            // Envelope vazio (devolução, RFC 5321) vai como `<>`: cabeçalho vazio pode não chegar à API (F15-85).
+            'X-Email-Remetente': ascii(mensagem.from) || '<>',
             'X-Email-Destinatario': ascii(mensagem.to),
             'X-Email-Autenticidade': veredito,
             // O plano gratuito não expõe nota de spam nem antivírus ao Worker (design D11): o filtro é o que o Email
