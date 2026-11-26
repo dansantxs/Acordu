@@ -126,6 +126,9 @@ jobs:
           # Modo do cadastro (F14n, design D11): obrigatória, convite ou aberto. Sem ela a API trataria como convite, mas
           # abrir ou fechar o cadastro é uma decisão: o deploy para antes de publicar sem a variável ou com outro valor.
           CADASTRO_MODO: ${{ vars.CADASTRO_MODO }}
+          # Domínio dos endereços de entrada por e-mail (F15b, design do F15 D2): obrigatória, um nome de domínio
+          # (entrada.acordu.app.br). Sem ela a API subiria sem endereço de entrada em nenhuma empresa: o deploy para antes.
+          EMAIL_ENTRADA_DOMINIO: ${{ vars.EMAIL_ENTRADA_DOMINIO }}
           Armazenamento__Endpoint: ${{ secrets.R2_ENDPOINT }}
           Armazenamento__ChaveAcesso: ${{ secrets.API_R2_CHAVE_ACESSO }}
           Armazenamento__ChaveSecreta: ${{ secrets.API_R2_CHAVE_SECRETA }}
@@ -136,7 +139,7 @@ jobs:
           Operacao__LinkErros: ${{ vars.OPERACAO_LINK_ERROS }}
         run: |
           python3 - "$RUNNER_TEMP/env-api.yaml" <<'PY'
-          import json, os, sys
+          import json, os, re, sys
 
           fixas = {
               "Cors__Origem": "https://acordu.app.br",
@@ -184,6 +187,11 @@ jobs:
           modo_cadastro = os.environ.get("CADASTRO_MODO", "").strip().lower()
           if modo_cadastro not in ("convite", "aberto"):
               faltam.append("CADASTRO_MODO (variável obrigatória: convite ou aberto)")
+          # Domínio de entrada (F15b): minúsculas, sem espaços; a API não sobe com um valor que não é nome de domínio
+          # (OpcoesEmailEntrada), então o deploy confere o mesmo formato antes de publicar.
+          dominio_entrada = os.environ.get("EMAIL_ENTRADA_DOMINIO", "").strip().lower()
+          if not re.fullmatch(r"(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z]{2,63}", dominio_entrada) or len(dominio_entrada) > 253:
+              faltam.append("EMAIL_ENTRADA_DOMINIO (variável obrigatória: o domínio de entrada, ex.: entrada.acordu.app.br)")
           # Operadores da Nebrys (F14k): a API não sobe com um item que não é e-mail (OperadoresNebrys); sem o e-mail no log.
           operadores = [e.strip() for e in os.environ.get("Nebrys__Operadores", "").replace(";", ",").split(",") if e.strip()]
           if any("@" not in e or any(c.isspace() for c in e) for e in operadores):
@@ -198,6 +206,7 @@ jobs:
           # O mesmo valor normalizado vai à API e, pela saída do passo, ao build do SPA (F14-121).
           variaveis["TextosLegais__Publicados"] = textos
           variaveis["Cadastro__Modo"] = modo_cadastro
+          variaveis["EmailEntrada__Dominio"] = dominio_entrada
           if operadores:
               variaveis["Nebrys__Operadores"] = ",".join(operadores)
           with open(os.environ["GITHUB_OUTPUT"], "a") as saida:
