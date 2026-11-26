@@ -88,3 +88,13 @@ test('F14n (design do F14, D11): o deploy exige CADASTRO_MODO, convite ou aberto
     assert.match(deploy, /variaveis\["Cadastro__Modo"\] = modo_cadastro\n/);
     assert.ok(deploy.indexOf('CADASTRO_MODO (variável obrigatória') < deploy.indexOf('- name: Nova revisão'));
 });
+
+test('F15b (design do F15, D2): o deploy exige EMAIL_ENTRADA_DOMINIO, um nome de domínio, antes de publicar, e o leva à API', () => {
+    const deploy = ler('.github/workflows/deploy.yml').replace(/\r\n/g, '\n');
+    assert.match(deploy, /EMAIL_ENTRADA_DOMINIO: \$\{\{ vars\.EMAIL_ENTRADA_DOMINIO \}\}/);
+    assert.match(deploy, /dominio_entrada = os\.environ\.get\("EMAIL_ENTRADA_DOMINIO", ""\)\.strip\(\)\.lower\(\)\n/);
+    // Sem a variável o domínio fica vazio, não casa o formato e cai na recusa.
+    assert.match(deploy, /if not re\.fullmatch\(.*dominio_entrada\).*:\n\s+faltam\.append\("EMAIL_ENTRADA_DOMINIO/);
+    assert.match(deploy, /variaveis\["EmailEntrada__Dominio"\] = dominio_entrada\n/);
+    assert.ok(deploy.indexOf('EMAIL_ENTRADA_DOMINIO (variável obrigatória') < deploy.indexOf('- name: Nova revisão'));
+});

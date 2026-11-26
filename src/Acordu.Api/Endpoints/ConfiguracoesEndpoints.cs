@@ -37,6 +37,14 @@ internal static class ConfiguracoesEndpoints
             .RequirePermissao(Permissoes.ConfiguracaoGerenciar)
             .Produces<ConfiguracaoEmpresaDto>();
 
+        // Recebimento por e-mail (F15-03 a F15-07, F15-93, F15-94, F15-96): ligar ou desligar; o endereço e o estado também
+        // vêm no GET /configuracoes/empresa, liberado à equipe (F15-95).
+        configuracoes.MapPut("/recebimento-email", async (
+            RecebimentoEmailRequest corpo, ComandosRecebimentoEmail comandos, CancellationToken cancellationToken) =>
+            Results.Ok(await comandos.AlterarAsync(corpo, cancellationToken)))
+            .RequirePermissao(Permissoes.ConfiguracaoGerenciar)
+            .Produces<RecebimentoEmailDto>();
+
         configuracoes.MapGet("/portal", async (ComandosConfiguracao comandos, CancellationToken cancellationToken) =>
             Results.Ok(await comandos.ObterPortalAsync(cancellationToken)))
             .RequirePermissao(Permissoes.ConfiguracaoGerenciar)

@@ -17,6 +17,7 @@ using Acordu.Infrastructure.Persistence.Aceites;
 using Acordu.Infrastructure.Persistence.Auditoria;
 using Acordu.Infrastructure.Persistence.ConvitesEmpresa;
 using Acordu.Infrastructure.Persistence.Documentos;
+using Acordu.Infrastructure.Persistence.EntradaEmail;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
@@ -193,8 +194,10 @@ public sealed partial class ServicoAutenticacao : IServicoAutenticacao
         var papeis = Papel.Padroes(tenantId);
         var dono = papeis.Single(p => p.Nome == Papel.NomeDono);
         var vinculo = Vinculo.Criar(Guid.CreateVersion7(), usuario.Id, dono);
-        // Nasce em TESTE, com o fim do teste no cadastro mais a duração da configuração (F14-01).
-        _db.Add(Tenant.Criar(tenantId, empresaValida, agora, usuario.Id, _empresas.DuracaoDoTeste, documentoValido));
+        // Nasce em TESTE, com o fim do teste no cadastro mais a duração da configuração (F14-01), e com o código de entrada
+        // por e-mail sorteado, com o recebimento desligado (F15-01).
+        var empresa = Tenant.Criar(tenantId, empresaValida, agora, usuario.Id, _empresas.DuracaoDoTeste, documentoValido);
+        _db.Add(empresa);
         _db.AddRange(papeis);
         _db.Add(vinculo);
         _db.Add(CalendarioUtil.Padrao(tenantId));
@@ -203,19 +206,29 @@ public sealed partial class ServicoAutenticacao : IServicoAutenticacao
             await _aceites.RegistrarVigentesAsync(usuario.Id, FormaAceiteTexto.Aceite, agora, cancellationToken);
 
         var sessao = Abrir(usuario, vinculo, dono, agora);
-        try
+        for (var tentativa = 1; ; tentativa++)
         {
-            await _db.SaveChangesAsync(cancellationToken);
-        }
-        catch (DbUpdateException excecao) when (RegistroDocumentos.Disputa(excecao))
-        {
-            // Outro cadastro com o mesmo documento passou na frente: a transação volta inteira (nada criado).
-            throw DocumentoJaTeveTeste();
-        }
-        catch (DbUpdateException excecao) when (RegistroConvitesEmpresa.Disputa(excecao))
-        {
-            // Outro cadastro usou o mesmo convite, ou a Nebrys o reenviou ou revogou, no meio: nada criado (F14-48).
-            throw ConviteInvalido();
+            try
+            {
+                await _db.SaveChangesAsync(cancellationToken);
+                break;
+            }
+            catch (DbUpdateException excecao) when (CodigosDeEntrada.Disputa(excecao) && tentativa < CodigosDeEntrada.Tentativas)
+            {
+                // O código de entrada sorteado já é de outra empresa (índice único, design do F15 D2): sorteia outro e grava
+                // de novo. Dentro da transação, o EF volta ao ponto de salvamento que criou antes desta gravação.
+                empresa.SortearOutroCodigoEntrada();
+            }
+            catch (DbUpdateException excecao) when (RegistroDocumentos.Disputa(excecao))
+            {
+                // Outro cadastro com o mesmo documento passou na frente: a transação volta inteira (nada criado).
+                throw DocumentoJaTeveTeste();
+            }
+            catch (DbUpdateException excecao) when (RegistroConvitesEmpresa.Disputa(excecao))
+            {
+                // Outro cadastro usou o mesmo convite, ou a Nebrys o reenviou ou revogou, no meio: nada criado (F14-48).
+                throw ConviteInvalido();
+            }
         }
 
         if (tokenConvite is not null)

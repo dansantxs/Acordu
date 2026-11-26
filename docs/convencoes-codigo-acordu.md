@@ -3,7 +3,7 @@
 | | |
 |---|---|
 | **Versão** | 0.1 |
-| **Última atualização** | 24/11/2026 |
+| **Última atualização** | 26/11/2026 |
 | **Natureza** | Convenções técnicas do projeto. Toda convenção de código nova entra aqui (decisões de arquitetura entram num ADR). |
 | **Base** | Convenções do projeto; os itens marcados **(Acordu)** são específicos deste domínio. |
 
@@ -42,7 +42,7 @@
   - colunas do resultado em snake_case mapeiam as propriedades do tipo lido (a convenção vale também para `SqlQuery`); escalar usa o alias `"Value"`;
   - a entidade principal é lida antes pelo EF (filtros globais): invisível no contexto → consulta devolve nulo.
 - Extensões Postgres habilitadas por migration: `pg_trgm`, `unaccent`.
-- **(Acordu) Migrations** ficam em `src/Acordu.Infrastructure/Persistence/Migrations` e são geradas pelo `dotnet-ef` fixado em `.config/dotnet-tools.json`: pelo workflow **Migrations** (gera e faz commit na branch de feature; nunca na `main`), disparado por um arquivo `.github/migration-request` com o nome da migration ou manualmente no Actions, ou localmente com o comando do cabeçalho do workflow. Migration gerada não é editada à mão, exceto para acrescentar SQL que o EF não expressa (índices sobre colunas de tipos owned, configuração de busca), sempre **no fim do `Up` e no início do `Down`** (desfazer na ordem inversa), com comentário explicando o porquê e, se possível, um teste que confira o objeto criado. **Preenchimento de dados** de colunas novas (F9a) também entra no fim do `Up`, com o texto numa constante de `ScriptsDeDados` (Infrastructure) para o teste de integração rodar o mesmo SQL; o `Down` só desfaz o esquema.
+- **(Acordu) Migrations** ficam em `src/Acordu.Infrastructure/Persistence/Migrations` e são geradas pelo `dotnet-ef` fixado em `.config/dotnet-tools.json`: pelo workflow **Migrations** (gera e faz commit na branch de feature; nunca na `main`), disparado por um arquivo `.github/migration-request` com o nome da migration ou manualmente no Actions, ou localmente com o comando do cabeçalho do workflow. Migration gerada não é editada à mão, exceto para acrescentar SQL que o EF não expressa (índices sobre colunas de tipos owned, configuração de busca), sempre **no fim do `Up` e no início do `Down`** (desfazer na ordem inversa), com comentário explicando o porquê e, se possível, um teste que confira o objeto criado. **Preenchimento de dados** de colunas novas (F9a) também entra no fim do `Up`, com o texto numa constante de `ScriptsDeDados` (Infrastructure) para o teste de integração rodar o mesmo SQL; o `Down` só desfaz o esquema. **(Acordu)** Preenchimento que **sorteia um identificador** (ex.: o código de entrada das empresas, F15b) usa a aleatoriedade criptográfica do próprio Postgres, `gen_random_uuid()` (núcleo do PostgreSQL 13+, sobre `pg_strong_random`; os bytes da versão e da variante ficam de fora), **nunca `random()`**, e repete o sorteio na colisão do índice único (bloco `DO` com `unique_violation`); o mesmo identificador criado pelo domínio usa `RandomNumberGenerator`.
 - **(Acordu) Segredos de uso único** (token de link do portal): gerados no domínio com `RandomNumberGenerator`; persiste-se só o SHA-256 em hex minúsculo, com índice único; comparação em tempo constante (`CryptographicOperations.FixedTimeEquals`).
 - **(Acordu) Documento (CPF/CNPJ) e e-mail** normalizados no domínio (só dígitos; e-mail em minúsculas) antes de comparar ou persistir.
 

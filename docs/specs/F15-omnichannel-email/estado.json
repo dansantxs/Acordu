@@ -2,12 +2,14 @@
   "marco": "F15",
   "issue": 183,
   "etapa": "AGUARDANDO_MERGE",
-  "branch": "feat/F15a-canal-mensagem",
+  "branch": "feat/F15b-endereco-entrada",
   "pr": {
-    "id": "F15a",
-    "numero": 235
+    "id": "F15b",
+    "numero": 236
   },
-  "feitos": [],
+  "feitos": [
+    "F15a (#235)"
+  ],
   "contadores": {
     "devolucoesNaEtapa": 0,
     "rodadasNoPr": 0
@@ -21,12 +23,19 @@
   "portoes": {
     "G1": "aceito suas recomendações (25/11, /roadmap: Omnichannel A, #183)",
     "G2": "PR #234 mesclado (26/11/2026), recomendações de D1 a D16 e das 11 perguntas da spec §4; F15-71/72 no F15k",
-    "G3": []
+    "G3": [
+      "F15a: PR #235 mesclado (26/11/2026)"
+    ]
   },
   "ressalvas": [
-    "Testador: nada verifica que o Up da migration CanalDasMensagens chama ScriptsDeDados.PreencherCanalDasInteracoes; conferir AddColumn nullable:false defaultValue \"\" e a linha do Sql no fim do Up",
-    "Testes C# validados só pela CI (sem SDK na sessão)",
-    "Revisor: em Mensagens.tsx o comentário \"Peças de mensagem com @menções e anexos\" ficou separado de TextoComMencoes pelo CanalMensagem novo (forma)"
+    "Ver notas/plano-2.md (menores 4 a 11) para os PRs de código",
+    "Do F15a: em Mensagens.tsx, juntar o comentário \"Peças de mensagem com @menções e anexos\" a TextoComMencoes",
+    "Testador F15b: conferir que o Up da EnderecoDeEntrada chama PreencherCodigoEntradaDasEmpresas depois do CreateIndex",
+    "Testador F15b: laço de novo sorteio na colisão (ServicoAutenticacao) sem teste; índice único e Disputa cobertos",
+    "Testador F15b: ligado com tipo errado depende do tratamento global de JSON inválido",
+    "Testes C# validados só pela CI",
+    "Revisor F15b: CA1870 possível em CodigoDeEntrada.Valido (ContainsAnyExcept com constante)",
+    "Revisor F15b: esgotadas as 5 tentativas, a DbUpdateException sobe como 500 (aceitável com ~39 bits)"
   ],
   "bloqueios": [],
   "atualizadoEm": "2026-11-26",

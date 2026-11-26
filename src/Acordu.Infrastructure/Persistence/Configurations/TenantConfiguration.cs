@@ -44,6 +44,11 @@ internal sealed class TenantConfiguration : IEntityTypeConfiguration<Tenant>
             .HasColumnName("avisos_situacao")
             .IsRequired();
         builder.Ignore(t => t.SomenteLeitura);
+        // Endereço de entrada por e-mail (F15b, design do F15 D2 e D9): o código é único entre todas as empresas (a consulta
+        // do destino, no F15d, procura por ele sem tenant); nulo só na demonstração. O recebimento nasce desligado.
+        builder.Property(t => t.CodigoEntrada).HasMaxLength(CodigoDeEntrada.Tamanho);
+        builder.HasIndex(t => t.CodigoEntrada).IsUnique();
+        builder.Property(t => t.RecebimentoEmail);
         builder.Property<uint>(ConfiguracaoRaiz.Versao)
             .IsRowVersion()
             .HasColumnName("xmin")

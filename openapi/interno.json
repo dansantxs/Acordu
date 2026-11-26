@@ -4156,6 +4156,35 @@
         }
       }
     },
+    "/api/v1/configuracoes/recebimento-email": {
+      "put": {
+        "tags": [
+          "Configurações"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RecebimentoEmailRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RecebimentoEmailDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/configuracoes/portal": {
       "get": {
         "tags": [
@@ -6236,7 +6265,9 @@
           "nome",
           "responderPara",
           "slaPadrao",
-          "slaPersonalizado"
+          "slaPersonalizado",
+          "enderecoEntrada",
+          "recebimentoEmail"
         ],
         "type": "object",
         "properties": {
@@ -6256,6 +6287,15 @@
             }
           },
           "slaPersonalizado": {
+            "type": "boolean"
+          },
+          "enderecoEntrada": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "recebimentoEmail": {
             "type": "boolean"
           }
         }
@@ -9003,6 +9043,38 @@
           "data": {
             "type": "string",
             "format": "date"
+          }
+        }
+      },
+      "RecebimentoEmailDto": {
+        "required": [
+          "enderecoEntrada",
+          "recebimentoEmail"
+        ],
+        "type": "object",
+        "properties": {
+          "enderecoEntrada": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "recebimentoEmail": {
+            "type": "boolean"
+          }
+        }
+      },
+      "RecebimentoEmailRequest": {
+        "required": [
+          "ligado"
+        ],
+        "type": "object",
+        "properties": {
+          "ligado": {
+            "type": [
+              "null",
+              "boolean"
+            ]
           }
         }
       },

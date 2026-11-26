@@ -100,4 +100,10 @@ public static class AcoesAuditoria
     public const string ExemplosCarga = "exemplos.carga";
 
     public const string ExemplosRemocao = "exemplos.remocao";
+
+    /// <summary>
+    /// Recebimento por e-mail ligado ou desligado (F15-93; contrato §11a): a empresa no alvo e, em <c>dados</c>, o
+    /// <c>antes</c> e o <c>depois</c> (<c>recebimentoEmail</c>). Sem o endereço de entrada.
+    /// </summary>
+    public const string ConfiguracaoRecebimentoEmail = "configuracao.recebimento-email";
 }

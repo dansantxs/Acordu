@@ -51,4 +51,42 @@ public static class ScriptsDeDados
         SET canal = CASE WHEN autor_eh_cliente THEN 'PORTAL' ELSE 'ACORDU' END
         WHERE canal = '';
         """;
+
+    /// <summary>
+    /// F15b (F15-01, design do F15, D2): as empresas anteriores ao F15, menos a de demonstração, ganham o código de entrada
+    /// por e-mail, com o recebimento desligado (o padrão da coluna nova). A aleatoriedade é criptográfica, do próprio Postgres:
+    /// <c>gen_random_uuid()</c> (núcleo do PostgreSQL 13+, sobre <c>pg_strong_random</c>, sem extensão), nunca
+    /// <c>random()</c>. Cada caractere sai de um byte aleatório do UUID (os bytes 6 e 8 levam a versão e a variante e ficam
+    /// de fora), reduzido ao alfabeto de <see cref="Domain.Common.CodigoDeEntrada"/>; o viés de módulo (256 = 8·31 + 8) é
+    /// irrelevante para um identificador de roteamento. Colisão com o índice único sorteia de novo. A condição pega só as
+    /// linhas que a coluna nova recebeu vazias.
+    /// </summary>
+    public const string PreencherCodigoEntradaDasEmpresas = """
+        DO $$
+        DECLARE
+            alfabeto CONSTANT text := '23456789abcdefghjkmnpqrstuvwxyz';
+            posicoes CONSTANT int[] := ARRAY[0, 1, 2, 3, 4, 5, 7, 9];
+            empresa uuid;
+            bytes bytea;
+            codigo text;
+            posicao int;
+        BEGIN
+            FOR empresa IN SELECT id FROM tenants WHERE codigo_entrada IS NULL AND NOT demonstracao LOOP
+                LOOP
+                    bytes := decode(replace(gen_random_uuid()::text, '-', ''), 'hex');
+                    codigo := '';
+                    FOREACH posicao IN ARRAY posicoes LOOP
+                        codigo := codigo || substr(alfabeto, get_byte(bytes, posicao) % 31 + 1, 1);
+                    END LOOP;
+                    BEGIN
+                        UPDATE tenants SET codigo_entrada = codigo WHERE id = empresa;
+                        EXIT;
+                    EXCEPTION WHEN unique_violation THEN
+                        -- Código já de outra empresa: sorteia de novo.
+                        NULL;
+                    END;
+                END LOOP;
+            END LOOP;
+        END $$;
+        """;
 }

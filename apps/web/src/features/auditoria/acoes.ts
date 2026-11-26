@@ -67,6 +67,7 @@ export const AREAS_ACAO: { area: string; acoes: [codigo: string, rotulo: string]
         acoes: [
             ['exemplos.carga', 'Dados de exemplo carregados'],
             ['exemplos.remocao', 'Dados de exemplo apagados'],
+            ['configuracao.recebimento-email', 'Recebimento por e-mail'],
         ],
     },
 ]
@@ -151,6 +152,10 @@ export function fraseAuditoria(r: Registro, nomes: ReadonlyMap<string, string>):
             return `carregou os dados de exemplo (${numero(d.clientes)} clientes)`
         case 'exemplos.remocao':
             return `apagou os dados de exemplo (${numero(d.clientes)} clientes)`
+        case 'configuracao.recebimento-email':
+            return ((d.depois ?? {}) as Dados).recebimentoEmail
+                ? 'ligou o recebimento por e-mail'
+                : 'desligou o recebimento por e-mail'
         default:
             return rotuloAcao(r.acao)
     }
