@@ -49,6 +49,7 @@ export const SECOES_AJUDA_PORTAL: SecaoAjudaPortal[] = [
         ],
         dicas: [
             'As respostas da equipe também chegam por e-mail.',
+            'Cada mensagem mostra por onde chegou: "Acordu", quando é da equipe, ou "Portal", quando você escreveu por aqui.',
             'Se aparecer "No momento não é possível enviar por aqui", fale direto com a empresa que atende você. O que já foi enviado continua aparecendo aqui.',
         ],
     },

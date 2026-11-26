@@ -28,6 +28,7 @@ const interacoes = [
         texto: 'Pode mandar a arte em alta?',
         autorNome: 'Daniel',
         daEquipe: true,
+        canal: 'ACORDU',
         registradaEm: '2026-10-21T13:00:00Z',
         anexos: [{ id: 'a1', nomeArquivo: 'rascunho.png', tipoConteudo: 'image/png', tamanhoBytes: 2048 }],
     },
@@ -48,6 +49,7 @@ describe('portal: detalhe', () => {
                         texto: (corpo as { texto: string }).texto,
                         autorNome: 'Marta Souza',
                         daEquipe: false,
+                        canal: 'PORTAL',
                         registradaEm: '2026-10-22T10:00:00Z',
                         anexos: [],
                     },
@@ -74,6 +76,36 @@ describe('portal: detalhe', () => {
                 texto: 'Mando à tarde.',
             }),
         )
+    })
+
+    it('cada mensagem mostra o canal por onde chegou (F15-61)', async () => {
+        const mensagem = (id: string, texto: string, daEquipe: boolean, canal: string) => ({
+            id,
+            texto,
+            autorNome: daEquipe ? 'Daniel' : 'Marta Souza',
+            daEquipe,
+            canal,
+            registradaEm: '2026-10-21T13:00:00Z',
+            anexos: [],
+        })
+        comContato({
+            'GET /api/v1/portal/solicitacoes/s1': () => json(solicitacao()),
+            'GET /api/v1/portal/solicitacoes/s1/interacoes': () =>
+                json([
+                    mensagem('i1', 'Estamos vendo o forno.', true, 'ACORDU'),
+                    mensagem('i2', 'Segue o print.', false, 'PORTAL'),
+                    mensagem('i3', 'Mandei também por e-mail.', false, 'EMAIL'),
+                ]),
+        })
+        await abrir('/portal/solicitacoes/s1')
+        const conversa = await screen.findByRole('region', { name: 'Conversa' })
+        const itens = await within(conversa).findAllByRole('listitem')
+
+        expect(itens).toHaveLength(3)
+        expect(within(itens[0]!).getByText('Acordu')).toBeInTheDocument()
+        expect(within(itens[1]!).getByText('Portal')).toBeInTheDocument()
+        expect(within(itens[2]!).getByText('E-mail')).toBeInTheDocument()
+        expect(within(itens[2]!).getAllByText('Canal:', { exact: false })).toHaveLength(1)
     })
 
     it('aprova a entrega e pede ajuste com o motivo', async () => {

@@ -4,7 +4,13 @@ import { Radio, RadioGroup } from 'react-aria-components'
 import { mensagemDeErro } from '@/shared/api/mensagens'
 import { consultaEquipe } from '@/shared/equipe/consultaEquipe'
 import { dataHora } from '@/shared/format/prazo'
-import { AnexosParaBaixar, CaixaMensagem, TextoComMencoes, type Pessoa } from '@/shared/mensagens/Mensagens'
+import {
+    AnexosParaBaixar,
+    CaixaMensagem,
+    CanalDaMensagem,
+    TextoComMencoes,
+    type Pessoa,
+} from '@/shared/mensagens/Mensagens'
 import { Alerta } from '@/shared/ui/Alerta'
 import {
     consultaInteracoes,
@@ -132,9 +138,12 @@ function Mensagem({
                 <span className="text-sm font-semibold text-tinta">{i.autor.nome || 'Pessoa removida'}</span>
                 {i.autorEhCliente && <span>cliente</span>}
                 <time dateTime={i.registradaEm}>{dataHora(i.registradaEm, fuso)}</time>
-                <span className={interna ? 'font-semibold text-ambar-texto' : ''}>
-                    {interna ? 'Nota interna' : i.autorEhCliente ? 'Pelo portal' : 'Enviada ao cliente'}
-                </span>
+                {interna ? (
+                    <span className="font-semibold text-ambar-texto">Nota interna</span>
+                ) : (
+                    !i.autorEhCliente && <span>Enviada ao cliente</span>
+                )}
+                <CanalDaMensagem canal={i.canal} />
             </p>
             {i.texto && <TextoComMencoes texto={i.texto} nomes={nomes} />}
             <AnexosParaBaixar anexos={i.anexos} />

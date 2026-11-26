@@ -5446,6 +5446,8 @@ export interface components {
             expediente: null | components['schemas']['JanelaDto'][]
             feriados: null | string[]
         }
+        /** @enum {unknown} */
+        CanalMensagem: 'ACORDU' | 'PORTAL' | 'EMAIL' | 'WHATSAPP'
         CancelamentoRequest: {
             motivo: string
             tarefas?: null | components['schemas']['TarefasAbertasRequest']
@@ -5869,6 +5871,7 @@ export interface components {
             autorEhCliente: boolean
             texto: null | string
             visibilidade: components['schemas']['Visibilidade']
+            canal: components['schemas']['CanalMensagem']
             /** Format: date-time */
             registradaEm: string
             anexos: components['schemas']['AnexoDto'][]
