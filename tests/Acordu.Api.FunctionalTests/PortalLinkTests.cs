@@ -54,9 +54,11 @@ public sealed partial class PortalLinkTests(ApiFixture api)
             new { texto = "Confirmo o horário" }, acesso);
         resposta.GetProperty("autorNome").GetString().Should().Be("Carlos Prado");
         resposta.GetProperty("daEquipe").GetBoolean().Should().BeFalse();
+        resposta.GetProperty("canal").GetString().Should().Be("PORTAL", "a sessão de link também escreve pelo portal (F15-60)");
         var interacoes = await equipe.EsperarAsync(HttpStatusCode.OK, HttpMethod.Get, $"/api/v1/solicitacoes/{solicitacao}/interacoes");
         interacoes[0].GetProperty("autor").GetProperty("nome").GetString().Should().Be("Carlos Prado");
         interacoes[0].GetProperty("autorEhCliente").GetBoolean().Should().BeTrue();
+        interacoes[0].GetProperty("canal").GetString().Should().Be("PORTAL");
 
         await equipe.EsperarAsync(HttpStatusCode.OK, HttpMethod.Post, $"/api/v1/solicitacoes/{solicitacao}/resolucao",
             new { solucao = new { texto = "Feito" } });

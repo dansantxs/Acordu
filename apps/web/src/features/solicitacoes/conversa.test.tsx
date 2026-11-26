@@ -40,6 +40,7 @@ const interacao = (mudancas: Record<string, unknown>) => ({
     autorEhCliente: false,
     texto: null,
     visibilidade: 'INTERNA',
+    canal: 'ACORDU',
     registradaEm: daquiA(-60_000),
     anexos: [],
     ...mudancas,
@@ -77,6 +78,7 @@ describe('conversa da solicitação', () => {
                         autor: { id: 'k1', nome: 'Marta Souza' },
                         autorEhCliente: true,
                         visibilidade: 'EXTERNA',
+                        canal: 'PORTAL',
                         texto: 'O forno 2 não acende.',
                         anexos: [
                             { id: 'a1', nomeArquivo: 'foto.jpg', tipoConteudo: 'image/jpeg', tamanhoBytes: 245_760 },
@@ -90,7 +92,7 @@ describe('conversa da solicitação', () => {
         const c = await conversa()
 
         const itens = await c.findAllByRole('listitem')
-        expect(within(itens[0]!).getByText('Pelo portal')).toBeInTheDocument()
+        expect(within(itens[0]!).getByText('Portal')).toBeInTheDocument()
         expect(within(itens[0]!).getByText('cliente')).toBeInTheDocument()
         expect(c.getByText('Nota interna')).toBeInTheDocument()
         expect(c.getByText('@Rafael Moura')).toBeInTheDocument()
@@ -100,6 +102,44 @@ describe('conversa da solicitação', () => {
         await userEvent.setup().click(c.getByRole('button', { name: /foto\.jpg/ }))
         await vi.waitFor(() => expect(chamadas.some((ch) => ch.caminho === '/api/v1/anexos/a1/download')).toBe(true))
         expect(c.getByText('240 KB')).toBeInTheDocument()
+    })
+
+    it('cada mensagem mostra o canal por onde chegou (F15-60)', async () => {
+        app(['solicitacao.ver'], {
+            [`GET /api/v1/solicitacoes/${ID}/interacoes`]: () =>
+                json([
+                    interacao({ texto: 'Estamos vendo.', visibilidade: 'EXTERNA', registradaEm: daquiA(-240_000) }),
+                    interacao({ texto: 'Cliente pediu desconto.', registradaEm: daquiA(-180_000) }),
+                    interacao({
+                        autor: { id: 'k1', nome: 'Marta Souza' },
+                        autorEhCliente: true,
+                        visibilidade: 'EXTERNA',
+                        canal: 'PORTAL',
+                        texto: 'Segue o print.',
+                        registradaEm: daquiA(-120_000),
+                    }),
+                    interacao({
+                        autor: { id: 'k1', nome: 'Marta Souza' },
+                        autorEhCliente: true,
+                        visibilidade: 'EXTERNA',
+                        canal: 'EMAIL',
+                        texto: 'Mandei também por e-mail.',
+                        registradaEm: daquiA(-60_000),
+                    }),
+                ]),
+        })
+        await abrir(`/solicitacoes/${ID}`)
+        const c = await conversa()
+        const itens = await c.findAllByRole('listitem')
+
+        expect(itens).toHaveLength(4)
+        expect(within(itens[0]!).getByText('Acordu')).toBeInTheDocument()
+        expect(within(itens[0]!).getByText('Enviada ao cliente')).toBeInTheDocument()
+        expect(within(itens[1]!).getByText('Acordu')).toBeInTheDocument()
+        expect(within(itens[1]!).getByText('Nota interna')).toBeInTheDocument()
+        expect(within(itens[2]!).getByText('Portal')).toBeInTheDocument()
+        expect(within(itens[3]!).getByText('E-mail')).toBeInTheDocument()
+        expect(within(itens[3]!).getByText('cliente')).toBeInTheDocument()
     })
 
     it('intercala abertura, responsável e status entre as mensagens', async () => {

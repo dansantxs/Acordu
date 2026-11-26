@@ -5717,6 +5717,14 @@
           }
         }
       },
+      "CanalMensagem": {
+        "enum": [
+          "ACORDU",
+          "PORTAL",
+          "EMAIL",
+          "WHATSAPP"
+        ]
+      },
       "CancelamentoRequest": {
         "required": [
           "motivo"
@@ -7563,6 +7571,7 @@
           "autorEhCliente",
           "texto",
           "visibilidade",
+          "canal",
           "registradaEm",
           "anexos"
         ],
@@ -7586,6 +7595,9 @@
           },
           "visibilidade": {
             "$ref": "#/components/schemas/Visibilidade"
+          },
+          "canal": {
+            "$ref": "#/components/schemas/CanalMensagem"
           },
           "registradaEm": {
             "type": "string",

@@ -40,4 +40,15 @@ public static class ScriptsDeDados
             fim_do_teste = NULL
         WHERE situacao = '';
         """;
+
+    /// <summary>
+    /// F15a (F15-62, design do F15, D8): as mensagens anteriores ao F15 ganham o canal pelo autor: as do contato,
+    /// que até aqui só escrevia pelo portal (conta ou link), ficam PORTAL; as da equipe, ACORDU. A condição pega só as
+    /// linhas que a coluna nova recebeu vazias.
+    /// </summary>
+    public const string PreencherCanalDasInteracoes = """
+        UPDATE interacoes
+        SET canal = CASE WHEN autor_eh_cliente THEN 'PORTAL' ELSE 'ACORDU' END
+        WHERE canal = '';
+        """;
 }

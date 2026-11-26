@@ -139,6 +139,7 @@ public sealed class ConsultasPortal : IConsultasPortal
             i.Texto,
             nomes.GetValueOrDefault(i.AutorId, string.Empty),
             !i.AutorEhCliente,
+            i.Canal,
             i.RegistradaEm,
             [.. i.Anexos.OrderBy(a => a.NomeArquivo, StringComparer.Ordinal).Select(a => new AnexoPortalDto(a.Id, a.NomeArquivo, a.TipoConteudo, a.TamanhoBytes))]))];
     }

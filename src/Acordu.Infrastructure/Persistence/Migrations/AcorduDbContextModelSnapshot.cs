@@ -848,6 +848,12 @@ namespace Acordu.Infrastructure.Persistence.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("autor_id");
 
+                    b.Property<string>("Canal")
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .HasColumnType("character varying(40)")
+                        .HasColumnName("canal");
+
                     b.Property<Guid>("ClienteId")
                         .HasColumnType("uuid")
                         .HasColumnName("cliente_id");

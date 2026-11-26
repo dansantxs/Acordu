@@ -61,13 +61,14 @@ public sealed record TarefaDaSolicitacaoDto(Guid Id, string Titulo, StatusTarefa
 
 public sealed record SolucaoDto(string? Problema, string? Causa, string Texto);
 
-/// <summary>Item da linha do tempo (internas e externas).</summary>
+/// <summary>Item da linha do tempo (internas e externas), com o canal por onde entrou (RF-SOL-14, F15-60).</summary>
 public sealed record InteracaoDto(
     Guid Id,
     Referencia Autor,
     bool AutorEhCliente,
     string? Texto,
     Visibilidade Visibilidade,
+    CanalMensagem Canal,
     DateTimeOffset RegistradaEm,
     IReadOnlyList<AnexoDto> Anexos);
 

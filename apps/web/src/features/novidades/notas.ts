@@ -13,6 +13,22 @@ export interface NotaVersao {
 
 export const NOTAS: NotaVersao[] = [
     {
+        data: '2026-11-26',
+        publico: 'equipe',
+        titulo: 'Por onde chegou cada mensagem',
+        itens: [
+            'Na conversa da solicitação, cada mensagem mostra por onde chegou: "Acordu", quando é da equipe, ou "Portal", quando o cliente escreveu pelo portal. As mensagens antigas também.',
+        ],
+    },
+    {
+        data: '2026-11-26',
+        publico: 'cliente',
+        titulo: 'Na conversa, por onde chegou cada mensagem',
+        itens: [
+            'Na conversa, cada mensagem mostra por onde chegou: "Acordu", quando é da equipe, ou "Portal", quando você escreveu por aqui.',
+        ],
+    },
+    {
         data: '2026-11-25',
         publico: 'equipe',
         titulo: 'Falar no WhatsApp com o cliente',

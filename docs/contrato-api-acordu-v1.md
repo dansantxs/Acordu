@@ -372,6 +372,7 @@ Contrato de outro cliente ou não vigente → `422`. Sem `contratoId`, a API usa
 
 **POST `/solicitacoes/{id}/interacoes`** — `multipart/form-data`: `texto`, `visibilidade` (`INTERNA`|`EXTERNA`, padrão `INTERNA`), `aguardarCliente` (`true`|`false`, opcional), `anexos` (repetido; até 5, 20 MB cada). → `201` com a interação. Também aceita JSON sem anexos.
 - O tipo do arquivo é detectado pelo conteúdo (PNG, JPEG, GIF, WebP, PDF, ZIP, Office novo e antigo, texto UTF-8/CSV); o declarado pelo navegador é ignorado. Fora da lista → `422 anexo-invalido`; acima de 20 MB → `413 anexo-grande-demais`.
+- Interação (aqui e na linha do tempo) traz `canal` (F15a, RF-SOL-14): `ACORDU` (a equipe, pelo app), `PORTAL` (o contato, com conta ou link), `EMAIL` (o contato, pela entrada por e-mail) ou `WHATSAPP` (#184), por onde a mensagem entrou, independente da `origem` da solicitação. A interação criada por esta rota é sempre `ACORDU`; as anteriores ao F15 são `PORTAL` (do contato) ou `ACORDU` (da equipe). Linha do tempo: `[{ id, autor: { id, nome }, autorEhCliente, texto, visibilidade, canal, registradaEm, anexos }]`.
 - Interação (aqui e na linha do tempo) traz `anexos: [{ id, nomeArquivo, tipoConteudo, tamanhoBytes }]`. `GET /anexos/{id}/download` → `200 { "url": "..." }` com a URL assinada de 5 minutos, sempre como `attachment`; o navegador abre a URL. Era `302` até 19/10: com o token no cabeçalho (ADR 0007), o SPA busca por `fetch`, e um redirect seguido pelo `fetch` não vira download.
 
 **GET `/solicitacoes/{id}/semelhantes`**
@@ -812,7 +813,7 @@ Decidido na implementação (6d2):
 - `POST /portal/solicitacoes` `{ titulo, descricao?, prioridade? }` em JSON, ou multipart com os mesmos campos e `anexos` → `201` com o detalhe. Os anexos viram a primeira interação EXTERNA, do contato, sem texto; anexo inválido → nada é criado. Origem PORTAL, prioridade padrão MEDIA, contrato = o único ATIVO vigente do cliente (senão sem SLA).
 - Detalhe: inclui `descricao`; `sla` nulo sem contrato; `podeAprovar` só em RESOLVIDA e com a permissão.
 - **Entrega esperando aprovação (23/10):** para quem tem `portal.solicitacao.aprovar`, a RESOLVIDA sai como `statusExterno: AGUARDANDO_VOCE` na lista, no filtro `?statusExterno=` e no detalhe (`StatusNoPortal`), porque espera a aprovação do contato. Sem a permissão, segue `CONCLUIDA` (modelo de domínio, status externo).
-- `GET .../interacoes` → `[{ id, texto, autorNome, daEquipe, registradaEm }]` (só EXTERNAS). `POST` `{ texto }` → `201` com a interação; em AGUARDANDO_CLIENTE retoma a solicitação.
+- `GET .../interacoes` → `[{ id, texto, autorNome, daEquipe, canal, registradaEm, anexos }]` (só EXTERNAS). `canal` como na conversa da equipe (§7; F15-61, pergunta 11 do F15): o contato vê por onde cada mensagem entrou (`ACORDU` nas da equipe). `POST` `{ texto }` → `201` com a interação, de canal `PORTAL`; em AGUARDANDO_CLIENTE retoma a solicitação.
 - `aprovacao` e `reprovacao` `{ motivo }` → `200` com o detalhe; fora de RESOLVIDA → `422 transicao-invalida`; motivo vazio → `400`.
 - `GET /portal/contratos` → contratos ATIVOS vigentes hoje `[{ id, tipo, inicio, fim, franquiaMinutos }]`. Extrato sem `periodo` usa o mês corrente no fuso do tenant; `saldoMinutos` e `percentual` seguem o read side §3 (nulos sem franquia).
 

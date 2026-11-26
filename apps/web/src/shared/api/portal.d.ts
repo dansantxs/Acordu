@@ -403,6 +403,8 @@ export interface components {
             /** Format: int64 */
             tamanhoBytes: number | string
         }
+        /** @enum {unknown} */
+        CanalMensagem: 'ACORDU' | 'PORTAL' | 'EMAIL' | 'WHATSAPP'
         ClientePortalDto: {
             /** Format: uuid */
             id: string
@@ -449,6 +451,7 @@ export interface components {
             texto: null | string
             autorNome: string
             daEquipe: boolean
+            canal: components['schemas']['CanalMensagem']
             /** Format: date-time */
             registradaEm: string
             anexos: components['schemas']['AnexoPortalDto'][]

@@ -261,6 +261,7 @@ public sealed class ComandosSolicitacao
             autorEhCliente: false,
             dados.Texto,
             dados.Visibilidade ?? Visibilidade.Interna,
+            CanalMensagem.Acordu,
             anexos,
             PoliticaPadrao,
             _relogio.Agora,

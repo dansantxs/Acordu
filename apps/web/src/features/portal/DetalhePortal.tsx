@@ -8,7 +8,7 @@ import { avisar, avisarErro } from '@/shared/avisos/avisos'
 import { formatarDuracao } from '@/shared/format/duracao'
 import { dataHora } from '@/shared/format/prazo'
 import { quando } from '@/shared/format/quando'
-import { AnexosParaBaixar, CaixaMensagem } from '@/shared/mensagens/Mensagens'
+import { AnexosParaBaixar, CaixaMensagem, CanalDaMensagem } from '@/shared/mensagens/Mensagens'
 import { Alerta } from '@/shared/ui/Alerta'
 import { Botao } from '@/shared/ui/Botao'
 import { CampoTexto } from '@/shared/ui/CampoTexto'
@@ -264,6 +264,7 @@ function Conversa({
                                 <span className="text-sm font-semibold text-tinta">{i.autorNome}</span>
                                 {i.daEquipe && <span>equipe</span>}
                                 <time dateTime={i.registradaEm}>{dataHora(i.registradaEm, fuso)}</time>
+                                <CanalDaMensagem canal={i.canal} />
                             </p>
                             {i.texto && <p className="break-words whitespace-pre-line">{i.texto}</p>}
                             <AnexosParaBaixar anexos={i.anexos} baixar={baixarAnexoPortal} />

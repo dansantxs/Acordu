@@ -14,6 +14,26 @@ import { Icone } from '../ui/Icone'
  * Peças de mensagem com @menções e anexos (convenções §4), usadas na conversa da solicitação e nos comentários de
  * tarefa: o texto gravado com `@{id}`, a lista de anexos para baixar e a caixa de escrever.
  */
+/** Por onde a mensagem entrou no Acordu (RF-SOL-14), o `canal` da conversa da equipe e da do portal. */
+export type CanalMensagem = 'ACORDU' | 'PORTAL' | 'EMAIL' | 'WHATSAPP'
+
+export const CANAIS_MENSAGEM: Record<CanalMensagem, string> = {
+    ACORDU: 'Acordu',
+    PORTAL: 'Portal',
+    EMAIL: 'E-mail',
+    WHATSAPP: 'WhatsApp',
+}
+
+/** Rótulo discreto do canal (F15-60, F15-61); o leitor de tela ouve "Canal: Portal". */
+export function CanalDaMensagem({ canal }: { canal: CanalMensagem }) {
+    return (
+        <span className="rounded-full border border-linha px-1.5 leading-4">
+            <span className="sr-only">Canal: </span>
+            {CANAIS_MENSAGEM[canal]}
+        </span>
+    )
+}
+
 export function TextoComMencoes({ texto, nomes }: { texto: string; nomes: ReadonlyMap<string, string> }) {
     return (
         <p className="break-words whitespace-pre-line">

@@ -381,6 +381,7 @@ public sealed class CargaDosDadosFicticios
                         autorEhCliente: false,
                         Mencoes(passo.Texto),
                         visibilidade,
+                        CanalMensagem.Acordu,
                         [],
                         RecebimentoAnexos.Politica,
                         agora));

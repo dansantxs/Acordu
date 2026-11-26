@@ -192,6 +192,24 @@ public sealed class PersistenciaTests(BancoFixture banco)
         lida.Anexos[0].NomeArquivo.Should().Be("arte.png");
     }
 
+    [Fact] // F15-60
+    public async Task Interacao_CanalGravadoComoTextoERelido()
+    {
+        var cliente = Dados.Cliente(_tenant);
+        var solicitacao = Dados.Solicitacao(_tenant, cliente.Id);
+        var porEmail = Interacao.Registrar(
+            Guid.NewGuid(), _tenant, cliente.Id, solicitacao.Id, Guid.NewGuid(), true, "Mandei por e-mail", Visibilidade.Externa,
+            CanalMensagem.Email, [], new PoliticaAnexos(1024, ["image/png"], 5), Dados.Agora);
+        await Gravar(cliente, solicitacao, porEmail);
+
+        await using var db = banco.DaEquipe(_tenant);
+        (await db.Interacoes.SingleAsync(i => i.Id == porEmail.Id)).Canal.Should().Be(CanalMensagem.Email);
+        var gravado = await db.Database
+            .SqlQuery<string>($"SELECT canal AS \"Value\" FROM interacoes WHERE id = {porEmail.Id}")
+            .SingleAsync();
+        gravado.Should().Be("EMAIL");
+    }
+
     [Fact]
     public async Task AcessoPortal_ValidaTokenDepoisDeRelido()
     {

@@ -1,6 +1,6 @@
 # ADR 0016 — Entrada de mensagens pela borda e avisos pelo canal de origem
 
-- **Status:** Proposto (design do F15, D1, D5, D6, D7, D8, D10 e D12; aguarda o G2 do F15)
+- **Status:** Aceito no G2 do F15 (PR #234, 26/11/2026; design do F15, D1, D5, D6, D7, D8, D10 e D12)
 - **Data:** 25/11/2026
 - **Contexto do projeto:** Acordu (marco F15, RF-SOL-11, RF-SOL-14, RF-SOL-15, RF-NOT-06, RNF-SEG-11; serve ao #184, WhatsApp)
 - **Complementa, sem mudar o texto:** ADR 0010 (componentes do nível 0, nenhum SDK de provedor), ADR 0002 (isolamento), ADR 0008 (trilha), ADR 0012 (logs sem dado pessoal) e ADR 0015 (guarda de só leitura e expurgos).
