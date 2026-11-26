@@ -20,7 +20,7 @@ from xml.sax.saxutils import escape, quoteattr
 DOCS = Path(__file__).resolve().parent.parent / 'docs'
 RAIAS = [  # nome, altura
     ("Operação Nebrys", 250),
-    ("Dono da empresa", 170),
+    ("Prestador (Dono da empresa)", 170),
     ("Equipe (atendente/executor)", 170),
     ("Contato do cliente (portal)", 170),
     ("Sistema (jobs e e-mails)", 170),
@@ -31,8 +31,9 @@ COLUNAS = 19
 SZ = {'task': (130, 80), 'start': (36, 36), 'timer': (36, 36), 'end': (36, 36), 'xor': (50, 50)}
 
 N = [  # id, tipo, rótulo, raia, coluna[, deslocamento vertical]
-    ("s_neb", "start", "Prestador quer usar o Acordu", 0, 0),
-    ("t_convite", "task", "Emitir convite de empresa", 0, 1),
+    ("s_neb", "start", "Prestador quer usar o Acordu", 1, 0),
+    ("t_espera", "task", "Entrar na lista de espera (nome, e-mail, empresa)", 1, 1),
+    ("t_convite", "task", "Emitir convite de empresa (da lista de espera ou direto)", 0, 1),
     ("t_cadastro", "task", "Cadastrar empresa: CPF/CNPJ, senha, aceite dos termos", 1, 2),
     ("t_cria", "task", "Criar empresa em TESTE (30 dias) e enviar confirmação", 4, 3),
     ("t_confirma", "task", "Confirmar e-mail (libera convites e e-mails)", 1, 4),
@@ -64,7 +65,8 @@ N = [  # id, tipo, rótulo, raia, coluna[, deslocamento vertical]
     ("e_fim", "end", "Solicitação fechada; horas no extrato do contrato", 4, 18),
 ]
 F = [  # id, origem, destino, rótulo, roteamento (None = automático)
-    ("f1", "s_neb", "t_convite", "", None),
+    ("f1", "s_neb", "t_espera", "", None),
+    ("f1a", "t_espera", "t_convite", "", None),
     ("f2", "t_convite", "t_cadastro", "", None),
     ("f3", "t_cadastro", "t_cria", "", None),
     ("f4", "t_cria", "t_confirma", "", None),

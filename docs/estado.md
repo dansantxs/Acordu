@@ -4,6 +4,7 @@ Visão geral curta, atualizada por cada PR (`docs/processo.md` §1). O históric
 
 ## Em revisão
 
+- **README e fluxo em dia**: lista de espera no BPMN (F14o); README com o F14 concluído, o F15 em andamento e o ADR 0016; regra de atualizar o Status e o Roadmap do README quando um marco começa ou termina (processo §1, `/marco`).
 - **F15c — avisos pelo canal de origem** (#183, branch `feat/F15c-avisos-pelo-canal`; F15-51 a F15-55, F15-57): porta de canal dos avisos ao contato (`ICanalDeAviso`, `SeletorDeCanal` pela origem, `CanalEmail`; ADR 0016, item 7); `ConversaPorEmail` com o token de 16 caracteres, criada no primeiro aviso com o recebimento ligado; com ele ligado, os avisos respondem para `{código}+{token}@entrada.acordu.app.br` e começam pela linha marcadora; desligado, saem como antes (Reply-To no "responder para"); todo aviso com `Auto-Submitted: auto-generated` e `X-Auto-Response-Suppress` (campo `headers` do Resend); migration `ConversasPorEmail` (pelo bot). Sem rota nem variável nova. **No primeiro deploy:** num e-mail real com o recebimento ligado (o Daniel liga a própria empresa pelo `PUT /configuracoes/recebimento-email`), conferir o Reply-To, o `Auto-Submitted` e a marcadora.
 
 ## Marco em andamento

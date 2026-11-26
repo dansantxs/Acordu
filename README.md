@@ -6,7 +6,7 @@ Gestão de **atendimento, tarefas e contratos** para prestadores de serviço, co
 
 Construído desde o início como **multi-tenant**.
 
-**Status:** v1 em produção em [acordu.app.br](https://acordu.app.br) desde 12/11/2026, com o lançamento controlado (F14) em andamento — ver [Status](#status).
+**Status:** v1 em produção em [acordu.app.br](https://acordu.app.br) desde 12/11/2026, com a solicitação por e-mail (F15) em andamento — ver [Status](#status).
 
 ---
 
@@ -37,7 +37,8 @@ Construído desde o início como **multi-tenant**.
 | Frontend (app interno e portal) | ✅ F1–F7 e marcos F8–F13 |
 | Infraestrutura (Cloud Run + Neon + Cloudflare) | ✅ provisionada (ADR 0010) |
 | CI/CD e deploy | ✅ no ar desde 12/11/2026 |
-| Lançamento controlado (situação da empresa, cadastro por convite, área da Nebrys) | ⏳ F14 em andamento |
+| Lançamento controlado (situação da empresa, cadastro por convite, área da Nebrys) | ✅ F14 concluído (#220) |
+| Solicitação por e-mail e avisos pelo canal de origem (ADR 0016) | ⏳ F15 em andamento |
 
 O que está em revisão e os próximos passos ficam em [`docs/estado.md`](docs/estado.md), atualizado a cada PR.
 
@@ -60,7 +61,7 @@ Da entrada da empresa ao fechamento da solicitação, com quem faz cada passo (c
 
 [![Fluxo de negócio do Acordu em BPMN](docs/fluxo-acordu.svg)](docs/fluxo-acordu.svg)
 
-1. **Entrada:** a Nebrys convida a empresa; o Dono se cadastra e a empresa nasce em teste. No fim do teste ela fica só leitura até a Nebrys ativar, prorrogar ou cancelar.
+1. **Entrada:** o prestador entra na lista de espera e a Nebrys o convida; o Dono se cadastra e a empresa nasce em teste. No fim do teste ela fica só leitura até a Nebrys ativar, prorrogar ou cancelar.
 2. **Configuração:** horário útil (base do SLA), equipe, clientes, contratos e o convite do contato para o portal.
 3. **Atendimento:** a solicitação entra pelo portal ou pela equipe, ganha protocolo e prazos de SLA, vira tarefas e horas apontadas no contrato.
 4. **Entrega:** o contato aprova (fecha) ou reprova (reabre); sem resposta, fecha sozinha depois de N dias.
@@ -157,6 +158,7 @@ acordu/
 | `docs/adr/0013-fabrica-agentica-semi-autonoma.md` | Fábrica agêntica: orquestrador, subagentes por papel, portões humanos. |
 | `docs/adr/0014-area-da-nebrys-sessao-de-operacao.md` | Área da Nebrys: sessão de operação sem tenant. |
 | `docs/adr/0015-empresa-somente-leitura-pela-guarda-de-gravacao.md` | Empresa só leitura pela guarda de gravação. |
+| `docs/adr/0016-entrada-pela-borda-e-avisos-pelo-canal-de-origem.md` | Entrada de mensagens pela borda e avisos pelo canal de origem. |
 | `docs/processo.md` | Como o Acordu é construído: etapas, papéis, portões, onde fica cada coisa. |
 | `docs/estado.md` | O que está em revisão, marco atual e próximos passos. |
 | `docs/fluxo-acordu.bpmn` | Fluxo de negócio em BPMN (e `.svg` para leitura), gerado por `scripts/gerar-fluxo-bpmn.py`. |
@@ -239,9 +241,11 @@ Imagem **amd64** no GitHub Actions → **Artifact Registry** → nova revisão n
 
 ## Roadmap
 
-**v1:** clientes e contatos, contratos com SLA, solicitações, tarefas, projetos, apontamentos, tarefas recorrentes, portal do cliente, solução e sugestão de semelhantes, notificações por e-mail, dashboard, multi-tenant com RBAC.
+**v1:** clientes e contatos, contratos com SLA, solicitações, tarefas, projetos, apontamentos, tarefas recorrentes, portal do cliente, solução e sugestão de semelhantes, notificações por e-mail, dashboard, multi-tenant com RBAC, lançamento controlado (cadastro por convite, lista de espera, área da Nebrys).
 
-**Depois:** solicitações por e-mail e WhatsApp, base de conhecimento publicada no portal, projeção do consumo do contrato, relatório mensal em PDF, faturamento, IA assistiva (sempre com revisão humana), app mobile.
+**Em andamento:** solicitação por e-mail e avisos pelo canal de origem (F15).
+
+**Depois:** solicitações por WhatsApp, base de conhecimento publicada no portal, projeção do consumo do contrato, relatório mensal em PDF, faturamento, IA assistiva (sempre com revisão humana), app mobile.
 
 ---
 
