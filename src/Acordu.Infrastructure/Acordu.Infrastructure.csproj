@@ -10,6 +10,7 @@
     <PackageReference Include="EFCore.NamingConventions" />
     <PackageReference Include="Microsoft.AspNetCore.Identity.EntityFrameworkCore" />
     <PackageReference Include="AWSSDK.S3" />
+    <PackageReference Include="MimeKit.Core" />
   </ItemGroup>
   <ItemGroup>
     <!-- Lista de domínios de e-mail descartável (design do F14, D9): versionada, embutida no assembly. -->

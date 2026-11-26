@@ -2,7 +2,7 @@ name: Deploy
 
 # Produção do nível 0 (ADR 0010; deploy-ci-acordu-v1.md §4). Disparo manual, só na main, até haver cliente pagante
 # (spec do F8, decisão 1): Actions → Deploy → Run workflow. Ordem: CI verde no commit → imagem → migrations → nova
-# revisão → health pela borda (falhou: tráfego volta à anterior) → Worker → SPA → vigia → Discord.
+# revisão → health pela borda (falhou: tráfego volta à anterior) → Worker → entrada por e-mail → SPA → vigia → Discord.
 # Nomes de variáveis e segredos do repositório: setup-infra-acordu.md, "Segredos do GitHub".
 
 on:
@@ -116,6 +116,9 @@ jobs:
           Documentos__ChaveHmac: ${{ secrets.API_DOCUMENTOS_CHAVE }}
           # Operadores da área da Nebrys (F14k, ADR 0014): opcional; sem ele a área responde 404 para todos.
           Nebrys__Operadores: ${{ secrets.API_NEBRYS_OPERADORES }}
+          # Token da rota de entrada por e-mail (F15d, design do F15 D5): o mesmo do Worker acordu-email-entrada; opcional,
+          # sem ele a rota responde 404 e nenhum e-mail entra (o deploy avisa).
+          EmailEntrada__Token: ${{ secrets.API_EMAIL_ENTRADA_TOKEN }}
           # Só conferida aqui (vai para o build do SPA, não para a API): falta dela barra o deploy antes de publicar.
           TURNSTILE_CHAVE_SITE: ${{ vars.TURNSTILE_CHAVE_SITE }}
           # O canal da Nebrys (F14, D15): vai para o build do SPA e, como Nebrys__Contato, para a API (F14g).
@@ -162,7 +165,7 @@ jobs:
           opcionais = ["Armazenamento__Endpoint", "Armazenamento__ChaveAcesso", "Armazenamento__ChaveSecreta"]
           # Sem webhook, o canal não envia (a API sobe igual); sem o link, o aviso de erro sai sem ele.
           webhooks = ["Discord__Alertas", "Discord__Deploy", "Discord__Sugestoes"]
-          avisos = webhooks + ["Operacao__LinkErros"]
+          avisos = webhooks + ["Operacao__LinkErros", "EmailEntrada__Token"]
 
           faltam = [n for n in obrigatorias if not os.environ.get(n, "").strip()]
           if not os.environ.get("TURNSTILE_CHAVE_SITE", "").strip():
@@ -223,6 +226,8 @@ jobs:
               print("::warning::Sem " + ", ".join(sem) + ": esses canais do Discord não recebem avisos da API.")
           if not operadores:
               print("::warning::Sem API_NEBRYS_OPERADORES: a área da Nebrys responde 404 para todos.")
+          if "EmailEntrada__Token" not in variaveis:
+              print("::warning::Sem API_EMAIL_ENTRADA_TOKEN: a rota de entrada por e-mail responde 404 e nenhum e-mail entra.")
           PY
 
       # Parâmetros do deploy-ci §2.2. O --to-latest desfaz um rollback anterior, que fixa o tráfego numa revisão.
@@ -273,6 +278,7 @@ jobs:
           cache-dependency-path: |
             infra/cloudflare/api-borda/pnpm-lock.yaml
             infra/cloudflare/vigia/pnpm-lock.yaml
+            infra/cloudflare/email-entrada/pnpm-lock.yaml
             apps/web/pnpm-lock.yaml
 
       # keep_vars no wrangler.toml: ORIGEM e TOKEN_ORIGEM, definidos no painel, ficam como estão.
@@ -284,6 +290,32 @@ jobs:
         run: |
           pnpm install --frozen-lockfile
           pnpm exec wrangler deploy
+
+      # Entrada por e-mail (F15d, design do F15 D1 e D5): o Email Worker da regra catch-all do subdomínio de entrada, depois
+      # da borda (ele chama a API por ela). Como a vigia, não segura o deploy: falhou, avisa e o resto segue (o Email
+      # Routing devolve falha temporária e os servidores de origem repetem). O token vai como segredo do Worker, o mesmo da
+      # API; sem ele, o Worker não repassa nada. A regra catch-all é feita à mão no painel (setup-infra, Parte D, passo 5).
+      - name: Worker da entrada por e-mail
+        id: entrada
+        continue-on-error: true
+        working-directory: infra/cloudflare/email-entrada
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          TOKEN_ENTRADA: ${{ secrets.API_EMAIL_ENTRADA_TOKEN }}
+        run: |
+          pnpm install --frozen-lockfile
+          pnpm exec wrangler deploy
+          if [[ -n "$TOKEN_ENTRADA" ]]; then
+            printf '%s' "$TOKEN_ENTRADA" | pnpm exec wrangler secret put TOKEN_ENTRADA > /dev/null
+            echo "Token da entrada no Worker."
+          else
+            echo "::warning::Sem API_EMAIL_ENTRADA_TOKEN: o Worker da entrada por e-mail não repassa nada."
+          fi
+
+      - name: Entrada por e-mail não publicou
+        if: steps.entrada.outcome == 'failure'
+        run: echo "::warning::O Worker da entrada por e-mail não foi publicado; a API e o SPA seguem. Veja o passo Worker da entrada por e-mail."
 
       - name: SPA (build)
         working-directory: apps/web

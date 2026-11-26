@@ -21,6 +21,7 @@ public sealed class DocumentacaoEHeadersTests(ApiFixture api)
         corpo.Should().Contain("/api/v1/teste/eco");
         corpo.Should().NotContain("/api/v1/portal/teste");
         corpo.Should().NotContain("/internal/jobs");
+        corpo.Should().NotContain("/internal/email", "a rota de entrada por e-mail fica fora do OpenAPI (F15d, design D5)");
         corpo.Should().NotContain("/api/health");
     }
 

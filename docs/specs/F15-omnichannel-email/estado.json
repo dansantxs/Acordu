@@ -2,14 +2,15 @@
   "marco": "F15",
   "issue": 183,
   "etapa": "AGUARDANDO_MERGE",
-  "branch": "feat/F15c-avisos-pelo-canal",
+  "branch": "feat/F15d-rota-entrada",
   "pr": {
-    "id": "F15c",
-    "numero": 237
+    "id": "F15d",
+    "numero": 239
   },
   "feitos": [
     "F15a (#235)",
-    "F15b (#236)"
+    "F15b (#236)",
+    "F15c (#237)"
   ],
   "contadores": {
     "devolucoesNaEtapa": 0,
@@ -26,16 +27,17 @@
     "G2": "PR #234 mesclado (26/11/2026), recomendações de D1 a D16 e das 11 perguntas da spec §4; F15-71/72 no F15k",
     "G3": [
       "F15a: PR #235 mesclado (26/11/2026)",
-      "F15b: PR #236 mesclado (26/11/2026)"
+      "F15b: PR #236 mesclado (26/11/2026)",
+      "F15c: PR #237 mesclado (26/11/2026)"
     ]
   },
   "ressalvas": [
     "Ver notas/plano-2.md (menores 4 a 11) para os PRs de código",
     "Do F15a: em Mensagens.tsx, juntar o comentário \"Peças de mensagem com @menções e anexos\" a TextoComMencoes",
-    "Testador F15c: corrida coberta pela ordem grava-conversa-depois-envia e pelo índice único; sem teste com duas threads",
-    "Testador F15c: o link sem senha é gravado antes da conversa; se ela falhar, a repetição da outbox emite outro e revoga o anterior",
-    "Reply-To, Auto-Submitted e marcadora num e-mail real: conferir no primeiro deploy (design §3)",
-    "Testes C# validados só pela CI"
+    "Testador F15d: lixo não vazio pode ser aceito pelo MimeKit como mensagem sem cabeçalhos e virar IGNORADO, não Malformada; o teste só afirma 202",
+    "Testador F15d: corrida empresa vira só leitura entre a consulta e o commit sem teste; só a guarda de persistência",
+    "Testador F15d: sem teste de que o log da API fica sem endereço (só o do Worker)",
+    "Migration EmailsRecebidos (bot), setReject e carimbo de autenticação reais: CI e provisionamento"
   ],
   "bloqueios": [],
   "atualizadoEm": "2026-11-26",

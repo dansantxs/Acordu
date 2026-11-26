@@ -1,0 +1,20 @@
+# Entrada por e-mail (spec do F15, F15d; design do F15, D1, D5 e D11; ADR 0016, item 1): Email Worker da regra catch-all
+# do subdomínio de entrada no Cloudflare Email Routing (setup-infra, Parte D, passo 5). Repassa o MIME bruto de cada
+# e-mail, pela borda, a POST /internal/email/entrada, com o envelope e o veredito de autenticidade. Recusa (setReject) o
+# e-mail acima de TAMANHO_MAXIMO antes de chamar a API (F15-89); 5xx ou rede fora: lança erro, e o servidor de origem
+# recebe falha temporária e repete.
+# TOKEN_ENTRADA: segredo, posto pelo deploy.yml (`wrangler secret put`) a partir do secret API_EMAIL_ENTRADA_TOKEN, o
+# mesmo da API (EmailEntrada__Token). DESTINO e TAMANHO_MAXIMO: aqui (nada sensível); TAMANHO_MAXIMO igual ao
+# EmailEntrada__TamanhoMaximoBytes da API (padrão 25 MiB, o teto do Email Routing).
+# global_fetch_strictly_public: o fetch para api.acordu.app.br sai pela internet e volta pela borda, como a vigia (sem a
+# flag, a requisição a outro Worker da mesma zona não chega a ele, e a borda é quem acrescenta o X-Origem-Token).
+name = "acordu-email-entrada"
+main = "src/index.ts"
+compatibility_date = "2025-06-01"
+compatibility_flags = ["global_fetch_strictly_public"]
+workers_dev = false
+keep_vars = true
+
+[vars]
+DESTINO = "https://api.acordu.app.br/internal/email/entrada"
+TAMANHO_MAXIMO = "26214400"

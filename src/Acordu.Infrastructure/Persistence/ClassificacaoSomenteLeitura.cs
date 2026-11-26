@@ -38,6 +38,7 @@ public static class ClassificacaoSomenteLeitura
         typeof(ConviteEquipe),
         typeof(ConvitePortal),
         typeof(Cronometro),
+        typeof(EmailRecebido),
         typeof(Interacao),
         typeof(MarcadorAviso),
         typeof(Papel),

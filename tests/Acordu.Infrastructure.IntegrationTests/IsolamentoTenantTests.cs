@@ -41,6 +41,7 @@ public sealed class IsolamentoTenantTests(BancoFixture banco) : IAsyncLifetime
             tarefa,
             Dados.Apontamento(tenant, cliente.Id, tarefa.Id, contrato.Id),
             Dados.Cronometro(tenant),
+            Dados.EmailRecebido(tenant),
             Dados.Recorrencia(tenant, cliente.Id));
         await db.SaveChangesAsync();
     }
@@ -63,6 +64,7 @@ public sealed class IsolamentoTenantTests(BancoFixture banco) : IAsyncLifetime
         (await db.Tarefas.ToListAsync()).Should().OnlyContain(e => e.TenantId == _tenantA).And.HaveCount(1);
         (await db.Apontamentos.ToListAsync()).Should().OnlyContain(e => e.TenantId == _tenantA).And.HaveCount(1);
         (await db.Cronometros.ToListAsync()).Should().OnlyContain(e => e.TenantId == _tenantA).And.HaveCount(1);
+        (await db.EmailsRecebidos.ToListAsync()).Should().OnlyContain(e => e.TenantId == _tenantA).And.HaveCount(1);
         (await db.Recorrencias.ToListAsync()).Should().OnlyContain(e => e.TenantId == _tenantA).And.HaveCount(1);
     }
 

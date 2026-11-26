@@ -67,6 +67,35 @@ public sealed class OpcoesEmailEntradaTests
     }
 
     [Fact]
+    public void DaConfiguracao_SemTamanho_25MiB() // design D12, F15-89
+    {
+        OpcoesEmailEntrada.DaConfiguracao("entrada.acordu.app.br").TamanhoMaximoBytes.Should().Be(25L * 1024 * 1024);
+        OpcoesEmailEntrada.DaConfiguracao(null, " ").TamanhoMaximoBytes.Should().Be(OpcoesEmailEntrada.TamanhoMaximoPadrao);
+    }
+
+    [Theory]
+    [InlineData("1", 1L)]
+    [InlineData(" 1048576 ", 1048576L)]
+    [InlineData("26214400", 26214400L)]
+    public void DaConfiguracao_TamanhoValido_OProprio(string tamanho, long esperado)
+    {
+        OpcoesEmailEntrada.DaConfiguracao(null, tamanho).TamanhoMaximoBytes.Should().Be(esperado);
+    }
+
+    [Theory]
+    [InlineData("0")]
+    [InlineData("-1")]
+    [InlineData("26214401")]
+    [InlineData("25MB")]
+    [InlineData("1.5")]
+    public void DaConfiguracao_TamanhoInvalido_ImpedeASubida(string tamanho)
+    {
+        var acao = () => OpcoesEmailEntrada.DaConfiguracao("entrada.acordu.app.br", tamanho);
+
+        acao.Should().Throw<InvalidOperationException>().WithMessage("*EmailEntrada__TamanhoMaximoBytes*");
+    }
+
+    [Fact]
     public void Construtor_DominioInvalido_ArgumentException()
     {
         var acao = () => new OpcoesEmailEntrada("sem ponto");

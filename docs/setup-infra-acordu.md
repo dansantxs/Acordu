@@ -161,6 +161,13 @@ O Acordu envia e-mail para os **clientes dos clientes**: reputação de domínio
    - **Endereços de destino** (no topo da tela do Encaminhamento de e-mails): cadastrar a caixa pessoal e confirmar pelo link que chega nela (só endereço verificado recebe encaminhamento).
    - **Regras de roteamento:** endereço personalizado `contato` → ação "Enviar para um e-mail" → a caixa verificada. Testar mandando um e-mail de fora para `contato@acordu.app.br`.
    - Sem conflito com o Resend: ele usa o subdomínio `send.acordu.app.br` (SPF, DKIM e MX de retorno próprios), e o Email Routing fica no raiz. O DMARC do passo 2 (`_dmarc.acordu.app.br`) segue como está e vale para os dois.
+5. **Entrada por e-mail `entrada.acordu.app.br`** (F15d; design do F15, D1, D2 e D11; ADR 0016): os e-mails mandados aos endereços das empresas (`{código}@entrada.acordu.app.br`) e às conversas (`{código}+{token}@…`) chegam pelo Email Routing ao Worker `acordu-email-entrada`, que os repassa à API pela borda.
+   - **Antes do merge do F15d:** gerar o secret `API_EMAIL_ENTRADA_TOKEN` (`openssl rand -base64 48`; tabela abaixo). O `deploy.yml` o passa à API (`EmailEntrada__Token`) e ao Worker (`TOKEN_ENTRADA`).
+   - **Antes do merge do F15d, no painel:** Encaminhamento de e-mails (o mesmo do passo 4) › **Configurações** › **Subdomínios** (ou "Adicionar subdomínio") › `entrada` (na zona `acordu.app.br`). Aceitar os registros que ele propõe **só no subdomínio** `entrada.acordu.app.br`: MX `route1/2/3.mx.cloudflare.net` e o SPF `TXT "v=spf1 include:_spf.mx.cloudflare.net ~all"`. **Não tocar** nos do raiz (passo 4) nem nos de `send` (Resend). O DMARC do raiz vale para o subdomínio (política `sp` herdada).
+   - **Conferir aqui (premissa do D2):** que o Email Routing aceita o subdomínio com regra *catch-all* própria. Se não aceitar, a alternativa é `entrada+{código}@acordu.app.br` no raiz, e o formato do endereço volta ao G2 antes do F15e.
+   - **Depois do primeiro deploy do F15d** (o Worker precisa existir): no subdomínio `entrada.acordu.app.br`, **Regras de roteamento** › **Pegar tudo** (*catch-all*) › ação **"Enviar para um Worker"** › `acordu-email-entrada` › ativar. Endereço personalizado não é preciso: o código de cada empresa é sorteado.
+   - **Conferência com e-mail real:** ligar o recebimento da própria empresa (`PUT /api/v1/configuracoes/recebimento-email` `{ "ligado": true }`; a tela vem no F15o) e mandar um e-mail de uma conta Gmail e de uma Outlook ao endereço dela (`GET /api/v1/configuracoes/empresa`, `enderecoEntrada`). No log do Worker (Workers › `acordu-email-entrada` › Logs): `repassada (202); carimbo presente; autenticidade pass`. Se vier `carimbo ausente`, a premissa do D11 caiu: a conferência de DKIM na API (D11 b) entra antes do F15f. No log da API (Cloud Logging): `Entrada por e-mail: Registrada.` (até o F15f, o e-mail é só registrado) e, com o recebimento desligado de novo, `Entrada por e-mail: Desligada.`. Um e-mail acima de 25 MiB volta ao remetente como não entregue. Registrar o achado (servidor do carimbo, Gmail e Outlook) nas notas do F15.
+   - O token do Cloudflare do `deploy.yml` (C3) já tem *Workers Scripts: Edit*, que basta para publicar o Worker e o segredo; a regra do Email Routing não é feita pelo `wrangler`. Se o primeiro deploy do Worker falhar por permissão, o passo só avisa (não segura o deploy): acrescentar a permissão que o erro pedir e rodar o deploy de novo.
 
 ---
 
@@ -190,7 +197,7 @@ Repositório → Settings → Secrets and variables → Actions. Só os nomes fi
 | Variável | `CONTATO_NEBRYS` | `contato@acordu.app.br` (decisão 14 do G2 do F14): o canal da Nebrys nas faixas da situação da empresa. Vai para o build do SPA (`VITE_CONTATO_NEBRYS`) e para a API (`Nebrys__Contato`, F14g: recusa do documento no cadastro); obrigatória no `deploy.yml`. Criada; o endereço recebe pelo Cloudflare Email Routing (Parte D, passo 4) |
 | Variável | `TEXTOS_LEGAIS_PUBLICADOS` | Opcional (F14f, F14h). Só aceita `true` ou `false` (outro valor para o deploy). `true` publica no SPA as páginas `/termos` e `/privacidade`, os links delas nas telas de acesso e do portal e a caixa de aceite no cadastro e no convite da equipe (`VITE_TEXTOS_LEGAIS_PUBLICADOS`) e, na mesma variável, liga o aceite na API (`TextosLegais__Publicados`: exigido e gravado, "ciente" de versão nova); sem ela, tudo escondido e nada de aceite. **Criar só depois da issue #194** (registro da empresa e marcadores do texto resolvidos), num deploy fora do horário de uso (deploy-ci §7) |
 | Variável | `CADASTRO_MODO` | **Obrigatória** (F14n, design do F14, D11): `convite` (o lançamento, decisão 6 do G2) ou `aberto`. Vai à API como `Cadastro__Modo`. Sem ela, ou com outro valor, o deploy para antes de publicar. **Criar antes do primeiro deploy com o F14n** (`convite` fecha o cadastro já, antes da tela do convite no F14q; `aberto` o mantém como hoje até lá). Trocar o modo: mudar a variável e fazer um deploy |
-| Variável | `EMAIL_ENTRADA_DOMINIO` | **Obrigatória** (F15b, design do F15, D2): `entrada.acordu.app.br`, o domínio dos endereços de entrada por e-mail das empresas. Vai à API como `EmailEntrada__Dominio`. Sem ela, ou com um valor que não é nome de domínio, o deploy para antes de publicar. **Criar antes do merge do F15b.** Só o nome: o subdomínio no Email Routing e a regra para o Worker vêm no F15d (Parte D) |
+| Variável | `EMAIL_ENTRADA_DOMINIO` | **Obrigatória** (F15b, design do F15, D2): `entrada.acordu.app.br`, o domínio dos endereços de entrada por e-mail das empresas. Vai à API como `EmailEntrada__Dominio`. Sem ela, ou com um valor que não é nome de domínio, o deploy para antes de publicar. **Criar antes do merge do F15b.** Só o nome: o subdomínio no Email Routing e a regra para o Worker vêm no F15d (Parte D, passo 5) |
 | Variável | `BACKUP_ATIVO` | `true` quando Neon e R2 estiverem prontos; liga o agendamento do `backup.yml` |
 | Secret | `NEON_MIGRATOR` | String direta, `acordu_migrator` (B4) |
 | Secret | `API_CONNECTION_STRING` | String pooled, `acordu_app` (B4) |
@@ -201,6 +208,7 @@ Repositório → Settings → Secrets and variables → Actions. Só os nomes fi
 | Secret | `API_TURNSTILE_SEGREDO` | Chave secreta do widget do Turnstile (C5) |
 | Secret | `API_DOCUMENTOS_CHAVE` | Texto aleatório de pelo menos 32 bytes (`openssl rand -base64 32`, 44 caracteres; criado assim em 16/11; `Documentos__ChaveHmac`, F14g): chave do HMAC do registro "um teste por documento". Obrigatória no `deploy.yml` (≥ 32 bytes). **Nunca trocar:** trocar ou perder a chave faz o Acordu esquecer quais documentos já tiveram teste nas empresas expurgadas (segurança §4). Guarde uma cópia fora do GitHub |
 | Secret | `API_NEBRYS_OPERADORES` | Opcional (F14k, ADR 0014): e-mails das contas que abrem a área da Nebrys, separados por vírgula (`Nebrys__Operadores`). A conta precisa existir no Acordu, com o e-mail confirmado. Sem ele, a área inteira responde `404` e o deploy só avisa no log; um item que não é e-mail para o deploy. Trocar o operador: mudar o secret e fazer um deploy. É secret (e não variável) para a lista de quem opera não ficar visível nos logs do Actions |
+| Secret | `API_EMAIL_ENTRADA_TOKEN` | Opcional (F15d, design do F15, D5): `openssl rand -base64 48`. O mesmo valor vai à API (`EmailEntrada__Token`) e ao Worker `acordu-email-entrada` (`TOKEN_ENTRADA`), pelo `deploy.yml`. Sem ele, a rota de entrada responde `404`, o Worker não repassa nada (os servidores de origem recebem falha temporária) e o deploy avisa no log. **Criar antes do merge do F15d** (Parte D, passo 5). Trocar: mudar o secret e fazer um deploy (API e Worker mudam juntos) |
 | Secret | `R2_ENDPOINT` | Endpoint S3 do R2 (C2) |
 | Secret | `API_R2_CHAVE_ACESSO`, `API_R2_CHAVE_SECRETA` | Token `acordu-api-anexos` (C2) |
 | Secret | `R2_BACKUP_CHAVE_ACESSO`, `R2_BACKUP_CHAVE_SECRETA` | Token `acordu-backup` (C2) |
@@ -242,13 +250,14 @@ A4. WIF (pool github, provider acordu-repo)
 B.  Neon: projeto, banco, roles → secrets do GitHub
 C1. Domínios → Cloudflare
 C2. R2: buckets + tokens → secrets do GitHub
-D.  Resend (SPF/DKIM/DMARC) + Email Routing de contato@acordu.app.br
+D.  Resend (SPF/DKIM/DMARC) + Email Routing de contato@acordu.app.br + subdomínio entrada (D5, antes do F15d)
 C3. Token do Cloudflare
 C5. Widget do Turnstile → TURNSTILE_CHAVE_SITE e API_TURNSTILE_SEGREDO
 → Segredos do GitHub: todos os da tabela (gerar API_JWT_CHAVE, API_JOBS_TOKEN e API_TOKEN_ORIGEM), menos BORDA_ATIVA e BACKUP_ATIVO
 → primeiro deploy (cria o serviço Cloud Run, o Worker e o Pages)
 C3/C4. Domínios do Pages e do Worker; ORIGEM e TOKEN_ORIGEM (= API_TOKEN_ORIGEM) → BORDA_ATIVA=true
 A6. Cloud Scheduler (tick e diário) + alerta de falha
+D5. Catch-all de entrada.acordu.app.br → Worker acordu-email-entrada (depois do deploy do F15d) + e-mail real de teste
 E.  Discord (três webhooks; a vigia sobe com o deploy)
 → cadastro de teste em acordu.app.br (Turnstile, confirmação do e-mail, convite)
 → BACKUP_ATIVO=true; primeiro backup
@@ -271,6 +280,7 @@ E.  Discord (três webhooks; a vigia sobe com o deploy)
 - [ ] `acordu-tick` e `acordu-diario` no Scheduler, com alerta de falha.
 - [ ] Resend verificado + DMARC.
 - [ ] Email Routing: `contato@acordu.app.br` encaminhando para a caixa verificada (teste de fora recebido); MX, SPF e DKIM no raiz.
+- [ ] Entrada por e-mail: subdomínio `entrada.acordu.app.br` no Email Routing (MX e SPF só nele), catch-all → `acordu-email-entrada`, `API_EMAIL_ENTRADA_TOKEN` criado; e-mail de Gmail e de Outlook com `repassada (202); carimbo presente` no log do Worker.
 - [ ] Webhooks do Discord: #deploy recebendo deploy e backup; #alertas recebendo a vigia (teste: parar o serviço por 10 min) e os erros; #sugestoes recebendo uma sugestão de teste.
 - [ ] Turnstile no cadastro: conta de teste criada; sem o token, cadastro recusado.
 - [ ] Backup diário rodando e restore testado.
@@ -294,5 +304,6 @@ _(preencher conforme executar)_
 | Domínios | `acordu.app.br`, `acordu.com.br` — _registrar_ |
 | Resend | domínio verificado? _pendente_ |
 | Vigia | `acordu-vigia` — _pendente_ (sobe com o deploy) |
+| Entrada por e-mail | `acordu-email-entrada` + subdomínio `entrada` no Email Routing — _pendente_ (Parte D, passo 5) |
 
 > Regra de segurança: IDs numéricos, chaves, senhas e connection strings **não** entram neste documento nem no repositório.

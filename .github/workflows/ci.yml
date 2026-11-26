@@ -90,7 +90,7 @@ jobs:
               - .github/workflows/ci.yml
               # O conferir-fabrica confere a normalização de TEXTOS_LEGAIS_PUBLICADOS no deploy (F14-121).
               - .github/workflows/deploy.yml
-            # Worker de api.acordu.app.br (spec do F8, F8-23 a F8-25).
+            # Workers da Cloudflare: a borda de api.acordu.app.br (spec do F8, F8-23 a F8-25), a vigia e a entrada por e-mail.
             borda:
               - *pipeline
               - infra/cloudflare/**
@@ -381,11 +381,11 @@ jobs:
     if: needs.mudancas.outputs.borda == 'true'
     runs-on: ubuntu-24.04
     timeout-minutes: 10
-    # A borda da API (F8) e a vigia (F13h): mesmas ferramentas, cada uma com o seu lockfile.
+    # A borda da API (F8), a vigia (F13h) e a entrada por e-mail (F15d): mesmas ferramentas, cada uma com o seu lockfile.
     strategy:
       fail-fast: false
       matrix:
-        worker: [api-borda, vigia]
+        worker: [api-borda, vigia, email-entrada]
     defaults:
       run:
         working-directory: infra/cloudflare/${{ matrix.worker }}

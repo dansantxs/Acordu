@@ -11,6 +11,8 @@
     <PackageVersion Include="EFCore.NamingConventions" Version="10.0.1" />
     <PackageVersion Include="Microsoft.AspNetCore.Identity.EntityFrameworkCore" Version="10.0.12" />
     <PackageVersion Include="AWSSDK.S3" Version="4.0.104.3" />
+    <!-- Leitura do MIME da entrada por e-mail (F15d; design do F15, D1): biblioteca de protocolo (MIT), sem a parte de criptografia. -->
+    <PackageVersion Include="MimeKit.Core" Version="5.0.0" />
   </ItemGroup>
   <ItemGroup Label="Api">
     <PackageVersion Include="Microsoft.AspNetCore.OpenApi" Version="10.0.12" />

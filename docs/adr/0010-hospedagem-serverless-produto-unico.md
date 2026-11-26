@@ -104,7 +104,7 @@ Os endpoints `/internal/jobs/*` já existem: `X-Job-Token`, idempotentes, todos 
 
 ### 10. Regras que valem em todos os níveis
 
-- **Nenhum SDK de provedor no código.** Banco por connection string Npgsql; arquivos pela API S3 (o `AWSSDK.S3` é só cliente do protocolo, com endpoint configurável); e-mail pelo Resend via HTTP.
+- **Nenhum SDK de provedor no código.** Banco por connection string Npgsql; arquivos pela API S3 (o `AWSSDK.S3` é só cliente do protocolo, com endpoint configurável); e-mail pelo Resend via HTTP. *(Nota de 26/11/2026, F15d: a leitura do e-mail recebido usa o `MimeKit.Core`, biblioteca do protocolo MIME, sem conta nem serviço; ADR 0016, item 1.)*
 - **Toda configuração por variável de ambiente.** Trocar de provedor é trocar variáveis e DNS.
 - **Migrations aditivas**, para deploy e rollback sem janela.
 - **PostgreSQL 17 em todos os ambientes** (dev, Testcontainers, Neon e qualquer destino).

@@ -62,6 +62,8 @@ internal static class CasosDeUso
         services.AddScoped<ComandosConfiguracao>();
         // Recebimento por e-mail (F15b): depende do domínio de entrada, que a ComposicaoApi lê da configuração.
         services.AddScoped<ComandosRecebimentoEmail>();
+        // Entrada por e-mail (F15d): o registro de entrada no escopo da empresa do destino (RecebedorDeEmail).
+        services.AddScoped<Application.EntradaEmail.ComandosEntradaEmail>();
         services.AddScoped<ComandosCategoria>();
         // Dados de exemplo (F14r): a carga do conjunto fictício e as ações do Dono.
         services.AddScoped<CargaDosDadosFicticios>();

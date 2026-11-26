@@ -5,7 +5,7 @@
 | **Versão** | 0.1 |
 | **Data** | 30/09/2026 |
 | **Estilo** | REST sobre HTTP, JSON. API-first (SPA interna + portal do cliente; app mobile no futuro). |
-| **Base** | `/api/v1` (interna), `/api/v1/portal` (portal do cliente) e `/api/v1/nebrys` (área da Nebrys, §17) |
+| **Base** | `/api/v1` (interna), `/api/v1/portal` (portal do cliente) e `/api/v1/nebrys` (área da Nebrys, §17); `/internal/email/entrada` (Worker da entrada por e-mail, §18) |
 | **Base de requisitos** | `ERS-acordu-v1.md`, `modelo-de-dominio-acordu.md`, ADRs 0002–0004 |
 
 ---
@@ -886,13 +886,13 @@ Tipos (`type`) do v1: `validacao` (com `errors` por campo), `transicao-invalida`
 
 | Código | Uso |
 |---|---|
-| `200` / `201` / `202` / `204` | Sucesso (202 quando dispara e-mail assíncrono, ex.: convite). |
+| `200` / `201` / `202` / `204` | Sucesso (202 quando dispara e-mail assíncrono, ex.: convite; e em todo e-mail que a rota de entrada trata ou ignora, §18). |
 | `400` | JSON malformado, parâmetro inválido. |
 | `401` | Sem token, token inválido, link inválido/expirado. |
 | `403` | Sem permissão; papel Cliente em rota interna; sessão de link fora do seu escopo. |
-| `404` | Inexistente, de outro tenant **ou de outro cliente**; qualquer rota da área da Nebrys sem a sessão de operação, e a sessão de operação fora dela (§17). |
+| `404` | Inexistente, de outro tenant **ou de outro cliente**; qualquer rota da área da Nebrys sem a sessão de operação, e a sessão de operação fora dela (§17); rota interna (jobs, entrada por e-mail, §18) sem o token. |
 | `409` | Versão divergente (`If-Match`); cronômetro já ativo; solicitação encerrada (RF-SOL-13). |
-| `413` | Anexo acima do limite; relato de erro do app acima de 16 KB. |
+| `413` | Anexo acima do limite; relato de erro do app acima de 16 KB; e-mail recebido acima do tamanho máximo (§18). |
 | `422` | Regra de negócio violada. |
 | `429` | Rate limit (login, portal, link, relato de erro do app, cadastro, lista de espera); limite de sugestões por hora. |
 
@@ -900,7 +900,7 @@ Tipos (`type`) do v1: `validacao` (com `errors` por campo), `transicao-invalida`
 
 ## 15. Versionamento
 
-`/api/v1`; mudança incompatível abre `/api/v2`. Entradas previstas para a v2 (e-mail e WhatsApp como origem, base de conhecimento, projeção do contrato, relatório PDF) entram como **novos** endpoints ou campos aditivos.
+`/api/v1`; mudança incompatível abre `/api/v2`. A entrada por e-mail (F15) entra na v1 como rotas novas e campos aditivos (§18). Entradas previstas para a v2 (WhatsApp como origem, base de conhecimento, projeção do contrato, relatório PDF) entram como **novos** endpoints ou campos aditivos.
 
 ---
 
@@ -1100,3 +1100,38 @@ Operação da Nebrys sobre as empresas (RF-NEB-01): só os dados da relação co
 - `DELETE …/indicacoes/{usuarioId}` → `204`: o vínculo sai e as sessões dela na demonstração são revogadas (param na renovação). Conta que não é indicada (as fictícias) ou sem demonstração → `404`.
 
 **Trilha (ADR 0014, item 6; design D14).** Toda ação vai para a trilha **sem tenant**, com o operador em `usuario` (§11a): `nebrys.empresa.ativacao`, `nebrys.empresa.prorrogacao`, `nebrys.empresa.cancelamento` e `nebrys.empresa.reativacao` (alvo `empresa`, `dados` com `antes` e `depois`: `situacao`, `fimDoTeste`, `somenteLeituraDesde`, `canceladaEm`); `nebrys.documento.liberacao` (alvo `documento` sem id, `dados` com `antes` e `depois`: `liberadoEm`, `liberacaoUsadaEm`; nunca o documento nem o HMAC); `nebrys.convite.emissao`, `nebrys.convite.reenvio` e `nebrys.convite.revogacao` (alvo `convite`, `dados` com o `email` convidado e, de cada lado, `situacao` e `expiraEm`; na emissão o `antes` é `null`, e a que sai da lista de espera tem também a `entradaListaEspera`; nunca o token); `nebrys.lista.convite` (alvo `lista-espera`, `dados` com o `email` da entrada, `antes.situacao` e `depois` com `situacao`, `convidadaEm` e `conviteId`) e `nebrys.lista.descarte` (alvo `lista-espera`, `dados` só com o `email`, o `antes` (`situacao`, `criadaEm`, `convidadaEm`) e o `depois` `null`, porque a entrada é apagada; o nome, a empresa e a mensagem não ficam na trilha); `nebrys.demonstracao.criacao` (alvo `empresa`, `antes` `null`, `depois` com `nome`, `situacao` e `clientes`), `nebrys.demonstracao.restauracao` (`antes` com `nome` e `clientes`, `depois` com `nome` e `clientes`), `nebrys.demonstracao.indicacao` e `nebrys.demonstracao.retirada` (alvo `empresa`, `dados` com o `email` da pessoa; na indicação `antes` `null` e `depois.papel`, na retirada `antes.papel` e `depois` `null`). **Formato comum (F14-70, conferido no F14p):** toda ação da área tem a linha com o operador em `usuario`, o instante, a empresa no alvo ou o e-mail em `dados` (a liberação de documento, nenhum dos dois, de propósito) e as chaves `antes` e `depois` em `dados`, `null` do lado em que o alvo não existe; ação recusada não deixa linha. A empresa não vê essas linhas no `GET /auditoria`.
+
+---
+
+## 18. Entrada por e-mail (F15, ADR 0016)
+
+### `POST /internal/email/entrada` — e-mail recebido (RF-SOL-11; design do F15, D1, D5, D6 e D12; F15d)
+
+Chamada só pelo Worker `acordu-email-entrada` (Cloudflare Email Routing, regra *catch-all* do subdomínio de entrada), pela borda (`api.acordu.app.br`, com o `X-Origem-Token` do ADR 0010 §3). Fora do OpenAPI, como `/internal/jobs/*`: não é rota de cliente.
+
+```http
+POST /internal/email/entrada
+Content-Type: message/rfc822
+X-Email-Token: <EmailEntrada__Token>
+X-Email-Remetente: ana@cliente.com.br             (envelope: MAIL FROM; vazio nas devoluções)
+X-Email-Destinatario: k7m2qd9w@entrada.acordu.app.br   (envelope: RCPT TO; o endereço da empresa ou da conversa)
+X-Email-Autenticidade: pass | fail | none         (veredito do Worker, D11)
+X-Email-Filtro: ok | spam | virus                 (o que o provedor indicar, D11)
+
+<o MIME bruto do e-mail, em stream>
+```
+
+Respostas (ADR 0016, item 2):
+
+| Status | Quando |
+|---|---|
+| `202` sem corpo | tudo o que foi tratado **ou** ignorado de propósito, **sem dizer qual**: destino que não é de empresa nenhuma (F15-22), empresa com o recebimento desligado (F15-05) ou só leitura (F15-19), MIME ilegível, repetição da mesma entrega e, nos PRs seguintes, automático, laço, filtro e limite. |
+| `413` | o corpo passa de `EmailEntrada__TamanhoMaximoBytes` (padrão 25 MiB, F15-89): pelo `Content-Length` antes de ler ou, sem ele, na leitura; nada é gravado. O Worker recusa antes, pelo tamanho da mensagem. |
+| `404` | sem `X-Email-Token` certo (comparado em tempo constante) ou sem `EmailEntrada__Token` configurado (a rota inteira responde `404`). |
+| `5xx` | falha inesperada: o Worker lança erro, o Email Routing devolve falha temporária ao servidor de origem, e ele repete mais tarde; a idempotência absorve a repetição. |
+
+- **Ordem das conferências** (D12): token → tamanho declarado → destino → empresa (desconhecida, só leitura, desligada) → leitura do MIME (tamanho real) → registro na empresa. Os descartes antes da empresa não leem o corpo e não gravam nada, nem o registro de entrada.
+- **Destino → empresa** (ADR 0016, item 3): o destinatário do envelope, sem diferenciar maiúsculas, é `{código}@{domínio}` ou `{código}+{token}@{domínio}`; outro domínio ou código fora do formato é desconhecido. O código é procurado entre todas as empresas numa consulta revisada da Infrastructure; o resto roda num escopo com o tenant fixado, com os filtros e as guardas de isolamento e de só leitura.
+- **Registro de entrada** (D6): cada e-mail aceito para uma empresa grava um `EmailRecebido` (chave de idempotência, hash do remetente, instante da recepção e resultado), sem assunto, texto nem endereços em claro. A chave é o SHA-256 do `Message-ID` e do destino, ou do MIME inteiro e do destino sem `Message-ID`; a repetição esbarra no índice único por empresa e responde `202` sem gravar. Até o F15f, todo e-mail aceito fica `IGNORADO` (design §3): nada visível é criado.
+- `X-Email-Remetente`, `X-Email-Autenticidade` e `X-Email-Filtro` entram no tratamento a partir do F15e (automáticos e filtro) e do F15f (autenticidade); a rota já os recebe. O horário é o da recepção, nunca o `Date` do e-mail.
+- Nada do endereço, do assunto nem do conteúdo vai ao log da API ou do Worker: só a contagem por desfecho (convenções §5).

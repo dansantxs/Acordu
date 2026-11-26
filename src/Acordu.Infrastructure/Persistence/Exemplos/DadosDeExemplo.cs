@@ -42,6 +42,7 @@ public sealed class DadosDeExemplo : IDadosDeExemplo
         typeof(ConviteEquipe),
         typeof(ConvitePortal),
         typeof(Cronometro),
+        typeof(EmailRecebido),
         typeof(Interacao),
         typeof(Projeto),
         typeof(RecorrenciaTarefa),
@@ -86,6 +87,8 @@ public sealed class DadosDeExemplo : IDadosDeExemplo
             || await _db.Apontamentos.AnyAsync(x => x.ClienteId == null || !exemplos.Contains(x.ClienteId.Value), cancellationToken)
             || await _db.Cronometros.AnyAsync(x => !tarefasDeExemplo.Contains(x.TarefaId), cancellationToken)
             || await _db.ComentariosTarefa.AnyAsync(x => !tarefasDeExemplo.Contains(x.TarefaId), cancellationToken)
+            // Um e-mail recebido (F15d) é da empresa em uso, não dos exemplos.
+            || await _db.EmailsRecebidos.AnyAsync(cancellationToken)
             // O resto da regra do expurgo (ExpurgoCadastros): papel criado pela empresa, vínculo de outra pessoa.
             || await _db.Papeis.AnyAsync(p => !p.Padrao, cancellationToken)
             || await _db.Vinculos.AnyAsync(

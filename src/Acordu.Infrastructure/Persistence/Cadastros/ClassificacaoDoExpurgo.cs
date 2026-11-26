@@ -31,6 +31,7 @@ public static class ClassificacaoDoExpurgo
         typeof(ConviteEquipe),
         typeof(ConvitePortal),
         typeof(Cronometro),
+        typeof(EmailRecebido),
         typeof(Interacao),
         typeof(Projeto),
         typeof(RecorrenciaTarefa),

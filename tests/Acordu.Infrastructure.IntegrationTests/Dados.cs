@@ -66,6 +66,12 @@ internal static class Dados
     public static ConversaPorEmail Conversa(Guid tenant, Guid cliente, Guid solicitacaoId) =>
         ConversaPorEmail.Criar(Guid.NewGuid(), tenant, cliente, solicitacaoId, Agora);
 
+    /// <summary>Registro de entrada (F15d) com uma chave nova a cada chamada.</summary>
+    public static EmailRecebido EmailRecebido(Guid tenant, string? chave = null) =>
+        Domain.Entities.EmailRecebido.Registrar(
+            Guid.NewGuid(), tenant, chave ?? Convert.ToHexStringLower(System.Security.Cryptography.SHA256.HashData(Guid.NewGuid().ToByteArray())),
+            null, ResultadoEntradaEmail.Ignorado, Agora);
+
     public static Cronometro Cronometro(Guid tenant) =>
         Domain.Entities.Cronometro.Iniciar(Guid.NewGuid(), tenant, Guid.NewGuid(), Guid.NewGuid(), Agora);
 }

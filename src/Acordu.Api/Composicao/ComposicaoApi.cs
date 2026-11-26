@@ -4,6 +4,7 @@ using System.Text.Json;
 using System.Text.Json.Nodes;
 using System.Text.Json.Serialization;
 using Acordu.Api.Endpoints;
+using Acordu.Api.EntradaEmail;
 using Acordu.Api.Erros;
 using Acordu.Api.Jobs;
 using Acordu.Api.Operacao;
@@ -42,7 +43,8 @@ namespace Acordu.Api.Composicao;
 /// <c>TextosLegais__Publicados</c> (<c>true</c> ou <c>false</c>, padrão desligado; F14h, D16),
 /// <c>Cadastro__Modo</c> (<c>convite</c> ou <c>aberto</c>; sem ela, <c>convite</c>; F14n, D11) e <c>Cadastro__DiasConvite</c>
 /// (padrão 7; F14n, D12), <c>EmailEntrada__Dominio</c> (domínio dos endereços de entrada por e-mail; sem ela, sem endereço;
-/// F15b, D2) e
+/// F15b, D2), <c>EmailEntrada__Token</c> (token da rota de entrada por e-mail; sem ele, a rota responde 404; F15d, D5) e
+/// <c>EmailEntrada__TamanhoMaximoBytes</c> (padrão 25 MiB; F15d, D12) e
 /// <c>Email__ResendChave</c>, <c>Email__Remetente</c>, <c>Email__NomeRemetente</c> e <c>Email__Smtp__Host</c>/<c>Email__Smtp__Porta</c> (Mailpit, só em desenvolvimento), <c>Email__RegistrarConteudo</c> (só em
 /// desenvolvimento).
 /// </summary>
@@ -114,7 +116,11 @@ internal static class ComposicaoApi
         services.AddSingleton(OpcoesCadastro.DaConfiguracao(configuracao["Cadastro:Modo"], configuracao["Cadastro:DiasConvite"]));
         // Domínio dos endereços de entrada por e-mail (F15b, design do F15 D2): sem ele, nenhuma empresa tem endereço e ligar o
         // recebimento é recusado (F15-94); valor presente e inválido impede a subida.
-        services.AddSingleton(OpcoesEmailEntrada.DaConfiguracao(configuracao["EmailEntrada:Dominio"]));
+        // O tamanho máximo do e-mail recebido (F15d, D12): padrão 25 MiB.
+        services.AddSingleton(OpcoesEmailEntrada.DaConfiguracao(
+            configuracao["EmailEntrada:Dominio"], configuracao["EmailEntrada:TamanhoMaximoBytes"]));
+        // A rota de entrada (F15d): destino → empresa e o escopo dela, como os jobs.
+        services.AddSingleton<Infrastructure.Email.Entrada.RecebedorDeEmail>();
         AdicionarEmail(services, configuracao);
         AdicionarArmazenamento(services, configuracao);
         AdicionarVerificacaoHumana(services, configuracao);
@@ -339,6 +345,7 @@ internal static class ComposicaoApi
         // Não toca o banco: é chamado pelo uptime externo e pelo healthcheck do deploy (ADR 0010 §6).
         app.MapGet("/api/health", () => Results.Ok(new { status = "ok" })).ExcludeFromDescription();
         app.MapJobs(app.Configuration);
+        app.MapEntradaEmail(app.Configuration);
 
         var api = app.MapGroup("/api/v1").AddEndpointFilter(DespachoOutbox.FiltrarAsync);
         api.MapAuth();
