@@ -29,6 +29,10 @@ namespace Acordu.Infrastructure.Persistence.Migrations
                 table: "tenants",
                 column: "codigo_entrada",
                 unique: true);
+
+            // Empresas anteriores ao F15 (F15-01): código de entrada aleatório (gen_random_uuid), único pelo índice
+            // acima; a demonstração fica sem código. Só as linhas que a coluna nova recebeu vazias.
+            migrationBuilder.Sql(ScriptsDeDados.PreencherCodigoEntradaDasEmpresas);
         }
 
         /// <inheritdoc />
