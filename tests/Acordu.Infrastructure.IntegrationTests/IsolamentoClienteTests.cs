@@ -19,6 +19,7 @@ public sealed class IsolamentoClienteTests(BancoFixture banco) : IAsyncLifetime
         db.AddRange(CalendarioUtil.Padrao(_tenant), Categoria.Criar(Guid.NewGuid(), _tenant, "Design"));
         db.Add(Dados.Tarefa(_tenant, null)); // tarefa interna, sem cliente
         db.Add(Dados.Cronometro(_tenant));
+        db.Add(Dados.EmailRecebido(_tenant));
         foreach (var cliente in new[] { _clienteA, _clienteB })
         {
             var contrato = Dados.Contrato(_tenant, cliente.Id);
@@ -68,6 +69,7 @@ public sealed class IsolamentoClienteTests(BancoFixture banco) : IAsyncLifetime
         await using var db = banco.DoCliente(_tenant, _clienteA.Id);
 
         (await db.Cronometros.AnyAsync()).Should().BeFalse();
+        (await db.EmailsRecebidos.AnyAsync()).Should().BeFalse("o registro de entrada é só da equipe (F15d)");
         (await db.Categorias.CountAsync()).Should().Be(1);
         (await db.Calendarios.CountAsync()).Should().Be(1);
     }
@@ -81,6 +83,7 @@ public sealed class IsolamentoClienteTests(BancoFixture banco) : IAsyncLifetime
         (await db.Solicitacoes.CountAsync()).Should().Be(2);
         (await db.Tarefas.CountAsync()).Should().Be(3);
         (await db.Cronometros.CountAsync()).Should().Be(1);
+        (await db.EmailsRecebidos.CountAsync()).Should().Be(1);
     }
 
     [Fact]

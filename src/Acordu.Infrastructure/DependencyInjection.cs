@@ -73,6 +73,9 @@ public static class DependencyInjection
         services.AddScoped<ITenantAtual, TenantAtual>();
         services.AddScoped<IAcessosDoPortal, AcessosDoPortal>();
         services.AddScoped<Application.EntradaEmail.IConversasPorEmail, Persistence.EntradaEmail.ConversasPorEmail>();
+        // Entrada por e-mail (F15d): destino → empresa (consulta global revisada) e o registro de entrada no tenant.
+        services.AddScoped<Application.EntradaEmail.IEmpresasDeEntrada, Persistence.EntradaEmail.EmpresasDeEntrada>();
+        services.AddScoped<Application.EntradaEmail.IEmailsRecebidos, Persistence.EntradaEmail.EmailsRecebidos>();
         services.AddScoped<IVinculos, Vinculos>();
         services.AddScoped<IPessoasDaEquipe, PessoasDaEquipe>();
         services.AddScoped<IMarcadoresDeAviso, MarcadoresDeAviso>();
