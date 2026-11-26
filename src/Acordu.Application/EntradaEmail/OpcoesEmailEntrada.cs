@@ -35,6 +35,28 @@ public sealed record OpcoesEmailEntrada
     }
 
     /// <summary>
+    /// Os avisos da empresa respondem para o endereço da conversa (F15-51, F15-52): há domínio, a empresa tem código e o
+    /// recebimento por e-mail está ligado.
+    /// </summary>
+    public bool AvisosPelaConversa(Tenant tenant)
+    {
+        ArgumentNullException.ThrowIfNull(tenant);
+        return Dominio is not null && tenant.CodigoEntrada is not null && tenant.RecebimentoEmail;
+    }
+
+    /// <summary>
+    /// O endereço da conversa (<c>{código}+{token}@{domínio}</c>, design do F15, D3), ou nulo sem domínio ou sem código.
+    /// </summary>
+    public string? EnderecoDaConversa(Tenant tenant, ConversaPorEmail conversa)
+    {
+        ArgumentNullException.ThrowIfNull(tenant);
+        ArgumentNullException.ThrowIfNull(conversa);
+        if (conversa.TenantId != tenant.Id)
+            throw new ArgumentException("A conversa é de outra empresa.", nameof(conversa));
+        return Dominio is null || tenant.CodigoEntrada is null ? null : tenant.CodigoEntrada + "+" + conversa.Token + "@" + Dominio;
+    }
+
+    /// <summary>
     /// Ausente ou vazio → sem entrada de e-mail; um nome de domínio (rótulos de letras, dígitos e hífen, com ao menos um
     /// ponto), aparado e sem diferenciar maiúsculas → o próprio, em minúsculas; outro valor impede a subida.
     /// </summary>
