@@ -144,6 +144,7 @@ public sealed class ComandosPortal
                 autorEhCliente: true,
                 null,
                 Visibilidade.Externa,
+                CanalMensagem.Portal,
                 anexos,
                 ComandosSolicitacao.PoliticaPadrao,
                 _relogio.Agora));
@@ -191,6 +192,7 @@ public sealed class ComandosPortal
             autorEhCliente: true,
             dados.Texto,
             Visibilidade.Externa,
+            CanalMensagem.Portal,
             anexos,
             ComandosSolicitacao.PoliticaPadrao,
             _relogio.Agora);
