@@ -1,7 +1,7 @@
 {
   "marco": "F15",
   "issue": 183,
-  "etapa": "PROJETANDO",
+  "etapa": "AGUARDANDO_G2",
   "branch": "docs/F15-spec",
   "pr": {
     "id": null,
@@ -9,7 +9,7 @@
   },
   "feitos": [],
   "contadores": {
-    "devolucoesNaEtapa": 1,
+    "devolucoesNaEtapa": 0,
     "rodadasNoPr": 0
   },
   "verificacao": [
@@ -22,11 +22,14 @@
     "G1": "aceito suas recomendações (25/11, /roadmap: Omnichannel A, #183)",
     "G2": null
   },
-  "ressalvas": [],
+  "ressalvas": [
+    "Ver notas/plano-2.md (menores 4 a 11) para os PRs de código"
+  ],
   "bloqueios": [],
-  "atualizadoEm": "2026-11-25",
+  "atualizadoEm": "2026-11-26",
   "decisoes": [
     "25/11 F15-79: \"Troca para 403\" (Daniel, no chat): contato que tenta a triagem recebe 403, como as demais rotas da equipe (ADR 0002, item 4)",
-    "25/11 /plano 1: reprovado (graves 1 a 5); \"siga com todos\" (Daniel): corrigir todos os itens de notas/plano-1.md"
+    "25/11 /plano 1: reprovado (graves 1 a 5); \"siga com todos\" (Daniel): corrigir todos os itens de notas/plano-1.md",
+    "26/11 /plano 2: aprovado com ressalvas; menores 1 a 3 corrigidos pelo analista; 4 a 11 em notas/plano-2.md"
   ]
 }

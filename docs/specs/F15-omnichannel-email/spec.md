@@ -4,7 +4,7 @@ O **quê** o marco entrega. O **como** fica em [design.md](design.md). Processo:
 
 | | |
 |---|---|
-| **Status** | Rascunho |
+| **Status** | Aprovada |
 | **Data** | 25/11/2026 |
 | **Requisitos** | RF-SOL-11 (sai da v2 para o v1, reescrito, 25/11); RF-SOL-14, RF-SOL-15, RF-NOT-06, RNF-SEG-11 (novos, 25/11); RF-SOL-03, RF-SOL-06, RF-SOL-09, RF-SOL-10, RF-SOL-13, RF-NOT-01 a RF-NOT-04, RF-POR-02, RF-POR-04, RF-POR-05, RF-AUT-06, RF-EMP-02, RF-NEB-02, RF-CLI-02, RNF-SEG-01 a RNF-SEG-03 (RNF-SEG-02 com a exceção do F15-38, 25/11), RNF-SEG-05, RNF-SEG-07, RNF-SEG-08, RNF-OPS-01 (já existentes, tocados) |
 | **ADRs** | 0001, 0002, 0008, 0010, 0012, 0015; 0016 (proposto no design) |
@@ -37,11 +37,11 @@ Termos usados nos cenários:
 | Id | Dado | Quando | Então | Teste |
 |---|---|---|---|---|
 | F15-01 | qualquer empresa, exceto a de demonstração | ela é criada (ou o F15 entra no ar, para as que já existem) | ela tem um endereço de entrada próprio, diferente do de qualquer outra empresa, que não é formado só pelo nome dela (pergunta 1), com o recebimento por e-mail desligado | — |
-| F15-02 | empresa com o endereço de entrada | qualquer pessoa da equipe abre Configurações › Empresa | vê o endereço de entrada, com o botão de copiar, e se o recebimento está ligado | — |
+| F15-02 | empresa com o endereço de entrada | qualquer pessoa da equipe abre Configurações › Empresa | vê o endereço de entrada, com o botão de copiar, e se o recebimento está ligado; o controle de ligar e desligar só aparece a quem tem `configuracao.gerenciar` | — |
 | F15-03 | empresa com o recebimento desligado | alguém com `configuracao.gerenciar` liga o recebimento | o recebimento passa a valer para os e-mails que chegarem dali em diante | — |
 | F15-04 | empresa com o recebimento ligado | alguém com `configuracao.gerenciar` desliga | os e-mails que chegarem dali em diante seguem o F15-05; o que já entrou não muda | — |
 | F15-05 | empresa com o recebimento desligado | chega um e-mail ao endereço de entrada dela, de qualquer remetente | nada é gravado (nem solicitação, nem mensagem, nem triagem) e nada é respondido | — |
-| F15-06 | pessoa da equipe sem `configuracao.gerenciar` | tenta ligar ou desligar o recebimento | `403 sem-permissao`; nada muda (a tela não oferece o controle) | — |
+| F15-06 | pessoa da equipe sem `configuracao.gerenciar` | tenta ligar ou desligar o recebimento | `403 sem-permissao`; nada muda | — |
 | F15-07 | empresa só leitura | alguém com `configuracao.gerenciar` tenta ligar ou desligar o recebimento | recusado como gravação da empresa (`422 empresa-somente-leitura`, depois da permissão); nada muda | — |
 | F15-08 | empresa de demonstração (RF-NEB-02) | um Dono abre Configurações › Empresa | não há endereço de entrada nem controle de recebimento; e-mail a um endereço que não é de empresa nenhuma segue o F15-22 | — |
 | F15-09 | empresas A e B | uma pessoa com vínculo nas duas lê a configuração em cada uma | em cada empresa vê só o endereço e a opção dela; ligar em A não liga em B (isolamento entre tenants) | — |
@@ -60,7 +60,7 @@ Termos usados nos cenários:
 | F15-13 | o mesmo do F15-10 | o e-mail tem corpo em texto, em HTML ou nos dois | a descrição é o texto do corpo (o HTML vira texto, sem marcação nem script), cortada em 10.000 caracteres; corpo vazio deixa a descrição vazia | — |
 | F15-14 | o mesmo do F15-10 | o e-mail traz anexos dentro da política (RNF-SEG-07: até 5, até 20 MB cada, tipos permitidos detectados pelo conteúdo), inclusive imagem embutida no corpo (pergunta 4) | os anexos viram a primeira mensagem EXTERNA do contato na solicitação, sem texto, no canal E-mail, como na abertura pelo portal | — |
 | F15-15 | o mesmo do F15-10 | parte dos anexos está fora da política (tipo não permitido, acima de 20 MB, além do 5º) | a solicitação é criada com os anexos válidos; uma nota do sistema lista os recusados com o motivo; o aviso de recebida diz ao contato quais arquivos não entraram (pergunta 4) | — |
-| F15-16 | solicitação aberta como no F15-10, empresa liberada para enviar (RF-AUT-06) | o aviso de recebida sai | o contato recebe "Recebemos sua solicitação #N", com o protocolo, marcado como resposta ao e-mail dele pelos cabeçalhos de resposta do padrão de e-mail (que apontam para o e-mail original), para o programa de e-mail mostrá-lo na mesma conversa. Verificação: os cabeçalhos, por teste; a conversa no Gmail e no Outlook, à mão, no primeiro deploy do PR que entrega o cenário | — |
+| F15-16 | solicitação aberta como no F15-10, empresa liberada para enviar (RF-AUT-06) | o aviso de recebida sai | o contato recebe um e-mail com o assunto `Re: {assunto do e-mail dele} (#N)` e o texto começando por "Recebemos sua solicitação #N", marcado como resposta ao e-mail dele, para o programa de e-mail mostrá-lo na mesma conversa (como todo aviso do F15-50). Verificação: o assunto, o texto e os cabeçalhos de resposta, por teste; a conversa no Gmail e no Outlook, à mão, no primeiro deploy do PR que entrega o cenário | — |
 | F15-17 | solicitação aberta como no F15-10 | a solicitação é gravada | a equipe recebe o aviso de nova solicitação como na abertura pelo portal: o sino sai (RF-NOT-03); o e-mail interno (RF-NOT-02) respeita as preferências de cada pessoa (RF-NOT-04) e, com a empresa não liberada para enviar, só vai ao criador (RF-AUT-06) | — |
 | F15-18 | empresa **não** liberada para enviar (RF-AUT-06) e remetente conhecido | ele manda um e-mail novo | a solicitação é criada como no F15-10 (receber não é enviar a terceiros), mas o aviso de recebida não sai, como os demais avisos ao contato hoje | — |
 | F15-19 | empresa só leitura com o recebimento ligado | chega qualquer e-mail ao endereço de entrada | nada é gravado (nem solicitação, nem mensagem, nem triagem) e nada é respondido, sem revelar a situação da empresa ao remetente (RF-EMP-02) | — |
@@ -135,7 +135,7 @@ Termos usados nos cenários:
 | F15-78 | itens na triagem das empresas A e B | uma pessoa de A lista, abre, converte ou descarta pelo id de um item de B | a lista de A não mostra os de B; pelo id, `404` (isolamento entre tenants) | — |
 | F15-79 | contato do portal (conta ou link) | tenta alcançar a triagem | `403`, como as demais rotas da equipe (ADR 0002, item 4) | — |
 | F15-80 | empresa só leitura | alguém com a permissão lê a triagem / converte, junta ou descarta | a leitura responde como antes; converter, juntar e descartar são recusados como gravação da empresa (`422 empresa-somente-leitura`), sem mudar nada | — |
-| F15-81 | duas pessoas abrem o mesmo item ainda na triagem e o tratam ao mesmo tempo (converter, juntar ou descartar) | as duas confirmam | só uma ação vale; a outra recebe `409 triagem-ja-tratada`, e nada dela é gravado (nem segunda solicitação, nem mensagem, nem contato) | — |
+| F15-81 | duas pessoas abrem o mesmo item ainda na triagem e o tratam ao mesmo tempo (converter, juntar ou descartar) | as duas confirmam | só uma ação vale; a outra recebe `409`, recusa de que o item já foi tratado, e nada dela é gravado (nem segunda solicitação, nem mensagem, nem contato) | — |
 | F15-82 | pessoa com `solicitacao.criar` e sem `cliente.gerenciar` | converte pedindo para cadastrar o remetente como contato | `403 sem-permissao`; nada muda (nem contato, nem solicitação, e o item fica na triagem); converter escolhendo um contato que já existe continua liberado a ela | — |
 | F15-83 | item que já saiu da triagem (convertido, juntado, descartado ou apagado pelo diário) | alguém abre, converte, junta ou descarta pelo id | `404`; nada é gravado | — |
 | F15-84 | item na triagem | alguém o converte escolhendo um cliente inativo | recusado (`422 transicao-invalida`, como nas outras ações com cliente inativo); nada muda e o item fica | — |

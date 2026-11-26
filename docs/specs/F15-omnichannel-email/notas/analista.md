@@ -39,3 +39,11 @@ Itens da spec do `notas/plano-1.md`; os de design (2, 6, 16, 18, 19) ficam com o
 - 17: F15-95 (o `GET` da configuração traz endereço e opção a qualquer pessoa da equipe) e F15-96 (demonstração sem endereço; ligar `422 transicao-invalida`, como o design D9).
 - 20: saíram da spec SPF/DKIM/DMARC (F15-26, termo "remetente conhecido"), a lista de cabeçalhos do "e-mail automático" e o `Auto-Submitted` (F15-55). Termo novo "registro de entrada", sem dizer o que guarda nem o prazo. O RNF-SEG-11 da ERS ainda cita SPF/DKIM/DMARC e `Auto-Submitted`: não mexi (não estava no pedido).
 - F15-108 depende do termo "registro de entrada"; o prazo (7 dias no D6) é do design.
+
+## Devolução do /plano, 2ª conferência (26/11)
+
+Três ajustes de uma linha, sem mudar comportamento:
+
+- F15-06: saiu o parêntese "a tela não oferece o controle" (o controle nasce no F15o, o cenário é do F15b). Nenhum cenário de tela dizia isso, então o F15-02 (F15o) ganhou: o controle de ligar e desligar só aparece a quem tem `configuracao.gerenciar`. O F15-07 não tinha o parêntese.
+- F15-81: `409`, recusa de que o item já foi tratado; o nome do tipo fica no design (D10).
+- F15-16: assunto `Re: {assunto do e-mail dele} (#N)` e texto começando por "Recebemos sua solicitação #N", marcado como resposta ao e-mail dele (como o F15-50), sem nomear cabeçalho; coerente com o D4 do design. Verificação: assunto, texto e cabeçalhos de resposta por teste; Gmail e Outlook à mão.
