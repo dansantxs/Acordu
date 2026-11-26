@@ -843,6 +843,55 @@ namespace Acordu.Infrastructure.Persistence.Migrations
                     b.ToTable("documentos_teste", (string)null);
                 });
 
+            modelBuilder.Entity("Acordu.Domain.Entities.EmailRecebido", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<string>("ChaveEntrada")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character(64)")
+                        .HasColumnName("chave_entrada")
+                        .IsFixedLength();
+
+                    b.Property<DateTimeOffset>("RecebidoEm")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("recebido_em");
+
+                    b.Property<string>("RemetenteHash")
+                        .HasMaxLength(64)
+                        .HasColumnType("character(64)")
+                        .HasColumnName("remetente_hash")
+                        .IsFixedLength();
+
+                    b.Property<string>("Resultado")
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .HasColumnType("character varying(40)")
+                        .HasColumnName("resultado");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
+                    b.Property<uint>("Versao")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("xid")
+                        .HasColumnName("xmin");
+
+                    b.HasKey("Id")
+                        .HasName("pk_emails_recebidos");
+
+                    b.HasIndex("TenantId", "ChaveEntrada")
+                        .IsUnique()
+                        .HasDatabaseName("ix_emails_recebidos_tenant_id_chave_entrada");
+
+                    b.ToTable("emails_recebidos", (string)null);
+                });
+
             modelBuilder.Entity("Acordu.Domain.Entities.EntradaListaEspera", b =>
                 {
                     b.Property<Guid>("Id")
