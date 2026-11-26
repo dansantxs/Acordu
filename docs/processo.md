@@ -23,6 +23,7 @@ Cada informação tem um lugar só. Na dúvida, siga esta tabela.
 | Formato de commit e de PR | `docs/convencoes-commit-acordu.md`, `docs/convencoes-pr-acordu.md` | raramente |
 | Interface da API | contrato + `openapi/*.json` | a API muda |
 | Fluxo do sistema em BPMN (quem faz o quê, da entrada da empresa ao fechamento da solicitação) | `docs/fluxo-acordu.bpmn` e o `.svg` do README, gerados por `scripts/gerar-fluxo-bpmn.py` (a CI confere a sincronia) | um PR muda um passo, um papel ou um status do fluxo |
+| Retrato do produto para quem chega: Status e Roadmap | `README.md` | um marco começa (PR de spec e design) ou termina (último PR da divisão) |
 | Visão geral: em revisão, marco atual, próximos passos | `docs/estado.md` | a cada PR |
 | Histórico do que já foi feito | git, PRs e o registro dos designs | sozinho |
 

@@ -3,14 +3,15 @@
 <bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" xmlns:di="http://www.omg.org/spec/DD/20100524/DI" id="defs_acordu" targetNamespace="https://acordu.app.br/bpmn">
 <bpmn:collaboration id="colab"><bpmn:participant id="pool" name="Fluxo de negócio: da entrada da empresa ao fechamento da solicitação" processRef="proc"/></bpmn:collaboration>
 <bpmn:process id="proc" isExecutable="false"><bpmn:laneSet id="ls">
-<bpmn:lane id="lane0" name="Operação Nebrys"><bpmn:flowNodeRef>s_neb</bpmn:flowNodeRef><bpmn:flowNodeRef>t_convite</bpmn:flowNodeRef><bpmn:flowNodeRef>t_decide</bpmn:flowNodeRef><bpmn:flowNodeRef>g_sit</bpmn:flowNodeRef><bpmn:flowNodeRef>e_ativa</bpmn:flowNodeRef><bpmn:flowNodeRef>e_prorroga</bpmn:flowNodeRef><bpmn:flowNodeRef>e_cancela</bpmn:flowNodeRef></bpmn:lane>
-<bpmn:lane id="lane1" name="Dono da empresa"><bpmn:flowNodeRef>t_cadastro</bpmn:flowNodeRef><bpmn:flowNodeRef>t_confirma</bpmn:flowNodeRef><bpmn:flowNodeRef>t_config</bpmn:flowNodeRef><bpmn:flowNodeRef>t_convp</bpmn:flowNodeRef></bpmn:lane>
+<bpmn:lane id="lane0" name="Operação Nebrys"><bpmn:flowNodeRef>t_convite</bpmn:flowNodeRef><bpmn:flowNodeRef>t_decide</bpmn:flowNodeRef><bpmn:flowNodeRef>g_sit</bpmn:flowNodeRef><bpmn:flowNodeRef>e_ativa</bpmn:flowNodeRef><bpmn:flowNodeRef>e_prorroga</bpmn:flowNodeRef><bpmn:flowNodeRef>e_cancela</bpmn:flowNodeRef></bpmn:lane>
+<bpmn:lane id="lane1" name="Dono da empresa"><bpmn:flowNodeRef>s_neb</bpmn:flowNodeRef><bpmn:flowNodeRef>t_espera</bpmn:flowNodeRef><bpmn:flowNodeRef>t_cadastro</bpmn:flowNodeRef><bpmn:flowNodeRef>t_confirma</bpmn:flowNodeRef><bpmn:flowNodeRef>t_config</bpmn:flowNodeRef><bpmn:flowNodeRef>t_convp</bpmn:flowNodeRef></bpmn:lane>
 <bpmn:lane id="lane2" name="Equipe (atendente/executor)"><bpmn:flowNodeRef>s_tel</bpmn:flowNodeRef><bpmn:flowNodeRef>t_registra</bpmn:flowNodeRef><bpmn:flowNodeRef>t_triar</bpmn:flowNodeRef><bpmn:flowNodeRef>t_tarefas</bpmn:flowNodeRef><bpmn:flowNodeRef>t_exec</bpmn:flowNodeRef><bpmn:flowNodeRef>g_cli</bpmn:flowNodeRef><bpmn:flowNodeRef>t_resolver</bpmn:flowNodeRef></bpmn:lane>
 <bpmn:lane id="lane3" name="Contato do cliente (portal)"><bpmn:flowNodeRef>t_aceita</bpmn:flowNodeRef><bpmn:flowNodeRef>t_abre</bpmn:flowNodeRef><bpmn:flowNodeRef>t_resp</bpmn:flowNodeRef><bpmn:flowNodeRef>g_apr</bpmn:flowNodeRef></bpmn:lane>
 <bpmn:lane id="lane4" name="Sistema (jobs e e-mails)"><bpmn:flowNodeRef>t_cria</bpmn:flowNodeRef><bpmn:flowNodeRef>tm_fim</bpmn:flowNodeRef><bpmn:flowNodeRef>t_vencer</bpmn:flowNodeRef><bpmn:flowNodeRef>t_proto</bpmn:flowNodeRef><bpmn:flowNodeRef>tm_rec</bpmn:flowNodeRef><bpmn:flowNodeRef>t_rec</bpmn:flowNodeRef><bpmn:flowNodeRef>t_avisa</bpmn:flowNodeRef><bpmn:flowNodeRef>t_fechar</bpmn:flowNodeRef><bpmn:flowNodeRef>e_fim</bpmn:flowNodeRef></bpmn:lane>
 </bpmn:laneSet>
 <bpmn:startEvent id="s_neb" name="Prestador quer usar o Acordu"><bpmn:outgoing>f1</bpmn:outgoing></bpmn:startEvent>
-<bpmn:task id="t_convite" name="Emitir convite de empresa"><bpmn:incoming>f1</bpmn:incoming><bpmn:outgoing>f2</bpmn:outgoing></bpmn:task>
+<bpmn:task id="t_espera" name="Entrar na lista de espera (nome, e-mail, empresa)"><bpmn:incoming>f1</bpmn:incoming><bpmn:outgoing>f1a</bpmn:outgoing></bpmn:task>
+<bpmn:task id="t_convite" name="Emitir convite de empresa (da lista de espera ou direto)"><bpmn:incoming>f1a</bpmn:incoming><bpmn:outgoing>f2</bpmn:outgoing></bpmn:task>
 <bpmn:task id="t_cadastro" name="Cadastrar empresa: CPF/CNPJ, senha, aceite dos termos"><bpmn:incoming>f2</bpmn:incoming><bpmn:outgoing>f3</bpmn:outgoing></bpmn:task>
 <bpmn:task id="t_cria" name="Criar empresa em TESTE (30 dias) e enviar confirmação"><bpmn:incoming>f3</bpmn:incoming><bpmn:outgoing>f4</bpmn:outgoing></bpmn:task>
 <bpmn:task id="t_confirma" name="Confirmar e-mail (libera convites e e-mails)"><bpmn:incoming>f4</bpmn:incoming><bpmn:outgoing>f5</bpmn:outgoing></bpmn:task>
@@ -40,7 +41,8 @@
 <bpmn:exclusiveGateway id="g_apr" name="Aprova a entrega?"><bpmn:incoming>f25</bpmn:incoming><bpmn:outgoing>f26</bpmn:outgoing><bpmn:outgoing>f27</bpmn:outgoing></bpmn:exclusiveGateway>
 <bpmn:task id="t_fechar" name="Fechar (FECHADA): na aprovação ou N dias corridos depois, pelo job"><bpmn:incoming>f26</bpmn:incoming><bpmn:outgoing>f28</bpmn:outgoing></bpmn:task>
 <bpmn:endEvent id="e_fim" name="Solicitação fechada; horas no extrato do contrato"><bpmn:incoming>f28</bpmn:incoming></bpmn:endEvent>
-<bpmn:sequenceFlow id="f1" sourceRef="s_neb" targetRef="t_convite"/>
+<bpmn:sequenceFlow id="f1" sourceRef="s_neb" targetRef="t_espera"/>
+<bpmn:sequenceFlow id="f1a" sourceRef="t_espera" targetRef="t_convite"/>
 <bpmn:sequenceFlow id="f2" sourceRef="t_convite" targetRef="t_cadastro"/>
 <bpmn:sequenceFlow id="f3" sourceRef="t_cadastro" targetRef="t_cria"/>
 <bpmn:sequenceFlow id="f4" sourceRef="t_cria" targetRef="t_confirma"/>
@@ -78,7 +80,8 @@
 <bpmndi:BPMNShape id="lane2_di" bpmnElement="lane2" isHorizontal="true"><dc:Bounds x="30" y="420" width="3405" height="170"/></bpmndi:BPMNShape>
 <bpmndi:BPMNShape id="lane3_di" bpmnElement="lane3" isHorizontal="true"><dc:Bounds x="30" y="590" width="3405" height="170"/></bpmndi:BPMNShape>
 <bpmndi:BPMNShape id="lane4_di" bpmnElement="lane4" isHorizontal="true"><dc:Bounds x="30" y="760" width="3405" height="170"/></bpmndi:BPMNShape>
-<bpmndi:BPMNShape id="s_neb_di" bpmnElement="s_neb"><dc:Bounds x="159.5" y="107.0" width="36" height="36"/><bpmndi:BPMNLabel><dc:Bounds x="122.5" y="147.0" width="110" height="30"/></bpmndi:BPMNLabel></bpmndi:BPMNShape>
+<bpmndi:BPMNShape id="s_neb_di" bpmnElement="s_neb"><dc:Bounds x="159.5" y="317.0" width="36" height="36"/><bpmndi:BPMNLabel><dc:Bounds x="122.5" y="357.0" width="110" height="30"/></bpmndi:BPMNLabel></bpmndi:BPMNShape>
+<bpmndi:BPMNShape id="t_espera_di" bpmnElement="t_espera"><dc:Bounds x="287.5" y="295.0" width="130" height="80"/></bpmndi:BPMNShape>
 <bpmndi:BPMNShape id="t_convite_di" bpmnElement="t_convite"><dc:Bounds x="287.5" y="85.0" width="130" height="80"/></bpmndi:BPMNShape>
 <bpmndi:BPMNShape id="t_cadastro_di" bpmnElement="t_cadastro"><dc:Bounds x="462.5" y="295.0" width="130" height="80"/></bpmndi:BPMNShape>
 <bpmndi:BPMNShape id="t_cria_di" bpmnElement="t_cria"><dc:Bounds x="637.5" y="805.0" width="130" height="80"/></bpmndi:BPMNShape>
@@ -109,7 +112,8 @@
 <bpmndi:BPMNShape id="g_apr_di" bpmnElement="g_apr" isMarkerVisible="true"><dc:Bounds x="2952.5" y="650.0" width="50" height="50"/><bpmndi:BPMNLabel><dc:Bounds x="2922.5" y="616.0" width="110" height="30"/></bpmndi:BPMNLabel></bpmndi:BPMNShape>
 <bpmndi:BPMNShape id="t_fechar_di" bpmnElement="t_fechar"><dc:Bounds x="3087.5" y="805.0" width="130" height="80"/></bpmndi:BPMNShape>
 <bpmndi:BPMNShape id="e_fim_di" bpmnElement="e_fim"><dc:Bounds x="3309.5" y="827.0" width="36" height="36"/><bpmndi:BPMNLabel><dc:Bounds x="3272.5" y="867.0" width="110" height="30"/></bpmndi:BPMNLabel></bpmndi:BPMNShape>
-<bpmndi:BPMNEdge id="f1_di" bpmnElement="f1"><di:waypoint x="195.5" y="125.0"/><di:waypoint x="287.5" y="125.0"/></bpmndi:BPMNEdge>
+<bpmndi:BPMNEdge id="f1_di" bpmnElement="f1"><di:waypoint x="195.5" y="335.0"/><di:waypoint x="287.5" y="335.0"/></bpmndi:BPMNEdge>
+<bpmndi:BPMNEdge id="f1a_di" bpmnElement="f1a"><di:waypoint x="352.5" y="295.0"/><di:waypoint x="352.5" y="165.0"/></bpmndi:BPMNEdge>
 <bpmndi:BPMNEdge id="f2_di" bpmnElement="f2"><di:waypoint x="417.5" y="125.0"/><di:waypoint x="440.5" y="125.0"/><di:waypoint x="440.5" y="335.0"/><di:waypoint x="462.5" y="335.0"/></bpmndi:BPMNEdge>
 <bpmndi:BPMNEdge id="f3_di" bpmnElement="f3"><di:waypoint x="592.5" y="335.0"/><di:waypoint x="615.5" y="335.0"/><di:waypoint x="615.5" y="845.0"/><di:waypoint x="637.5" y="845.0"/></bpmndi:BPMNEdge>
 <bpmndi:BPMNEdge id="f4_di" bpmnElement="f4"><di:waypoint x="767.5" y="845.0"/><di:waypoint x="790.5" y="845.0"/><di:waypoint x="790.5" y="335.0"/><di:waypoint x="812.5" y="335.0"/></bpmndi:BPMNEdge>

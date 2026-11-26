@@ -20,7 +20,8 @@
 <g transform="rotate(-90 45 845)"><text class="r" text-anchor="middle" dominant-baseline="central"><tspan x="45" y="836.875">Sistema (jobs e</tspan><tspan x="45" y="853.125">e-mails)</tspan></text></g>
 <rect class="borda" x="0" y="0" width="3435" height="930"/>
 <g transform="rotate(-90 15 465)"><text class="p" text-anchor="middle" dominant-baseline="central"><tspan x="15" y="465">Fluxo de negócio: da entrada da empresa ao fechamento da solicitação</tspan></text></g>
-<polyline class="seta" points="195.5,125 287.5,125" marker-end="url(#ponta)"/>
+<polyline class="seta" points="195.5,335 287.5,335" marker-end="url(#ponta)"/>
+<polyline class="seta" points="352.5,295 352.5,165" marker-end="url(#ponta)"/>
 <polyline class="seta" points="417.5,125 440.5,125 440.5,335 462.5,335" marker-end="url(#ponta)"/>
 <polyline class="seta" points="592.5,335 615.5,335 615.5,845 637.5,845" marker-end="url(#ponta)"/>
 <polyline class="seta" points="767.5,845 790.5,845 790.5,335 812.5,335" marker-end="url(#ponta)"/>
@@ -59,10 +60,12 @@
 <polyline class="seta" points="2977.5,700 2977.5,746 2252.5,746 2252.5,545" marker-end="url(#ponta)"/>
 <text class="f" text-anchor="start" dominant-baseline="central"><tspan x="2981.5" y="712">Reprova: reabre</tspan></text>
 <polyline class="seta" points="3217.5,845 3309.5,845" marker-end="url(#ponta)"/>
-<circle class="no" cx="177.5" cy="125" r="18"/>
-<text class="e" text-anchor="middle" dominant-baseline="central"><tspan x="177.5" y="155">Prestador quer</tspan><tspan x="177.5" y="168.75">usar o Acordu</tspan></text>
+<circle class="no" cx="177.5" cy="335" r="18"/>
+<text class="e" text-anchor="middle" dominant-baseline="central"><tspan x="177.5" y="365">Prestador quer</tspan><tspan x="177.5" y="378.75">usar o Acordu</tspan></text>
+<rect class="no" x="287.5" y="295" width="130" height="80" rx="10"/>
+<text class="t" text-anchor="middle" dominant-baseline="central"><tspan x="352.5" y="320">Entrar na lista</tspan><tspan x="352.5" y="335">de espera (nome,</tspan><tspan x="352.5" y="350">e-mail, empresa)</tspan></text>
 <rect class="no" x="287.5" y="85" width="130" height="80" rx="10"/>
-<text class="t" text-anchor="middle" dominant-baseline="central"><tspan x="352.5" y="117.5">Emitir convite de</tspan><tspan x="352.5" y="132.5">empresa</tspan></text>
+<text class="t" text-anchor="middle" dominant-baseline="central"><tspan x="352.5" y="102.5">Emitir convite de</tspan><tspan x="352.5" y="117.5">empresa (da lista</tspan><tspan x="352.5" y="132.5">de espera ou</tspan><tspan x="352.5" y="147.5">direto)</tspan></text>
 <rect class="no" x="462.5" y="295" width="130" height="80" rx="10"/>
 <text class="t" text-anchor="middle" dominant-baseline="central"><tspan x="527.5" y="312.5">Cadastrar</tspan><tspan x="527.5" y="327.5">empresa:</tspan><tspan x="527.5" y="342.5">CPF/CNPJ, senha,</tspan><tspan x="527.5" y="357.5">aceite dos termos</tspan></text>
 <rect class="no" x="637.5" y="805" width="130" height="80" rx="10"/>

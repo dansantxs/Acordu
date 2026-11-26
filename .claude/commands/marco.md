@@ -32,7 +32,7 @@ Antes de passar por um portão, escreva `Portão Gn: <trecho literal da mensagem
 ## Sequência
 
 **Etapas 2–3:** analista → arquiteto → `/plano`. Achado grave do `/plano` vai ao arquiteto como devolução. Depois:
-1. mude o status da spec para `Aprovada` (o merge é a aprovação, §3.3) e a linha do marco no README das specs;
+1. mude o status da spec para `Aprovada` (o merge é a aprovação, §3.3), a linha do marco no README das specs e o Status e o Roadmap do `README.md` (marco em andamento);
 2. grave o `estado.json` em `AGUARDANDO_G2` com a branch;
 3. atualize `docs/estado.md`, faça os commits (`docs:`) e abra o PR com o `/pr`;
 4. mostre ao Daniel só as decisões D em aberto, com a recomendação, e pare.
@@ -45,7 +45,7 @@ Antes de passar por um portão, escreva `Portão Gn: <trecho literal da mensagem
 - CI vermelha: grave a etapa `IMPLEMENTANDO`, devolução ao desenvolvedor com as annotations, e o mesmo caminho até o push.
 - CI verde: diga ao Daniel o link e o "Para o Daniel decidir", e pare.
 
-**Último PR da divisão:** ele deixa a spec `Concluída` e fecha a issue (`Closes #N`). O `estado.json` vai em `AGUARDANDO_MERGE` como os outros; na retomada, mesclado e sem próximo PR, o marco está concluído (diga isso e pare; não precisa de commit só para gravar `CONCLUIDO`).
+**Último PR da divisão:** ele deixa a spec `Concluída`, marca o marco como concluído no Status e no Roadmap do `README.md` e fecha a issue (`Closes #N`). O `estado.json` vai em `AGUARDANDO_MERGE` como os outros; na retomada, mesclado e sem próximo PR, o marco está concluído (diga isso e pare; não precisa de commit só para gravar `CONCLUIDO`).
 
 ## Limites
 
