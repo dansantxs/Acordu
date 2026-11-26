@@ -1,14 +1,14 @@
 # Acordu — Estado
 
-Visão geral curta, atualizada por cada PR (`docs/processo.md` §1). O histórico está no git, nos PRs e no registro dos designs. Atualizado em 26/11/2026 (spec e design do F15, Omnichannel A, no G2).
+Visão geral curta, atualizada por cada PR (`docs/processo.md` §1). O histórico está no git, nos PRs e no registro dos designs. Atualizado em 26/11/2026 (F15a, canal de cada mensagem, em revisão).
 
 ## Em revisão
 
-- **F15 — spec e design (G2)** (#183, branch `docs/F15-spec`): solicitação por e-mail (RF-SOL-11 saiu da v2), resposta na conversa, avisos pelo canal de origem (RF-NOT-06), canal na conversa (RF-SOL-14), triagem dos não identificados (RF-SOL-15) e entrada segura (RNF-SEG-11). 97 cenários em 15 PRs (F15a a F15o, em série). ADR 0016 proposto (entrada pela borda: Cloudflare Email Routing → Email Worker → API; avisos pelo canal de origem). 11 perguntas ao Daniel na spec §4.
+- **F15a — canal de cada mensagem** (#183, branch `feat/F15a-canal-mensagem`; F15-60 a F15-62): `CanalMensagem` (ACORDU, PORTAL, EMAIL, WHATSAPP) em cada interação, com a invariante do D8 (equipe só ACORDU, contato nunca); `canal` na conversa da equipe e na do portal, com o rótulo em cada mensagem; migration `CanalDasMensagens` (pelo bot) com o preenchimento das anteriores (do contato → PORTAL, da equipe → ACORDU).
 
 ## Marco em andamento
 
-- **F15 — Omnichannel A** (#183; [spec](specs/F15-omnichannel-email/spec.md), [design](specs/F15-omnichannel-email/design.md)): aguardando o G2. Provisionamento manual do Daniel (DNS/MX do subdomínio de entrada, Email Routing, secret do Worker) no PR que o design indica.
+- **F15 — Omnichannel A** (#183; [spec](specs/F15-omnichannel-email/spec.md), [design](specs/F15-omnichannel-email/design.md)): G2 aprovado (PR #234, recomendações de todas as D e das 11 perguntas; ADR 0016 aceito). 15 PRs em série (F15a a F15o); o F15a está em revisão. Provisionamento manual do Daniel (DNS/MX do subdomínio de entrada, Email Routing, secret do Worker) no PR que o design indica.
 
 ## Marco concluído
 

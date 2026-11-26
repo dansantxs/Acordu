@@ -1,7 +1,7 @@
 {
   "marco": "F15",
   "issue": 183,
-  "etapa": "IMPLEMENTANDO",
+  "etapa": "AGUARDANDO_MERGE",
   "branch": "feat/F15a-canal-mensagem",
   "pr": {
     "id": "F15a",
@@ -24,7 +24,9 @@
     "G3": []
   },
   "ressalvas": [
-    "Ver notas/plano-2.md (menores 4 a 11) para os PRs de código"
+    "Testador: nada verifica que o Up da migration CanalDasMensagens chama ScriptsDeDados.PreencherCanalDasInteracoes; conferir AddColumn nullable:false defaultValue \"\" e a linha do Sql no fim do Up",
+    "Testes C# validados só pela CI (sem SDK na sessão)",
+    "Revisor: em Mensagens.tsx o comentário \"Peças de mensagem com @menções e anexos\" ficou separado de TextoComMencoes pelo CanalMensagem novo (forma)"
   ],
   "bloqueios": [],
   "atualizadoEm": "2026-11-26",

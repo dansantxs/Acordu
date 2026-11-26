@@ -128,10 +128,11 @@ class Interacao <<aggregate root>> {
   +AutorEhCliente: bool
   +Texto: string?
   +Visibilidade: Visibilidade
+  +Canal: CanalMensagem
   +RegistradaEm
   +Anexos: Anexo[]
   --
-  +Registrar(..., anexos: NovoAnexo[], politica: PoliticaAnexos, agora): Interacao
+  +Registrar(..., visibilidade, canal, anexos: NovoAnexo[], politica: PoliticaAnexos, agora): Interacao
 }
 
 class Tarefa <<aggregate root>> {
@@ -381,6 +382,7 @@ Regras:
 - **Invariantes:** texto (≤ 10.000) ou ao menos um anexo; autor cliente ⇒ visibilidade EXTERNA obrigatória; anexos validados contra a `PoliticaAnexos` (tamanho máximo, content types permitidos, máximo por interação), montada pela Application a partir da configuração (padrão do contrato da API: 5 anexos de até 20 MB) → `AnexoInvalidoException`; nome de arquivo sem caminho (`/`, `\`, `..`).
 - O arquivo é enviado ao object storage antes; o domínio recebe `NovoAnexo` (nome, tipo, tamanho, chave). Imutável depois de registrada no v1.
 - Anexo guarda metadados + `ChaveArmazenamento`; o binário vive no object storage (ADR 0001 — serviços complementares).
+- **Canal** (F15a, RF-SOL-14; ADR 0016, item 6): `CanalMensagem` (`ACORDU`, `PORTAL`, `EMAIL`, `WHATSAPP`), por onde a mensagem entrou, independente da `OrigemSolicitacao` (a solicitação aberta no portal pode receber resposta por e-mail). Obrigatório no `Registrar`; invariante: autor da equipe só `ACORDU`, contato nunca `ACORDU` (`ArgumentException` em `canal`; valor fora do enum, `ArgumentOutOfRangeException`). A exceção da nota do sistema (autor `AutoresDoSistema`, INTERNA com o canal da entrada) entra no F15g. Quem grava: a equipe pelo app (`ComandosSolicitacao`, os dados fictícios) → `ACORDU`; o contato pelo portal, com conta ou link (`ComandosPortal`) → `PORTAL`. As mensagens anteriores ao F15 foram preenchidas pela migration pelo autor: do contato → `PORTAL`, da equipe → `ACORDU` (F15-62).
 - **Emite:** `InteracaoRegistrada` (com `Visibilidade` e `AutorEhCliente`) — gatilho das regras do §3.1 e das notificações.
 
 #### 4.5.1 Menções (marco 14b, RF-COL-02)

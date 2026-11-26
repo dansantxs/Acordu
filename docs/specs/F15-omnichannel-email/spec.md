@@ -116,9 +116,9 @@ Termos usados nos cenários:
 
 | Id | Dado | Quando | Então | Teste |
 |---|---|---|---|---|
-| F15-60 | solicitação com mensagens da equipe, do portal e do e-mail | a equipe abre a conversa | cada mensagem mostra o canal (Acordu, Portal ou E-mail); a API da conversa da equipe traz o canal de cada mensagem | — |
-| F15-61 | a mesma solicitação | o contato abre a conversa no portal | cada mensagem EXTERNA mostra o canal; nenhuma INTERNA aparece (RF-POR-04, pergunta 11) | — |
-| F15-62 | mensagens gravadas antes do F15 | a conversa abre | as do contato aparecem no canal Portal e as da equipe no canal Acordu | — |
+| F15-60 | solicitação com mensagens da equipe, do portal e do e-mail | a equipe abre a conversa | cada mensagem mostra o canal (Acordu, Portal ou E-mail); a API da conversa da equipe traz o canal de cada mensagem | `CanalDasMensagensTests.InteracoesDaEquipe_MensagensDosTresCanais_CadaUmaComOSeuCanal`; `InteracaoTests.Registrar_DaEquipePeloAcordu_GuardaOCanal` e vizinhos; `PersistenciaTests.Interacao_CanalGravadoComoTextoERelido`; `conversa.test.tsx` (cada mensagem mostra o canal) |
+| F15-61 | a mesma solicitação | o contato abre a conversa no portal | cada mensagem EXTERNA mostra o canal; nenhuma INTERNA aparece (RF-POR-04, pergunta 11) | `CanalDasMensagensTests.InteracoesDoPortal_SoAsExternas_CadaUmaComOSeuCanal`, `InteracoesDoPortal_ContatoDeOutroCliente_404`, `AbrirNoPortalComAnexo_AMensagemDaAberturaSaiNoCanalPortal`; `detalhe.test.tsx` do portal (cada mensagem mostra o canal) |
+| F15-62 | mensagens gravadas antes do F15 | a conversa abre | as do contato aparecem no canal Portal e as da equipe no canal Acordu | `MigrationsTests.PreenchimentoDoF15a_MensagensAnteriores_DoContatoNoPortalEDaEquipeNoAcordu` (o script da migration) |
 
 ### Triagem dos e-mails não identificados (F15m; F15-71, F15-72, F15-76, F15-77, F15-79 e F15-107 no F15k; F15-73, F15-74, F15-78, F15-82, F15-84, F15-99 e F15-105 no F15l; F15-70 e F15-103 no F15h)
 
