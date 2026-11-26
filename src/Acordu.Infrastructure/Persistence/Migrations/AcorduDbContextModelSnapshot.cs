@@ -1350,6 +1350,11 @@ namespace Acordu.Infrastructure.Persistence.Migrations
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("cancelada_em");
 
+                    b.Property<string>("CodigoEntrada")
+                        .HasMaxLength(8)
+                        .HasColumnType("character varying(8)")
+                        .HasColumnName("codigo_entrada");
+
                     b.Property<DateTimeOffset>("CriadoEm")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("criado_em");
@@ -1399,6 +1404,10 @@ namespace Acordu.Infrastructure.Persistence.Migrations
                         .HasColumnType("character varying(200)")
                         .HasColumnName("nome_portal");
 
+                    b.Property<bool>("RecebimentoEmail")
+                        .HasColumnType("boolean")
+                        .HasColumnName("recebimento_email");
+
                     b.Property<string>("ResponderPara")
                         .HasMaxLength(254)
                         .HasColumnType("character varying(254)")
@@ -1426,6 +1435,10 @@ namespace Acordu.Infrastructure.Persistence.Migrations
 
                     b.HasKey("Id")
                         .HasName("pk_tenants");
+
+                    b.HasIndex("CodigoEntrada")
+                        .IsUnique()
+                        .HasDatabaseName("ix_tenants_codigo_entrada");
 
                     b.ToTable("tenants", (string)null);
                 });
