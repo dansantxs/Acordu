@@ -405,6 +405,14 @@
           }
         }
       },
+      "CanalMensagem": {
+        "enum": [
+          "ACORDU",
+          "PORTAL",
+          "EMAIL",
+          "WHATSAPP"
+        ]
+      },
       "ClientePortalDto": {
         "required": [
           "id",
@@ -564,6 +572,7 @@
           "texto",
           "autorNome",
           "daEquipe",
+          "canal",
           "registradaEm",
           "anexos"
         ],
@@ -584,6 +593,9 @@
           },
           "daEquipe": {
             "type": "boolean"
+          },
+          "canal": {
+            "$ref": "#/components/schemas/CanalMensagem"
           },
           "registradaEm": {
             "type": "string",
