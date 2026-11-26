@@ -98,3 +98,24 @@ test('F15b (design do F15, D2): o deploy exige EMAIL_ENTRADA_DOMINIO, um nome de
     assert.match(deploy, /variaveis\["EmailEntrada__Dominio"\] = dominio_entrada\n/);
     assert.ok(deploy.indexOf('EMAIL_ENTRADA_DOMINIO (variável obrigatória') < deploy.indexOf('- name: Nova revisão'));
 });
+
+test('F15d (design do F15, D5): o mesmo API_EMAIL_ENTRADA_TOKEN vai à API e ao Worker da entrada, opcional com aviso', () => {
+    const deploy = ler('.github/workflows/deploy.yml').replace(/\r\n/g, '\n');
+    assert.match(deploy, /EmailEntrada__Token: \$\{\{ secrets\.API_EMAIL_ENTRADA_TOKEN \}\}/);
+    assert.match(deploy, /TOKEN_ENTRADA: \$\{\{ secrets\.API_EMAIL_ENTRADA_TOKEN \}\}/);
+    // Opcional: não está entre as obrigatórias, vai à API quando existe e, sem ele, o deploy avisa que a rota responde 404.
+    assert.match(deploy, /avisos = webhooks \+ \[[^\]]*"EmailEntrada__Token"[^\]]*\]/);
+    assert.doesNotMatch(deploy.match(/obrigatorias = \[[^\]]*\]/)[0], /EmailEntrada__Token/);
+    assert.match(deploy, /::warning::Sem API_EMAIL_ENTRADA_TOKEN: a rota de entrada por e-mail responde 404/);
+    // O Worker sobe depois da borda (chama a API por ela) e, como a vigia, não segura o deploy.
+    const passo = deploy.indexOf('- name: Worker da entrada por e-mail');
+    assert.ok(passo > deploy.indexOf('- name: Worker da borda'));
+    assert.match(deploy.slice(passo, passo + 400), /continue-on-error: true\n\s+working-directory: infra\/cloudflare\/email-entrada/);
+    assert.match(deploy, /wrangler secret put TOKEN_ENTRADA/);
+});
+
+test('F15d: o Worker da entrada por e-mail roda na CI como os outros Workers', () => {
+    const ci = ler('.github/workflows/ci.yml');
+    assert.match(ci, /worker: \[api-borda, vigia, email-entrada\]/);
+    assert.match(ler('scripts/ci-local.sh'), /for worker in api-borda vigia email-entrada; do/);
+});

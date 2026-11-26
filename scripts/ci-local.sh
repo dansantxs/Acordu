@@ -141,7 +141,7 @@ specs() {
 
 borda() {
     local worker
-    for worker in api-borda vigia; do
+    for worker in api-borda vigia email-entrada; do
         (
             cd "infra/cloudflare/$worker" &&
                 pnpm install --frozen-lockfile --prefer-offline &&
