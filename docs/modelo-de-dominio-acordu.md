@@ -239,6 +239,13 @@ class ConversaPorEmail <<aggregate root>> {
   +TokenValido(token): bool
 }
 
+class EmailRecebido <<aggregate root>> {
+  +Id, TenantId
+  +ChaveEntrada, RemetenteHash?, RecebidoEm, Resultado
+  --
+  +Registrar(..., chaveEntrada, remetenteHash, resultado, agora)
+}
+
 class CalendarioUtil <<aggregate root>> {
   +TenantId (chave)
   +FusoHorario: string
@@ -573,6 +580,14 @@ Dados da Nebrys, não do prestador: sem `TenantId`, sem filtro global e sem entr
 - Quem pediu para entrar enquanto o cadastro é por convite. Tabela `entradas_lista_espera`, global (a empresa ainda não existe), **sem referência a empresa** (ADR 0014, item 7): `Id`, `Nome` (até 200), `Email` (normalizado por `Common.Email`, **índice único**), `NomeEmpresa` (até 200), `Mensagem` (opcional, até 1.000; vazia vira nula), `CriadaEm` (a chegada, ordem da lista) e `ConvidadaEm` (nula enquanto aguarda). Concorrência otimista por `xmin`.
 - `Registrar(id, nome, email, nomeEmpresa, mensagem, agora)` valida na ordem do formulário: obrigatório vazio ou e-mail inválido → `ArgumentException` no campo (F14-55). `Situacao` (`SituacaoEntradaListaEspera`, não gravada): `AGUARDANDO` sem `ConvidadaEm`, `CONVIDADA` com. `Convidar(agora)` grava `ConvidadaEm`; já convidada → `TransicaoInvalidaException`.
 - A inscrição pública (`Application.ListaEspera`) grava pela `RegistroListaEspera` da Infrastructure, que insere e deixa o índice único decidir: e-mail que já está não duplica nem muda a entrada existente (F14-53). A área da Nebrys (`Application.Nebrys`) convida a partir da entrada (o convite sai pelo mesmo caminho da emissão direta, com `EntradaListaEsperaId`, e a entrada fica convidada na mesma gravação; F14-76) e descarta, apagando a entrada (F14-77): a chave estrangeira do convite vira nula (`ON DELETE SET NULL`) e o convite continua. Só essas features e as consultas da área usam o tipo (teste de arquitetura).
+
+### 4.15 Entrada por e-mail (RF-SOL-11, F15d; design do F15, D6; ADR 0016, item 8)
+
+#### EmailRecebido: registro de entrada
+- Raiz por tenant, **sem cliente** (o remetente pode nem ser contato), tabela `emails_recebidos`. Um por e-mail aceito para a empresa: `ChaveEntrada` (SHA-256 em hex minúsculo do `Message-ID` normalizado e do destino, ou do MIME inteiro e do destino quando não há `Message-ID`; índice único `(tenant_id, chave_entrada)`), `RemetenteHash` (SHA-256 do e-mail do `From` normalizado; nulo quando o `From` não tem um endereço só), `RecebidoEm` (o instante da recepção, em UTC; nunca o `Date` do e-mail) e `Resultado` (`ResultadoEntradaEmail`: `SOLICITACAO`, `MENSAGEM`, `TRIAGEM`, `IGNORADO`, `RETIDO`). Nada do assunto, do texto nem dos endereços em claro: `Registrar` recusa (`ArgumentException`) o que não for hash.
+- Serve à idempotência (a repetição da mesma entrega esbarra no índice e não grava de novo; a corrida de duas é reconhecida pelo nome do índice) e, no F15n, às contagens dos limites. Os ids do que o e-mail criou (solicitação, mensagem, item da triagem) e os anexos recusados entram nos PRs que os criam.
+- Gravado pela Application (`ComandosEntradaEmail`) num escopo com o tenant do destino fixado, depois da admissão (`AdmissaoDeEntrada`): empresa desconhecida, só leitura ou com o recebimento desligado não ganha registro (F15-05, F15-19, F15-22). Até o F15f, todo e-mail aceito fica `IGNORADO`.
+- Dado da empresa no só leitura (a guarda recusa) e dado no expurgo do cadastro; some no contexto de contato. Retenção de 7 dias pelo diário (`EmailEntrada__DiasRegistro`, F15e).
 
 ## 5. Value objects
 

@@ -97,7 +97,8 @@ acordu/
 │  │  │  └─ Canais/                    # porta de canal dos avisos ao contato, seletor pela origem e o canal de e-mail (F15c, ADR 0016 item 7)
 │  │  ├─ Configuracoes/
 │  │  ├─ Empresas/                     # situação da empresa: prazos e vencimento do teste (F14)
-│  │  ├─ EntradaEmail/                 # entrada por e-mail (F15, ADR 0016): configuração do domínio de entrada (F15b), endereço da conversa (F15c)
+│  │  ├─ EntradaEmail/                 # entrada por e-mail (F15, ADR 0016): configuração do domínio de entrada (F15b), endereço da conversa (F15c),
+│  │  │                                # destino → empresa, admissão, chave de idempotência e registro de entrada (F15d)
 │  │  ├─ Exemplos/                     # dados de exemplo (F14r), a semeadura da demonstração (F14s) e o demonstracao.json embutido: os dados fictícios
 │  │  │                                # únicos, lidos também pelo bot do manual (apps/web/ajuda) (D13 do F14)
 │  │  ├─ Nebrys/                       # área da Nebrys: sessão de operação, consultas e DTOs próprios, sem tipo de negócio (ADR 0014)
@@ -114,17 +115,21 @@ acordu/
 │  │  │  ├─ Nebrys/                    # consultas da área da Nebrys (ponto revisado de IgnoreQueryFilters, ADR 0014)
 │  │  │  ├─ Exemplos/                  # o que é exemplo e a remoção, no tenant do contexto (F14r)
 │  │  │  ├─ Demonstracao/              # a empresa de demonstração da área: criar, restaurar, indicar (F14s)
-│  │  │  ├─ EntradaEmail/              # entrada por e-mail (F15): unicidade do código de entrada (F15b), conversa da solicitação (F15c)
+│  │  │  ├─ EntradaEmail/              # entrada por e-mail (F15): unicidade do código de entrada (F15b), conversa da solicitação (F15c),
+│  │  │  │                             # consulta global do código (ponto revisado de IgnoreQueryFilters) e registro de entrada (F15d)
 │  │  │  └─ Migrations/
 │  │  ├─ MultiTenancy/                 # filtros globais por TenantId e ClienteId
 │  │  ├─ Armazenamento/                # object storage S3-compatível (R2) + URLs assinadas
 │  │  ├─ Email/                        # Resend + outbox
+│  │  │  └─ Entrada/                   # e-mail recebido: leitura do MIME (MimeKit, F15d) e o recebedor da rota de entrada
 │  │  ├─ Agendamento/                  # jobs idempotentes: recorrências, fechamento automático, alertas de SLA
 │  │  ├─ Operacao/                     # avisos ao Discord, ocorrências de erro (fora dos tenants, ADR 0012)
 │  │  ├─ Seguranca/                    # Identity, JWT, tokens de link, lista de e-mails descartáveis (dominios-descartaveis.txt, embutida)
 │  │  └─ DependencyInjection.cs
 │  ├─ Acordu.Api/                      # COMPOSITION ROOT
 │  │  ├─ Endpoints/                    # minimal API por feature
+│  │  ├─ Jobs/                         # /internal/jobs/* (Cloud Scheduler)
+│  │  ├─ EntradaEmail/                 # /internal/email/entrada (Worker da entrada por e-mail, F15d)
 │  │  │  └─ Portal/                    # /api/v1/portal/*
 │  │  ├─ Middleware/                   # contexto de tenant/cliente, Problem Details
 │  │  ├─ Program.cs
@@ -150,7 +155,8 @@ acordu/
 ├─ infra/
 │  └─ cloudflare/
 │     ├─ api-borda/                    # Worker de api.acordu.app.br: proxy para o Cloud Run + token de origem
-│     └─ vigia/                        # Worker da vigia: health a cada 5 min, queda e volta em #alertas (ADR 0012)
+│     ├─ vigia/                        # Worker da vigia: health a cada 5 min, queda e volta em #alertas (ADR 0012)
+│     └─ email-entrada/                # Email Worker do catch-all de entrada.acordu.app.br: MIME → /internal/email/entrada (F15d, ADR 0016)
 ├─ scripts/
 │  ├─ conferir-specs.mjs               # estrutura das specs na CI (processo.md), com conferir-specs.test.mjs
 │  ├─ conferir-fabrica.test.mjs        # regras do .claude/settings.json e modelos dos agentes
@@ -230,6 +236,7 @@ Testes obrigatórios nos níveis de integração **e** API: cross-tenant (RNF-SE
 - Nada é compartilhado com outros produtos (ADR 0010). A API vai como imagem para o Cloud Run; o SPA, como estático para o Cloudflare Pages; a borda da API, como Worker.
 - O SPA chama a API em `VITE_URL_API` (`https://api.acordu.app.br` em produção; vazio em dev, com o proxy do Vite).
 - Jobs agendados ficam em `Infrastructure/Agendamento` e são expostos pela Api em `/internal/jobs/*`; o disparo é o Cloud Scheduler.
+- A entrada por e-mail (F15d, ADR 0016) chega pelo Cloudflare Email Routing ao Worker `infra/cloudflare/email-entrada`, que chama `/internal/email/entrada` (Api `EntradaEmail/`, Infrastructure `Email/Entrada`). O MimeKit (`MimeKit.Core`, em `Directory.Packages.props`) é biblioteca de protocolo, não SDK de provedor (ADR 0010 §10).
 - Detalhes: `deploy-ci-acordu-v1.md` e `setup-infra-acordu.md`.
 
 ---
