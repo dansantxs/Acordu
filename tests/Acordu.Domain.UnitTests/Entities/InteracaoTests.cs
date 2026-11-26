@@ -198,7 +198,7 @@ public sealed class InteracaoTests
     {
         var acao = () => Registrar(canal: canal);
 
-        acao.Should().Throw<ArgumentException>().WithParameterName("canal");
+        acao.Should().Throw<ArgumentException>().WithParameterName(nameof(canal));
     }
 
     [Fact] // ADR 0016, item 6
