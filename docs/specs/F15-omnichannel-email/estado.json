@@ -4,8 +4,8 @@
   "etapa": "AGUARDANDO_G2",
   "branch": "docs/F15-spec",
   "pr": {
-    "id": null,
-    "numero": null
+    "id": "G2",
+    "numero": 234
   },
   "feitos": [],
   "contadores": {
