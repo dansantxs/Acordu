@@ -23,6 +23,7 @@ Cada informação tem um lugar só. Na dúvida, siga esta tabela.
 | Formato de commit e de PR | `docs/convencoes-commit-acordu.md`, `docs/convencoes-pr-acordu.md` | raramente |
 | Interface da API | contrato + `openapi/*.json` | a API muda |
 | Fluxo do sistema em BPMN (quem faz o quê, da entrada da empresa ao fechamento da solicitação) | `docs/fluxo-acordu.bpmn` e o `.svg` do README, gerados por `scripts/gerar-fluxo-bpmn.py` (a CI confere a sincronia) | um PR muda um passo, um papel ou um status do fluxo |
+| Retrato do produto para quem chega: Status e Roadmap | `README.md` | um marco começa (PR de spec e design) ou termina (último PR da divisão) |
 | Visão geral: em revisão, marco atual, próximos passos | `docs/estado.md` | a cada PR |
 | Histórico do que já foi feito | git, PRs e o registro dos designs | sozinho |
 
@@ -67,13 +68,13 @@ Depois do G3, o orquestrador segue para o próximo PR da divisão (volta à etap
 Template `docs/specs/_template/spec.md`. Cenários **dado / quando / então**, numerados `<marco>-NN`, em tabelas com a coluna Id; o título de cada tabela pode nomear o PR da divisão que a entrega (é só rótulo: a divisão fica no design). Um comportamento por cenário, com permissão, isolamento entre tenants e clientes e erro sempre que se aplicam. Requisito que falta na ERS entra na ERS no mesmo PR. Dúvida de requisito volta ao Daniel (NEEDS_CLARIFICATION); o analista não inventa.
 
 ### 3.3 Design
-Template `docs/specs/_template/design.md`. Decisões D com opções e recomendação justificada, impacto em cada documento ("nenhum" também é resposta), divisão em PRs pequenos e independentes com os cenários de cada um, e o registro. Spec e design vão no mesmo PR; antes de abri-lo, o orquestrador muda o status da spec para `Aprovada` (o merge é a aprovação) e o G2 aprova os dois e as escolhas das D.
+Template `docs/specs/_template/design.md`. Decisões D com opções e recomendação justificada, impacto em cada documento ("nenhum" também é resposta), divisão em PRs pequenos e independentes com os cenários de cada um, e o registro. Spec e design vão no mesmo PR; antes de abri-lo, o orquestrador muda o status da spec para `Aprovada` (o merge é a aprovação) e põe o marco como em andamento no Status e no Roadmap do `README.md`, e o G2 aprova os dois e as escolhas das D.
 
 ### 3.4 Desenvolvimento
 Um PR da divisão por vez, numa branch a partir da `main`: Domain → Application → Infrastructure → Api → web, testes de cada cenário, documentos afetados no mesmo PR. Dúvida técnica o desenvolvedor decide e registra como premissa no `notas/`; cenário que se mostra errado volta como NEEDS_CLARIFICATION e reabre o G2 só para aquela mudança.
 
 ### 3.5 Testes e revisão
-O testador escreve o que falta para cada cenário do PR verificar o "então". O revisor dá parecer `aprovado`, `aprovado com ressalvas` (as ressalvas vão para a descrição do PR) ou `reprovado`. Reprovado ou defeito do testador volta ao desenvolvedor e passa de novo pelo testador e pelo revisor. O testador preenche a coluna Teste; o orquestrador confere, preenche o registro do design, faz os commits por camada e abre o PR com o `/pr`.
+O testador escreve o que falta para cada cenário do PR verificar o "então". O revisor dá parecer `aprovado`, `aprovado com ressalvas` (as ressalvas vão para a descrição do PR) ou `reprovado`. Reprovado ou defeito do testador volta ao desenvolvedor e passa de novo pelo testador e pelo revisor. O testador preenche a coluna Teste; o orquestrador confere, preenche o registro do design, faz os commits por camada e abre o PR com o `/pr`. No último PR da divisão, o revisor confere também a spec `Concluída` e o marco como concluído no Status e no Roadmap do `README.md`.
 
 ### 3.6 Implantação
 `/deploy` confere o `CI ok` da `main`, mostra o que entra desde o último deploy e, só com o "pode" do Daniel, dispara o `deploy.yml`, acompanha e roda as conferências pendentes das specs (verificações marcadas "no primeiro deploy"). Falha: o workflow já faz rollback; o comando relata e abre issue `bug`.
