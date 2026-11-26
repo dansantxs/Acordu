@@ -126,6 +126,25 @@ public sealed class Tenant
     /// </summary>
     public IReadOnlyCollection<string> AvisosSituacao => _avisosSituacao;
 
+    /// <summary>
+    /// Código do endereço de entrada por e-mail (RF-SOL-11, F15-01; design do F15, D2 e D9): sorteado na criação
+    /// (<see cref="CodigoDeEntrada"/>), único entre todas as empresas (índice único) e não derivado do nome. O endereço é
+    /// <c>{código}@{domínio de entrada}</c>, com o domínio da configuração (a Application monta). Nulo só na empresa de
+    /// demonstração (F15-96); as anteriores ao F15 ganham o código na migration.
+    /// </summary>
+    public string? CodigoEntrada { get; private set; }
+
+    /// <summary>
+    /// Recebimento por e-mail ligado (F15-03, F15-04): só com ele o e-mail ao endereço de entrada vira solicitação ou
+    /// mensagem. Nasce desligado (pergunta 1 do F15); muda por <see cref="LigarRecebimentoEmail"/> e
+    /// <see cref="DesligarRecebimentoEmail"/>.
+    /// </summary>
+    public bool RecebimentoEmail { get; private set; }
+
+    public const string MensagemRecebimentoIndisponivel = "Recebimento por e-mail indisponível.";
+
+    public const string MensagemDemonstracaoSemRecebimento = "A empresa de demonstração não recebe e-mails.";
+
     /// <summary>VENCIDA ou CANCELADA: a empresa lê e não grava (RF-EMP-02).</summary>
     public bool SomenteLeitura => Situacao.SomenteLeitura();
 
@@ -149,6 +168,7 @@ public sealed class Tenant
             criadoEm + duracaoDoTeste)
         {
             Documento = Common.Documento.Normalizar(documento, nameof(documento)),
+            CodigoEntrada = CodigoDeEntrada.Sortear(),
         };
     }
 
@@ -191,6 +211,7 @@ public sealed class Tenant
         LogoChave = null;
         ResponderPara = null;
         SlaPadrao = null;
+        RecebimentoEmail = false;
     }
 
     /// <summary>
@@ -447,6 +468,50 @@ public sealed class Tenant
         Nome = novoNome;
         ResponderPara = endereco;
         SlaPadrao = slaPadrao;
+    }
+
+    /// <summary>
+    /// Liga o recebimento por e-mail (F15-03). Sem endereço de entrada (a demonstração, F15-96) →
+    /// <see cref="TransicaoInvalidaException"/>. Ligar o que já está ligado não muda nada. A falta do domínio de entrada na
+    /// configuração (F15-94) é conferida antes, pela Application.
+    /// </summary>
+    public void LigarRecebimentoEmail()
+    {
+        ExigirEnderecoDeEntrada();
+        RecebimentoEmail = true;
+    }
+
+    /// <summary>Desliga o recebimento por e-mail (F15-04); na demonstração → <see cref="TransicaoInvalidaException"/>.</summary>
+    public void DesligarRecebimentoEmail()
+    {
+        if (Demonstracao)
+            throw new TransicaoInvalidaException(MensagemDemonstracaoSemRecebimento);
+        RecebimentoEmail = false;
+    }
+
+    /// <summary>
+    /// Troca o código de entrada por outro sorteado: só na criação da empresa, quando o índice único recusa o primeiro
+    /// (colisão, design do F15, D2). Sem código (a demonstração) → <see cref="TransicaoInvalidaException"/>.
+    /// </summary>
+    public void SortearOutroCodigoEntrada()
+    {
+        ExigirEnderecoDeEntrada();
+        string novo;
+        do
+        {
+            novo = CodigoDeEntrada.Sortear();
+        }
+        while (string.Equals(novo, CodigoEntrada, StringComparison.Ordinal));
+
+        CodigoEntrada = novo;
+    }
+
+    private void ExigirEnderecoDeEntrada()
+    {
+        if (Demonstracao)
+            throw new TransicaoInvalidaException(MensagemDemonstracaoSemRecebimento);
+        if (CodigoEntrada is null)
+            throw new TransicaoInvalidaException(MensagemRecebimentoIndisponivel);
     }
 
     /// <summary>Troca (ou remove, com nulo) o logotipo; o arquivo já está no storage.</summary>
