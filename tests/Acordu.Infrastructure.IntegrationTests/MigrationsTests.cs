@@ -1,7 +1,9 @@
+using Acordu.Domain.Common;
 using Acordu.Domain.Entities;
 using Acordu.Domain.Enums;
 using Acordu.Domain.ValueObjects;
 using Acordu.Infrastructure.Persistence;
+using Acordu.Infrastructure.Persistence.EntradaEmail;
 using Microsoft.EntityFrameworkCore;
 
 namespace Acordu.Infrastructure.IntegrationTests;
@@ -148,6 +150,121 @@ public sealed class MigrationsTests(BancoFixture banco)
         canais[daEquipe.Id].Should().Be(CanalMensagem.Acordu);
         canais[doContato.Id].Should().Be(CanalMensagem.Portal);
         canais[porEmail.Id].Should().Be(CanalMensagem.Email, "o preenchimento só pega as linhas que a coluna nova recebeu vazias");
+    }
+
+    [Fact] // F15-01
+    public async Task PreenchimentoDoF15b_EmpresasAnteriores_CodigoDeEntradaUnicoDoAlfabeto_DemonstracaoSem()
+    {
+        var anteriores = Enumerable.Range(0, 3).Select(_ => Guid.NewGuid()).ToList();
+        var demonstracao = Guid.NewGuid();
+        var nova = Guid.NewGuid();
+        string? codigoDaNova;
+        foreach (var anterior in anteriores)
+        {
+            await using var db = banco.DaEquipe(anterior);
+            db.Add(Tenant.Criar(anterior, "Estúdio Traço", Dados.Agora, Guid.NewGuid(), TimeSpan.FromDays(30)));
+            await db.SaveChangesAsync();
+            // Como a migration encontra as empresas anteriores ao F15: a coluna nova vazia.
+            await db.Database.ExecuteSqlAsync($"UPDATE tenants SET codigo_entrada = NULL WHERE id = {anterior}");
+        }
+
+        await using (var db = banco.DaEquipe(demonstracao))
+        {
+            db.Add(Tenant.CriarDemonstracao(demonstracao, "Estúdio Aurora", Dados.Agora, Guid.NewGuid()));
+            await db.SaveChangesAsync();
+        }
+
+        await using (var db = banco.DaEquipe(nova))
+        {
+            var tenant = Tenant.Criar(nova, "Já do F15", Dados.Agora, Guid.NewGuid(), TimeSpan.FromDays(30));
+            codigoDaNova = tenant.CodigoEntrada;
+            db.Add(tenant);
+            await db.SaveChangesAsync();
+        }
+
+        await using (var sistema = banco.Contexto(Quem.Sistema()))
+            await sistema.Database.ExecuteSqlRawAsync(ScriptsDeDados.PreencherCodigoEntradaDasEmpresas);
+
+        var codigos = new List<string?>();
+        foreach (var anterior in anteriores)
+        {
+            await using var leitura = banco.DaEquipe(anterior);
+            var depois = await leitura.Tenants.AsNoTracking().SingleAsync();
+            depois.RecebimentoEmail.Should().BeFalse("o recebimento nasce desligado (F15-01)");
+            codigos.Add(depois.CodigoEntrada);
+        }
+
+        codigos.Should().OnlyContain(c => CodigoDeEntrada.Valido(c), "8 caracteres do alfabeto sem ambíguos (design D2)")
+            .And.OnlyHaveUniqueItems();
+        codigos.Should().NotContain(c => c!.Contains("traco", StringComparison.Ordinal));
+        await using (var leitura = banco.DaEquipe(demonstracao))
+            (await leitura.Tenants.AsNoTracking().SingleAsync()).CodigoEntrada.Should().BeNull("a demonstração não tem endereço (F15-96)");
+        await using (var leitura = banco.DaEquipe(nova))
+            (await leitura.Tenants.AsNoTracking().SingleAsync()).CodigoEntrada.Should().Be(codigoDaNova, "só as linhas vazias");
+
+        await using var todas = banco.Contexto(Quem.Sistema());
+        var repetidos = await todas.Database
+            .SqlQuery<int>($"SELECT count(*)::int AS \"Value\" FROM (SELECT codigo_entrada FROM tenants WHERE codigo_entrada IS NOT NULL GROUP BY codigo_entrada HAVING count(*) > 1) r")
+            .SingleAsync();
+        repetidos.Should().Be(0, "o código é único entre todas as empresas");
+    }
+
+    [Fact] // F15-01, design D2
+    public async Task CodigoDeEntrada_RepetidoEmOutraEmpresa_IndiceUnicoRecusa()
+    {
+        var primeira = Tenant.Criar(Guid.NewGuid(), "Estúdio Traço", Dados.Agora, Guid.NewGuid(), TimeSpan.FromDays(30));
+        await using (var db = banco.DaEquipe(primeira.Id))
+        {
+            db.Add(primeira);
+            await db.SaveChangesAsync();
+        }
+
+        var segunda = Tenant.Criar(Guid.NewGuid(), "Padaria Bom Grão", Dados.Agora, Guid.NewGuid(), TimeSpan.FromDays(30));
+        typeof(Tenant).GetProperty(nameof(Tenant.CodigoEntrada))!.SetValue(segunda, primeira.CodigoEntrada);
+        await using var outra = banco.DaEquipe(segunda.Id);
+        outra.Add(segunda);
+
+        var gravar = () => outra.SaveChangesAsync();
+
+        var excecao = (await gravar.Should().ThrowAsync<DbUpdateException>()).Which;
+        CodigosDeEntrada.Disputa(excecao).Should().BeTrue("o cadastro reconhece a colisão e sorteia outro código");
+    }
+
+    [Fact] // F15-01, design D2
+    public async Task CodigoDeEntrada_ColisaoNaTransacao_SorteiaOutroEGravaSemPerderOAnterior()
+    {
+        var a = Tenant.Criar(Guid.NewGuid(), "Estúdio Traço", Dados.Agora, Guid.NewGuid(), TimeSpan.FromDays(30));
+        await using (var db = banco.DaEquipe(a.Id))
+        {
+            db.Add(a);
+            await db.SaveChangesAsync();
+        }
+
+        var anterior = Tenant.Criar(Guid.NewGuid(), "Gravada antes", Dados.Agora, Guid.NewGuid(), TimeSpan.FromDays(30));
+        var b = Tenant.Criar(Guid.NewGuid(), "Padaria Bom Grão", Dados.Agora, Guid.NewGuid(), TimeSpan.FromDays(30));
+        typeof(Tenant).GetProperty(nameof(Tenant.CodigoEntrada))!.SetValue(b, a.CodigoEntrada);
+        await using (var sistema = banco.Contexto(Quem.Sistema()))
+        {
+            // Como o cadastro: tudo numa transação, e a colisão chega depois de outra gravação já feita nela.
+            await using var transacao = await sistema.Database.BeginTransactionAsync();
+            sistema.Add(anterior);
+            await sistema.SaveChangesAsync();
+            sistema.Add(b);
+
+            var colisao = await ((Func<Task>)(() => sistema.SaveChangesAsync())).Should().ThrowAsync<DbUpdateException>();
+            CodigosDeEntrada.Disputa(colisao.Which).Should().BeTrue();
+            b.SortearOutroCodigoEntrada();
+            await sistema.SaveChangesAsync();
+            await transacao.CommitAsync();
+        }
+
+        await using var leitura = banco.Contexto(Quem.Sistema());
+        var gravadas = await leitura.Tenants.AsNoTracking().Where(t => t.Id == a.Id || t.Id == b.Id || t.Id == anterior.Id).ToListAsync();
+        gravadas.Should().HaveCount(3, "a gravação anterior da transação sobreviveu à colisão");
+        var codigoA = gravadas.Single(t => t.Id == a.Id).CodigoEntrada;
+        var codigoB = gravadas.Single(t => t.Id == b.Id).CodigoEntrada;
+        codigoB.Should().NotBe(codigoA);
+        CodigoDeEntrada.Valido(codigoB).Should().BeTrue();
     }
 
     [Fact]
