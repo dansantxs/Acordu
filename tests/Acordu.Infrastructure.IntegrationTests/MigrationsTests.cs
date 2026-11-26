@@ -261,13 +261,17 @@ public sealed class MigrationsTests(BancoFixture banco)
             await transacao.CommitAsync();
         }
 
-        await using var leitura = banco.Contexto(Quem.Sistema());
-        var gravadas = await leitura.Tenants.AsNoTracking().Where(t => t.Id == a.Id || t.Id == b.Id).ToListAsync();
-        gravadas.Should().HaveCount(2);
-        (await leitura.Set<DocumentoTeste>().AsNoTracking().CountAsync(d => d.Hash == anterior.Hash))
-            .Should().Be(1, "a gravação anterior da transação sobreviveu à colisão");
-        var codigoA = gravadas.Single(t => t.Id == a.Id).CodigoEntrada;
-        var codigoB = gravadas.Single(t => t.Id == b.Id).CodigoEntrada;
+        // Cada empresa pela própria equipe (o filtro global do Tenant), e o registro global pelo SQL.
+        string? codigoA, codigoB;
+        await using (var leituraA = banco.DaEquipe(a.Id))
+            codigoA = (await leituraA.Tenants.AsNoTracking().SingleAsync()).CodigoEntrada;
+        await using (var leituraB = banco.DaEquipe(b.Id))
+            codigoB = (await leituraB.Tenants.AsNoTracking().SingleAsync()).CodigoEntrada;
+        await using var sistema = banco.Contexto(Quem.Sistema());
+        var registros = await sistema.Database
+            .SqlQuery<int>($"SELECT count(*)::int AS \"Value\" FROM documentos_teste WHERE hash = {anterior.Hash}")
+            .SingleAsync();
+        registros.Should().Be(1, "a gravação anterior da transação sobreviveu à colisão");
         codigoB.Should().NotBe(codigoA);
         CodigoDeEntrada.Valido(codigoB).Should().BeTrue();
     }
