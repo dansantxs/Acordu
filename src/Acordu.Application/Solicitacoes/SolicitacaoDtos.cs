@@ -5,7 +5,7 @@ using Acordu.Domain.Enums;
 
 namespace Acordu.Application.Solicitacoes;
 
-/// <summary>Item da fila de solicitações.</summary>
+/// <summary>Item da fila de solicitações, com a origem (a equipe vê na lista o que veio por e-mail, F15-29).</summary>
 public sealed record SolicitacaoResumoDto(
     Guid Id,
     int Numero,
@@ -14,6 +14,7 @@ public sealed record SolicitacaoResumoDto(
     Prioridade Prioridade,
     StatusSolicitacao Status,
     StatusExterno StatusExterno,
+    OrigemSolicitacao Origem,
     Referencia? Responsavel,
     DateTimeOffset AbertaEm,
     DateTimeOffset? PrazoResolucao,

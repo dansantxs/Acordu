@@ -41,7 +41,8 @@ public sealed class RegistroDeAtividades :
     {
         ArgumentNullException.ThrowIfNull(evento);
         return GravarAsync(
-            TipoAtividade.SolicitacaoAberta, evento.AbertaPor ?? _origem.AutorId, evento.Origem == OrigemSolicitacao.Portal,
+            // Pelo portal ou por e-mail, quem abriu é o contato (F15-10).
+            TipoAtividade.SolicitacaoAberta, evento.AbertaPor ?? _origem.AutorId, evento.Origem is OrigemSolicitacao.Portal or OrigemSolicitacao.Email,
             AlvoColaboracao.Solicitacao, evento.SolicitacaoId, evento.ClienteId, cancellationToken: cancellationToken);
     }
 

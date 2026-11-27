@@ -14,7 +14,7 @@
 <g transform="rotate(-90 45 505)"><text class="r" text-anchor="middle" dominant-baseline="central"><tspan x="45" y="496.875">Equipe</tspan><tspan x="45" y="513.125">(atendente/executor)</tspan></text></g>
 <rect class="raia" x="30" y="590" width="3405" height="170"/>
 <rect class="borda" x="30" y="590" width="30" height="170"/>
-<g transform="rotate(-90 45 675)"><text class="r" text-anchor="middle" dominant-baseline="central"><tspan x="45" y="666.875">Contato do cliente</tspan><tspan x="45" y="683.125">(portal)</tspan></text></g>
+<g transform="rotate(-90 45 675)"><text class="r" text-anchor="middle" dominant-baseline="central"><tspan x="45" y="666.875">Contato do cliente</tspan><tspan x="45" y="683.125">(portal ou e-mail)</tspan></text></g>
 <rect class="raia" x="30" y="760" width="3405" height="170"/>
 <rect class="borda" x="30" y="760" width="30" height="170"/>
 <g transform="rotate(-90 45 845)"><text class="r" text-anchor="middle" dominant-baseline="central"><tspan x="45" y="836.875">Sistema (jobs e</tspan><tspan x="45" y="853.125">e-mails)</tspan></text></g>
@@ -96,11 +96,11 @@
 <rect class="no" x="1337.5" y="635" width="130" height="80" rx="10"/>
 <text class="t" text-anchor="middle" dominant-baseline="central"><tspan x="1402.5" y="660">Aceitar convite e</tspan><tspan x="1402.5" y="675">criar acesso ao</tspan><tspan x="1402.5" y="690">portal</tspan></text>
 <circle class="no" cx="1402.5" cy="505" r="18"/>
-<text class="e" text-anchor="middle" dominant-baseline="central"><tspan x="1402.5" y="535">Cliente pede por</tspan><tspan x="1402.5" y="548.75">telefone, e-mail,</tspan><tspan x="1402.5" y="562.5">WhatsApp</tspan></text>
+<text class="e" text-anchor="middle" dominant-baseline="central"><tspan x="1402.5" y="535">Cliente pede por</tspan><tspan x="1402.5" y="548.75">telefone,</tspan><tspan x="1402.5" y="562.5">WhatsApp</tspan></text>
 <rect class="no" x="1512.5" y="465" width="130" height="80" rx="10"/>
 <text class="t" text-anchor="middle" dominant-baseline="central"><tspan x="1577.5" y="497.5">Registrar</tspan><tspan x="1577.5" y="512.5">solicitação</tspan></text>
 <rect class="no" x="1512.5" y="635" width="130" height="80" rx="10"/>
-<text class="t" text-anchor="middle" dominant-baseline="central"><tspan x="1577.5" y="667.5">Abrir solicitação</tspan><tspan x="1577.5" y="682.5">no portal</tspan></text>
+<text class="t" text-anchor="middle" dominant-baseline="central"><tspan x="1577.5" y="660">Abrir solicitação</tspan><tspan x="1577.5" y="675">no portal ou por</tspan><tspan x="1577.5" y="690">e-mail</tspan></text>
 <rect class="no" x="1687.5" y="805" width="130" height="80" rx="10"/>
 <text class="t" text-anchor="middle" dominant-baseline="central"><tspan x="1752.5" y="830">Gerar protocolo,</tspan><tspan x="1752.5" y="845">ligar o SLA e</tspan><tspan x="1752.5" y="860">avisar (ABERTA)</tspan></text>
 <rect class="no" x="1862.5" y="465" width="130" height="80" rx="10"/>

@@ -132,6 +132,78 @@ public sealed class CanaisDeAvisoTests
         _enviador.Mensagens.Should().ContainSingle();
     }
 
+    /// <summary>O aviso de recebida de uma solicitação aberta por e-mail, com o fio guardado (design D4).</summary>
+    private static AvisoAoContato AvisoNoFio(string? conversa = Conversa, string? messageId = "abc123@mail.bomgrao.com.br") =>
+        new("aviso-recebida", "Carlos Prado", "carlos@bomgrao.com.br", "Estúdio Traço", "Recebemos sua solicitação #7",
+            "Olá, Carlos Prado!\n\nEstúdio Traço recebeu sua solicitação #7.", Guid.NewGuid(), 7, OrigemSolicitacao.Email,
+            ResponderPara, conversa, messageId, "Forno parou de novo");
+
+    [Fact] // F15-16, F15-50
+    public async Task EnviarAsync_OrigemEmailComFio_AssuntoReComONumeroETextoAbrindoPeloAssuntoDeSempre()
+    {
+        await new CanalEmail(_enviador).EnviarAsync(AvisoNoFio());
+
+        var mensagem = _enviador.Mensagens.Should().ContainSingle().Subject;
+        mensagem.Assunto.Should().Be("Re: Forno parou de novo (#7)");
+        mensagem.Texto.Should().StartWith(CanalEmail.LinhaMarcadora + "\n\nRecebemos sua solicitação #7\n\nOlá, Carlos Prado!",
+            "a marcadora no topo (F15-57) e, logo depois, o texto que hoje vai no assunto");
+        mensagem.ResponderPara.Should().Be(Conversa, "responde para o endereço da conversa");
+    }
+
+    [Fact] // F15-16, F15-50: marcado como resposta ao e-mail que abriu a solicitação
+    public async Task EnviarAsync_OrigemEmailComFio_InReplyToEReferencesComOMessageIdDeOrigem()
+    {
+        await new CanalEmail(_enviador).EnviarAsync(AvisoNoFio());
+
+        var cabecalhos = _enviador.Mensagens.Should().ContainSingle().Subject.Cabecalhos;
+        (cabecalhos?.GetValueOrDefault("In-Reply-To")).Should().Be("<abc123@mail.bomgrao.com.br>");
+        (cabecalhos?.GetValueOrDefault("References")).Should().Be("<abc123@mail.bomgrao.com.br>");
+        (cabecalhos?.GetValueOrDefault("Auto-Submitted")).Should().Be("auto-generated", "continua mensagem automática (F15-55)");
+        (cabecalhos?.GetValueOrDefault("X-Auto-Response-Suppress")).Should().Be("OOF, AutoReply");
+    }
+
+    [Fact] // design D4: o fio não depende do recebimento; o Reply-To e a marcadora, sim (F15-52)
+    public async Task EnviarAsync_OrigemEmailComFioRecebimentoDesligado_NoFioSemMarcadoraComOResponderPara()
+    {
+        await new CanalEmail(_enviador).EnviarAsync(AvisoNoFio(conversa: null));
+
+        var mensagem = _enviador.Mensagens.Should().ContainSingle().Subject;
+        mensagem.Assunto.Should().Be("Re: Forno parou de novo (#7)");
+        mensagem.Texto.Should().StartWith("Recebemos sua solicitação #7\n\n");
+        mensagem.ResponderPara.Should().Be(ResponderPara);
+        (mensagem.Cabecalhos?.ContainsKey("In-Reply-To")).Should().BeTrue();
+    }
+
+    [Fact] // design D4: sem Message-ID de origem, o assunto do fio sem os cabeçalhos de resposta
+    public async Task EnviarAsync_OrigemEmailSemMessageId_AssuntoDoFioSemInReplyTo()
+    {
+        await new CanalEmail(_enviador).EnviarAsync(AvisoNoFio(messageId: null));
+
+        var mensagem = _enviador.Mensagens.Should().ContainSingle().Subject;
+        mensagem.Assunto.Should().Be("Re: Forno parou de novo (#7)");
+        (mensagem.Cabecalhos?.ContainsKey("In-Reply-To")).Should().BeFalse();
+        (mensagem.Cabecalhos?.Count).Should().Be(2, "só os de mensagem automática");
+    }
+
+    [Fact] // F15-51: as outras origens seguem com os assuntos de hoje, mesmo se viesse um fio
+    public async Task EnviarAsync_OrigemInternaComFio_AssuntoDeHojeSemInReplyTo()
+    {
+        await new CanalEmail(_enviador).EnviarAsync(AvisoNoFio() with { Origem = OrigemSolicitacao.Interna });
+
+        var mensagem = _enviador.Mensagens.Should().ContainSingle().Subject;
+        mensagem.Assunto.Should().Be("Recebemos sua solicitação #7");
+        (mensagem.Cabecalhos?.ContainsKey("In-Reply-To")).Should().BeFalse();
+    }
+
+    [Theory] // design D4
+    [InlineData("Forno parou", 7, "Re: Forno parou (#7)")]
+    [InlineData("  Re: Forno parou  ", 1042, "Re: Re: Forno parou (#1042)")]
+    [InlineData("", 7, "Re: (#7)")]
+    public void AssuntoNoFio_AssuntoOriginal_ReComONumero(string original, int numero, string esperado)
+    {
+        CanalEmail.AssuntoNoFio(original, numero).Should().Be(esperado);
+    }
+
     [Fact]
     public void Criar_SemCanalDeEmail_LancaExcecao()
     {

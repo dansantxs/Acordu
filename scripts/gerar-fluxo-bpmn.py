@@ -22,7 +22,7 @@ RAIAS = [  # nome, altura
     ("Operação Nebrys", 250),
     ("Prestador (Dono da empresa)", 170),
     ("Equipe (atendente/executor)", 170),
-    ("Contato do cliente (portal)", 170),
+    ("Contato do cliente (portal ou e-mail)", 170),
     ("Sistema (jobs e e-mails)", 170),
 ]
 CW = 175          # largura de uma coluna
@@ -47,9 +47,9 @@ N = [  # id, tipo, rótulo, raia, coluna[, deslocamento vertical]
     ("e_cancela", "end", "CANCELADA: só leitura, reativável até o expurgo", 0, 8, 75),
     ("t_convp", "task", "Convidar contato do cliente para o portal", 1, 6),
     ("t_aceita", "task", "Aceitar convite e criar acesso ao portal", 3, 7),
-    ("s_tel", "start", "Cliente pede por telefone, e-mail, WhatsApp", 2, 7),
+    ("s_tel", "start", "Cliente pede por telefone, WhatsApp", 2, 7),
     ("t_registra", "task", "Registrar solicitação", 2, 8),
-    ("t_abre", "task", "Abrir solicitação no portal", 3, 8),
+    ("t_abre", "task", "Abrir solicitação no portal ou por e-mail", 3, 8),
     ("t_proto", "task", "Gerar protocolo, ligar o SLA e avisar (ABERTA)", 4, 9),
     ("t_triar", "task", "Triar e dar a 1ª resposta (EM_ANDAMENTO)", 2, 10),
     ("tm_rec", "timer", "Todo dia (job)", 4, 10),

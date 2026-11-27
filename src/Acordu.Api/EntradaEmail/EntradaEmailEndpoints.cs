@@ -30,6 +30,12 @@ internal static class EntradaEmailEndpoints
     /// <summary>Veredito do filtro do provedor: <c>ok</c>, <c>spam</c> ou <c>virus</c> (design D11, F15-87).</summary>
     public const string CabecalhoFiltro = "X-Email-Filtro";
 
+    /// <summary>
+    /// Veredito de autenticidade do Worker: <c>pass</c>, <c>fail</c> ou <c>none</c> (design D11); só <c>pass</c> deixa o
+    /// remetente ser conhecido (F15-26, F15-27).
+    /// </summary>
+    public const string CabecalhoAutenticidade = "X-Email-Autenticidade";
+
     public static void MapEntradaEmail(this IEndpointRouteBuilder app, IConfiguration configuracao)
     {
         ArgumentNullException.ThrowIfNull(configuracao);
@@ -54,7 +60,8 @@ internal static class EntradaEmailEndpoints
                     var envelope = new EnvelopeDeEntrada(
                         cabecalhos[CabecalhoDestinatario].ToString(),
                         cabecalhos.TryGetValue(CabecalhoRemetente, out var remetente) ? remetente.ToString() : null,
-                        cabecalhos.TryGetValue(CabecalhoFiltro, out var filtro) ? filtro.ToString() : null);
+                        cabecalhos.TryGetValue(CabecalhoFiltro, out var filtro) ? filtro.ToString() : null,
+                        cabecalhos.TryGetValue(CabecalhoAutenticidade, out var autenticidade) ? autenticidade.ToString() : null);
                     desfecho = await recebedor.ReceberAsync(envelope, http.Request.Body, http.RequestAborted);
                 }
                 catch (BadHttpRequestException ex) when (ex.StatusCode == StatusCodes.Status413PayloadTooLarge)

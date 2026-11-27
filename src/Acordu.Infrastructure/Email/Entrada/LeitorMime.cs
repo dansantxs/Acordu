@@ -1,5 +1,6 @@
 using Acordu.Application.EntradaEmail;
 using MimeKit;
+using MimeKit.Text;
 
 namespace Acordu.Infrastructure.Email.Entrada;
 
@@ -26,7 +27,20 @@ public static class LeitorMime
 
         var remetentes = mensagem.From.Mailboxes.Select(m => m.Address).ToList();
         return new MensagemDeEntrada(
-            ChaveDeEntrada.NormalizarMessageId(mensagem.MessageId), remetentes, limitado.Hash(), Sinais(mensagem));
+            ChaveDeEntrada.NormalizarMessageId(mensagem.MessageId), remetentes, limitado.Hash(), Sinais(mensagem),
+            Assunto: mensagem.Subject, Texto: Texto(mensagem));
+    }
+
+    /// <summary>
+    /// O corpo só como texto (design D14; F15-13): a parte <c>text/plain</c> tem preferência; sem ela, o HTML vira texto pelo
+    /// conversor do MimeKit (scripts, estilos e comentários saem, blocos viram quebras de linha, entidades decodificadas).
+    /// Nenhum HTML sai daqui. Sem corpo, nulo.
+    /// </summary>
+    private static string? Texto(MimeMessage mensagem)
+    {
+        if (mensagem.TextBody is { } texto)
+            return texto;
+        return mensagem.HtmlBody is { } html ? new HtmlToText().Convert(html) : null;
     }
 
     /// <summary>Os cabeçalhos da lista do e-mail automático (design D12), como vieram.</summary>

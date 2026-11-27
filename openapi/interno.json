@@ -10075,6 +10075,7 @@
           "prioridade",
           "status",
           "statusExterno",
+          "origem",
           "responsavel",
           "abertaEm",
           "prazoResolucao",
@@ -10108,6 +10109,9 @@
           },
           "statusExterno": {
             "$ref": "#/components/schemas/StatusExterno"
+          },
+          "origem": {
+            "$ref": "#/components/schemas/OrigemSolicitacao"
           },
           "responsavel": {
             "oneOf": [

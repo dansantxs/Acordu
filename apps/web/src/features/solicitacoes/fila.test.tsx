@@ -72,6 +72,26 @@ describe('fila de solicitações', () => {
         )
     })
 
+    it('mostra "E-mail" na solicitação aberta por e-mail; nada nas do portal e da equipe (F15-29)', async () => {
+        app({
+            'GET /api/v1/solicitacoes': () =>
+                pagina([
+                    { ...impressora, id: 's1', titulo: 'Forno parou', origem: 'EMAIL' },
+                    { ...impressora, id: 's2', titulo: 'Site fora do ar', origem: 'PORTAL' },
+                    { ...impressora, id: 's3', titulo: 'Trocar a logo', origem: 'INTERNA' },
+                ]),
+        })
+        await abrir('/solicitacoes')
+        const linha = async (titulo: string) => (await screen.findByRole('link', { name: titulo })).closest('tr')!
+
+        const porEmail = await linha('Forno parou')
+        expect(within(porEmail).getByText('E-mail')).toBeInTheDocument()
+        expect(within(porEmail).getByText('Origem:')).toHaveClass('sr-only')
+        expect(within(porEmail).getByText('Padaria Bom Grão')).toBeInTheDocument()
+        expect(within(await linha('Site fora do ar')).queryByText('Origem:')).not.toBeInTheDocument()
+        expect(within(await linha('Trocar a logo')).queryByText('Origem:')).not.toBeInTheDocument()
+    })
+
     it('visão, "comigo" e prazo vão para o endereço e para a API', async () => {
         const chamadas = app({ 'GET /api/v1/solicitacoes': () => pagina([]) })
         const roteador = await abrir('/solicitacoes')

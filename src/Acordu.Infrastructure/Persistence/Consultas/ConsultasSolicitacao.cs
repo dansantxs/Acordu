@@ -62,6 +62,7 @@ public sealed class ConsultasSolicitacao : IConsultasSolicitacao
                 s.Prioridade,
                 s.Status,
                 s.StatusExterno,
+                s.Origem,
                 Pessoa(s.ResponsavelId, pessoas),
                 s.AbertaEm,
                 s.Sla?.PrazoResolucao,

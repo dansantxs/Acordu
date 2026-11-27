@@ -1,7 +1,6 @@
 using Acordu.Application.Abstractions;
 using Acordu.Application.Anexos;
 using Acordu.Application.Common;
-using Acordu.Application.Contratos;
 using Acordu.Application.Solicitacoes;
 using Acordu.Domain.Acesso;
 using Acordu.Domain.Entities;
@@ -21,10 +20,8 @@ public sealed class ComandosPortal
     private readonly IPortalAtual _portal;
     private readonly IRepositorio<Solicitacao> _solicitacoes;
     private readonly IRepositorio<Cliente> _clientes;
-    private readonly IRepositorio<Contrato> _contratos;
     private readonly IRepositorio<Interacao> _interacoes;
-    private readonly IConsultasContrato _consultasContrato;
-    private readonly IGeradorProtocolo _protocolo;
+    private readonly AberturaPeloContato _abertura;
     private readonly ICalendarios _calendarios;
     private readonly RelogioDoTenant _relogio;
     private readonly IUnitOfWork _unidade;
@@ -35,44 +32,39 @@ public sealed class ComandosPortal
         IPortalAtual portal,
         IRepositorio<Solicitacao> solicitacoes,
         IRepositorio<Cliente> clientes,
-        IRepositorio<Contrato> contratos,
         IRepositorio<Interacao> interacoes,
-        IConsultasContrato consultasContrato,
-        IGeradorProtocolo protocolo,
+        AberturaPeloContato abertura,
         ICalendarios calendarios,
         RelogioDoTenant relogio,
         IUnitOfWork unidade,
         RecebimentoAnexos anexos)
     {
-        ArgumentNullException.ThrowIfNull(anexos);
-        _anexos = anexos;
         ArgumentNullException.ThrowIfNull(contexto);
         ArgumentNullException.ThrowIfNull(portal);
         ArgumentNullException.ThrowIfNull(solicitacoes);
         ArgumentNullException.ThrowIfNull(clientes);
-        ArgumentNullException.ThrowIfNull(contratos);
         ArgumentNullException.ThrowIfNull(interacoes);
-        ArgumentNullException.ThrowIfNull(consultasContrato);
-        ArgumentNullException.ThrowIfNull(protocolo);
+        ArgumentNullException.ThrowIfNull(abertura);
         ArgumentNullException.ThrowIfNull(calendarios);
         ArgumentNullException.ThrowIfNull(relogio);
         ArgumentNullException.ThrowIfNull(unidade);
+        ArgumentNullException.ThrowIfNull(anexos);
         _contexto = contexto;
         _portal = portal;
         _solicitacoes = solicitacoes;
         _clientes = clientes;
-        _contratos = contratos;
         _interacoes = interacoes;
-        _consultasContrato = consultasContrato;
-        _protocolo = protocolo;
+        _abertura = abertura;
         _calendarios = calendarios;
         _relogio = relogio;
         _unidade = unidade;
+        _anexos = anexos;
     }
 
     /// <summary>
     /// Origem PORTAL, com o contato logado como contato da solicitação (é o que o escopo PROPRIAS usa). Contrato: o único
-    /// ATIVO vigente do cliente, se houver exatamente um; senão fica sem SLA, como na abertura interna sem contrato.
+    /// ATIVO vigente do cliente, se houver exatamente um; senão fica sem SLA, como na abertura interna sem contrato. O
+    /// núcleo é o mesmo da abertura por e-mail (<see cref="AberturaPeloContato"/>; design do F15, §1.2).
     /// </summary>
     /// <remarks>
     /// Anexos (RF-POR-01) viram a primeira interação EXTERNA, do contato, sem texto (a descrição já está na solicitação).
@@ -88,15 +80,11 @@ public sealed class ComandosPortal
         if (cliente is null || !cliente.Ativo)
             throw new AcessoNegadoException("Acesso ao portal removido.");
 
-        var hoje = await _relogio.HojeAsync(cancellationToken);
-        var vigentes = await _consultasContrato.VigentesDoClienteAsync(cliente.Id, hoje, cancellationToken);
-        var contrato = vigentes.Count == 1 ? await _contratos.ObterPorIdAsync(vigentes[0], cancellationToken) : null;
-        var calendario = await _calendarios.DoTenantAsync(cancellationToken);
         var solicitacaoId = Guid.CreateVersion7();
         var anexos = await _anexos.EnviarAsync(cliente.TenantId, solicitacaoId, arquivos, cancellationToken);
         try
         {
-            return await GravarAberturaAsync(solicitacaoId, cliente, contato, dados, contrato, calendario, anexos, cancellationToken);
+            return await GravarAberturaAsync(solicitacaoId, cliente, contato, dados, anexos, cancellationToken);
         }
         catch
         {
@@ -110,46 +98,24 @@ public sealed class ComandosPortal
         Cliente cliente,
         ContatoDoPortal contato,
         NovaSolicitacaoPortalRequest dados,
-        Contrato? contrato,
-        CalendarioUtil calendario,
         IReadOnlyList<NovoAnexo> anexos,
         CancellationToken cancellationToken)
     {
-        var numero = await _protocolo.ProximoNumeroSolicitacaoAsync(cancellationToken);
-        var solicitacao = Solicitacao.Abrir(
-            solicitacaoId,
-            cliente.TenantId,
-            cliente.Id,
-            numero,
-            dados.Titulo,
-            dados.Descricao,
-            dados.Prioridade ?? Prioridade.Media,
-            OrigemSolicitacao.Portal,
-            contato.ContatoId,
-            null,
-            null,
-            contrato?.Id,
-            contrato?.Sla,
-            _relogio.Agora,
-            calendario);
-        _solicitacoes.Adicionar(solicitacao);
-        if (anexos.Count > 0)
-        {
-            _interacoes.Adicionar(Interacao.Registrar(
-                Guid.CreateVersion7(),
-                solicitacao.TenantId,
-                solicitacao.ClienteId,
-                solicitacao.Id,
+        var solicitacao = await _abertura.AbrirAsync(
+            new AberturaDoContato(
+                solicitacaoId,
+                cliente.TenantId,
+                cliente.Id,
+                contato.ContatoId,
+                // Sessão de link não tem usuário: o autor é o contato (os nomes caem no contato do cliente).
                 _contexto.UsuarioId ?? contato.ContatoId,
-                autorEhCliente: true,
-                null,
-                Visibilidade.Externa,
+                dados.Titulo,
+                dados.Descricao,
+                dados.Prioridade ?? Prioridade.Media,
+                OrigemSolicitacao.Portal,
                 CanalMensagem.Portal,
-                anexos,
-                ComandosSolicitacao.PoliticaPadrao,
-                _relogio.Agora));
-        }
-
+                anexos),
+            cancellationToken);
         await _unidade.SalvarAsync(cancellationToken);
         return solicitacao.Id;
     }

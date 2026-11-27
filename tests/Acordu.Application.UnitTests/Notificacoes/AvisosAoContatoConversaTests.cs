@@ -123,6 +123,93 @@ public sealed class AvisosAoContatoConversaTests
         _canal.Avisos.Should().BeEmpty("a outbox repete o aviso, já com a conversa gravada pelo outro");
     }
 
+    /// <summary>Solicitação aberta por e-mail (F15f) do mesmo contato, com a conversa que nasceu na abertura, no fio do e-mail.</summary>
+    private SolicitacaoAberta AbertaPorEmail(OrigemSolicitacao origem = OrigemSolicitacao.Email, bool comFio = true)
+    {
+        var solicitacao = Solicitacao.Abrir(
+            Guid.NewGuid(), _tenant.Id, _cliente.Id, 8, "Forno parou", null, Prioridade.Media, origem,
+            _cliente.Contatos[0].Id, null, null, null, null, Agora, CalendarioUtil.Padrao(_tenant.Id));
+        _solicitacoes.Itens.Add(solicitacao);
+        _conversas.Existentes.Add(comFio
+            ? ConversaPorEmail.DaAberturaPorEmail(
+                Guid.NewGuid(), _tenant.Id, _cliente.Id, solicitacao.Id, "abc123@mail.bomgrao.com.br", "Forno parou", Agora)
+            : ConversaPorEmail.Criar(Guid.NewGuid(), _tenant.Id, _cliente.Id, solicitacao.Id, Agora));
+        return new SolicitacaoAberta(solicitacao.Id, _tenant.Id, _cliente.Id, 8, origem, Agora);
+    }
+
+    [Fact] // F15-16, F15-50: a conversa da abertura serve ao aviso: o endereço dela e o fio do e-mail
+    public async Task Aviso_OrigemEmailRecebimentoLigado_LevaOEnderecoDaConversaEOFio()
+    {
+        _tenant.LigarRecebimentoEmail();
+        var evento = AbertaPorEmail();
+
+        await Montar("entrada.acordu.app.br").TratarAsync(evento, CancellationToken.None);
+
+        _novasConversas.Itens.Should().BeEmpty("a conversa já nasceu na abertura");
+        var aviso = _canal.Avisos.Should().ContainSingle().Subject;
+        aviso.Origem.Should().Be(OrigemSolicitacao.Email);
+        aviso.EnderecoDaConversa.Should().Contain("+" + _conversas.Existentes[0].Token + "@entrada.acordu.app.br");
+        aviso.MessageIdOrigem.Should().Be("abc123@mail.bomgrao.com.br");
+        aviso.AssuntoOrigem.Should().Be("Forno parou");
+    }
+
+    [Fact] // design D4: o fio segue a origem; o endereço da conversa segue o recebimento (F15-52)
+    public async Task Aviso_OrigemEmailRecebimentoDesligado_LevaOFioSemOEnderecoDaConversa()
+    {
+        var evento = AbertaPorEmail();
+
+        await Montar("entrada.acordu.app.br").TratarAsync(evento, CancellationToken.None);
+
+        var aviso = _canal.Avisos.Should().ContainSingle().Subject;
+        aviso.EnderecoDaConversa.Should().BeNull();
+        aviso.MessageIdOrigem.Should().Be("abc123@mail.bomgrao.com.br");
+        aviso.AssuntoOrigem.Should().Be("Forno parou");
+        _novasConversas.Itens.Should().BeEmpty();
+    }
+
+    [Fact] // design D4: sem Message-ID, a conversa existe sem o fio, e o aviso sai com os assuntos de sempre
+    public async Task Aviso_OrigemEmailSemFioGuardado_SemMessageIdNemAssuntoDeOrigem()
+    {
+        _tenant.LigarRecebimentoEmail();
+        var evento = AbertaPorEmail(comFio: false);
+
+        await Montar("entrada.acordu.app.br").TratarAsync(evento, CancellationToken.None);
+
+        var aviso = _canal.Avisos.Should().ContainSingle().Subject;
+        aviso.MessageIdOrigem.Should().BeNull();
+        aviso.AssuntoOrigem.Should().BeNull();
+        aviso.EnderecoDaConversa.Should().NotBeNull();
+    }
+
+    [Fact] // design D4: desligado e sem conversa, nada é criado nem lido, mesmo na origem EMAIL (F15-52)
+    public async Task Aviso_OrigemEmailRecebimentoDesligadoSemConversa_NaoCriaConversaNemFio()
+    {
+        var evento = AbertaPorEmail();
+        _conversas.Existentes.Clear();
+
+        await Montar("entrada.acordu.app.br").TratarAsync(evento, CancellationToken.None);
+
+        _novasConversas.Itens.Should().BeEmpty();
+        var aviso = _canal.Avisos.Should().ContainSingle().Subject;
+        aviso.EnderecoDaConversa.Should().BeNull();
+        aviso.MessageIdOrigem.Should().BeNull();
+    }
+
+    [Theory] // F15-51: as outras origens seguem como antes, mesmo que uma conversa com fio exista
+    [InlineData(OrigemSolicitacao.Portal)]
+    [InlineData(OrigemSolicitacao.Interna)]
+    public async Task Aviso_OutraOrigem_NuncaLevaOFio(OrigemSolicitacao origem)
+    {
+        _tenant.LigarRecebimentoEmail();
+        var evento = AbertaPorEmail(origem);
+
+        await Montar("entrada.acordu.app.br").TratarAsync(evento, CancellationToken.None);
+
+        var aviso = _canal.Avisos.Should().ContainSingle().Subject;
+        aviso.MessageIdOrigem.Should().BeNull();
+        aviso.AssuntoOrigem.Should().BeNull();
+    }
+
     private sealed class Repositorio<T> : IRepositorio<T>
         where T : EntidadeBase
     {

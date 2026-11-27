@@ -25,7 +25,10 @@ public enum DesfechoEntrada
     /// <summary>A mesma entrega já foi registrada na empresa (idempotência, D6). Nada gravado.</summary>
     Repetida = 6,
 
-    /// <summary>Registrado na empresa (até o F15f, como <c>IGNORADO</c>; design §3).</summary>
+    /// <summary>
+    /// Registrado na empresa como <c>IGNORADO</c>, sem efeito visível (design §3): o remetente não identificado até a
+    /// triagem (F15h) e a resposta ao endereço da conversa até o F15i.
+    /// </summary>
     Registrada = 7,
 
     /// <summary>E-mail automático (F15-85, F15-86; D12): registrado como <c>IGNORADO</c>, nada criado nem respondido.</summary>
@@ -36,4 +39,7 @@ public enum DesfechoEntrada
 
     /// <summary>Spam ou vírus pelo filtro do provedor (F15-87; D11): registrado como <c>IGNORADO</c>, sem triagem.</summary>
     Filtrada = 10,
+
+    /// <summary>Remetente conhecido: abriu uma solicitação de origem EMAIL (F15-10; registro <c>SOLICITACAO</c>).</summary>
+    Aberta = 11,
 }
