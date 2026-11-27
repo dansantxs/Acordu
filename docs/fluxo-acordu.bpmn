@@ -6,7 +6,7 @@
 <bpmn:lane id="lane0" name="Operação Nebrys"><bpmn:flowNodeRef>t_convite</bpmn:flowNodeRef><bpmn:flowNodeRef>t_decide</bpmn:flowNodeRef><bpmn:flowNodeRef>g_sit</bpmn:flowNodeRef><bpmn:flowNodeRef>e_ativa</bpmn:flowNodeRef><bpmn:flowNodeRef>e_prorroga</bpmn:flowNodeRef><bpmn:flowNodeRef>e_cancela</bpmn:flowNodeRef></bpmn:lane>
 <bpmn:lane id="lane1" name="Prestador (Dono da empresa)"><bpmn:flowNodeRef>s_neb</bpmn:flowNodeRef><bpmn:flowNodeRef>t_espera</bpmn:flowNodeRef><bpmn:flowNodeRef>t_cadastro</bpmn:flowNodeRef><bpmn:flowNodeRef>t_confirma</bpmn:flowNodeRef><bpmn:flowNodeRef>t_config</bpmn:flowNodeRef><bpmn:flowNodeRef>t_convp</bpmn:flowNodeRef></bpmn:lane>
 <bpmn:lane id="lane2" name="Equipe (atendente/executor)"><bpmn:flowNodeRef>s_tel</bpmn:flowNodeRef><bpmn:flowNodeRef>t_registra</bpmn:flowNodeRef><bpmn:flowNodeRef>t_triar</bpmn:flowNodeRef><bpmn:flowNodeRef>t_tarefas</bpmn:flowNodeRef><bpmn:flowNodeRef>t_exec</bpmn:flowNodeRef><bpmn:flowNodeRef>g_cli</bpmn:flowNodeRef><bpmn:flowNodeRef>t_resolver</bpmn:flowNodeRef></bpmn:lane>
-<bpmn:lane id="lane3" name="Contato do cliente (portal)"><bpmn:flowNodeRef>t_aceita</bpmn:flowNodeRef><bpmn:flowNodeRef>t_abre</bpmn:flowNodeRef><bpmn:flowNodeRef>t_resp</bpmn:flowNodeRef><bpmn:flowNodeRef>g_apr</bpmn:flowNodeRef></bpmn:lane>
+<bpmn:lane id="lane3" name="Contato do cliente (portal ou e-mail)"><bpmn:flowNodeRef>t_aceita</bpmn:flowNodeRef><bpmn:flowNodeRef>t_abre</bpmn:flowNodeRef><bpmn:flowNodeRef>t_resp</bpmn:flowNodeRef><bpmn:flowNodeRef>g_apr</bpmn:flowNodeRef></bpmn:lane>
 <bpmn:lane id="lane4" name="Sistema (jobs e e-mails)"><bpmn:flowNodeRef>t_cria</bpmn:flowNodeRef><bpmn:flowNodeRef>tm_fim</bpmn:flowNodeRef><bpmn:flowNodeRef>t_vencer</bpmn:flowNodeRef><bpmn:flowNodeRef>t_proto</bpmn:flowNodeRef><bpmn:flowNodeRef>tm_rec</bpmn:flowNodeRef><bpmn:flowNodeRef>t_rec</bpmn:flowNodeRef><bpmn:flowNodeRef>t_avisa</bpmn:flowNodeRef><bpmn:flowNodeRef>t_fechar</bpmn:flowNodeRef><bpmn:flowNodeRef>e_fim</bpmn:flowNodeRef></bpmn:lane>
 </bpmn:laneSet>
 <bpmn:startEvent id="s_neb" name="Prestador quer usar o Acordu"><bpmn:outgoing>f1</bpmn:outgoing></bpmn:startEvent>
@@ -25,9 +25,9 @@
 <bpmn:endEvent id="e_cancela" name="CANCELADA: só leitura, reativável até o expurgo"><bpmn:incoming>f11c</bpmn:incoming></bpmn:endEvent>
 <bpmn:task id="t_convp" name="Convidar contato do cliente para o portal"><bpmn:incoming>f6</bpmn:incoming><bpmn:outgoing>f7</bpmn:outgoing></bpmn:task>
 <bpmn:task id="t_aceita" name="Aceitar convite e criar acesso ao portal"><bpmn:incoming>f7</bpmn:incoming><bpmn:outgoing>f8</bpmn:outgoing></bpmn:task>
-<bpmn:startEvent id="s_tel" name="Cliente pede por telefone, e-mail, WhatsApp"><bpmn:outgoing>f12</bpmn:outgoing></bpmn:startEvent>
+<bpmn:startEvent id="s_tel" name="Cliente pede por telefone, WhatsApp"><bpmn:outgoing>f12</bpmn:outgoing></bpmn:startEvent>
 <bpmn:task id="t_registra" name="Registrar solicitação"><bpmn:incoming>f12</bpmn:incoming><bpmn:outgoing>f13</bpmn:outgoing></bpmn:task>
-<bpmn:task id="t_abre" name="Abrir solicitação no portal"><bpmn:incoming>f8</bpmn:incoming><bpmn:outgoing>f14</bpmn:outgoing></bpmn:task>
+<bpmn:task id="t_abre" name="Abrir solicitação no portal ou por e-mail"><bpmn:incoming>f8</bpmn:incoming><bpmn:outgoing>f14</bpmn:outgoing></bpmn:task>
 <bpmn:task id="t_proto" name="Gerar protocolo, ligar o SLA e avisar (ABERTA)"><bpmn:incoming>f13</bpmn:incoming><bpmn:incoming>f14</bpmn:incoming><bpmn:outgoing>f15</bpmn:outgoing></bpmn:task>
 <bpmn:task id="t_triar" name="Triar e dar a 1ª resposta (EM_ANDAMENTO)"><bpmn:incoming>f15</bpmn:incoming><bpmn:outgoing>f16</bpmn:outgoing></bpmn:task>
 <bpmn:startEvent id="tm_rec" name="Todo dia (job)"><bpmn:outgoing>f18</bpmn:outgoing><bpmn:timerEventDefinition id="td_tm_rec"/></bpmn:startEvent>
