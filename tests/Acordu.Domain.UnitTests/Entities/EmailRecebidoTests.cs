@@ -110,4 +110,33 @@ public sealed class EmailRecebidoTests
 
         registrar.Should().Throw<ArgumentException>().WithParameterName("recusados");
     }
+
+    [Fact] // F15h (design D6): a chegada à triagem guarda o item
+    public void Registrar_Triagem_GuardaOItem()
+    {
+        var item = Guid.NewGuid();
+
+        var registro = EmailRecebido.Registrar(
+            Guid.NewGuid(), Guid.NewGuid(), Chave, Remetente, ResultadoEntradaEmail.Triagem, Agora, itemTriagemId: item);
+
+        registro.ItemTriagemId.Should().Be(item);
+        registro.SolicitacaoId.Should().BeNull();
+    }
+
+    [Fact]
+    public void Registrar_TriagemSemOItem_ArgumentException()
+    {
+        var registrar = () => EmailRecebido.Registrar(Guid.NewGuid(), Guid.NewGuid(), Chave, null, ResultadoEntradaEmail.Triagem, Agora);
+
+        registrar.Should().Throw<ArgumentException>().WithParameterName("itemTriagemId");
+    }
+
+    [Fact]
+    public void Registrar_OutroResultadoComItem_ArgumentException()
+    {
+        var registrar = () => EmailRecebido.Registrar(
+            Guid.NewGuid(), Guid.NewGuid(), Chave, null, ResultadoEntradaEmail.Ignorado, Agora, itemTriagemId: Guid.NewGuid());
+
+        registrar.Should().Throw<ArgumentException>().WithParameterName("itemTriagemId");
+    }
 }
