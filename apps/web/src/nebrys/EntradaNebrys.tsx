@@ -11,8 +11,7 @@ import { Botao } from '@/shared/ui/Botao'
 import { CampoSenha } from '@/shared/ui/CampoSenha'
 import { CampoTexto } from '@/shared/ui/CampoTexto'
 import { apiNebrys } from './api'
-import { NOME_FORNECEDOR } from '@/shared/config/ambiente'
-import { textoDoFornecedor } from '@/shared/config/fornecedor'
+import { FORNECEDOR, textoDoFornecedor } from '@/shared/config/fornecedor'
 
 /** A API responde `404` a qualquer recusa da sessão (contrato §17), sem dizer qual: a tela também não diz. */
 const RECUSA = 'Não deu para entrar. Confira o e-mail e a senha.'
@@ -59,7 +58,7 @@ export function EntradaNebrys() {
                             {textoDoFornecedor('Operação {{da fornecedor}}.')}
                         </p>
                     </div>
-                    <p className="hidden text-xs text-lateral-suave md:block">{NOME_FORNECEDOR}</p>
+                    <p className="hidden text-xs text-lateral-suave md:block">{FORNECEDOR.nome}</p>
                 </aside>
                 <main className="flex flex-1 flex-col gap-6 bg-superficie p-6 md:p-10">
                     <div className="flex justify-end">

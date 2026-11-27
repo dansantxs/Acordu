@@ -36,4 +36,11 @@ public sealed class MensagensDeCadastroTests
         MensagensDeCadastro.ConviteInvalido(new OpcoesFornecedor())
             .Should().Be("Este convite não vale mais: venceu, já foi usado ou foi revogado. Para pedir outro, fale com a Nebrys.");
     }
+
+    [Fact] // ADR 0017: sem artigo, só a preposição
+    public void DocumentoJaTeveTeste_FornecedorSemArtigo_SoONome()
+    {
+        MensagensDeCadastro.DocumentoJaTeveTeste(new OpcoesFornecedor("Exemplo Ltda", "nenhum"))
+            .Should().Be("Este CPF ou CNPJ já teve um período de teste no Acordu. Para testar de novo, fale com Exemplo Ltda.");
+    }
 }

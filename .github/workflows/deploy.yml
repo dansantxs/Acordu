@@ -174,7 +174,7 @@ jobs:
           faltam = [n for n in obrigatorias if not os.environ.get(n, "").strip()]
           if not os.environ.get("TURNSTILE_CHAVE_SITE", "").strip():
               faltam.append("TURNSTILE_CHAVE_SITE (variável, runbook C5)")
-          contato = os.environ.get("CONTATO_FORNECEDOR", "").strip()
+          contato = " ".join(os.environ.get("CONTATO_FORNECEDOR", "").split())
           if not contato:
               faltam.append("CONTATO_FORNECEDOR (variável, runbook \"Segredos do GitHub\")")
           # Fornecedor (ADR 0017): nome opcional (padrão Nebrys), numa linha só; artigo a, o ou nenhum (padrão a). A API não

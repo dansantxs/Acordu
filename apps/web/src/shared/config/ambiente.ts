@@ -59,7 +59,7 @@ export const VERSAO = versaoDoBuild(import.meta.env.VITE_VERSAO)
  */
 export const contatoDoFornecedor = (valor: string | undefined): string | undefined => valor?.trim() || undefined
 
-export const NOME_FORNECEDOR = import.meta.env.VITE_NOME_FORNECEDOR?.trim() || 'Nebrys'
+export const NOME_FORNECEDOR = import.meta.env.VITE_NOME_FORNECEDOR
 
 export const ARTIGO_FORNECEDOR = import.meta.env.VITE_ARTIGO_FORNECEDOR
 

@@ -1,5 +1,8 @@
 import { ARTIGO_FORNECEDOR, CONTATO_FORNECEDOR, NOME_FORNECEDOR } from './ambiente'
 
+/** O padrão sem `VITE_NOME_FORNECEDOR`, o mesmo da API (`OpcoesFornecedor.NomePadrao`). */
+export const NOME_PADRAO_FORNECEDOR = 'Nebrys'
+
 /**
  * O fornecedor nos textos (ADR 0017), como `OpcoesFornecedor` na API: os textos usam marcadores escritos no feminino,
  * trocados pelo artigo configurado. `{{fornecedor}}` é só o nome; `{{a fornecedor}}`, `{{A fornecedor}}`,
@@ -26,7 +29,7 @@ const FORMAS: Record<string, Record<ArtigoFornecedor, string>> = {
 export function fornecedorDe(nome?: string, artigo?: string, contato?: string): Fornecedor {
     const normalizado = artigo?.trim().toLowerCase()
     return {
-        nome: nome?.trim() || 'Nebrys',
+        nome: nome?.trim() || NOME_PADRAO_FORNECEDOR,
         artigo: normalizado === 'o' || normalizado === 'nenhum' ? normalizado : 'a',
         contato: contato?.trim() || undefined,
     }

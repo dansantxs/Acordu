@@ -92,4 +92,15 @@ public sealed class MensagensDeSituacaoTests
 
         mensagem.Texto.Should().Contain("fale com a Nebrys.");
     }
+
+    [Fact] // ADR 0017: o e-mail cita o fornecedor configurado, com o artigo dele
+    public void Montar_OutroFornecedor_NomeEArtigoConfigurados()
+    {
+        var aviso = new AvisoSituacao(TipoAvisoSituacao.Vencimento, Fim.AddDays(30), null, []);
+        var fornecedor = new OpcoesFornecedor("Grupo Exemplo", "o", "contato@exemplo.com");
+
+        var mensagem = MensagensDeSituacao.Montar(aviso, "dono@exemplo.com", "Ana", "Estúdio", SaoPaulo, Fim, fornecedor);
+
+        mensagem.Texto.Should().Contain("fale com o Grupo Exemplo: contato@exemplo.com").And.NotContain("Nebrys");
+    }
 }
