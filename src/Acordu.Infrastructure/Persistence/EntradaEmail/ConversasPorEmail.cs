@@ -4,7 +4,10 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Acordu.Infrastructure.Persistence.EntradaEmail;
 
-/// <summary>A conversa por e-mail de uma solicitação, rastreada e sob os filtros do contexto (tenant e cliente).</summary>
+/// <summary>
+/// A conversa por e-mail de uma solicitação (rastreada) ou do token do endereço (sem rastrear), sob os filtros do contexto
+/// (tenant e cliente).
+/// </summary>
 public sealed class ConversasPorEmail : IConversasPorEmail
 {
     private readonly AcorduDbContext _db;
@@ -17,4 +20,8 @@ public sealed class ConversasPorEmail : IConversasPorEmail
 
     public Task<ConversaPorEmail?> DaSolicitacaoAsync(Guid solicitacaoId, CancellationToken cancellationToken = default) =>
         _db.ConversasPorEmail.SingleOrDefaultAsync(c => c.SolicitacaoId == solicitacaoId, cancellationToken);
+
+    /// <summary>Pelo índice único <c>(tenant_id, token)</c>: o filtro de tenant prende a busca à empresa do código.</summary>
+    public Task<ConversaPorEmail?> PorTokenAsync(string token, CancellationToken cancellationToken = default) =>
+        _db.ConversasPorEmail.AsNoTracking().SingleOrDefaultAsync(c => c.Token == token, cancellationToken);
 }

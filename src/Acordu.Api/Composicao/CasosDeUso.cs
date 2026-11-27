@@ -92,6 +92,7 @@ internal static class CasosDeUso
         services.AddScoped<SemeaduraDaDemonstracao>();
         // O núcleo da abertura pelo contato (design do F15, §1.2): o portal e a entrada por e-mail (F15f).
         services.AddScoped<AberturaPeloContato>();
+        services.AddScoped<RespostaPeloContato>();
         services.AddScoped<ComandosPortal>();
         services.AddScoped<TarefasAbertas>();
         services.AddScoped<LeituraPortal>();
