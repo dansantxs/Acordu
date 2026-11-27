@@ -13,7 +13,8 @@ namespace Acordu.Infrastructure.Email.Entrada;
 /// O e-mail que chegou à rota de entrada (RF-SOL-11; design do F15, D1, D6, D12 e D14; ADR 0016, itens 2, 3 e 8), na
 /// ordem do D12 depois do token e do tamanho declarado (que a Api confere): destino → empresa (desconhecida, só leitura,
 /// desligada) → leitura do MIME (tamanho real) → escopo da empresa, onde o automático, o laço e o filtro do provedor viram
-/// descarte registrado (F15-85, F15-87, F15-88) e o remetente conhecido abre a solicitação (F15-10). Os descartes antes da
+/// descarte registrado (F15-85, F15-87, F15-88), o remetente conhecido abre a solicitação (F15-10) e o não identificado vai
+/// à triagem (F15-70). Os descartes antes da
 /// empresa não leem o corpo nem gravam nada (F15-05, F15-19, F15-22). As mensagens da outbox que o escopo da empresa gravou
 /// (o aviso de recebida, o aviso à equipe) saem antes da resposta, como no fim de qualquer requisição (design §1.2,
 /// "Webhook"; ADR 0010); falha aqui não muda o desfecho, e o job <c>tick</c> tenta de novo. Cada e-mail deixa uma linha de

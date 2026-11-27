@@ -8,7 +8,7 @@ namespace Acordu.Domain.Entities;
 /// <summary>
 /// Registro de entrada de um e-mail aceito para uma empresa (RF-SOL-11; design do F15, D6; ADR 0016, item 8), sem o
 /// conteúdo: a chave de idempotência (<see cref="ChaveEntrada"/>, única na empresa), o hash do remetente, o instante da
-/// recepção e o <see cref="Resultado"/>; da abertura, a solicitação e os anexos recusados (F15g). Serve à idempotência (a repetição da mesma entrega esbarra no índice único) e às
+/// recepção e o <see cref="Resultado"/>; da abertura, a solicitação e os anexos recusados (F15g); da triagem, o item (F15h). Serve à idempotência (a repetição da mesma entrega esbarra no índice único) e às
 /// contagens dos limites (F15n). Nada do assunto, do texto nem dos endereços em claro. Retenção curta, apagada pelo
 /// diário (F15e). Raiz por tenant, sem cliente: o remetente pode nem ser contato.
 /// </summary>
@@ -51,8 +51,12 @@ public sealed class EmailRecebido : EntidadeBase
     /// </summary>
     public AnexosRecusados? Recusados { get; private set; }
 
+    /// <summary>O item que o e-mail criou na triagem (resultado TRIAGEM, F15h); nulo nos outros.</summary>
+    public Guid? ItemTriagemId { get; private set; }
+
     /// <param name="solicitacaoId">Obrigatório com o resultado SOLICITACAO e proibido nos outros.</param>
     /// <param name="recusados">Só com uma solicitação aberta (os outros resultados não guardam anexos aqui).</param>
+    /// <param name="itemTriagemId">Obrigatório com o resultado TRIAGEM e proibido nos outros.</param>
     public static EmailRecebido Registrar(
         Guid id,
         Guid tenantId,
@@ -61,7 +65,8 @@ public sealed class EmailRecebido : EntidadeBase
         ResultadoEntradaEmail resultado,
         DateTimeOffset agora,
         Guid? solicitacaoId = null,
-        AnexosRecusados? recusados = null)
+        AnexosRecusados? recusados = null,
+        Guid? itemTriagemId = null)
     {
         if (!Enum.IsDefined(resultado))
             throw new ArgumentOutOfRangeException(nameof(resultado), resultado, "Resultado desconhecido.");
@@ -69,6 +74,8 @@ public sealed class EmailRecebido : EntidadeBase
             throw new ArgumentException("A solicitação acompanha só o resultado SOLICITACAO.", nameof(solicitacaoId));
         if (recusados is not null && resultado != ResultadoEntradaEmail.Solicitacao)
             throw new ArgumentException("Os anexos recusados acompanham só a abertura.", nameof(recusados));
+        if ((resultado == ResultadoEntradaEmail.Triagem) != itemTriagemId.HasValue)
+            throw new ArgumentException("O item da triagem acompanha só o resultado TRIAGEM.", nameof(itemTriagemId));
         return new EmailRecebido(id, tenantId)
         {
             ChaveEntrada = Hash(chaveEntrada, nameof(chaveEntrada)),
@@ -77,6 +84,7 @@ public sealed class EmailRecebido : EntidadeBase
             RecebidoEm = agora.ToUniversalTime(),
             SolicitacaoId = solicitacaoId is { } solicitacao ? Ids.Obrigatorio(solicitacao, nameof(solicitacaoId)) : null,
             Recusados = recusados,
+            ItemTriagemId = itemTriagemId is { } item ? Ids.Obrigatorio(item, nameof(itemTriagemId)) : null,
         };
     }
 

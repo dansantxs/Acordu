@@ -48,6 +48,16 @@ public static partial class ConteudoDaAbertura
     public static string AssuntoOriginal(string? assunto) => Cortar(UmaLinha(assunto).Trim(), ConversaPorEmail.TamanhoCabecalho);
 
     /// <summary>
+    /// O nome do remetente guardado no item da triagem (F15-70): numa linha só, aparado, cortado em
+    /// <see cref="LimitesTexto.Nome"/> caracteres; nulo sem nome.
+    /// </summary>
+    public static string? NomeDoRemetente(string? nome)
+    {
+        var limpo = UmaLinha(nome).Trim();
+        return limpo.Length == 0 ? null : Cortar(limpo, LimitesTexto.Nome);
+    }
+
+    /// <summary>
     /// Os primeiros <paramref name="maximo"/> caracteres, sem partir um par substituto (emoji) ao meio, e sem espaços no
     /// fim.
     /// </summary>

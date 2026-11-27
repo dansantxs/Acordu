@@ -295,7 +295,7 @@ public sealed class AberturaPorEmailTests(ApiFixture api)
         (await db.EmailsRecebidos.AsNoTracking().SingleAsync()).Resultado.Should().Be(ResultadoEntradaEmail.Solicitacao, "nada vai à triagem");
     }
 
-    [Theory] // remetente conhecido só com o domínio confirmado (D11; o caso da triagem é o F15-26, no F15h)
+    [Theory] // remetente conhecido só com o domínio confirmado (D11; a triagem é o F15-26, TriagemEmailTests)
     [InlineData("fail")]
     [InlineData("none")]
     [InlineData(null)]
@@ -307,7 +307,7 @@ public sealed class AberturaPorEmailTests(ApiFixture api)
 
         await using var db = api.DaEquipe(c.Equipe.TenantId);
         (await db.Solicitacoes.CountAsync()).Should().Be(0);
-        (await db.EmailsRecebidos.AsNoTracking().SingleAsync()).Resultado.Should().Be(ResultadoEntradaEmail.Ignorado);
+        (await db.EmailsRecebidos.AsNoTracking().SingleAsync()).Resultado.Should().Be(ResultadoEntradaEmail.Triagem);
         api.Emails.Para(c.Email).Should().BeEmpty("nada é respondido");
     }
 
@@ -472,7 +472,7 @@ public sealed class AberturaPorEmailTests(ApiFixture api)
         descricao.Should().NotContain("\0").And.Contain("parou");
     }
 
-    [Theory] // remetente que não é "conhecido" (a triagem é do F15h): só o registro, nenhuma solicitação, nenhuma resposta
+    [Theory] // remetente que não é "conhecido": vai à triagem (F15h), nenhuma solicitação, nenhuma resposta
     [InlineData("contato-inativo")]
     [InlineData("cliente-inativo")]
     [InlineData("dois-clientes")]
@@ -509,7 +509,7 @@ public sealed class AberturaPorEmailTests(ApiFixture api)
         await using var db = api.DaEquipe(c.Equipe.TenantId);
         (await db.Solicitacoes.CountAsync()).Should().Be(0);
         (await db.ConversasPorEmail.CountAsync()).Should().Be(0);
-        (await db.EmailsRecebidos.AsNoTracking().SingleAsync()).Resultado.Should().Be(ResultadoEntradaEmail.Ignorado);
+        (await db.EmailsRecebidos.AsNoTracking().SingleAsync()).Resultado.Should().Be(ResultadoEntradaEmail.Triagem);
         api.Emails.Para(c.Email).Should().BeEmpty("nada é respondido a quem não é conhecido");
         api.Emails.Para(c.Equipe.EmailDono).Should().NotContain(m => m.Categoria == "aviso-nova-solicitacao");
     }

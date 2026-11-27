@@ -33,6 +33,7 @@ public static class ClassificacaoDoExpurgo
         typeof(Cronometro),
         typeof(EmailRecebido),
         typeof(Interacao),
+        typeof(ItemTriagemEmail),
         typeof(Projeto),
         typeof(RecorrenciaTarefa),
         typeof(Solicitacao),

@@ -122,7 +122,7 @@ public sealed class EntradaEmailTests(ApiFixture api)
     }
 
     [Fact]
-    public async Task Entregar_RecebimentoLigado_202SemCorpoERegistroIgnorado() // design D6 e §3: remetente que não é contato, IGNORADO até a triagem (F15h)
+    public async Task Entregar_RecebimentoLigado_202SemCorpoERegistroDaTriagem() // design D6 e D10: remetente que não é contato vai à triagem (F15h)
     {
         var equipe = await LigadaAsync();
 
@@ -132,10 +132,10 @@ public sealed class EntradaEmailTests(ApiFixture api)
         corpo.Should().BeEmpty();
         await using var db = api.DaEquipe(equipe.TenantId);
         var registro = await db.EmailsRecebidos.AsNoTracking().SingleAsync();
-        registro.Resultado.Should().Be(ResultadoEntradaEmail.Ignorado);
+        registro.Resultado.Should().Be(ResultadoEntradaEmail.Triagem);
         registro.RecebidoEm.Should().BeCloseTo(api.Relogio.Agora, TimeSpan.FromMilliseconds(1), "o horário é o da recepção, não o Date do e-mail (D14)");
         registro.RemetenteHash.Should().NotBeNull().And.NotContain("ana", "o remetente fica só como hash");
-        (await db.Solicitacoes.CountAsync()).Should().Be(0, "o remetente não é contato da empresa: nada abre (a triagem é do F15h)");
+        (await db.Solicitacoes.CountAsync()).Should().Be(0, "o remetente não é contato da empresa: nada abre, vai à triagem");
     }
 
     [Fact]
@@ -465,7 +465,7 @@ public sealed class EntradaEmailTests(ApiFixture api)
 
         await EntregarAsync(http, await EnderecoAsync(equipe), Mime(NovoMessageId()), envelope: null);
 
-        LinhasDaEntrada(logs).Should().Equal("Entrada por e-mail: Registrada.");
+        LinhasDaEntrada(logs).Should().Equal("Entrada por e-mail: Triagem.");
     }
 
     [Fact]
@@ -478,7 +478,7 @@ public sealed class EntradaEmailTests(ApiFixture api)
 
         await EntregarAsync(http, await EnderecoAsync(equipe), Mime(NovoMessageId(), cabecalhos: "Auto-Submitted: no\r\n"));
 
-        LinhasDaEntrada(logs).Should().Equal("Entrada por e-mail: Registrada.");
+        LinhasDaEntrada(logs).Should().Equal("Entrada por e-mail: Triagem.");
     }
 
     [Theory] // F15-87

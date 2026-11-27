@@ -243,9 +243,18 @@ class ConversaPorEmail <<aggregate root>> {
 class EmailRecebido <<aggregate root>> {
   +Id, TenantId
   +ChaveEntrada, RemetenteHash?, RecebidoEm, Resultado
-  +SolicitacaoId?, Recusados: AnexosRecusados?
+  +SolicitacaoId?, Recusados: AnexosRecusados?, ItemTriagemId?
   --
-  +Registrar(..., chaveEntrada, remetenteHash, resultado, agora, solicitacaoId?, recusados?)
+  +Registrar(..., chaveEntrada, remetenteHash, resultado, agora, solicitacaoId?, recusados?, itemTriagemId?)
+}
+
+class ItemTriagemEmail <<aggregate root>> {
+  +Id, TenantId
+  +RemetenteEmail?, RemetenteNome?, Assunto?, Texto?, RecebidoEm
+  +Motivo: MotivoTriagem, ClientesPossiveis: Guid[]
+  +Anexos: Anexo[], Recusados: AnexosRecusados?
+  --
+  +Receber(..., motivo, clientesPossiveis, anexos, recusados, politica, agora)
 }
 
 class CalendarioUtil <<aggregate root>> {
@@ -586,13 +595,19 @@ Dados da Nebrys, não do prestador: sem `TenantId`, sem filtro global e sem entr
 - `Registrar(id, nome, email, nomeEmpresa, mensagem, agora)` valida na ordem do formulário: obrigatório vazio ou e-mail inválido → `ArgumentException` no campo (F14-55). `Situacao` (`SituacaoEntradaListaEspera`, não gravada): `AGUARDANDO` sem `ConvidadaEm`, `CONVIDADA` com. `Convidar(agora)` grava `ConvidadaEm`; já convidada → `TransicaoInvalidaException`.
 - A inscrição pública (`Application.ListaEspera`) grava pela `RegistroListaEspera` da Infrastructure, que insere e deixa o índice único decidir: e-mail que já está não duplica nem muda a entrada existente (F14-53). A área da Nebrys (`Application.Nebrys`) convida a partir da entrada (o convite sai pelo mesmo caminho da emissão direta, com `EntradaListaEsperaId`, e a entrada fica convidada na mesma gravação; F14-76) e descarta, apagando a entrada (F14-77): a chave estrangeira do convite vira nula (`ON DELETE SET NULL`) e o convite continua. Só essas features e as consultas da área usam o tipo (teste de arquitetura).
 
-### 4.15 Entrada por e-mail (RF-SOL-11, F15d; design do F15, D6; ADR 0016, item 8)
+### 4.15 Entrada por e-mail (RF-SOL-11, RF-SOL-15, F15d, F15h; design do F15, D6 e D10; ADR 0016, itens 4 e 8)
 
 #### EmailRecebido: registro de entrada
 - Raiz por tenant, **sem cliente** (o remetente pode nem ser contato), tabela `emails_recebidos`. Um por e-mail aceito para a empresa: `ChaveEntrada` (SHA-256 em hex minúsculo do `Message-ID` normalizado e do destino, ou do MIME inteiro e do destino quando não há `Message-ID`; índice único `(tenant_id, chave_entrada)`), `RemetenteHash` (SHA-256 do e-mail do `From` normalizado; nulo quando o `From` não tem um endereço só), `RecebidoEm` (o instante da recepção, em UTC; nunca o `Date` do e-mail) e `Resultado` (`ResultadoEntradaEmail`: `SOLICITACAO`, `MENSAGEM`, `TRIAGEM`, `IGNORADO`, `RETIDO`). Nada do assunto, do texto nem dos endereços em claro: `Registrar` recusa (`ArgumentException`) o que não for hash.
-- Serve à idempotência (a repetição da mesma entrega esbarra no índice e não grava de novo; a corrida de duas é reconhecida pelo nome do índice) e, no F15n, às contagens dos limites. Da abertura (F15g): `SolicitacaoId` (obrigatório com `SOLICITACAO` e proibido nos outros resultados; sem FK) e `Recusados` (`AnexosRecusados`: nome e `MotivoRecusaAnexo` de cada anexo que não entrou, `GRANDE_DEMAIS`, `TIPO_NAO_PERMITIDO`, `ALEM_DO_LIMITE`, na ordem do MIME; `jsonb`, nulo sem recusados, só com `SOLICITACAO`), que o aviso de recebida lê. Os ids da mensagem e do item da triagem entram nos PRs que os criam.
-- Gravado pela Application (`ComandosEntradaEmail`) num escopo com o tenant do destino fixado, depois da admissão (`AdmissaoDeEntrada`): empresa desconhecida, só leitura ou com o recebimento desligado não ganha registro (F15-05, F15-19, F15-22). O e-mail novo de remetente conhecido abre a solicitação e fica `SOLICITACAO` (F15f); o não identificado (até a triagem, F15h) e a resposta ao endereço da conversa (até o F15i) ficam `IGNORADO`. O automático, o laço e o filtro do provedor (`DescarteDeEntrada`, função pura da Application; F15e, D11 e D12) também ficam `IGNORADO`: o registro mantém a idempotência, e nada mais é criado.
+- Serve à idempotência (a repetição da mesma entrega esbarra no índice e não grava de novo; a corrida de duas é reconhecida pelo nome do índice) e, no F15n, às contagens dos limites. Da abertura (F15g): `SolicitacaoId` (obrigatório com `SOLICITACAO` e proibido nos outros resultados; sem FK) e `Recusados` (`AnexosRecusados`: nome e `MotivoRecusaAnexo` de cada anexo que não entrou, `GRANDE_DEMAIS`, `TIPO_NAO_PERMITIDO`, `ALEM_DO_LIMITE`, na ordem do MIME; `jsonb`, nulo sem recusados, só com `SOLICITACAO`), que o aviso de recebida lê. Da triagem (F15h): `ItemTriagemId` (obrigatório com `TRIAGEM` e proibido nos outros; sem FK). O id da mensagem entra no PR da resposta (F15i).
+- Gravado pela Application (`ComandosEntradaEmail`) num escopo com o tenant do destino fixado, depois da admissão (`AdmissaoDeEntrada`): empresa desconhecida, só leitura ou com o recebimento desligado não ganha registro (F15-05, F15-19, F15-22). O e-mail novo de remetente conhecido abre a solicitação e fica `SOLICITACAO` (F15f); o não identificado vai à triagem e fica `TRIAGEM` (F15h); a resposta ao endereço da conversa (até o F15i) fica `IGNORADO`. O automático, o laço e o filtro do provedor (`DescarteDeEntrada`, função pura da Application; F15e, D11 e D12) também ficam `IGNORADO`: o registro mantém a idempotência, e nada mais é criado.
 - Dado da empresa no só leitura (a guarda recusa) e dado no expurgo do cadastro; some no contexto de contato. Retenção de 7 dias (`EmailEntrada__DiasRegistro`, de 1 a 90) pelo passo `expurgo-email-entrada` do diário (`ExpurgoEmailEntrada`, em `Persistence.EntradaEmail`; F15e, D16): `ExecuteDelete` sem os filtros, em todas as empresas de uma vez, inclusive as só leitura, porque o prazo é de dado pessoal, não de operação (ADR 0015, itens 3 e 4).
+
+#### ItemTriagemEmail: e-mail na triagem (F15h; RF-SOL-15; design D10; ADR 0016, item 4)
+- Raiz por tenant, **sem cliente** (ADR 0002: o remetente pode nem ser contato), tabela `itens_triagem_email`, índice `(tenant_id, recebido_em)`. Nasce na chegada do e-mail de remetente não identificado (`Receber`) e **nunca é editado**: sai inteiro numa das ações da equipe (converter, juntar, descartar; F15k a F15m) ou no expurgo do diário (30 dias, F15k). Não registra evento: a chegada à triagem não avisa nem responde ninguém.
+- Campos: `RemetenteEmail` (o `From` normalizado como o e-mail dos contatos, nulo sem um endereço só), `RemetenteNome` (o nome do `From`, ≤ 200), `Assunto` (numa linha, ≤ 998), `Texto` (só texto, ≤ 10.000), `RecebidoEm` (UTC, o da recepção), `Motivo` (`MotivoTriagem`: `DESCONHECIDO`, `CONTATO_INATIVO`, `MAIS_DE_UM_CLIENTE`, `REMETENTE_NAO_CONFIRMADO`, `NAO_CONTATO_DA_SOLICITACAO`, este no F15j), `ClientesPossiveis` (`uuid[]`, dois ou mais, sem repetir, só com `MAIS_DE_UM_CLIENTE`; vazio nos outros), `Anexos` (`Anexo`, filhos na tabela `anexos_triagem_email`, até 5, validados pela política como os da interação; chave `{tenantId}/triagem/{itemId}/{anexoId}`) e `Recusados` (`AnexosRecusados`, `jsonb`, nulo sem recusados). Versão por `xmin`.
+- Quem decide o motivo é a Application (`IdentificacaoDoRemetente.Classificar`): sem contato com o e-mail → `DESCONHECIDO`; com contato, mas sem a autenticidade → `REMETENTE_NAO_CONFIRMADO`; ativos em dois ou mais clientes ativos → `MAIS_DE_UM_CLIENTE`; nenhum ativo de cliente ativo → `CONTATO_INATIVO`.
+- Dado da empresa no só leitura e dado no expurgo do cadastro (e nos exemplos: um item na triagem conta como dado próprio); some no contexto de contato, e a guarda recusa gravá-lo nele (não tem cliente). Apagado com a empresa, com os anexos no storage (`ApagadorDeEmpresa`).
 
 ## 5. Value objects
 

@@ -65,6 +65,15 @@ public sealed class DadosDeExemploTests(BancoFixture banco)
     }
 
     [Fact]
+    public async Task SituacaoAsync_ItemNaTriagem_EhDadoProprio() // F15h: o item da triagem vive mais que o registro de entrada
+    {
+        var tenant = Guid.NewGuid();
+        await GravarAsync(tenant, db => db.AddRange(Exemplo(tenant), Dados.ItemTriagem(tenant)));
+
+        (await SituacaoAsync(tenant)).DadosProprios.Should().BeTrue();
+    }
+
+    [Fact]
     public async Task SituacaoAsync_EmpresaVazia_NemExemploNemDado() // F14-91
     {
         (await SituacaoAsync(Guid.NewGuid())).Should().Be(new SituacaoDosExemplos(Carregados: false, DadosProprios: false));

@@ -40,6 +40,7 @@ public static class ClassificacaoSomenteLeitura
         typeof(Cronometro),
         typeof(EmailRecebido),
         typeof(Interacao),
+        typeof(ItemTriagemEmail),
         typeof(MarcadorAviso),
         typeof(Papel),
         typeof(Projeto),

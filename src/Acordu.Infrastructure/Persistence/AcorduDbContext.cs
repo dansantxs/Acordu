@@ -95,6 +95,8 @@ public sealed class AcorduDbContext : IdentityUserContext<Usuario, Guid>
 
     public DbSet<EmailRecebido> EmailsRecebidos => Set<EmailRecebido>();
 
+    public DbSet<ItemTriagemEmail> ItensTriagemEmail => Set<ItemTriagemEmail>();
+
     public DbSet<ConvitePortal> ConvitesPortal => Set<ConvitePortal>();
 
     public DbSet<ConviteEquipe> ConvitesEquipe => Set<ConviteEquipe>();
@@ -175,6 +177,7 @@ public sealed class AcorduDbContext : IdentityUserContext<Usuario, Guid>
         builder.ApplyConfiguration(new AcessoPortalConfiguration());
         builder.ApplyConfiguration(new ConversaPorEmailConfiguration());
         builder.ApplyConfiguration(new EmailRecebidoConfiguration());
+        builder.ApplyConfiguration(new ItemTriagemEmailConfiguration());
         builder.ApplyConfiguration(new ConvitePortalConfiguration());
         builder.ApplyConfiguration(new ConviteEquipeConfiguration());
         builder.ApplyConfiguration(new ProjetoConfiguration());
@@ -252,6 +255,10 @@ public sealed class AcorduDbContext : IdentityUserContext<Usuario, Guid>
         // Registro de entrada por e-mail (F15d): só a equipe e o sistema no tenant; some no contexto de Cliente.
         FiltrarTenant<EmailRecebido>(modelBuilder);
         modelBuilder.Entity<EmailRecebido>().HasQueryFilter(FiltrosGlobais.Cliente, e => !_contexto.EhCliente);
+
+        // Triagem dos e-mails não identificados (F15h; ADR 0002): da empresa, sem cliente; some no contexto de Cliente.
+        FiltrarTenant<ItemTriagemEmail>(modelBuilder);
+        modelBuilder.Entity<ItemTriagemEmail>().HasQueryFilter(FiltrosGlobais.Cliente, e => !_contexto.EhCliente);
 
         // Comentário de tarefa: só interno, nem em tarefa visível ao cliente.
         FiltrarTenant<ComentarioTarefa>(modelBuilder);

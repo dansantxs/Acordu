@@ -2,10 +2,10 @@
   "marco": "F15",
   "issue": 183,
   "etapa": "AGUARDANDO_MERGE",
-  "branch": "feat/F15g-anexos-por-email",
+  "branch": "feat/F15h-chegada-triagem",
   "pr": {
-    "id": "F15g",
-    "numero": 242
+    "id": "F15h",
+    "numero": 243
   },
   "feitos": [
     "F15a (#235)",
@@ -13,7 +13,8 @@
     "F15c (#237)",
     "F15d (#239)",
     "F15e (#240)",
-    "F15f (#241)"
+    "F15f (#241)",
+    "F15g (#242)"
   ],
   "contadores": {
     "devolucoesNaEtapa": 0,
@@ -34,18 +35,22 @@
       "F15c: PR #237 mesclado (26/11/2026)",
       "F15d: PR #239 mesclado (26/11/2026)",
       "F15e: PR #240 mesclado (27/11/2026), com noreply e o teto de 90 dias como estavam",
-      "F15f: PR #241 mesclado (27/11/2026); ordem marcadora → Recebemos sua solicitação #N aceita no merge, F15-16 ajustado no F15g"
+      "F15f: PR #241 mesclado (27/11/2026); ordem marcadora → Recebemos sua solicitação #N aceita no merge, F15-16 ajustado no F15g",
+      "F15g: PR #242 mesclado (27/11/2026)"
     ]
   },
   "ressalvas": [
     "Ver notas/plano-2.md (menores 4 a 11) para os PRs de código",
     "Do F15a: em Mensagens.tsx, juntar o comentário \"Peças de mensagem com @menções e anexos\" a TextoComMencoes",
-    "Testador F15g: sem 403 novo (nenhuma rota nova)",
-    "Testador F15g: o registro guarda todos os recusados em jsonb (só nota e aviso têm teto de 20); limitar no F15n",
-    "Testador F15g: ordem tamanho antes do tipo não definida no design (executável > 20 MB vira maior que 20 MB)",
+    "Do F15g: text/plain ou text/html inline com filename não vira anexo nem recusado (LeitorMime.EhCorpo)",
+    "Testador F15h: endereço com acento antes do @ vai à triagem como DESCONHECIDO sem RemetenteEmail; a tela do F15k deve deixar claro",
+    "Testador F15h: pessoa da equipe que não é contato cai em DESCONHECIDO sem teste dedicado",
+    "Sem rota nova: 403/404 da triagem são do F15k",
+    "Primeiro deploy do F15h: e-mail forjado e legítimo do mesmo domínio (F15-26), conferidos no banco",
     "Testes C# validados só pela CI",
-    "Revisor F15g: text/plain ou text/html inline com filename não vira anexo nem recusado (LeitorMime.EhCorpo)",
-    "Revisor F15g: RecusadosDaAberturaAsync sem índice por SolicitacaoId (F15n)"
+    "Revisor F15h: o item da triagem não tem expurgo até o F15k; não ligar o recebimento numa empresa real entre o F15h e o F15k (Daniel decide)",
+    "Revisor F15h: BPMN da triagem entra com as ações da equipe (F15k a F15m)",
+    "Revisor F15h: dois contatos ativos do mesmo cliente com o mesmo e-mail caem em DESCONHECIDO (ramo inalcançável pelo RF-CLI-02)"
   ],
   "bloqueios": [],
   "atualizadoEm": "2026-11-27",
