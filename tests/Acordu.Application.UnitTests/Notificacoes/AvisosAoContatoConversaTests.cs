@@ -128,7 +128,7 @@ public sealed class AvisosAoContatoConversaTests
     {
         var solicitacao = Solicitacao.Abrir(
             Guid.NewGuid(), _tenant.Id, _cliente.Id, 8, "Forno parou", null, Prioridade.Media, origem,
-            _cliente.Contatos.First().Id, null, null, null, null, Agora, CalendarioUtil.Padrao(_tenant.Id));
+            _cliente.Contatos[0].Id, null, null, null, null, Agora, CalendarioUtil.Padrao(_tenant.Id));
         _solicitacoes.Itens.Add(solicitacao);
         _conversas.Existentes.Add(comFio
             ? ConversaPorEmail.DaAberturaPorEmail(
