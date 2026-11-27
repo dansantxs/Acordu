@@ -856,6 +856,10 @@ namespace Acordu.Infrastructure.Persistence.Migrations
                         .HasColumnName("chave_entrada")
                         .IsFixedLength();
 
+                    b.Property<Guid?>("ItemTriagemId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("item_triagem_id");
+
                     b.Property<DateTimeOffset>("RecebidoEm")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("recebido_em");
@@ -1015,6 +1019,69 @@ namespace Acordu.Infrastructure.Persistence.Migrations
                         .HasDatabaseName("ix_interacoes_tenant_id_solicitacao_id_registrada_em");
 
                     b.ToTable("interacoes", (string)null);
+                });
+
+            modelBuilder.Entity("Acordu.Domain.Entities.ItemTriagemEmail", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<string>("Assunto")
+                        .HasMaxLength(998)
+                        .HasColumnType("character varying(998)")
+                        .HasColumnName("assunto");
+
+                    b.PrimitiveCollection<Guid[]>("ClientesPossiveis")
+                        .IsRequired()
+                        .HasColumnType("uuid[]")
+                        .HasColumnName("clientes_possiveis");
+
+                    b.Property<string>("Motivo")
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .HasColumnType("character varying(40)")
+                        .HasColumnName("motivo");
+
+                    b.Property<DateTimeOffset>("RecebidoEm")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("recebido_em");
+
+                    b.Property<string>("Recusados")
+                        .HasColumnType("jsonb")
+                        .HasColumnName("recusados");
+
+                    b.Property<string>("RemetenteEmail")
+                        .HasMaxLength(254)
+                        .HasColumnType("character varying(254)")
+                        .HasColumnName("remetente_email");
+
+                    b.Property<string>("RemetenteNome")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("remetente_nome");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
+                    b.Property<string>("Texto")
+                        .HasColumnType("text")
+                        .HasColumnName("texto");
+
+                    b.Property<uint>("Versao")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("xid")
+                        .HasColumnName("xmin");
+
+                    b.HasKey("Id")
+                        .HasName("pk_itens_triagem_email");
+
+                    b.HasIndex("TenantId", "RecebidoEm")
+                        .HasDatabaseName("ix_itens_triagem_email_tenant_id_recebido_em");
+
+                    b.ToTable("itens_triagem_email", (string)null);
                 });
 
             modelBuilder.Entity("Acordu.Domain.Entities.Papel", b =>
@@ -2687,6 +2754,56 @@ namespace Acordu.Infrastructure.Persistence.Migrations
                             b1.WithOwner()
                                 .HasForeignKey("InteracaoId")
                                 .HasConstraintName("fk_anexos_interacoes_interacao_id");
+                        });
+
+                    b.Navigation("Anexos");
+                });
+
+            modelBuilder.Entity("Acordu.Domain.Entities.ItemTriagemEmail", b =>
+                {
+                    b.OwnsMany("Acordu.Domain.Entities.Anexo", "Anexos", b1 =>
+                        {
+                            b1.Property<Guid>("Id")
+                                .HasColumnType("uuid")
+                                .HasColumnName("id");
+
+                            b1.Property<string>("ChaveArmazenamento")
+                                .IsRequired()
+                                .HasMaxLength(512)
+                                .HasColumnType("character varying(512)")
+                                .HasColumnName("chave_armazenamento");
+
+                            b1.Property<Guid>("ItemTriagemId")
+                                .HasColumnType("uuid")
+                                .HasColumnName("item_triagem_id");
+
+                            b1.Property<string>("NomeArquivo")
+                                .IsRequired()
+                                .HasMaxLength(255)
+                                .HasColumnType("character varying(255)")
+                                .HasColumnName("nome_arquivo");
+
+                            b1.Property<long>("TamanhoBytes")
+                                .HasColumnType("bigint")
+                                .HasColumnName("tamanho_bytes");
+
+                            b1.Property<string>("TipoConteudo")
+                                .IsRequired()
+                                .HasMaxLength(255)
+                                .HasColumnType("character varying(255)")
+                                .HasColumnName("tipo_conteudo");
+
+                            b1.HasKey("Id")
+                                .HasName("pk_anexos_triagem_email");
+
+                            b1.HasIndex("ItemTriagemId")
+                                .HasDatabaseName("ix_anexos_triagem_email_item_triagem_id");
+
+                            b1.ToTable("anexos_triagem_email", (string)null);
+
+                            b1.WithOwner()
+                                .HasForeignKey("ItemTriagemId")
+                                .HasConstraintName("fk_anexos_triagem_email_itens_triagem_email_item_triagem_id");
                         });
 
                     b.Navigation("Anexos");
