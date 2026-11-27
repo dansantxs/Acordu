@@ -5910,6 +5910,7 @@ export interface components {
             id: string
             autor: components['schemas']['Referencia']
             autorEhCliente: boolean
+            autorSistema: boolean
             texto: null | string
             visibilidade: components['schemas']['Visibilidade']
             canal: components['schemas']['CanalMensagem']
