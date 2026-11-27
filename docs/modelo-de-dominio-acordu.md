@@ -133,6 +133,7 @@ class Interacao <<aggregate root>> {
   +Anexos: Anexo[]
   --
   +Registrar(..., visibilidade, canal, anexos: NovoAnexo[], politica: PoliticaAnexos, agora): Interacao
+  +RegistrarNotaDoSistema(..., autorId, texto, canal, agora): Interacao
 }
 
 class Tarefa <<aggregate root>> {
@@ -242,8 +243,9 @@ class ConversaPorEmail <<aggregate root>> {
 class EmailRecebido <<aggregate root>> {
   +Id, TenantId
   +ChaveEntrada, RemetenteHash?, RecebidoEm, Resultado
+  +SolicitacaoId?, Recusados: AnexosRecusados?
   --
-  +Registrar(..., chaveEntrada, remetenteHash, resultado, agora)
+  +Registrar(..., chaveEntrada, remetenteHash, resultado, agora, solicitacaoId?, recusados?)
 }
 
 class CalendarioUtil <<aggregate root>> {
@@ -408,8 +410,9 @@ Regras:
 - **Invariantes:** texto (≤ 10.000) ou ao menos um anexo; autor cliente ⇒ visibilidade EXTERNA obrigatória; anexos validados contra a `PoliticaAnexos` (tamanho máximo, content types permitidos, máximo por interação), montada pela Application a partir da configuração (padrão do contrato da API: 5 anexos de até 20 MB) → `AnexoInvalidoException`; nome de arquivo sem caminho (`/`, `\`, `..`).
 - O arquivo é enviado ao object storage antes; o domínio recebe `NovoAnexo` (nome, tipo, tamanho, chave). Imutável depois de registrada no v1.
 - Anexo guarda metadados + `ChaveArmazenamento`; o binário vive no object storage (ADR 0001 — serviços complementares).
-- **Canal** (F15a, RF-SOL-14; ADR 0016, item 6): `CanalMensagem` (`ACORDU`, `PORTAL`, `EMAIL`, `WHATSAPP`), por onde a mensagem entrou, independente da `OrigemSolicitacao` (a solicitação aberta no portal pode receber resposta por e-mail). Obrigatório no `Registrar`; invariante: autor da equipe só `ACORDU`, contato nunca `ACORDU` (`ArgumentException` em `canal`; valor fora do enum, `ArgumentOutOfRangeException`). A exceção da nota do sistema (autor `AutoresDoSistema`, INTERNA com o canal da entrada) entra no F15g. Quem grava: a equipe pelo app (`ComandosSolicitacao`, os dados fictícios) → `ACORDU`; o contato pelo portal, com conta ou link (`ComandosPortal`) → `PORTAL`. As mensagens anteriores ao F15 foram preenchidas pela migration pelo autor: do contato → `PORTAL`, da equipe → `ACORDU` (F15-62).
+- **Canal** (F15a, RF-SOL-14; ADR 0016, item 6): `CanalMensagem` (`ACORDU`, `PORTAL`, `EMAIL`, `WHATSAPP`), por onde a mensagem entrou, independente da `OrigemSolicitacao` (a solicitação aberta no portal pode receber resposta por e-mail). Obrigatório no `Registrar`; invariante: autor da equipe só `ACORDU`, contato nunca `ACORDU` (`ArgumentException` em `canal`; valor fora do enum, `ArgumentOutOfRangeException`). Exceção única: a nota do sistema (abaixo), INTERNA com o canal da entrada. Quem grava: a equipe pelo app (`ComandosSolicitacao`, os dados fictícios) → `ACORDU`; o contato pelo portal, com conta ou link (`ComandosPortal`) → `PORTAL`. As mensagens anteriores ao F15 foram preenchidas pela migration pelo autor: do contato → `PORTAL`, da equipe → `ACORDU` (F15-62).
 - **Emite:** `InteracaoRegistrada` (com `Visibilidade` e `AutorEhCliente`) — gatilho das regras do §3.1 e das notificações.
+- **Nota do sistema** (F15g; design do F15, D15; ADR 0016, item 10): `RegistrarNotaDoSistema` registra o que o próprio Acordu escreve na conversa (hoje, a lista dos anexos recusados de um e-mail recebido, F15-15): sempre INTERNA, `AutorEhCliente = false`, sem anexos, texto obrigatório (≤ 10.000), autor de `AutoresDoSistema` (`Domain.Common`: um Id constante por origem, sem conta nem vínculo, com o nome fixo que a conversa da equipe mostra, "Acordu (e-mail recebido)"; o WhatsApp, #184, ganha o seu) e o canal da entrada que a gerou (nunca `ACORDU`). Autor que não é do sistema → `ArgumentException` em `autorId`; e o `Registrar` das pessoas recusa o autor do sistema. **Não emite** `InteracaoRegistrada`: ninguém da equipe agiu, então nada de primeira resposta, aviso ao contato (RNF-SEG-03, F15-98) ou aos seguidores, feed nem seguimento automático. O portal não a lê (só EXTERNAS).
 
 #### 4.5.1 Menções (marco 14b, RF-COL-02)
 - O texto guarda `@{usuarioId}`; o front mostra o nome. `Mencoes.Extrair(texto, autorId)` (Domain/Services) devolve os Ids sem repetição e sem o autor; no máximo 20 por texto.
@@ -587,7 +590,7 @@ Dados da Nebrys, não do prestador: sem `TenantId`, sem filtro global e sem entr
 
 #### EmailRecebido: registro de entrada
 - Raiz por tenant, **sem cliente** (o remetente pode nem ser contato), tabela `emails_recebidos`. Um por e-mail aceito para a empresa: `ChaveEntrada` (SHA-256 em hex minúsculo do `Message-ID` normalizado e do destino, ou do MIME inteiro e do destino quando não há `Message-ID`; índice único `(tenant_id, chave_entrada)`), `RemetenteHash` (SHA-256 do e-mail do `From` normalizado; nulo quando o `From` não tem um endereço só), `RecebidoEm` (o instante da recepção, em UTC; nunca o `Date` do e-mail) e `Resultado` (`ResultadoEntradaEmail`: `SOLICITACAO`, `MENSAGEM`, `TRIAGEM`, `IGNORADO`, `RETIDO`). Nada do assunto, do texto nem dos endereços em claro: `Registrar` recusa (`ArgumentException`) o que não for hash.
-- Serve à idempotência (a repetição da mesma entrega esbarra no índice e não grava de novo; a corrida de duas é reconhecida pelo nome do índice) e, no F15n, às contagens dos limites. Os ids do que o e-mail criou (solicitação, mensagem, item da triagem) e os anexos recusados entram nos PRs que os criam.
+- Serve à idempotência (a repetição da mesma entrega esbarra no índice e não grava de novo; a corrida de duas é reconhecida pelo nome do índice) e, no F15n, às contagens dos limites. Da abertura (F15g): `SolicitacaoId` (obrigatório com `SOLICITACAO` e proibido nos outros resultados; sem FK) e `Recusados` (`AnexosRecusados`: nome e `MotivoRecusaAnexo` de cada anexo que não entrou, `GRANDE_DEMAIS`, `TIPO_NAO_PERMITIDO`, `ALEM_DO_LIMITE`, na ordem do MIME; `jsonb`, nulo sem recusados, só com `SOLICITACAO`), que o aviso de recebida lê. Os ids da mensagem e do item da triagem entram nos PRs que os criam.
 - Gravado pela Application (`ComandosEntradaEmail`) num escopo com o tenant do destino fixado, depois da admissão (`AdmissaoDeEntrada`): empresa desconhecida, só leitura ou com o recebimento desligado não ganha registro (F15-05, F15-19, F15-22). O e-mail novo de remetente conhecido abre a solicitação e fica `SOLICITACAO` (F15f); o não identificado (até a triagem, F15h) e a resposta ao endereço da conversa (até o F15i) ficam `IGNORADO`. O automático, o laço e o filtro do provedor (`DescarteDeEntrada`, função pura da Application; F15e, D11 e D12) também ficam `IGNORADO`: o registro mantém a idempotência, e nada mais é criado.
 - Dado da empresa no só leitura (a guarda recusa) e dado no expurgo do cadastro; some no contexto de contato. Retenção de 7 dias (`EmailEntrada__DiasRegistro`, de 1 a 90) pelo passo `expurgo-email-entrada` do diário (`ExpurgoEmailEntrada`, em `Persistence.EntradaEmail`; F15e, D16): `ExecuteDelete` sem os filtros, em todas as empresas de uma vez, inclusive as só leitura, porque o prazo é de dado pessoal, não de operação (ADR 0015, itens 3 e 4).
 
@@ -605,6 +608,7 @@ Dados da Nebrys, não do prestador: sem `TenantId`, sem filtro global e sem entr
 | `JanelaDiaria` | `DiaSemana`, `Inicio: TimeOnly`, `Fim: TimeOnly` | início < fim. |
 | `PoliticaAnexos` | `TamanhoMaximoBytes`, `TiposPermitidos`, `MaximoPorInteracao` | limites > 0; ao menos um tipo; tipos sem diferenciar maiúsculas. |
 | `NovoAnexo` | `NomeArquivo`, `TipoConteudo`, `TamanhoBytes`, `ChaveArmazenamento` | validado em `Interacao.Registrar`. |
+| `AnexosRecusados` | `Itens: AnexoRecusado[]` (`NomeArquivo`, `Motivo: MotivoRecusaAnexo`) | ao menos um; nome obrigatório (≤ 255); igualdade pela sequência (F15g, registro de entrada). |
 
 ---
 
