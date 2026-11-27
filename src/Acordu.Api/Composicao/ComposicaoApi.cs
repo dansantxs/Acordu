@@ -38,7 +38,8 @@ namespace Acordu.Api.Composicao;
 /// <c>TempoReal__Sse</c> (padrão ligado; ADR 0010 §4), <c>Empresas__DiasDeTeste</c> e <c>Empresas__DiasAteExpurgo</c> (padrão 30; F14),
 /// <c>Empresas__DiasFaixaTeste</c> (padrão 7; F14e), <c>Empresas__AvisosAntesDoFim</c> (padrão <c>7,1</c>) e
 /// <c>Empresas__AvisoAntesDoExpurgo</c> (padrão 7; F14j),
-/// <c>Documentos__ChaveHmac</c> (obrigatória, ≥ 32 bytes; F14g), <c>Nebrys__Contato</c> (canal da Nebrys; F14g),
+/// <c>Documentos__ChaveHmac</c> (obrigatória, ≥ 32 bytes; F14g), <c>Fornecedor__Nome</c>, <c>Fornecedor__Artigo</c> e
+/// <c>Fornecedor__Contato</c> (quem fornece o Acordu nos textos, padrão "a Nebrys", e o canal dele; F14g, ADR 0017),
 /// <c>Nebrys__Operadores</c> (e-mails dos operadores da área da Nebrys, separados por vírgula; sem ela, a área responde 404; F14k),
 /// <c>TextosLegais__Publicados</c> (<c>true</c> ou <c>false</c>, padrão desligado; F14h, D16),
 /// <c>Cadastro__Modo</c> (<c>convite</c> ou <c>aberto</c>; sem ela, <c>convite</c>; F14n, D11) e <c>Cadastro__DiasConvite</c>
@@ -95,8 +96,9 @@ internal static class ComposicaoApi
         services.AddSingleton<Infrastructure.Persistence.Cadastros.AvisosDeSituacao>();
         // Um teste por documento (F14g, design D8): a chave do HMAC é obrigatória, como a do JWT; sem ela a API não sobe.
         services.AddSingleton(ProtecaoDocumento.DaConfiguracao(configuracao["Documentos:ChaveHmac"]));
-        // Canal da Nebrys nas recusas e avisos (D15); sem ele, os textos dizem só "fale com a Nebrys".
-        services.AddSingleton(new OpcoesNebrys(configuracao["Nebrys:Contato"]));
+        // Quem fornece o Acordu e o canal dele nas recusas e avisos (D15, ADR 0017); artigo inválido impede a subida.
+        services.AddSingleton(new OpcoesFornecedor(
+            configuracao["Fornecedor:Nome"], configuracao["Fornecedor:Artigo"], configuracao["Fornecedor:Contato"]));
         // Operadores da área da Nebrys (ADR 0014, item 1): sem a variável, ninguém; e-mail inválido impede a subida.
         services.AddSingleton(OperadoresNebrys.DaConfiguracao(configuracao["Nebrys:Operadores"]));
         // Consultas da área (F14k): dependem do prazo do expurgo acima, que só a Api lê da configuração.

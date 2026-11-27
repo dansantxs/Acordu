@@ -209,7 +209,7 @@ public sealed class ConvitesEmpresaTests(ApiFixture api)
         var (statusSemModo, _) = await RegistrarAsync(semModo, NovoEmail(), convite: "   ");
 
         status.Should().Be(HttpStatusCode.BadRequest);
-        Erro(corpo, "convite").Should().Contain("só por convite").And.Contain(ApiFixture.ContatoNebrys);
+        Erro(corpo, "convite").Should().Contain("só por convite").And.Contain(ApiFixture.ContatoFornecedor);
         statusSemModo.Should().Be(HttpStatusCode.BadRequest, "sem a variável, vale o modo convite");
         (await ContagensAsync()).Should().Be(antes);
     }
@@ -248,7 +248,7 @@ public sealed class ConvitesEmpresaTests(ApiFixture api)
 
         status.Should().Be(HttpStatusCode.BadRequest);
         Erro(corpo, "convite").Should().Be(
-            $"Este convite não vale mais: venceu, já foi usado ou foi revogado. Para pedir outro, fale com a Nebrys: {ApiFixture.ContatoNebrys}.");
+            $"Este convite não vale mais: venceu, já foi usado ou foi revogado. Para pedir outro, fale com a Nebrys: {ApiFixture.ContatoFornecedor}.");
         (await ContagensAsync()).Should().Be(antes);
     }
 

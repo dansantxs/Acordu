@@ -2,6 +2,7 @@ using Acordu.Api.Erros;
 using Acordu.Application.Abstractions;
 using Acordu.Application.Autenticacao;
 using Acordu.Application.Cadastro;
+using Acordu.Application.Empresas;
 
 namespace Acordu.Api.Seguranca;
 
@@ -39,11 +40,12 @@ internal static class AuthEndpoints
         // O convite de empresa do link (F14-46): o e-mail que a tela fixa. Token que não vale → 401, sem distinguir, como os
         // outros convites.
         publicas.MapPost("/registro/convite/consulta", async (
-            ConsultaConviteRequest corpo, IServicoAutenticacao servico, CancellationToken cancellationToken) =>
+            ConsultaConviteRequest corpo, IServicoAutenticacao servico, OpcoesFornecedor fornecedor,
+            CancellationToken cancellationToken) =>
         {
             var convite = await servico.ConsultarConviteEmpresaAsync(corpo.Token, cancellationToken);
             return convite is null
-                ? NaoAutenticado("Convite inválido, vencido ou já usado. Peça um novo convite à Nebrys.")
+                ? NaoAutenticado(fornecedor.Texto("Convite inválido, vencido ou já usado. Peça um novo convite {{à fornecedor}}."))
                 : Results.Ok(convite);
         })
             .RequireRateLimiting(ComposicaoSeguranca.LimiteAuth)

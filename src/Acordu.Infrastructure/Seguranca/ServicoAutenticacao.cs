@@ -48,7 +48,7 @@ public sealed partial class ServicoAutenticacao : IServicoAutenticacao
     private readonly IOrigemRequisicao _origem;
     private readonly OpcoesEmpresas _empresas;
     private readonly RegistroDocumentos _documentos;
-    private readonly OpcoesNebrys _nebrys;
+    private readonly OpcoesFornecedor _fornecedor;
     private readonly RegistroAceites _aceites;
     private readonly OpcoesTextosLegais _textos;
     private readonly OpcoesCadastro _cadastro;
@@ -66,7 +66,7 @@ public sealed partial class ServicoAutenticacao : IServicoAutenticacao
         IOrigemRequisicao origem,
         OpcoesEmpresas empresas,
         RegistroDocumentos documentos,
-        OpcoesNebrys nebrys,
+        OpcoesFornecedor fornecedor,
         RegistroAceites aceites,
         OpcoesTextosLegais textos,
         OpcoesCadastro cadastro,
@@ -85,10 +85,10 @@ public sealed partial class ServicoAutenticacao : IServicoAutenticacao
         _textos = textos;
         ArgumentNullException.ThrowIfNull(empresas);
         ArgumentNullException.ThrowIfNull(documentos);
-        ArgumentNullException.ThrowIfNull(nebrys);
+        ArgumentNullException.ThrowIfNull(fornecedor);
         _empresas = empresas;
         _documentos = documentos;
-        _nebrys = nebrys;
+        _fornecedor = fornecedor;
         ArgumentNullException.ThrowIfNull(db);
         ArgumentNullException.ThrowIfNull(usuarios);
         ArgumentNullException.ThrowIfNull(contexto);
@@ -140,7 +140,7 @@ public sealed partial class ServicoAutenticacao : IServicoAutenticacao
         // Presente, o convite vale em qualquer modo, com o e-mail dele (F14-47, F14-49).
         var tokenConvite = string.IsNullOrWhiteSpace(convite) ? null : convite.Trim();
         if (tokenConvite is null && _cadastro.Modo == ModoCadastro.Convite)
-            throw ErroDeCampo.Criar(MensagensDeCadastro.CampoConvite, MensagensDeCadastro.SoPorConvite(_nebrys));
+            throw ErroDeCampo.Criar(MensagensDeCadastro.CampoConvite, MensagensDeCadastro.SoPorConvite(_fornecedor));
 
         var tenantId = Guid.CreateVersion7();
         var agora = _relogio.GetUtcNow();
@@ -241,10 +241,10 @@ public sealed partial class ServicoAutenticacao : IServicoAutenticacao
     }
 
     private ArgumentException DocumentoJaTeveTeste() =>
-        new(MensagensDeCadastro.DocumentoJaTeveTeste(_nebrys), MensagensDeCadastro.CampoDocumento);
+        new(MensagensDeCadastro.DocumentoJaTeveTeste(_fornecedor), MensagensDeCadastro.CampoDocumento);
 
     private ArgumentException ConviteInvalido() =>
-        ErroDeCampo.Criar(MensagensDeCadastro.CampoConvite, MensagensDeCadastro.ConviteInvalido(_nebrys));
+        ErroDeCampo.Criar(MensagensDeCadastro.CampoConvite, MensagensDeCadastro.ConviteInvalido(_fornecedor));
 
     /// <summary>
     /// O convite de empresa do cadastro (F14-45, F14-48, F14-49): inexistente, vencido, usado ou revogado → <c>400</c> no

@@ -7,9 +7,13 @@ namespace Acordu.Application.Common;
 /// </summary>
 public sealed class EmpresaSomenteLeituraException : Exception
 {
+    /// <summary>
+    /// O texto da recusa, com o marcador do fornecedor (ADR 0017): a API troca pelo nome configurado na resposta
+    /// (<c>OpcoesFornecedor.Texto</c>).
+    /// </summary>
     public const string Mensagem =
         "A empresa está só leitura (o teste venceu ou a conta foi cancelada): dá para consultar tudo, mas não gravar. "
-        + "Para voltar a usar, fale com a Nebrys.";
+        + "Para voltar a usar, fale com {{a fornecedor}}.";
 
     /// <summary>
     /// Nome do prestador (o do portal, se houver), para a mensagem neutra das rotas do portal (decisão 10 do G2 do F14):

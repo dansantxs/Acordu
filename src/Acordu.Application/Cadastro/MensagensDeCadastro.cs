@@ -39,29 +39,29 @@ public static class MensagensDeCadastro
     public const string EmailDiferenteDoConvite = "Use o e-mail que recebeu o convite: o cadastro por convite vale só para ele.";
 
     /// <summary>Modo convite sem convite (F14-45): o cadastro está fechado; a orientação é pedir um à Nebrys.</summary>
-    public static string SoPorConvite(OpcoesNebrys nebrys)
+    public static string SoPorConvite(OpcoesFornecedor fornecedor)
     {
-        ArgumentNullException.ThrowIfNull(nebrys);
-        return $"No momento, o cadastro no Acordu é só por convite. Para pedir um, {nebrys.FaleComANebrys}.";
+        ArgumentNullException.ThrowIfNull(fornecedor);
+        return $"No momento, o cadastro no Acordu é só por convite. Para pedir um, {fornecedor.FaleComOFornecedor}.";
     }
 
     /// <summary>
     /// Convite inexistente, vencido, já usado ou revogado (F14-45, F14-48), sem distinguir o motivo, como os outros convites
     /// (segurança §4).
     /// </summary>
-    public static string ConviteInvalido(OpcoesNebrys nebrys)
+    public static string ConviteInvalido(OpcoesFornecedor fornecedor)
     {
-        ArgumentNullException.ThrowIfNull(nebrys);
-        return $"Este convite não vale mais: venceu, já foi usado ou foi revogado. Para pedir outro, {nebrys.FaleComANebrys}.";
+        ArgumentNullException.ThrowIfNull(fornecedor);
+        return $"Este convite não vale mais: venceu, já foi usado ou foi revogado. Para pedir outro, {fornecedor.FaleComOFornecedor}.";
     }
 
     /// <summary>
     /// O documento já teve teste (F14-57, F14-58), sem liberação disponível: a orientação é falar com a Nebrys pelo canal da
     /// decisão 14 do G2. Não diz quando nem em que empresa (o registro não sabe).
     /// </summary>
-    public static string DocumentoJaTeveTeste(OpcoesNebrys nebrys)
+    public static string DocumentoJaTeveTeste(OpcoesFornecedor fornecedor)
     {
-        ArgumentNullException.ThrowIfNull(nebrys);
-        return $"Este CPF ou CNPJ já teve um período de teste no Acordu. Para testar de novo, {nebrys.FaleComANebrys}.";
+        ArgumentNullException.ThrowIfNull(fornecedor);
+        return $"Este CPF ou CNPJ já teve um período de teste no Acordu. Para testar de novo, {fornecedor.FaleComOFornecedor}.";
     }
 }

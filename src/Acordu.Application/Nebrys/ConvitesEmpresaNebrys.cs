@@ -2,6 +2,7 @@ using Acordu.Application.Abstractions;
 using Acordu.Application.Auditoria;
 using Acordu.Application.Cadastro;
 using Acordu.Application.Common;
+using Acordu.Application.Empresas;
 using Acordu.Domain.Entities;
 using Acordu.Domain.Enums;
 using Acordu.Domain.Exceptions;
@@ -45,6 +46,7 @@ public sealed class ConvitesEmpresaNebrys
     private readonly EnderecosPublicos _enderecos;
     private readonly OpcoesCadastro _cadastro;
     private readonly IDominiosDescartaveis _descartaveis;
+    private readonly OpcoesFornecedor _fornecedor;
 
     public ConvitesEmpresaNebrys(
         IConvitesEmpresa convites,
@@ -54,7 +56,8 @@ public sealed class ConvitesEmpresaNebrys
         IEnviadorEmail email,
         EnderecosPublicos enderecos,
         OpcoesCadastro cadastro,
-        IDominiosDescartaveis descartaveis)
+        IDominiosDescartaveis descartaveis,
+        OpcoesFornecedor fornecedor)
     {
         ArgumentNullException.ThrowIfNull(convites);
         ArgumentNullException.ThrowIfNull(trilha);
@@ -64,6 +67,7 @@ public sealed class ConvitesEmpresaNebrys
         ArgumentNullException.ThrowIfNull(enderecos);
         ArgumentNullException.ThrowIfNull(cadastro);
         ArgumentNullException.ThrowIfNull(descartaveis);
+        ArgumentNullException.ThrowIfNull(fornecedor);
         _convites = convites;
         _trilha = trilha;
         _unidade = unidade;
@@ -72,6 +76,7 @@ public sealed class ConvitesEmpresaNebrys
         _enderecos = enderecos;
         _cadastro = cadastro;
         _descartaveis = descartaveis;
+        _fornecedor = fornecedor;
     }
 
     /// <summary>
@@ -196,7 +201,7 @@ public sealed class ConvitesEmpresaNebrys
             $"""
             Olá!
 
-            A Nebrys convidou você para cadastrar a sua empresa no Acordu e começar o período de teste.
+            {_fornecedor.Texto("{{A fornecedor}}")} convidou você para cadastrar a sua empresa no Acordu e começar o período de teste.
 
             Para se cadastrar, acesse o link abaixo (válido por {_cadastro.DiasConvite} dias). O cadastro é feito com este
             e-mail ({convite.Email}) e o link vale para um cadastro só:

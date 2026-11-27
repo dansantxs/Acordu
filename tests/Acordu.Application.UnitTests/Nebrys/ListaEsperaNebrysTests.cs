@@ -4,6 +4,7 @@ using Acordu.Application.Abstractions;
 using Acordu.Application.Auditoria;
 using Acordu.Application.Cadastro;
 using Acordu.Application.Common;
+using Acordu.Application.Empresas;
 using Acordu.Application.Nebrys;
 using Acordu.Domain.Entities;
 using Acordu.Domain.Enums;
@@ -151,7 +152,7 @@ public sealed class ListaEsperaNebrysTests
             Email = new EmailFalso(falharEnvio, Unidade);
             var convites = new ConvitesEmpresaNebrys(
                 Convites, Trilha, Unidade, new RelogioFixo(Agora), Email, new EnderecosPublicos(new Uri("https://acordu.app.br/")),
-                new OpcoesCadastro(ModoCadastro.Convite, 7), new DominiosFalsos(descartavel));
+                new OpcoesCadastro(ModoCadastro.Convite, 7), new DominiosFalsos(descartavel), new OpcoesFornecedor());
             Lista = new ListaEsperaNebrys(Entradas, convites, Trilha, Unidade);
         }
 

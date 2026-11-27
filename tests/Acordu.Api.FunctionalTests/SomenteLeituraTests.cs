@@ -41,7 +41,8 @@ public sealed class SomenteLeituraTests(ApiFixture api)
     {
         var problema = await equipe.EsperarAsync(HttpStatusCode.UnprocessableEntity, metodo, rota, corpo, token);
         problema.GetProperty("type").GetString().Should().Be(Erros + "empresa-somente-leitura");
-        problema.GetProperty("detail").GetString().Should().Contain("só leitura");
+        // O marcador do fornecedor sai trocado pelo nome (ADR 0017; sem configuração, "a Nebrys").
+        problema.GetProperty("detail").GetString().Should().Contain("só leitura").And.EndWith("fale com a Nebrys.");
     }
 
     private static async Task<Guid> PapelAsync(Equipe equipe, string nome)

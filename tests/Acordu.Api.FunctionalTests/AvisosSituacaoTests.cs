@@ -50,7 +50,7 @@ public sealed class AvisosSituacaoTests(ApiFixture api)
             var avisos = Avisos(dono, MensagensDeSituacao.CategoriaFimDoTeste);
             avisos.Should().ContainSingle();
             avisos[0].Texto.Should().Contain($"vai até {fim} (faltam 7 dias)")
-                .And.Contain($"fale com a Nebrys: {ApiFixture.ContatoNebrys}");
+                .And.Contain($"fale com a Nebrys: {ApiFixture.ContatoFornecedor}");
         }
 
         Avisos(membro).Should().BeEmpty("só os Donos recebem");
@@ -101,7 +101,7 @@ public sealed class AvisosSituacaoTests(ApiFixture api)
             var avisos = Avisos(dono, MensagensDeSituacao.CategoriaVencimento);
             avisos.Should().ContainSingle();
             avisos[0].Texto.Should().Contain("ficou só leitura").And.Contain($"a partir de {expurgo}")
-                .And.Contain($"Para ativar a conta e manter os dados, fale com a Nebrys: {ApiFixture.ContatoNebrys}");
+                .And.Contain($"Para ativar a conta e manter os dados, fale com a Nebrys: {ApiFixture.ContatoFornecedor}");
         }
     }
 

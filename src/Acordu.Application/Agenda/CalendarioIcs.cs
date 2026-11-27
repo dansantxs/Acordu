@@ -15,7 +15,7 @@ internal sealed class CalendarioIcs
     {
         Linha("BEGIN:VCALENDAR");
         Linha("VERSION:2.0");
-        Linha("PRODID:-//Nebrys//Acordu//PT-BR");
+        Linha("PRODID:-//Acordu//Agenda//PT-BR");
         Linha("CALSCALE:GREGORIAN");
         Linha("METHOD:PUBLISH");
         Linha("X-WR-CALNAME:" + Escapar(nome));
