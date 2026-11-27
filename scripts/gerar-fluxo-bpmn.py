@@ -57,7 +57,7 @@ N = [  # id, tipo, rótulo, raia, coluna[, deslocamento vertical]
     ("t_tarefas", "task", "Criar tarefas da solicitação", 2, 11),
     ("t_exec", "task", "Executar tarefa e apontar horas (cronômetro)", 2, 12),
     ("g_cli", "xor", "Precisa de algo do cliente?", 2, 13),
-    ("t_resp", "task", "Responder no portal (SLA pausado enquanto aguarda)", 3, 13),
+    ("t_resp", "task", "Responder no portal ou por e-mail (SLA pausado enquanto aguarda)", 3, 13),
     ("t_resolver", "task", "Resolver com a solução (RESOLVIDA)", 2, 14),
     ("t_avisa", "task", "Avisar o contato: entrega aguardando aprovação", 4, 15),
     ("g_apr", "xor", "Aprova a entrega?", 3, 16),

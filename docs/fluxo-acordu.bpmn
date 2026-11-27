@@ -35,7 +35,7 @@
 <bpmn:task id="t_tarefas" name="Criar tarefas da solicitação"><bpmn:incoming>f16</bpmn:incoming><bpmn:outgoing>f17</bpmn:outgoing></bpmn:task>
 <bpmn:task id="t_exec" name="Executar tarefa e apontar horas (cronômetro)"><bpmn:incoming>f17</bpmn:incoming><bpmn:incoming>f19</bpmn:incoming><bpmn:incoming>f22</bpmn:incoming><bpmn:incoming>f27</bpmn:incoming><bpmn:outgoing>f20</bpmn:outgoing></bpmn:task>
 <bpmn:exclusiveGateway id="g_cli" name="Precisa de algo do cliente?"><bpmn:incoming>f20</bpmn:incoming><bpmn:outgoing>f21</bpmn:outgoing><bpmn:outgoing>f23</bpmn:outgoing></bpmn:exclusiveGateway>
-<bpmn:task id="t_resp" name="Responder no portal (SLA pausado enquanto aguarda)"><bpmn:incoming>f21</bpmn:incoming><bpmn:outgoing>f22</bpmn:outgoing></bpmn:task>
+<bpmn:task id="t_resp" name="Responder no portal ou por e-mail (SLA pausado enquanto aguarda)"><bpmn:incoming>f21</bpmn:incoming><bpmn:outgoing>f22</bpmn:outgoing></bpmn:task>
 <bpmn:task id="t_resolver" name="Resolver com a solução (RESOLVIDA)"><bpmn:incoming>f23</bpmn:incoming><bpmn:outgoing>f24</bpmn:outgoing></bpmn:task>
 <bpmn:task id="t_avisa" name="Avisar o contato: entrega aguardando aprovação"><bpmn:incoming>f24</bpmn:incoming><bpmn:outgoing>f25</bpmn:outgoing></bpmn:task>
 <bpmn:exclusiveGateway id="g_apr" name="Aprova a entrega?"><bpmn:incoming>f25</bpmn:incoming><bpmn:outgoing>f26</bpmn:outgoing><bpmn:outgoing>f27</bpmn:outgoing></bpmn:exclusiveGateway>
