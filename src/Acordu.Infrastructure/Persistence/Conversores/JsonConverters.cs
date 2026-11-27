@@ -73,6 +73,29 @@ public sealed class ModeloTarefaConverter : ValueConverter<ModeloTarefa, string>
         bool VisivelCliente);
 }
 
+/// <summary>
+/// <see cref="AnexosRecusados"/> em <c>jsonb</c> (registro de entrada, design do F15, D6): nome e motivo de cada anexo de
+/// e-mail que não entrou, na ordem do MIME. Nada consulta a lista por SQL; ela vive o tempo do registro (7 dias).
+/// </summary>
+public sealed class AnexosRecusadosConverter : ValueConverter<AnexosRecusados, string>
+{
+    public AnexosRecusadosConverter()
+        : base(a => Serializar(a), j => Desserializar(j))
+    {
+    }
+
+    private static string Serializar(AnexosRecusados recusados) =>
+        JsonSerializer.Serialize(
+            recusados.Itens.Select(a => new RecusadoJson(a.NomeArquivo, EnumTexto<MotivoRecusaAnexo>.Texto(a.Motivo))).ToList(),
+            OpcoesJson.Padrao);
+
+    private static AnexosRecusados Desserializar(string json) =>
+        new((JsonSerializer.Deserialize<List<RecusadoJson>>(json, OpcoesJson.Padrao) ?? [])
+            .Select(a => new AnexoRecusado(a.NomeArquivo, EnumTexto<MotivoRecusaAnexo>.Valor(a.Motivo))));
+
+    private sealed record RecusadoJson(string NomeArquivo, string Motivo);
+}
+
 internal static class OpcoesJson
 {
     public static readonly JsonSerializerOptions Padrao = new(JsonSerializerDefaults.Web);
