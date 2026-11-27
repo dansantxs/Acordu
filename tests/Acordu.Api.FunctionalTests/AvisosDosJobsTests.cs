@@ -51,5 +51,8 @@ public sealed class AvisosDosJobsTests(ApiFixture api)
         var resumo = discord.Textos(DiscordFalso.Deploy).Should().ContainSingle("o segundo disparo no mesmo dia não repete").Subject;
         resumo.Should().StartWith("**Diário ok** · ").And.Contain("fechadas ").And.Contain("ocorrências de erro ");
         discord.Textos(DiscordFalso.Alertas).Should().BeEmpty();
+        // F15-108: o passo do registro de entrada entra no resumo, entre as atividades e os cadastros (ordem dos passos).
+        resumo.Should().MatchRegex(@"atividades \d+, e-mails recebidos \d+, cadastros \d+,");
+        primeiro.TryGetProperty("emailsRecebidosRemovidos", out _).Should().BeTrue();
     }
 }

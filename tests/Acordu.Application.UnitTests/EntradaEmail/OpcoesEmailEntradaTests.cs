@@ -96,6 +96,46 @@ public sealed class OpcoesEmailEntradaTests
     }
 
     [Fact]
+    public void DaConfiguracao_SemDiasRegistro_7() // design D6, F15-108
+    {
+        OpcoesEmailEntrada.DaConfiguracao("entrada.acordu.app.br").DiasRegistro.Should().Be(7);
+        OpcoesEmailEntrada.DaConfiguracao(null, null, " ").DiasRegistro.Should().Be(OpcoesEmailEntrada.DiasRegistroPadrao);
+    }
+
+    [Theory]
+    [InlineData("1", 1)]
+    [InlineData(" 14 ", 14)]
+    [InlineData("90", 90)]
+    public void DaConfiguracao_DiasRegistroValido_OProprio(string dias, int esperado)
+    {
+        OpcoesEmailEntrada.DaConfiguracao(null, null, dias).DiasRegistro.Should().Be(esperado);
+    }
+
+    [Theory]
+    [InlineData("0")]
+    [InlineData("-1")]
+    [InlineData("91")]
+    [InlineData("7d")]
+    [InlineData("1.5")]
+    public void DaConfiguracao_DiasRegistroInvalido_ImpedeASubida(string dias)
+    {
+        var acao = () => OpcoesEmailEntrada.DaConfiguracao("entrada.acordu.app.br", null, dias);
+
+        acao.Should().Throw<InvalidOperationException>().WithMessage("*EmailEntrada__DiasRegistro*");
+    }
+
+    [Theory]
+    [InlineData("nao-responda@send.acordu.app.br", "send.acordu.app.br")]
+    [InlineData("Acordu <Avisos@Send.Acordu.App.Br>", "send.acordu.app.br")]
+    [InlineData("sem-arroba", null)]
+    [InlineData("x@sem_ponto", null)]
+    [InlineData(null, null)]
+    public void DaConfiguracao_RemetenteDosAvisos_SoODominioSemImpedirASubida(string? remetente, string? esperado) // F15-88
+    {
+        OpcoesEmailEntrada.DaConfiguracao(null, remetenteDosAvisos: remetente).DominioDosAvisos.Should().Be(esperado);
+    }
+
+    [Fact]
     public void Construtor_DominioInvalido_ArgumentException()
     {
         var acao = () => new OpcoesEmailEntrada("sem ponto");

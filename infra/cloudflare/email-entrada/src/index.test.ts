@@ -138,6 +138,15 @@ describe('entrada por e-mail (F15d)', () => {
 
         expect(cabecalho(api.pedidos[0]!.init, 'X-Email-Remetente')).toBe('jo?o@cliente.com.br')
     })
+
+    it('envelope vazio (devolução) vai como <>, para o cabeçalho chegar à API (F15-85)', async () => {
+        const { m } = mensagem()
+        const api = rota(202)
+
+        await receber({ ...m, from: '' }, ENV, api.buscar)
+
+        expect(cabecalho(api.pedidos[0]!.init, 'X-Email-Remetente')).toBe('<>')
+    })
 })
 
 describe('veredito de autenticidade (design D11)', () => {

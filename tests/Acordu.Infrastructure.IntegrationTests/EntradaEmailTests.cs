@@ -209,6 +209,42 @@ public sealed class EntradaEmailTests(BancoFixture banco)
     }
 
     [Fact]
+    public async Task LerAsync_RespostaAutomaticaEmMassa_SinaisDoD12() // F15-85: os cabeçalhos que o descarte usa
+    {
+        var mime = Encoding.UTF8.GetBytes(
+            "From: Ana <ana@cliente.com.br>\r\n"
+            + "To: k7m2qd9w@entrada.acordu.app.br\r\n"
+            + "Subject: Ausente\r\n"
+            + "Message-ID: <ferias@mail.cliente.com.br>\r\n"
+            + "Auto-Submitted: auto-replied\r\n"
+            + "Precedence: bulk\r\n"
+            + "List-Unsubscribe: <mailto:sair@cliente.com.br>\r\n"
+            + "X-Autoreply: yes\r\n"
+            + "MIME-Version: 1.0\r\n"
+            + "Content-Type: multipart/report; report-type=delivery-status; boundary=\"b\"\r\n"
+            + "\r\n"
+            + "--b\r\nContent-Type: text/plain\r\n\r\nEstou de férias.\r\n--b--\r\n");
+        await using var corpo = new MemoryStream(mime);
+
+        var mensagem = await LeitorMime.LerAsync(corpo, mime.Length);
+
+        mensagem!.Sinais.Should().Be(new SinaisDeAutomatico(
+            AutoSubmitted: "auto-replied", Precedence: "bulk", ListaDeDistribuicao: true, RespostaAutomatica: true, TipoDoCorpo: "multipart/report"));
+    }
+
+    [Fact]
+    public async Task LerAsync_EmailComum_SemSinais()
+    {
+        var mime = Mime("<abc@mail.cliente.com.br>");
+        await using var corpo = new MemoryStream(mime);
+
+        var mensagem = await LeitorMime.LerAsync(corpo, mime.Length);
+
+        mensagem!.Sinais.Should().Be(new SinaisDeAutomatico(TipoDoCorpo: "text/plain"));
+        DescarteDeEntrada.Automatico(mensagem).Should().BeFalse();
+    }
+
+    [Fact]
     public async Task LerAsync_CorpoVazio_Nulo() // plano-2, menor 6: ilegível não vira erro
     {
         await using var corpo = new MemoryStream([]);

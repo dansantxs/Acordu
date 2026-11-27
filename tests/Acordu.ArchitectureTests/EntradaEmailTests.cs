@@ -24,6 +24,40 @@ public sealed class EntradaEmailTests
     }
 
     /// <summary>
+    /// F15e (design D16; ADR 0015, item 3): o registro de entrada sem os filtros (o expurgo de todos os tenants, inclusive
+    /// os só leitura) só no ponto revisado. Outro <c>IgnoreQueryFilters</c> sobre <c>EmailRecebido</c> seria um segundo
+    /// caminho fora das guardas.
+    /// </summary>
+    [Fact]
+    public void RegistroDeEntradaSemFiltros_SoEmPersistenceEntradaEmail()
+    {
+        var metodos = MetodosQueIgnoramFiltrosDe("Acordu.Domain.Entities.EmailRecebido");
+
+        metodos.Should().NotBeEmpty("o expurgo do registro de entrada é o ponto revisado que este teste guarda");
+        metodos.Should().OnlyContain(
+            metodo => metodo.StartsWith(PontoRevisado, StringComparison.Ordinal),
+            "o registro de entrada sem filtros é só o expurgo revisado (ExpurgoEmailEntrada)");
+    }
+
+    /// <summary>Métodos da Infrastructure (fora das migrations) que chamam <c>IgnoreQueryFilters&lt;T&gt;</c> com o tipo dado.</summary>
+    private static List<string> MetodosQueIgnoramFiltrosDe(string entidade)
+    {
+        using var modulo = ModuleDefinition.ReadModule(Camadas.Infrastructure.Location);
+        var encontrados = new List<string>();
+        foreach (var tipo in modulo.GetTypes().Where(t => !t.FullName.StartsWith("Acordu.Infrastructure.Persistence.Migrations", StringComparison.Ordinal)))
+        {
+            foreach (var metodo in tipo.Methods.Where(m => m.HasBody))
+            {
+                if (metodo.Body.Instructions.Any(i => i.Operand is GenericInstanceMethod { Name: "IgnoreQueryFilters" } chamada
+                    && chamada.GenericArguments.Any(a => a.FullName == entidade)))
+                    encontrados.Add($"{tipo.FullName}.{metodo.Name}");
+            }
+        }
+
+        return encontrados;
+    }
+
+    /// <summary>
     /// Métodos da Infrastructure (fora das migrations) que chamam <c>IgnoreQueryFilters</c> e citam o getter de
     /// <c>Tenant.CodigoEntrada</c> numa árvore de expressão (<c>ldtoken</c>), inclusive os da máquina de estados de um
     /// método assíncrono (tipo aninhado, sem namespace próprio: vale o nome completo).

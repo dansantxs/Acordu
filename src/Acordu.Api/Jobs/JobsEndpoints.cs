@@ -12,6 +12,7 @@ using Acordu.Infrastructure.Persistence.Auditoria;
 using Acordu.Infrastructure.Persistence.Atividades;
 using Acordu.Infrastructure.Persistence.Cadastros;
 using Acordu.Infrastructure.Persistence.ConvitesEmpresa;
+using Acordu.Infrastructure.Persistence.EntradaEmail;
 using Acordu.Infrastructure.Persistence.Notificacoes;
 using Acordu.Infrastructure.Persistence.Outbox;
 
@@ -123,7 +124,8 @@ internal static partial class JobsEndpoints
     /// O disparo diário do Scheduler (ADR 0010 §5; o plano gratuito tem 3 jobs): vencimento dos testes (F14a; primeiro,
     /// para a recém-vencida já ficar fora dos passos seguintes), avisos de situação aos Donos (F14j; logo depois, para o
     /// aviso do vencimento sair no mesmo diário), fechamento automático, expurgo da auditoria, expurgo das notificações e
-    /// do feed, expurgo dos cadastros abandonados (RF-AUT-07), das empresas só leitura há o prazo (RF-EMP-03, F14i), dos
+    /// do feed, expurgo do registro de entrada por e-mail (F15e; em todas as empresas, inclusive as só leitura, D16),
+    /// expurgo dos cadastros abandonados (RF-AUT-07), das empresas só leitura há o prazo (RF-EMP-03, F14i), dos
     /// convites de empresa encerrados há 90 dias (#213), das ocorrências de erro e das marcas de operação (ADR 0012), em
     /// sequência; no fim, os avisos do F13c. Um passo que falha é logado, entra em <c>falhas</c> e não impede os seguintes;
     /// os endpoints individuais continuam para disparo manual.
@@ -135,6 +137,7 @@ internal static partial class JobsEndpoints
             ExpurgoAuditoria auditoria,
             ExpurgoNotificacoes notificacoes,
             ExpurgoAtividades atividades,
+            ExpurgoEmailEntrada emailEntrada,
             ExpurgoCadastros cadastros,
             ExpurgoEmpresas empresas,
             ExpurgoConvitesEmpresa convites,
@@ -181,6 +184,8 @@ internal static partial class JobsEndpoints
                     new("expurgo-auditoria", auditoria.ExecutarAsync),
                     new("expurgo-notificacoes", notificacoes.ExecutarAsync),
                     new("expurgo-atividades", atividades.ExecutarAsync),
+                    // Registro de entrada por e-mail vencido (F15-108, D16): todas as empresas, inclusive as só leitura.
+                    new("expurgo-email-entrada", emailEntrada.ExecutarAsync),
                     new("expurgo-cadastros", async ct =>
                     {
                         var expurgo = await cadastros.ExecutarAsync(ct);
@@ -214,9 +219,9 @@ internal static partial class JobsEndpoints
                     ("vencidas", resultado.Contagens[0]), ("avisos de situação", resultado.Contagens[1]),
                     ("fechadas", resultado.Contagens[2]), ("auditoria", resultado.Contagens[3]),
                     ("notificações", resultado.Contagens[4]), ("atividades", resultado.Contagens[5]),
-                    ("cadastros", resultado.Contagens[6]), ("empresas expurgadas", resultado.Contagens[7]),
-                    ("convites", resultado.Contagens[8]), ("ocorrências de erro", resultado.Contagens[9]),
-                    ("marcas", resultado.Contagens[10]),
+                    ("e-mails recebidos", resultado.Contagens[6]), ("cadastros", resultado.Contagens[7]),
+                    ("empresas expurgadas", resultado.Contagens[8]), ("convites", resultado.Contagens[9]),
+                    ("ocorrências de erro", resultado.Contagens[10]), ("marcas", resultado.Contagens[11]),
                 ],
                 cancellationToken);
 
@@ -228,11 +233,12 @@ internal static partial class JobsEndpoints
                 auditoriaRemovida = resultado.Contagens[3],
                 notificacoesRemovidas = resultado.Contagens[4],
                 atividadesRemovidas = resultado.Contagens[5],
-                cadastrosRemovidos = resultado.Contagens[6],
-                empresasExpurgadas = resultado.Contagens[7],
-                convitesRemovidos = resultado.Contagens[8],
-                ocorrenciasErroRemovidas = resultado.Contagens[9],
-                marcasOperacaoRemovidas = resultado.Contagens[10],
+                emailsRecebidosRemovidos = resultado.Contagens[6],
+                cadastrosRemovidos = resultado.Contagens[7],
+                empresasExpurgadas = resultado.Contagens[8],
+                convitesRemovidos = resultado.Contagens[9],
+                ocorrenciasErroRemovidas = resultado.Contagens[10],
+                marcasOperacaoRemovidas = resultado.Contagens[11],
                 falhas = resultado.Falhas + falhasVencimento + falhasSituacao + falhasFechamento + falhasCadastros + falhasEmpresas,
             });
         });

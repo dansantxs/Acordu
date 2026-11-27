@@ -24,6 +24,12 @@ internal static class EntradaEmailEndpoints
     /// <summary>Destinatário do envelope (o endereço de entrada que recebeu).</summary>
     public const string CabecalhoDestinatario = "X-Email-Destinatario";
 
+    /// <summary>Remetente do envelope (vazio numa devolução; design D12).</summary>
+    public const string CabecalhoRemetente = "X-Email-Remetente";
+
+    /// <summary>Veredito do filtro do provedor: <c>ok</c>, <c>spam</c> ou <c>virus</c> (design D11, F15-87).</summary>
+    public const string CabecalhoFiltro = "X-Email-Filtro";
+
     public static void MapEntradaEmail(this IEndpointRouteBuilder app, IConfiguration configuracao)
     {
         ArgumentNullException.ThrowIfNull(configuracao);
@@ -44,8 +50,12 @@ internal static class EntradaEmailEndpoints
                 DesfechoEntrada desfecho;
                 try
                 {
-                    desfecho = await recebedor.ReceberAsync(
-                        http.Request.Headers[CabecalhoDestinatario].ToString(), http.Request.Body, http.RequestAborted);
+                    var cabecalhos = http.Request.Headers;
+                    var envelope = new EnvelopeDeEntrada(
+                        cabecalhos[CabecalhoDestinatario].ToString(),
+                        cabecalhos.TryGetValue(CabecalhoRemetente, out var remetente) ? remetente.ToString() : null,
+                        cabecalhos.TryGetValue(CabecalhoFiltro, out var filtro) ? filtro.ToString() : null);
+                    desfecho = await recebedor.ReceberAsync(envelope, http.Request.Body, http.RequestAborted);
                 }
                 catch (BadHttpRequestException ex) when (ex.StatusCode == StatusCodes.Status413PayloadTooLarge)
                 {
