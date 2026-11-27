@@ -29,7 +29,15 @@ import {
     type Visao,
 } from './consultas'
 import { JanelaNovaSolicitacao } from './JanelaNovaSolicitacao'
-import { ESTILO_PRIORIDADE, ESTILO_STATUS, PRIORIDADE, SITUACAO_SLA, STATUS, type Prioridade } from './rotulos'
+import {
+    ESTILO_PRIORIDADE,
+    ESTILO_STATUS,
+    ORIGEM_NA_LISTA,
+    PRIORIDADE,
+    SITUACAO_SLA,
+    STATUS,
+    type Prioridade,
+} from './rotulos'
 
 /** Fila de solicitações (F2b): visões, filtros e ordem no endereço; o detalhe abre em painel por cima (F2d). */
 export function FilaSolicitacoes({ perfil, filtros }: { perfil: Perfil; filtros: FiltrosFila }) {
@@ -275,6 +283,18 @@ function Prazo({ item, fuso }: { item: SolicitacaoResumo; fuso: string }) {
     )
 }
 
+/** Rótulo discreto da origem (F15-29), como o canal das mensagens; o leitor de tela ouve "Origem: E-mail". */
+function Origem({ origem }: { origem: SolicitacaoResumo['origem'] }) {
+    const rotulo = ORIGEM_NA_LISTA[origem]
+    if (!rotulo) return null
+    return (
+        <span className="rounded-full border border-linha px-1.5 leading-4">
+            <span className="sr-only">Origem: </span>
+            {rotulo}
+        </span>
+    )
+}
+
 function Tabela({ itens, fuso, aberta }: { itens: SolicitacaoResumo[]; fuso: string; aberta?: string }) {
     return (
         <div className="overflow-x-auto rounded-couro border border-linha bg-superficie">
@@ -308,7 +328,10 @@ function Tabela({ itens, fuso, aberta }: { itens: SolicitacaoResumo[]; fuso: str
                                 >
                                     {s.titulo}
                                 </Link>
-                                <span className="block text-xs text-suave">{s.cliente.nome}</span>
+                                <span className="flex flex-wrap items-center gap-1.5 text-xs text-suave">
+                                    <span>{s.cliente.nome}</span>
+                                    <Origem origem={s.origem} />
+                                </span>
                             </td>
                             <td className="hidden px-4 py-2.5 md:table-cell">
                                 <span

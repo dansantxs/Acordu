@@ -106,6 +106,14 @@ describe('detalhe da solicitação', () => {
         await vi.waitFor(() => expect(screen.getByRole('link', { name: 'Forno não liga' })).toHaveFocus())
     })
 
+    it('a solicitação aberta por e-mail diz a origem no detalhe (F15-29)', async () => {
+        app(['solicitacao.ver'], { [`GET /api/v1/solicitacoes/${ID}`]: () => json(solicitacao({ origem: 'EMAIL' })) })
+        await abrir(`/solicitacoes/${ID}`)
+
+        const aside = await painel()
+        expect(within(aside).getByText(/Marta Souza · aberta há 1 h por e-mail/)).toBeInTheDocument()
+    })
+
     it('troca o responsável na hora e desfaz pelo aviso', async () => {
         let atual = solicitacao()
         const chamadas = app(EDITAR, {

@@ -6501,6 +6501,7 @@ export interface components {
             prioridade: components['schemas']['Prioridade']
             status: components['schemas']['StatusSolicitacao']
             statusExterno: components['schemas']['StatusExterno']
+            origem: components['schemas']['OrigemSolicitacao']
             responsavel: null | components['schemas']['Referencia']
             /** Format: date-time */
             abertaEm: string

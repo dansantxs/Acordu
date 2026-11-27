@@ -91,6 +91,11 @@ export const ORIGEM: Record<components['schemas']['OrigemSolicitacao'], string> 
     WHATSAPP: 'pelo WhatsApp',
 }
 
+/** Na lista (F15-29): só a aberta por e-mail ganha o rótulo da origem; as demais, nada, como antes. */
+export const ORIGEM_NA_LISTA: Partial<Record<components['schemas']['OrigemSolicitacao'], string>> = {
+    EMAIL: 'E-mail',
+}
+
 export const STATUS_TAREFA: Record<components['schemas']['StatusTarefa'], string> = {
     A_FAZER: 'A fazer',
     FAZENDO: 'Fazendo',
