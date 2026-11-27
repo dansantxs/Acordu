@@ -26,8 +26,23 @@ public sealed class RecebimentoAnexos
     /// <summary>Chave no bucket: <c>{tenantId}/{solicitacaoId}/{anexoId}</c>, sem o nome original (segurança §7).</summary>
     public static string Chave(Guid tenantId, Guid solicitacaoId, Guid anexoId) => $"{tenantId}/{solicitacaoId}/{anexoId}";
 
+    /// <summary>
+    /// Chave de um anexo da triagem de e-mails (design do F15, D10; segurança §7): <c>{tenantId}/triagem/{itemId}/{anexoId}</c>,
+    /// fora das pastas das solicitações; a conversão e a junção copiam para a chave da solicitação.
+    /// </summary>
+    public static string ChaveDaTriagem(Guid tenantId, Guid itemId, Guid anexoId) => $"{tenantId}/triagem/{itemId}/{anexoId}";
+
     public async Task<IReadOnlyList<NovoAnexo>> EnviarAsync(
-        Guid tenantId, Guid solicitacaoId, IReadOnlyList<ArquivoRecebido>? arquivos, CancellationToken cancellationToken = default)
+        Guid tenantId, Guid solicitacaoId, IReadOnlyList<ArquivoRecebido>? arquivos, CancellationToken cancellationToken = default) =>
+        await EnviarComChaveAsync(anexoId => Chave(tenantId, solicitacaoId, anexoId), arquivos, cancellationToken);
+
+    /// <summary>Como o envio dos anexos de uma interação, com a mesma política, mas na chave da triagem.</summary>
+    public async Task<IReadOnlyList<NovoAnexo>> EnviarParaTriagemAsync(
+        Guid tenantId, Guid itemId, IReadOnlyList<ArquivoRecebido>? arquivos, CancellationToken cancellationToken = default) =>
+        await EnviarComChaveAsync(anexoId => ChaveDaTriagem(tenantId, itemId, anexoId), arquivos, cancellationToken);
+
+    private async Task<List<NovoAnexo>> EnviarComChaveAsync(
+        Func<Guid, string> chaveDe, IReadOnlyList<ArquivoRecebido>? arquivos, CancellationToken cancellationToken)
     {
         if (arquivos is null || arquivos.Count == 0)
             return [];
@@ -45,7 +60,7 @@ public sealed class RecebimentoAnexos
             {
                 var arquivo = arquivos[i];
                 var id = Guid.CreateVersion7();
-                var chave = Chave(tenantId, solicitacaoId, id);
+                var chave = chaveDe(id);
                 await using (var conteudo = arquivo.Abrir())
                     await _armazenamento.EnviarAsync(chave, conteudo, arquivo.TamanhoBytes, tipos[i], cancellationToken);
                 enviados.Add(new NovoAnexo(arquivo.NomeArquivo, tipos[i], arquivo.TamanhoBytes, chave, id));

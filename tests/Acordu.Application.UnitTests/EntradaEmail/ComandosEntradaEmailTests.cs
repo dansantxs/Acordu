@@ -16,9 +16,10 @@ namespace Acordu.Application.UnitTests.EntradaEmail;
 /// Design do F15, D6 e §3 (ADR 0016, item 8): o e-mail aceito para a empresa deixa um registro de entrada, sem conteúdo,
 /// e a repetição da mesma entrega não grava de novo; o automático, o laço e o filtro (F15e) dão o desfecho do descarte.
 /// F15f (F15-10 a F15-13, F15-27; design §1.2 e D4): o e-mail novo de remetente conhecido abre a solicitação de origem
-/// EMAIL, com a conversa no fio do e-mail; o não identificado e a resposta à conversa ficam só no registro até o F15h e o
-/// F15i. F15g (F15-14, F15-15; design D14 e D15): os anexos um por um, a nota do sistema dos recusados e a lista deles no
-/// registro.
+/// EMAIL, com a conversa no fio do e-mail; a resposta à conversa fica só no registro até o F15i. F15g (F15-14, F15-15;
+/// design D14 e D15): os anexos um por um, a nota do sistema dos recusados e a lista deles no registro. F15h (F15-20,
+/// F15-24 a F15-26, F15-70, F15-103; design D10): o não identificado vai à triagem, com o motivo e os anexos na chave da
+/// triagem, uma vez só por entrega.
 /// </summary>
 public sealed class ComandosEntradaEmailTests
 {
@@ -28,6 +29,7 @@ public sealed class ComandosEntradaEmailTests
     private readonly Repositorio<Solicitacao> _solicitacoes = new();
     private readonly Repositorio<Interacao> _interacoes = new();
     private readonly Repositorio<ConversaPorEmail> _conversas = new();
+    private readonly Repositorio<ItemTriagemEmail> _triagem = new();
     private readonly ContatosEmMemoria _contatos = new();
     private readonly UnidadeFalsa _unidade = new();
     private readonly ArmazenamentoFalso _armazenamento = new();
@@ -49,6 +51,7 @@ public sealed class ComandosEntradaEmailTests
             new RecebimentoAnexos(armazenamento ?? _armazenamento),
             _interacoes,
             _conversas,
+            _triagem,
             unidade ?? _unidade,
             new RelogioFixo(Falsos.Agora),
             OpcoesEmailEntrada.DaConfiguracao("entrada.acordu.app.br", remetenteDosAvisos: "nao-responda@send.acordu.app.br"));
@@ -74,16 +77,17 @@ public sealed class ComandosEntradaEmailTests
         return contato;
     }
 
-    [Fact]
-    public async Task ReceberAsync_Novo_RegistraIgnoradoSemConteudo()
+    [Fact] // o remetente não é contato: o registro vai sem conteúdo, apontando o item da triagem (F15h)
+    public async Task ReceberAsync_Novo_RegistraTriagemSemConteudo()
     {
         var desfecho = await Comandos().ReceberAsync(Mensagem(), Destino);
 
-        desfecho.Should().Be(DesfechoEntrada.Registrada);
+        desfecho.Should().Be(DesfechoEntrada.Triagem);
         _unidade.Gravacoes.Should().Be(1);
         var registro = _repositorio.Itens.Should().ContainSingle().Subject;
         registro.TenantId.Should().Be(Empresa);
-        registro.Resultado.Should().Be(ResultadoEntradaEmail.Ignorado);
+        registro.Resultado.Should().Be(ResultadoEntradaEmail.Triagem);
+        registro.ItemTriagemId.Should().Be(_triagem.Itens.Single().Id);
         registro.RecebidoEm.Should().Be(Falsos.Agora);
         registro.ChaveEntrada.Should().Be(ChaveDeEntrada.Calcular("abc@mail.exemplo.com", Destino.Endereco, new string('a', 64)));
         registro.RemetenteHash.Should().Be(ChaveDeEntrada.DoRemetente(["ana@cliente.com.br"]));
@@ -266,45 +270,53 @@ public sealed class ComandosEntradaEmailTests
         _solicitacoes.Itens.Should().ContainSingle().Which.Descricao.Should().BeNull();
     }
 
-    [Theory] // remetente conhecido só com autenticidade pass (D11; F15-26 no F15h)
+    [Theory] // F15-26: remetente conhecido só com autenticidade pass (D11); o contato declarado vai à triagem
     [InlineData("fail")]
     [InlineData("none")]
     [InlineData(null)]
-    public async Task ReceberAsync_AutenticidadeQueNaoEPass_SoRegistraSemAbrir(string? autenticidade)
+    public async Task ReceberAsync_AutenticidadeQueNaoEPass_TriagemComoRemetenteNaoConfirmado(string? autenticidade)
     {
         ContatoConhecido();
 
         var desfecho = await Comandos().ReceberAsync(DoContato() with { Autenticidade = autenticidade }, Destino);
 
-        desfecho.Should().Be(DesfechoEntrada.Registrada);
+        desfecho.Should().Be(DesfechoEntrada.Triagem);
         _solicitacoes.Itens.Should().BeEmpty();
+        _interacoes.Itens.Should().BeEmpty("nem mensagem");
         _conversas.Itens.Should().BeEmpty();
-        _repositorio.Itens.Should().ContainSingle().Which.Resultado.Should().Be(ResultadoEntradaEmail.Ignorado);
+        _triagem.Itens.Should().ContainSingle().Which.Motivo.Should().Be(MotivoTriagem.RemetenteNaoConfirmado);
+        _repositorio.Itens.Should().ContainSingle().Which.Resultado.Should().Be(ResultadoEntradaEmail.Triagem);
     }
 
-    [Fact] // F15-24 (a triagem é do F15h): contato em dois clientes não é remetente conhecido
-    public async Task ReceberAsync_ContatoEmDoisClientes_SoRegistraSemAbrir()
+    [Fact] // F15-24: contato em dois clientes não é remetente conhecido; a triagem guarda os clientes possíveis
+    public async Task ReceberAsync_ContatoEmDoisClientes_TriagemComOsClientesPossiveis()
     {
-        ContatoConhecido();
-        ContatoConhecido();
+        var um = ContatoConhecido();
+        var outro = ContatoConhecido();
 
         var desfecho = await Comandos().ReceberAsync(DoContato(), Destino);
 
-        desfecho.Should().Be(DesfechoEntrada.Registrada);
+        desfecho.Should().Be(DesfechoEntrada.Triagem);
         _solicitacoes.Itens.Should().BeEmpty();
+        var item = _triagem.Itens.Should().ContainSingle().Subject;
+        item.Motivo.Should().Be(MotivoTriagem.MaisDeUmCliente);
+        item.ClientesPossiveis.Should().BeEquivalentTo(new[] { um.ClienteId, outro.ClienteId });
     }
 
-    [Theory] // F15-25 (a triagem é do F15h)
+    [Theory] // F15-25
     [InlineData(false, true)]
     [InlineData(true, false)]
-    public async Task ReceberAsync_ContatoOuClienteInativo_SoRegistraSemAbrir(bool clienteAtivo, bool contatoAtivo)
+    public async Task ReceberAsync_ContatoOuClienteInativo_TriagemComoContatoInativo(bool clienteAtivo, bool contatoAtivo)
     {
         ContatoConhecido(clienteAtivo, contatoAtivo);
 
         var desfecho = await Comandos().ReceberAsync(DoContato(), Destino);
 
-        desfecho.Should().Be(DesfechoEntrada.Registrada);
+        desfecho.Should().Be(DesfechoEntrada.Triagem);
         _solicitacoes.Itens.Should().BeEmpty();
+        var item = _triagem.Itens.Should().ContainSingle().Subject;
+        item.Motivo.Should().Be(MotivoTriagem.ContatoInativo);
+        item.ClientesPossiveis.Should().BeEmpty();
     }
 
     [Fact] // um contato inativo ao lado do ativo do mesmo e-mail não atrapalha (o e-mail é único só entre os ativos)
@@ -318,16 +330,19 @@ public sealed class ComandosEntradaEmailTests
         _solicitacoes.Itens.Should().ContainSingle().Which.ContatoId.Should().Be(ativo.ContatoId);
     }
 
-    [Fact] // design §1.2: vários endereços no From contam como desconhecido
-    public async Task ReceberAsync_VariosRemetentes_SoRegistraSemAbrir()
+    [Fact] // design §1.2: vários endereços no From contam como desconhecido (sem um remetente só no item)
+    public async Task ReceberAsync_VariosRemetentes_TriagemComoDesconhecidoSemRemetente()
     {
         ContatoConhecido();
 
         var desfecho = await Comandos().ReceberAsync(
             DoContato() with { Remetentes = ["ana@cliente.com.br", "beto@cliente.com.br"] }, Destino);
 
-        desfecho.Should().Be(DesfechoEntrada.Registrada);
+        desfecho.Should().Be(DesfechoEntrada.Triagem);
         _solicitacoes.Itens.Should().BeEmpty();
+        var item = _triagem.Itens.Should().ContainSingle().Subject;
+        item.Motivo.Should().Be(MotivoTriagem.Desconhecido);
+        item.RemetenteEmail.Should().BeNull();
     }
 
     [Fact] // a resposta ao endereço da conversa é do F15i: até lá, só o registro
@@ -476,16 +491,19 @@ public sealed class ComandosEntradaEmailTests
         _armazenamento.Removidas.Should().HaveCount(2);
     }
 
-    [Fact] // os anexos só sobem quando o e-mail abre a solicitação (o não identificado é da triagem, F15h)
-    public async Task ReceberAsync_RemetenteNaoIdentificadoComAnexos_NadaSobeAoStorage()
+    [Fact] // F15-70: os anexos do não identificado sobem na chave da triagem, nunca na de uma solicitação
+    public async Task ReceberAsync_RemetenteNaoIdentificadoComAnexos_SobemNaChaveDaTriagem()
     {
         var mensagem = DoContato() with { Anexos = [Anexo("foto.png", Png)] };
 
         var desfecho = await Comandos().ReceberAsync(mensagem, Destino);
 
-        desfecho.Should().Be(DesfechoEntrada.Registrada);
-        _armazenamento.Enviadas.Should().BeEmpty();
-        _repositorio.Itens.Should().ContainSingle().Which.Recusados.Should().BeNull();
+        desfecho.Should().Be(DesfechoEntrada.Triagem);
+        var item = _triagem.Itens.Should().ContainSingle().Subject;
+        var enviada = _armazenamento.Enviadas.Should().ContainSingle().Subject;
+        enviada.Chave.Should().StartWith($"{Empresa}/triagem/{item.Id}/");
+        item.Anexos.Should().ContainSingle().Which.ChaveArmazenamento.Should().Be(enviada.Chave);
+        _repositorio.Itens.Should().ContainSingle().Which.Recusados.Should().BeNull("os recusados da triagem ficam no item");
     }
 
     [Fact] // F15-97 com anexos: a repetição não sobe de novo nem repete a nota
@@ -567,6 +585,197 @@ public sealed class ComandosEntradaEmailTests
         nota.Visibilidade.Should().Be(Visibilidade.Interna);
         nota.Eventos.Should().BeEmpty();
         _interacoes.Itens.Where(i => !AutoresDoSistema.Eh(i.AutorId)).Should().OnlyContain(i => i.Visibilidade == Visibilidade.Externa);
+    }
+
+    [Fact] // F15-70: o item guarda remetente, nome, assunto, texto, a recepção e o motivo; nada é respondido nem avisado
+    public async Task ReceberAsync_RemetenteDesconhecido_ItemComRemetenteAssuntoTextoEMotivoSemEvento()
+    {
+        var mensagem = Mensagem() with
+        {
+            Remetentes = ["Estranho@Outro.com.br"],
+            NomeDoRemetente = "  Pedro\r\n Estranho ",
+            Assunto = "Re: Orçamento\r\n do forno",
+            Texto = "Quanto custa?\r\nObrigado.\0",
+            Autenticidade = "pass",
+        };
+
+        var desfecho = await Comandos().ReceberAsync(mensagem, Destino);
+
+        desfecho.Should().Be(DesfechoEntrada.Triagem);
+        var item = _triagem.Itens.Should().ContainSingle().Subject;
+        item.TenantId.Should().Be(Empresa);
+        item.RemetenteEmail.Should().Be("estranho@outro.com.br", "normalizado como o e-mail dos contatos");
+        item.RemetenteNome.Should().Be("Pedro Estranho");
+        item.Assunto.Should().Be("Re: Orçamento do forno", "o assunto como veio, numa linha");
+        item.Texto.Should().Be("Quanto custa?\nObrigado.", "o texto como a descrição da abertura (F15-13)");
+        item.RecebidoEm.Should().Be(Falsos.Agora);
+        item.Motivo.Should().Be(MotivoTriagem.Desconhecido);
+        item.Anexos.Should().BeEmpty();
+        item.Recusados.Should().BeNull();
+        item.Eventos.Should().BeEmpty("nada é respondido ao remetente nem avisado à equipe");
+        _solicitacoes.Itens.Should().BeEmpty();
+        _interacoes.Itens.Should().BeEmpty();
+        _conversas.Itens.Should().BeEmpty();
+        _unidade.Gravacoes.Should().Be(1, "o item e o registro na mesma transação");
+    }
+
+    [Fact] // F15-20 (base): o desconhecido com a autenticidade falhando é só desconhecido
+    public async Task ReceberAsync_DesconhecidoSemAutenticidade_TriagemComoDesconhecido()
+    {
+        var desfecho = await Comandos().ReceberAsync(Mensagem() with { Autenticidade = "fail" }, Destino);
+
+        desfecho.Should().Be(DesfechoEntrada.Triagem);
+        _triagem.Itens.Should().ContainSingle().Which.Motivo.Should().Be(MotivoTriagem.Desconhecido);
+    }
+
+    [Fact] // F15-70: e-mail sem From (nem assunto, nem corpo) também vai à triagem, sem remetente
+    public async Task ReceberAsync_SemFromNemConteudo_TriagemSemRemetente()
+    {
+        var desfecho = await Comandos().ReceberAsync(Mensagem() with { Remetentes = [] }, Destino);
+
+        desfecho.Should().Be(DesfechoEntrada.Triagem);
+        var item = _triagem.Itens.Should().ContainSingle().Subject;
+        item.RemetenteEmail.Should().BeNull();
+        item.RemetenteNome.Should().BeNull();
+        item.Assunto.Should().BeNull();
+        item.Texto.Should().BeNull();
+        _repositorio.Itens.Should().ContainSingle().Which.RemetenteHash.Should().BeNull();
+    }
+
+    [Fact] // F15-70 e D14: anexos um por um, como na abertura; os recusados ficam no item, sem nota (não há conversa)
+    public async Task ReceberAsync_TriagemComAnexosForaDaPolitica_ValidosNoItemERecusadosComOMotivo()
+    {
+        var mensagem = Mensagem() with
+        {
+            Anexos =
+            [
+                Anexo("orcamento.pdf", Pdf, "application/pdf"),
+                Anexo("programa.exe", [0x4D, 0x5A, 0x90, 0x00]),
+                .. Enumerable.Range(1, 5).Select(n => Anexo($"foto-{n}.png", Png)),
+            ],
+        };
+
+        await Comandos().ReceberAsync(mensagem, Destino);
+
+        var item = _triagem.Itens.Should().ContainSingle().Subject;
+        item.Anexos.Select(a => a.NomeArquivo).Should().Equal("orcamento.pdf", "foto-1.png", "foto-2.png", "foto-3.png", "foto-4.png");
+        item.Anexos.Should().OnlyContain(a => a.ChaveArmazenamento.StartsWith($"{Empresa}/triagem/{item.Id}/", StringComparison.Ordinal));
+        item.Recusados!.Itens.Select(r => (r.NomeArquivo, r.Motivo)).Should().Equal(
+            ("programa.exe", MotivoRecusaAnexo.TipoNaoPermitido), ("foto-5.png", MotivoRecusaAnexo.AlemDoLimite));
+        _armazenamento.Enviadas.Should().HaveCount(5, "só os válidos sobem");
+        _interacoes.Itens.Should().BeEmpty("sem solicitação, sem nota do sistema");
+    }
+
+    [Fact] // F15-103: a repetição da mesma entrega não cria o segundo item nem sobe os anexos de novo
+    public async Task ReceberAsync_MesmoEmailNaoIdentificadoDuasVezes_UmItemSo()
+    {
+        var mensagem = Mensagem() with { Anexos = [Anexo("foto.png", Png)] };
+        await Comandos().ReceberAsync(mensagem, Destino);
+
+        var desfecho = await Comandos().ReceberAsync(mensagem, Destino);
+
+        desfecho.Should().Be(DesfechoEntrada.Repetida);
+        _triagem.Itens.Should().ContainSingle();
+        _armazenamento.Enviadas.Should().ContainSingle();
+        _repositorio.Itens.Should().ContainSingle();
+        _unidade.Gravacoes.Should().Be(1);
+    }
+
+    [Fact] // F15-103: a corrida de duas entregas iguais esbarra no índice do registro; os anexos da triagem saem do storage
+    public async Task ReceberAsync_TriagemGravacaoFalha_DescartaOsAnexosEnviados()
+    {
+        var mensagem = Mensagem() with { Anexos = [Anexo("foto.png", Png), Anexo("orcamento.pdf", Pdf)] };
+
+        var receber = () => Comandos(unidade: new UnidadeQueFalha()).ReceberAsync(mensagem, Destino);
+
+        await receber.Should().ThrowAsync<InvalidOperationException>();
+        _armazenamento.Enviadas.Should().HaveCount(2);
+        _armazenamento.Removidas.Should().BeEquivalentTo(_armazenamento.Enviadas.Select(e => e.Chave));
+    }
+
+    [Theory] // F15-70 (D10): From com endereço inválido ou vazio é DESCONHECIDO, sem remetente, mesmo com contato de outro endereço
+    [InlineData("sem-arroba")]
+    [InlineData("")]
+    [InlineData("@sem-local.com.br")]
+    public async Task ReceberAsync_FromInvalidoOuVazio_TriagemComoDesconhecidoSemRemetente(string remetente)
+    {
+        ContatoConhecido();
+        var mensagem = DoContato() with { Remetentes = [remetente] };
+
+        var desfecho = await Comandos().ReceberAsync(mensagem, Destino);
+
+        desfecho.Should().Be(DesfechoEntrada.Triagem);
+        _solicitacoes.Itens.Should().BeEmpty();
+        var item = _triagem.Itens.Should().ContainSingle().Subject;
+        item.Motivo.Should().Be(MotivoTriagem.Desconhecido);
+        item.RemetenteEmail.Should().BeNull();
+        item.ClientesPossiveis.Should().BeEmpty();
+    }
+
+    [Fact] // F15-70: nome, assunto e texto enormes são cortados no limite do item; senão a entrada daria 5xx e o provedor reenviaria
+    public async Task ReceberAsync_TriagemComCamposAlemDoLimite_CortadosNoLimiteSemFalhar()
+    {
+        var mensagem = Mensagem() with
+        {
+            NomeDoRemetente = new string('N', 300),
+            Assunto = new string('A', 2_000),
+            Texto = new string('T', 20_000),
+        };
+
+        var desfecho = await Comandos().ReceberAsync(mensagem, Destino);
+
+        desfecho.Should().Be(DesfechoEntrada.Triagem);
+        var item = _triagem.Itens.Should().ContainSingle().Subject;
+        item.RemetenteNome.Should().HaveLength(LimitesTexto.Nome);
+        item.Assunto.Should().HaveLength(ItemTriagemEmail.TamanhoAssunto);
+        item.Texto.Should().HaveLength(LimitesTexto.Descricao);
+    }
+
+    [Theory] // D12: o descarte vem antes da triagem; o automático, o laço e o filtro de quem não é conhecido não criam item nem sobem anexo
+    [InlineData("automatico", DesfechoEntrada.Automatica)]
+    [InlineData("laco", DesfechoEntrada.Laco)]
+    [InlineData("filtro", DesfechoEntrada.Filtrada)]
+    public async Task ReceberAsync_DescarteDeRemetenteNaoIdentificado_NadaVaiATriagemNemSobeAnexo(string caso, DesfechoEntrada esperado)
+    {
+        var mensagem = caso switch
+        {
+            "automatico" => Mensagem() with { Sinais = new SinaisDeAutomatico(AutoSubmitted: "auto-replied") },
+            "laco" => Mensagem() with { Remetentes = ["nao-responda@send.acordu.app.br"] },
+            _ => Mensagem() with { Filtro = "spam" },
+        };
+
+        var desfecho = await Comandos().ReceberAsync(mensagem with { Anexos = [Anexo("foto.png", Png)] }, Destino);
+
+        desfecho.Should().Be(esperado);
+        _triagem.Itens.Should().BeEmpty();
+        _armazenamento.Enviadas.Should().BeEmpty();
+        _repositorio.Itens.Should().ContainSingle().Which.ItemTriagemId.Should().BeNull();
+    }
+
+    [Fact] // F15-24/F15-25: o cliente inativo de um contato com o mesmo e-mail não impede o ativo de outro cliente (um só candidato ativo)
+    public async Task ReceberAsync_ContatoEmClienteInativoEEmClienteAtivo_AbreNoAtivo()
+    {
+        ContatoConhecido(clienteAtivo: false);
+        var ativo = ContatoConhecido();
+
+        var desfecho = await Comandos().ReceberAsync(DoContato(), Destino);
+
+        desfecho.Should().Be(DesfechoEntrada.Aberta);
+        _solicitacoes.Itens.Should().ContainSingle().Which.ClienteId.Should().Be(ativo.ClienteId);
+        _triagem.Itens.Should().BeEmpty();
+    }
+
+    [Fact] // F15-24 + F15-26: dois clientes e autenticidade falhando é "não confirmado", sem clientes possíveis no item
+    public async Task ReceberAsync_ContatoEmDoisClientesSemAutenticidade_NaoConfirmadoSemClientesPossiveis()
+    {
+        ContatoConhecido();
+        ContatoConhecido();
+
+        await Comandos().ReceberAsync(DoContato() with { Autenticidade = "fail" }, Destino);
+
+        var item = _triagem.Itens.Should().ContainSingle().Subject;
+        item.Motivo.Should().Be(MotivoTriagem.RemetenteNaoConfirmado);
+        item.ClientesPossiveis.Should().BeEmpty();
     }
 
     /// <summary>Storage cujo terceiro envio falha; guarda o que ficou (enviado e não removido).</summary>

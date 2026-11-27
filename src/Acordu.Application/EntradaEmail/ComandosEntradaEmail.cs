@@ -21,8 +21,13 @@ namespace Acordu.Application.EntradaEmail;
 /// <c>Message-ID</c> e o assunto do e-mail, para os avisos seguirem no fio dele (D4, D9). Os anexos passam pela política um
 /// por um (<see cref="AnexosDaEntrada"/>; D14): os válidos viram a primeira mensagem EXTERNA do contato, no canal E-mail
 /// (F15-14), e os recusados, uma nota do sistema (D15) e a lista guardada no registro, que o aviso de recebida lê (F15-15).
-/// Os avisos saem pelos manipuladores de sempre, depois do commit (F15-16 a F15-18). Entre um PR e outro (design §3), o remetente não identificado (a
-/// triagem, F15h) e a resposta ao endereço da conversa (F15i) ficam só no registro, como
+/// Os avisos saem pelos manipuladores de sempre, depois do commit (F15-16 a F15-18).
+/// </para>
+/// <para>
+/// O remetente não identificado vai à triagem da empresa (D10; F15-20, F15-24 a F15-26, F15-70): um
+/// <see cref="ItemTriagemEmail"/> com o remetente, o assunto, o texto, o motivo (<see cref="IdentificacaoDoRemetente.Classificar"/>)
+/// e os anexos pela mesma política, os válidos no storage na chave da triagem; nada é respondido nem avisado. Entre um PR e
+/// outro (design §3), a resposta ao endereço da conversa (F15i) fica só no registro, como
 /// <see cref="ResultadoEntradaEmail.Ignorado"/>.
 /// </para>
 /// </summary>
@@ -36,6 +41,7 @@ public sealed class ComandosEntradaEmail
     private readonly RecebimentoAnexos _anexos;
     private readonly IRepositorio<Interacao> _interacoes;
     private readonly IRepositorio<ConversaPorEmail> _conversas;
+    private readonly IRepositorio<ItemTriagemEmail> _triagem;
     private readonly IUnitOfWork _unidade;
     private readonly TimeProvider _relogio;
     private readonly OpcoesEmailEntrada _opcoes;
@@ -49,6 +55,7 @@ public sealed class ComandosEntradaEmail
         RecebimentoAnexos anexos,
         IRepositorio<Interacao> interacoes,
         IRepositorio<ConversaPorEmail> conversas,
+        IRepositorio<ItemTriagemEmail> triagem,
         IUnitOfWork unidade,
         TimeProvider relogio,
         OpcoesEmailEntrada opcoes)
@@ -61,6 +68,7 @@ public sealed class ComandosEntradaEmail
         ArgumentNullException.ThrowIfNull(anexos);
         ArgumentNullException.ThrowIfNull(interacoes);
         ArgumentNullException.ThrowIfNull(conversas);
+        ArgumentNullException.ThrowIfNull(triagem);
         ArgumentNullException.ThrowIfNull(unidade);
         ArgumentNullException.ThrowIfNull(relogio);
         ArgumentNullException.ThrowIfNull(opcoes);
@@ -72,6 +80,7 @@ public sealed class ComandosEntradaEmail
         _anexos = anexos;
         _interacoes = interacoes;
         _conversas = conversas;
+        _triagem = triagem;
         _unidade = unidade;
         _relogio = relogio;
         _opcoes = opcoes;
@@ -97,17 +106,20 @@ public sealed class ComandosEntradaEmail
         if (DescarteDeEntrada.Avaliar(mensagem, _opcoes) is { } descarte)
         {
             return await RegistrarAsync(
-                tenantId, chave, mensagem, ResultadoEntradaEmail.Ignorado, descarte, null, null, cancellationToken);
+                tenantId, chave, mensagem, ResultadoEntradaEmail.Ignorado, descarte, null, null, null, cancellationToken);
         }
 
-        // A resposta ao endereço da conversa entra no F15i, e o remetente não identificado vai à triagem no F15h (design
-        // §3): até lá, só o registro.
-        if (destino.Token is not null || await IdentificarAsync(mensagem, cancellationToken) is not { } contato)
+        // A resposta ao endereço da conversa entra no F15i (design §3): até lá, só o registro.
+        if (destino.Token is not null)
         {
             return await RegistrarAsync(
-                tenantId, chave, mensagem, ResultadoEntradaEmail.Ignorado, DesfechoEntrada.Registrada, null, null,
+                tenantId, chave, mensagem, ResultadoEntradaEmail.Ignorado, DesfechoEntrada.Registrada, null, null, null,
                 cancellationToken);
         }
+
+        var identificacao = await IdentificarAsync(mensagem, cancellationToken);
+        if (identificacao.Contato is not { } contato)
+            return await TriarAsync(tenantId, chave, mensagem, identificacao, cancellationToken);
 
         // Os válidos sobem ao storage antes do commit, com a chave da solicitação, como no portal; se a gravação falhar
         // (inclusive a corrida de duas entregas iguais no índice do registro), saem de novo.
@@ -119,7 +131,7 @@ public sealed class ComandosEntradaEmail
             await AbrirAsync(tenantId, solicitacaoId, mensagem, contato, enviados, separacao.Recusados, cancellationToken);
             return await RegistrarAsync(
                 tenantId, chave, mensagem, ResultadoEntradaEmail.Solicitacao, DesfechoEntrada.Aberta, solicitacaoId,
-                separacao.Recusados, cancellationToken);
+                separacao.Recusados, null, cancellationToken);
         }
         catch
         {
@@ -131,17 +143,57 @@ public sealed class ComandosEntradaEmail
     /// <summary>
     /// O contato do remetente conhecido: um endereço só no <c>From</c>, autenticidade confirmada (D11; o redirecionamento
     /// da caixa do prestador mantém o remetente original e passa pelo DKIM dele, F15-27) e exatamente um contato ativo de
-    /// cliente ativo com aquele e-mail na empresa. O envelope não conta: serve só para o automático.
+    /// cliente ativo com aquele e-mail na empresa; senão, o motivo da triagem (D10). O envelope não conta: serve só para o
+    /// automático. Os contatos são procurados mesmo com a autenticidade falhando, para o motivo dizer se o remetente
+    /// declarado é de um contato (F15-26).
     /// </summary>
-    private async Task<ContatoDeEntrada?> IdentificarAsync(MensagemDeEntrada mensagem, CancellationToken cancellationToken)
+    private async Task<Identificacao> IdentificarAsync(MensagemDeEntrada mensagem, CancellationToken cancellationToken)
     {
-        if (!IdentificacaoDoRemetente.AutenticidadeOk(mensagem.Autenticidade)
-            || IdentificacaoDoRemetente.EmailDoRemetente(mensagem.Remetentes) is not { } email)
-        {
-            return null;
-        }
+        if (IdentificacaoDoRemetente.EmailDoRemetente(mensagem.Remetentes) is not { } email)
+            return Identificacao.NaTriagem(MotivoTriagem.Desconhecido);
 
-        return IdentificacaoDoRemetente.Escolher(await _contatos.PorEmailAsync(email, cancellationToken));
+        return IdentificacaoDoRemetente.Classificar(
+            IdentificacaoDoRemetente.AutenticidadeOk(mensagem.Autenticidade),
+            await _contatos.PorEmailAsync(email, cancellationToken));
+    }
+
+    /// <summary>
+    /// O e-mail de remetente não identificado na triagem (D10; F15-70): o item com o remetente, o assunto, o texto (como
+    /// na abertura, F15-13), o motivo e os anexos pela mesma política um por um (D14), os válidos subindo ao storage na
+    /// chave da triagem antes do commit e saindo de novo se a gravação falhar (inclusive a corrida de duas entregas iguais,
+    /// F15-103). Nada é respondido ao remetente nem avisado (sem <i>backscatter</i>; ADR 0016, item 4): o item não registra
+    /// evento.
+    /// </summary>
+    private async Task<DesfechoEntrada> TriarAsync(
+        Guid tenantId, string chave, MensagemDeEntrada mensagem, Identificacao identificacao, CancellationToken cancellationToken)
+    {
+        var itemId = Guid.CreateVersion7();
+        var separacao = AnexosDaEntrada.Separar(mensagem.Anexos, RecebimentoAnexos.Politica);
+        var enviados = await _anexos.EnviarParaTriagemAsync(tenantId, itemId, separacao.Validos, cancellationToken);
+        try
+        {
+            _triagem.Adicionar(ItemTriagemEmail.Receber(
+                itemId,
+                tenantId,
+                IdentificacaoDoRemetente.EmailDoRemetente(mensagem.Remetentes),
+                ConteudoDaAbertura.NomeDoRemetente(mensagem.NomeDoRemetente),
+                ConteudoDaAbertura.AssuntoOriginal(mensagem.Assunto),
+                ConteudoDaAbertura.Descricao(mensagem.Texto),
+                identificacao.Motivo ?? MotivoTriagem.Desconhecido,
+                identificacao.ClientesPossiveis,
+                enviados,
+                separacao.Recusados,
+                RecebimentoAnexos.Politica,
+                _relogio.GetUtcNow()));
+            return await RegistrarAsync(
+                tenantId, chave, mensagem, ResultadoEntradaEmail.Triagem, DesfechoEntrada.Triagem, null, null, itemId,
+                cancellationToken);
+        }
+        catch
+        {
+            await _anexos.DescartarAsync(enviados);
+            throw;
+        }
     }
 
     private async Task AbrirAsync(
@@ -196,6 +248,7 @@ public sealed class ComandosEntradaEmail
         DesfechoEntrada desfecho,
         Guid? solicitacaoId,
         AnexosRecusados? recusados,
+        Guid? itemTriagemId,
         CancellationToken cancellationToken)
     {
         _repositorio.Adicionar(EmailRecebido.Registrar(
@@ -206,7 +259,8 @@ public sealed class ComandosEntradaEmail
             resultado,
             _relogio.GetUtcNow(),
             solicitacaoId,
-            recusados));
+            recusados,
+            itemTriagemId));
         await _unidade.SalvarAsync(cancellationToken);
         return desfecho;
     }

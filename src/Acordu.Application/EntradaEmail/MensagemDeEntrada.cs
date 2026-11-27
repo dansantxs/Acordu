@@ -3,8 +3,8 @@ namespace Acordu.Application.EntradaEmail;
 /// <summary>
 /// O que a entrada usa de um e-mail recebido, já lido do MIME pela Infrastructure (design do F15, D1 e D14), mais o que o
 /// adaptador do provedor manda à parte (envelope e vereditos do filtro e da autenticidade, D11): a identificação, os sinais
-/// dos descartes (F15d, F15e), o assunto e o texto da abertura (F15f) e os anexos (F15g); os PRs da resposta e da triagem
-/// acrescentam o resto. Nada daqui vai ao log (convenções §5).
+/// dos descartes (F15d, F15e), o assunto e o texto da abertura (F15f), os anexos (F15g) e o nome do remetente (triagem,
+/// F15h); o PR da resposta acrescenta o resto. Nada daqui vai ao log (convenções §5).
 /// </summary>
 /// <param name="MessageId">O <c>Message-ID</c>, sem os sinais de menor e maior; nulo quando o e-mail não traz.</param>
 /// <param name="Remetentes">Os endereços do <c>From</c>, como vieram (a identificação usa só quando há um, F15f).</param>
@@ -25,7 +25,11 @@ namespace Acordu.Application.EntradaEmail;
 /// </param>
 /// <param name="Anexos">
 /// As partes que não são o corpo em texto, na ordem do MIME (D14): anexos, imagens embutidas, mensagens anexadas; nulo ou
-/// vazio sem elas. Validadas uma por uma na abertura (<see cref="AnexosDaEntrada"/>; F15-14, F15-15).
+/// vazio sem elas. Validadas uma por uma na abertura e na triagem (<see cref="AnexosDaEntrada"/>; F15-14, F15-15, F15-70).
+/// </param>
+/// <param name="NomeDoRemetente">
+/// O nome que o <c>From</c> traz ao lado do endereço, decodificado, quando há um endereço só; nulo sem ele. Só a triagem o
+/// usa (F15-70): a abertura fica com o nome do contato.
 /// </param>
 public sealed record MensagemDeEntrada(
     string? MessageId,
@@ -37,7 +41,8 @@ public sealed record MensagemDeEntrada(
     string? Assunto = null,
     string? Texto = null,
     string? Autenticidade = null,
-    IReadOnlyList<AnexoDeEntrada>? Anexos = null);
+    IReadOnlyList<AnexoDeEntrada>? Anexos = null,
+    string? NomeDoRemetente = null);
 
 /// <summary>
 /// Os cabeçalhos do e-mail que a lista do design (D12) usa para reconhecer o e-mail automático, como vieram (aparados).
