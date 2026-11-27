@@ -18,7 +18,9 @@ namespace Acordu.Application.Notificacoes;
 /// <para>
 /// O aviso sai pelo canal da origem (RF-NOT-06; design do F15, D7): este manipulador decide o quê e para quem, monta o
 /// conteúdo e o entrega ao <see cref="SeletorDeCanal"/>. Com o recebimento por e-mail ligado, o aviso leva o endereço da
-/// conversa da solicitação (D3), e a <see cref="ConversaPorEmail"/> nasce no primeiro aviso, como o link sem senha.
+/// conversa da solicitação (D3), e a <see cref="ConversaPorEmail"/> nasce no primeiro aviso, como o link sem senha. Na
+/// origem EMAIL, a conversa nasce na abertura, com o fio do e-mail que a abriu, e todo aviso segue nele (D4; F15-16,
+/// F15-50), com o recebimento ligado ou não: o Reply-To e a marcadora é que seguem o recebimento (F15-52).
 /// </para>
 /// </summary>
 /// <remarks>
@@ -202,27 +204,33 @@ public sealed class AvisosAoContato :
         var tenant = await _tenant.ObterAsync(cancellationToken);
         var prestador = tenant.NomePortal ?? tenant.Nome;
         var link = await LinkAsync(solicitacao, cliente, contato, cancellationToken);
-        var conversa = await EnderecoDaConversaAsync(tenant, solicitacao, cancellationToken);
+        var conversa = await ConversaAsync(tenant, solicitacao, cancellationToken);
+        var endereco = conversa is not null && _entrada.AvisosPelaConversa(tenant)
+            ? _entrada.EnderecoDaConversa(tenant, conversa)
+            : null;
+        var fio = solicitacao.Origem == OrigemSolicitacao.Email ? conversa : null;
         var (assunto, texto) = montar(new Aviso(solicitacao, contato, prestador, link, tenant.DiasFechamentoAutomatico));
         await _canais.EnviarAsync(
             new AvisoAoContato(
                 categoria, contato.Nome, contato.Email, prestador, assunto, texto, solicitacao.Id, solicitacao.Numero,
-                solicitacao.Origem, tenant.ResponderPara, conversa),
+                solicitacao.Origem, tenant.ResponderPara, endereco, fio?.MessageIdOrigem, fio?.AssuntoOrigem),
             cancellationToken);
     }
 
     /// <summary>
-    /// Com o recebimento por e-mail ligado, o endereço da conversa da solicitação (F15-51), criando a conversa no primeiro
-    /// aviso (design do F15, D9); desligado, nulo, e nada é criado (F15-52). Dois avisos da mesma solicitação ao mesmo
-    /// tempo esbarram no índice único da conversa: o segundo falha antes de enviar, e a outbox o repete, já com a conversa.
+    /// Com o recebimento por e-mail ligado, a conversa da solicitação (o endereço dela vai no Reply-To, F15-51), criada no
+    /// primeiro aviso (design do F15, D9); desligado, nada é criado (F15-52), e só a origem EMAIL lê a conversa que já
+    /// existe, pelo fio (D4). Dois avisos da mesma solicitação ao mesmo tempo esbarram no índice único da conversa: o
+    /// segundo falha antes de enviar, e a outbox o repete, já com a conversa.
     /// </summary>
-    private async Task<string?> EnderecoDaConversaAsync(Tenant tenant, Solicitacao solicitacao, CancellationToken cancellationToken)
+    private async Task<ConversaPorEmail?> ConversaAsync(Tenant tenant, Solicitacao solicitacao, CancellationToken cancellationToken)
     {
-        if (!_entrada.AvisosPelaConversa(tenant))
+        var ligado = _entrada.AvisosPelaConversa(tenant);
+        if (!ligado && solicitacao.Origem != OrigemSolicitacao.Email)
             return null;
 
         var conversa = await _conversas.DaSolicitacaoAsync(solicitacao.Id, cancellationToken);
-        if (conversa is null)
+        if (conversa is null && ligado)
         {
             conversa = ConversaPorEmail.Criar(
                 Guid.CreateVersion7(), solicitacao.TenantId, solicitacao.ClienteId, solicitacao.Id, _relogio.Agora);
@@ -230,7 +238,7 @@ public sealed class AvisosAoContato :
             await _unidade.SalvarAsync(cancellationToken);
         }
 
-        return _entrada.EnderecoDaConversa(tenant, conversa);
+        return conversa;
     }
 
     private async Task<Uri?> LinkAsync(Solicitacao solicitacao, Cliente cliente, Contato contato, CancellationToken cancellationToken)

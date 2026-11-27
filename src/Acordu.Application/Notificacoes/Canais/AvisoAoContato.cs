@@ -10,6 +10,11 @@ namespace Acordu.Application.Notificacoes.Canais;
 /// <param name="EnderecoDaConversa">
 /// O endereço da conversa da solicitação (D3), só com o recebimento por e-mail ligado; nulo com ele desligado (F15-52).
 /// </param>
+/// <param name="MessageIdOrigem">
+/// O fio da origem EMAIL (D4): o <c>Message-ID</c> do e-mail que abriu a solicitação (sem os sinais de menor e maior), a
+/// que o aviso responde; nulo fora dela.
+/// </param>
+/// <param name="AssuntoOrigem">O assunto do e-mail que abriu a solicitação (D4; pode ser vazio); nulo fora da origem EMAIL.</param>
 public sealed record AvisoAoContato(
     string Categoria,
     string NomeContato,
@@ -21,4 +26,6 @@ public sealed record AvisoAoContato(
     int NumeroSolicitacao,
     OrigemSolicitacao Origem,
     string? ResponderPara,
-    string? EnderecoDaConversa);
+    string? EnderecoDaConversa,
+    string? MessageIdOrigem = null,
+    string? AssuntoOrigem = null);

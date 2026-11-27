@@ -1,6 +1,5 @@
 using System.Security.Cryptography;
 using System.Text;
-using Acordu.Domain.Common;
 
 namespace Acordu.Application.EntradaEmail;
 
@@ -28,20 +27,8 @@ public static class ChaveDeEntrada
     /// O hash do remetente (base dos limites por remetente, F15n): o e-mail do <c>From</c> normalizado como o dos contatos.
     /// Nulo quando o <c>From</c> não tem exatamente um endereço válido (vários endereços contam como desconhecido, F15f).
     /// </summary>
-    public static string? DoRemetente(IReadOnlyList<string> remetentes)
-    {
-        ArgumentNullException.ThrowIfNull(remetentes);
-        if (remetentes.Count != 1)
-            return null;
-        try
-        {
-            return Sha256(Email.Normalizar(remetentes[0], nameof(remetentes)));
-        }
-        catch (ArgumentException)
-        {
-            return null;
-        }
-    }
+    public static string? DoRemetente(IReadOnlyList<string> remetentes) =>
+        IdentificacaoDoRemetente.EmailDoRemetente(remetentes) is { } email ? Sha256(email) : null;
 
     /// <summary>Sem os espaços e sem os sinais de menor e maior; vazio → nulo. O resto é comparado como veio.</summary>
     public static string? NormalizarMessageId(string? messageId)

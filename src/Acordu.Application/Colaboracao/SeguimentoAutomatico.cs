@@ -42,7 +42,7 @@ public sealed class SeguimentoAutomatico :
     {
         ArgumentNullException.ThrowIfNull(evento);
         var solicitacao = await _solicitacoes.ObterPorIdAsync(evento.SolicitacaoId, cancellationToken);
-        var quem = evento.Origem == OrigemSolicitacao.Portal ? null : evento.AbertaPor;
+        var quem = evento.Origem is OrigemSolicitacao.Portal or OrigemSolicitacao.Email ? null : evento.AbertaPor;
         await SeguirAsync(AlvoColaboracao.Solicitacao, evento.SolicitacaoId, [quem, solicitacao?.ResponsavelId], cancellationToken);
     }
 

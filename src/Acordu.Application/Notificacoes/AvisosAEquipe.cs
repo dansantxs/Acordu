@@ -2,6 +2,7 @@ using Acordu.Application.Abstractions;
 using Acordu.Application.Abstractions.Eventos;
 using Acordu.Domain.Acesso;
 using Acordu.Domain.Entities;
+using Acordu.Domain.Enums;
 using Acordu.Domain.Events;
 
 namespace Acordu.Application.Notificacoes;
@@ -67,7 +68,7 @@ public sealed class AvisosAEquipe :
                     Chegou a solicitação #{solicitacao.Numero} — {solicitacao.Titulo}.
                     Cliente: {cliente?.Nome}
                     Prioridade: {Textos.Prioridade(solicitacao.Prioridade)}
-                    Aberta {(evento.Origem == Domain.Enums.OrigemSolicitacao.Portal ? "pelo cliente, no portal" : "pela equipe")}.
+                    Aberta {PorOnde(evento.Origem)}.
 
                     {_enderecos.SolicitacaoInterna(solicitacao.Id)}
                     """,
@@ -106,6 +107,14 @@ public sealed class AvisosAEquipe :
                 "aviso-atribuicao"),
             cancellationToken);
     }
+
+    /// <summary>Por onde a solicitação chegou, no e-mail à equipe (a origem EMAIL é do contato, F15-17).</summary>
+    private static string PorOnde(OrigemSolicitacao origem) => origem switch
+    {
+        OrigemSolicitacao.Portal => "pelo cliente, no portal",
+        OrigemSolicitacao.Email => "pelo cliente, por e-mail",
+        _ => "pela equipe",
+    };
 
     /// <summary>Responsável (se ainda for da equipe) ou, sem ele, quem pode editar solicitações.</summary>
     internal static async Task<IReadOnlyList<PessoaDaEquipe>> DestinatariosAsync(

@@ -1,34 +1,71 @@
 using Acordu.Application.Abstractions;
+using Acordu.Application.Common;
+using Acordu.Application.Contratos;
 using Acordu.Application.EntradaEmail;
+using Acordu.Application.Solicitacoes;
 using Acordu.Application.UnitTests.Exemplos;
 using Acordu.Domain.Entities;
 using Acordu.Domain.Enums;
+using Acordu.Domain.ValueObjects;
 
 namespace Acordu.Application.UnitTests.EntradaEmail;
 
 /// <summary>
 /// Design do F15, D6 e §3 (ADR 0016, item 8): o e-mail aceito para a empresa deixa um registro de entrada, sem conteúdo,
-/// e a repetição da mesma entrega não grava de novo. Até o F15f, o resultado é sempre IGNORADO; o automático, o laço e o
-/// filtro (F15e) dão o desfecho do descarte.
+/// e a repetição da mesma entrega não grava de novo; o automático, o laço e o filtro (F15e) dão o desfecho do descarte.
+/// F15f (F15-10 a F15-13, F15-27; design §1.2 e D4): o e-mail novo de remetente conhecido abre a solicitação de origem
+/// EMAIL, com a conversa no fio do e-mail; o não identificado e a resposta à conversa ficam só no registro até o F15h e o
+/// F15i.
 /// </summary>
 public sealed class ComandosEntradaEmailTests
 {
     private static readonly Guid Empresa = Guid.NewGuid();
     private static readonly DestinoDeEntrada Destino = new("k7m2qd9w@entrada.acordu.app.br", "k7m2qd9w", null);
     private readonly Repositorio<EmailRecebido> _repositorio = new();
+    private readonly Repositorio<Solicitacao> _solicitacoes = new();
+    private readonly Repositorio<Interacao> _interacoes = new();
+    private readonly Repositorio<ConversaPorEmail> _conversas = new();
+    private readonly ContatosEmMemoria _contatos = new();
     private readonly UnidadeFalsa _unidade = new();
+    private int _protocolo = 41;
 
-    private ComandosEntradaEmail Comandos(ITenantContext? contexto = null) =>
-        new(
+    private ComandosEntradaEmail Comandos(ITenantContext? contexto = null)
+    {
+        var calendarios = new CalendariosFixos(Empresa);
+        var abertura = new AberturaPeloContato(
+            _solicitacoes, new Repositorio<Contrato>(), _interacoes, new SemContratos(), new Protocolo(() => ++_protocolo),
+            calendarios, new RelogioDoTenant(calendarios, new RelogioFixo(Falsos.Agora)));
+        return new(
             contexto ?? new ContextoDoDono(Empresa, Guid.NewGuid()),
             new RegistrosEmMemoria(_repositorio),
             _repositorio,
+            _contatos,
+            abertura,
+            _conversas,
             _unidade,
             new RelogioFixo(Falsos.Agora),
             OpcoesEmailEntrada.DaConfiguracao("entrada.acordu.app.br", remetenteDosAvisos: "nao-responda@send.acordu.app.br"));
+    }
 
     private static MensagemDeEntrada Mensagem(string? messageId = "abc@mail.exemplo.com") =>
         new(messageId, ["ana@cliente.com.br"], new string('a', 64));
+
+    /// <summary>Um e-mail de remetente conhecido: um contato só, autenticidade confirmada.</summary>
+    private static MensagemDeEntrada DoContato(string? messageId = "abc@mail.exemplo.com") =>
+        Mensagem(messageId) with
+        {
+            Remetentes = ["Ana@Cliente.com.br"],
+            Assunto = "RE: Fwd: Forno parou de novo",
+            Texto = "O forno parou de novo hoje cedo.\r\n",
+            Autenticidade = "pass",
+        };
+
+    private ContatoDeEntrada ContatoConhecido(bool clienteAtivo = true, bool contatoAtivo = true, Guid? usuario = null)
+    {
+        var contato = new ContatoDeEntrada(Guid.NewGuid(), Guid.NewGuid(), usuario, clienteAtivo, contatoAtivo);
+        _contatos.Adicionar("ana@cliente.com.br", contato);
+        return contato;
+    }
 
     [Fact]
     public async Task ReceberAsync_Novo_RegistraIgnoradoSemConteudo()
@@ -109,6 +146,222 @@ public sealed class ComandosEntradaEmailTests
         _repositorio.Itens.Should().BeEmpty();
     }
 
+    [Fact] // F15-10, F15-11, F15-13
+    public async Task ReceberAsync_RemetenteConhecido_AbreSolicitacaoEmailComOContatoEARegistraSolicitacao()
+    {
+        var contato = ContatoConhecido();
+
+        var desfecho = await Comandos().ReceberAsync(DoContato(), Destino);
+
+        desfecho.Should().Be(DesfechoEntrada.Aberta);
+        var solicitacao = _solicitacoes.Itens.Should().ContainSingle().Subject;
+        solicitacao.TenantId.Should().Be(Empresa);
+        solicitacao.Numero.Should().Be(42, "o próximo protocolo");
+        solicitacao.Origem.Should().Be(OrigemSolicitacao.Email);
+        solicitacao.Status.Should().Be(StatusSolicitacao.Aberta);
+        solicitacao.ClienteId.Should().Be(contato.ClienteId);
+        solicitacao.ContatoId.Should().Be(contato.ContatoId);
+        solicitacao.Prioridade.Should().Be(Prioridade.Media);
+        solicitacao.ResponsavelId.Should().BeNull();
+        solicitacao.ContratoId.Should().BeNull("sem contrato vigente, sem SLA");
+        solicitacao.Titulo.Should().Be("Forno parou de novo");
+        solicitacao.Descricao.Should().Be("O forno parou de novo hoje cedo.");
+        _interacoes.Itens.Should().BeEmpty("sem anexos, nenhuma mensagem (os anexos são do F15g)");
+        var registro = _repositorio.Itens.Should().ContainSingle().Subject;
+        registro.Resultado.Should().Be(ResultadoEntradaEmail.Solicitacao);
+        _unidade.Gravacoes.Should().Be(1, "a solicitação, a conversa e o registro na mesma transação");
+    }
+
+    [Fact] // design D4 e D9: a conversa nasce na abertura, com o fio do e-mail
+    public async Task ReceberAsync_RemetenteConhecido_ConversaComOMessageIdEOAssuntoOriginal()
+    {
+        var contato = ContatoConhecido();
+
+        await Comandos().ReceberAsync(DoContato(), Destino);
+
+        var conversa = _conversas.Itens.Should().ContainSingle().Subject;
+        conversa.SolicitacaoId.Should().Be(_solicitacoes.Itens.Single().Id);
+        conversa.ClienteId.Should().Be(contato.ClienteId);
+        conversa.MessageIdOrigem.Should().Be("abc@mail.exemplo.com");
+        conversa.AssuntoOrigem.Should().Be("RE: Fwd: Forno parou de novo", "o assunto como o contato escreveu, para o Re: do fio");
+        ConversaPorEmail.TokenValido(conversa.Token).Should().BeTrue();
+    }
+
+    [Fact] // design D4: sem Message-ID não há a que responder
+    public async Task ReceberAsync_RemetenteConhecidoSemMessageId_AbreComConversaSemFio()
+    {
+        ContatoConhecido();
+
+        var desfecho = await Comandos().ReceberAsync(DoContato(messageId: null), Destino);
+
+        desfecho.Should().Be(DesfechoEntrada.Aberta);
+        var conversa = _conversas.Itens.Should().ContainSingle().Subject;
+        conversa.MessageIdOrigem.Should().BeNull();
+        conversa.AssuntoOrigem.Should().BeNull();
+    }
+
+    [Fact] // design D4: um Message-ID maior que uma linha de cabeçalho não serve de fio; a solicitação abre do mesmo jeito
+    public async Task ReceberAsync_RemetenteConhecidoComMessageIdGigante_AbreComConversaSemFio()
+    {
+        ContatoConhecido();
+
+        var desfecho = await Comandos().ReceberAsync(DoContato(messageId: new string('m', 1_000) + "@mail.exemplo.com"), Destino);
+
+        desfecho.Should().Be(DesfechoEntrada.Aberta);
+        _solicitacoes.Itens.Should().ContainSingle();
+        var conversa = _conversas.Itens.Should().ContainSingle().Subject;
+        conversa.MessageIdOrigem.Should().BeNull();
+        conversa.AssuntoOrigem.Should().BeNull();
+    }
+
+    [Fact] // design D4: o e-mail sem assunto guarda o assunto vazio (o aviso sai "Re: (#N)"), não nulo
+    public async Task ReceberAsync_SemAssunto_ConversaComAssuntoOriginalVazio()
+    {
+        ContatoConhecido();
+
+        await Comandos().ReceberAsync(DoContato() with { Assunto = null }, Destino);
+
+        var conversa = _conversas.Itens.Should().ContainSingle().Subject;
+        conversa.MessageIdOrigem.Should().Be("abc@mail.exemplo.com");
+        conversa.AssuntoOrigem.Should().BeEmpty();
+    }
+
+    [Fact] // design §1.2: o autor é a conta do contato, ou o próprio contato sem ela
+    public async Task ReceberAsync_ContatoComConta_AbreComOContatoDaSolicitacao()
+    {
+        var contato = ContatoConhecido(usuario: Guid.NewGuid());
+
+        await Comandos().ReceberAsync(DoContato(), Destino);
+
+        _solicitacoes.Itens.Single().ContatoId.Should().Be(contato.ContatoId);
+    }
+
+    [Theory] // F15-12
+    [InlineData(null)]
+    [InlineData("   ")]
+    [InlineData("Re: Fwd:")]
+    public async Task ReceberAsync_SemAssunto_TituloEmailSemAssunto(string? assunto)
+    {
+        ContatoConhecido();
+
+        await Comandos().ReceberAsync(DoContato() with { Assunto = assunto }, Destino);
+
+        _solicitacoes.Itens.Should().ContainSingle().Which.Titulo.Should().Be("E-mail sem assunto");
+    }
+
+    [Fact] // F15-13: corpo vazio deixa a descrição vazia
+    public async Task ReceberAsync_CorpoVazio_SemDescricao()
+    {
+        ContatoConhecido();
+
+        await Comandos().ReceberAsync(DoContato() with { Texto = null }, Destino);
+
+        _solicitacoes.Itens.Should().ContainSingle().Which.Descricao.Should().BeNull();
+    }
+
+    [Theory] // remetente conhecido só com autenticidade pass (D11; F15-26 no F15h)
+    [InlineData("fail")]
+    [InlineData("none")]
+    [InlineData(null)]
+    public async Task ReceberAsync_AutenticidadeQueNaoEPass_SoRegistraSemAbrir(string? autenticidade)
+    {
+        ContatoConhecido();
+
+        var desfecho = await Comandos().ReceberAsync(DoContato() with { Autenticidade = autenticidade }, Destino);
+
+        desfecho.Should().Be(DesfechoEntrada.Registrada);
+        _solicitacoes.Itens.Should().BeEmpty();
+        _conversas.Itens.Should().BeEmpty();
+        _repositorio.Itens.Should().ContainSingle().Which.Resultado.Should().Be(ResultadoEntradaEmail.Ignorado);
+    }
+
+    [Fact] // F15-24 (a triagem é do F15h): contato em dois clientes não é remetente conhecido
+    public async Task ReceberAsync_ContatoEmDoisClientes_SoRegistraSemAbrir()
+    {
+        ContatoConhecido();
+        ContatoConhecido();
+
+        var desfecho = await Comandos().ReceberAsync(DoContato(), Destino);
+
+        desfecho.Should().Be(DesfechoEntrada.Registrada);
+        _solicitacoes.Itens.Should().BeEmpty();
+    }
+
+    [Theory] // F15-25 (a triagem é do F15h)
+    [InlineData(false, true)]
+    [InlineData(true, false)]
+    public async Task ReceberAsync_ContatoOuClienteInativo_SoRegistraSemAbrir(bool clienteAtivo, bool contatoAtivo)
+    {
+        ContatoConhecido(clienteAtivo, contatoAtivo);
+
+        var desfecho = await Comandos().ReceberAsync(DoContato(), Destino);
+
+        desfecho.Should().Be(DesfechoEntrada.Registrada);
+        _solicitacoes.Itens.Should().BeEmpty();
+    }
+
+    [Fact] // um contato inativo ao lado do ativo do mesmo e-mail não atrapalha (o e-mail é único só entre os ativos)
+    public async Task ReceberAsync_ContatoAtivoEOutroInativo_AbreComOAtivo()
+    {
+        ContatoConhecido(contatoAtivo: false);
+        var ativo = ContatoConhecido();
+
+        await Comandos().ReceberAsync(DoContato(), Destino);
+
+        _solicitacoes.Itens.Should().ContainSingle().Which.ContatoId.Should().Be(ativo.ContatoId);
+    }
+
+    [Fact] // design §1.2: vários endereços no From contam como desconhecido
+    public async Task ReceberAsync_VariosRemetentes_SoRegistraSemAbrir()
+    {
+        ContatoConhecido();
+
+        var desfecho = await Comandos().ReceberAsync(
+            DoContato() with { Remetentes = ["ana@cliente.com.br", "beto@cliente.com.br"] }, Destino);
+
+        desfecho.Should().Be(DesfechoEntrada.Registrada);
+        _solicitacoes.Itens.Should().BeEmpty();
+    }
+
+    [Fact] // a resposta ao endereço da conversa é do F15i: até lá, só o registro
+    public async Task ReceberAsync_DestinoDaConversa_SoRegistraSemAbrir()
+    {
+        ContatoConhecido();
+
+        var desfecho = await Comandos().ReceberAsync(
+            DoContato(), Destino with { Endereco = "k7m2qd9w+abcdefghjkmnpqrs@entrada.acordu.app.br", Token = "abcdefghjkmnpqrs" });
+
+        desfecho.Should().Be(DesfechoEntrada.Registrada);
+        _solicitacoes.Itens.Should().BeEmpty();
+    }
+
+    [Fact] // F15-85: o automático do contato conhecido não abre solicitação
+    public async Task ReceberAsync_AutomaticoDeRemetenteConhecido_DescartaSemAbrir()
+    {
+        ContatoConhecido();
+
+        var desfecho = await Comandos().ReceberAsync(
+            DoContato() with { Sinais = new SinaisDeAutomatico(AutoSubmitted: "auto-replied") }, Destino);
+
+        desfecho.Should().Be(DesfechoEntrada.Automatica);
+        _solicitacoes.Itens.Should().BeEmpty();
+        _conversas.Itens.Should().BeEmpty();
+    }
+
+    [Fact] // F15-97: a repetição da mesma entrega não abre a segunda
+    public async Task ReceberAsync_MesmoEmailDoContatoDuasVezes_UmaSolicitacaoSo()
+    {
+        ContatoConhecido();
+        await Comandos().ReceberAsync(DoContato(), Destino);
+
+        var desfecho = await Comandos().ReceberAsync(DoContato(), Destino);
+
+        desfecho.Should().Be(DesfechoEntrada.Repetida);
+        _solicitacoes.Itens.Should().ContainSingle();
+        _conversas.Itens.Should().ContainSingle();
+        _unidade.Gravacoes.Should().Be(1);
+    }
+
     /// <summary>Contexto sem empresa (escopo que ninguém definiu).</summary>
     private sealed class SemTenant : ITenantContext
     {
@@ -129,6 +382,44 @@ public sealed class ComandosEntradaEmailTests
         public Guid? AcessoPortalId => null;
 
         public Guid? SolicitacaoPermitida => null;
+    }
+
+    /// <summary>Os contatos por e-mail (já normalizado), como a consulta da Infrastructure devolve.</summary>
+    private sealed class ContatosEmMemoria : IContatosDeEntrada
+    {
+        private readonly List<(string Email, ContatoDeEntrada Contato)> _contatos = [];
+
+        public void Adicionar(string email, ContatoDeEntrada contato) => _contatos.Add((email, contato));
+
+        public Task<IReadOnlyList<ContatoDeEntrada>> PorEmailAsync(string email, CancellationToken cancellationToken = default) =>
+            Task.FromResult<IReadOnlyList<ContatoDeEntrada>>([.. _contatos.Where(c => c.Email == email).Select(c => c.Contato)]);
+    }
+
+    private sealed class Protocolo(Func<int> proximo) : IGeradorProtocolo
+    {
+        public Task<int> ProximoNumeroSolicitacaoAsync(CancellationToken cancellationToken = default) => Task.FromResult(proximo());
+    }
+
+    /// <summary>Nenhum contrato vigente: a solicitação sai sem SLA, como no portal.</summary>
+    private sealed class SemContratos : IConsultasContrato
+    {
+        public Task<IReadOnlyList<Guid>> VigentesDoClienteAsync(Guid clienteId, DateOnly hoje, CancellationToken cancellationToken = default) =>
+            Task.FromResult<IReadOnlyList<Guid>>([]);
+
+        public Task<ConsumoContratoDto?> ConsumoAsync(
+            Guid contratoId, MesReferencia periodo, DateOnly hoje, CancellationToken cancellationToken = default) =>
+            throw new NotSupportedException();
+
+        public Task<ResultadoPaginado<ContratoResumoDto>> ListarAsync(
+            Guid? clienteId, StatusContrato? status, Paginacao paginacao, CancellationToken cancellationToken = default) =>
+            throw new NotSupportedException();
+
+        public Task<ContratoDto?> DetalharAsync(Guid id, DateOnly hoje, CancellationToken cancellationToken = default) =>
+            throw new NotSupportedException();
+
+        public Task<bool> ExisteAtivoSobrepostoAsync(
+            Guid clienteId, TipoContrato tipo, Periodo vigencia, Guid? ignorar, CancellationToken cancellationToken = default) =>
+            throw new NotSupportedException();
     }
 
     /// <summary>A consulta "já existe" sobre os itens do repositório em memória.</summary>
