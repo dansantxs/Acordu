@@ -1,5 +1,6 @@
 import privacidadeBruto from './textos/privacidade.md?raw'
 import termosBruto from './textos/termos.md?raw'
+import { FORNECEDOR, type Fornecedor, textoDoFornecedor } from '@/shared/config/fornecedor'
 
 /**
  * Textos legais (F14f, D10 do F14): Markdown versionado no SPA, com `versao` e `vigencia` no cabeçalho. As páginas
@@ -19,15 +20,21 @@ export interface TextoLegal {
     versao: string
     /** Data civil (`yyyy-MM-dd`) em que a versão passa a valer. */
     vigencia: string
-    /** O corpo, sem o cabeçalho, com as quebras de linha normalizadas (`\n`): é o que a impressão confere. */
+    /**
+     * O corpo, sem o cabeçalho, com as quebras de linha normalizadas (`\n`) e os marcadores do fornecedor ainda no lugar
+     * (`{{a fornecedor}}`, ADR 0017): é o que a impressão confere, igual em qualquer build.
+     */
     corpo: string
     blocos: Bloco[]
 }
 
 const CABECALHO = /^---\n([\s\S]*?)\n---\n/
 
-/** Lê o cabeçalho e os blocos de um texto legal. Cabeçalho sem `versao` ou `vigencia` é defeito do arquivo. */
-export function lerTextoLegal(bruto: string): TextoLegal {
+/**
+ * Lê o cabeçalho e os blocos de um texto legal, com o nome do fornecedor nos blocos (ADR 0017). Cabeçalho sem `versao` ou
+ * `vigencia` é defeito do arquivo.
+ */
+export function lerTextoLegal(bruto: string, fornecedor: Fornecedor = FORNECEDOR): TextoLegal {
     const texto = bruto.replace(/\r\n?/g, '\n')
     const cabecalho = CABECALHO.exec(texto)
     if (!cabecalho) throw new Error('Texto legal sem cabeçalho (--- versao, vigencia ---).')
@@ -47,7 +54,7 @@ export function lerTextoLegal(bruto: string): TextoLegal {
         throw new Error('Texto legal sem versao ou com vigencia fora do formato yyyy-MM-dd.')
     }
     const corpo = texto.slice(cabecalho[0].length).trim()
-    return { versao, vigencia, corpo, blocos: lerBlocos(corpo) }
+    return { versao, vigencia, corpo, blocos: lerBlocos(textoDoFornecedor(corpo, fornecedor)) }
 }
 
 function lerBlocos(corpo: string): Bloco[] {

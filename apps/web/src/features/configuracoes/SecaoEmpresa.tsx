@@ -6,7 +6,7 @@ import { lerTextosSla, TabelaSla, textosSla } from '@/features/contratos/TabelaS
 import { errosDeCampo, mensagemDeErro } from '@/shared/api/mensagens'
 import { ErroApi } from '@/shared/api/problema'
 import { avisar } from '@/shared/avisos/avisos'
-import { CONTATO_NEBRYS } from '@/shared/config/ambiente'
+import { faleComOFornecedor } from '@/shared/config/fornecedor'
 import { dataNoFuso, ROTULO_SITUACAO, ultimoDiaDoTeste, type Tenant } from '@/shared/sessao/gravacao'
 import { Alerta } from '@/shared/ui/Alerta'
 import { Botao } from '@/shared/ui/Botao'
@@ -71,11 +71,7 @@ function SituacaoDaEmpresa({ tenant }: { tenant: Tenant }) {
                     </>
                 )}
             </dl>
-            <p className="text-xs text-suave">
-                {CONTATO_NEBRYS
-                    ? `Para ativar ou cancelar a conta, fale com a Nebrys: ${CONTATO_NEBRYS}.`
-                    : 'Para ativar ou cancelar a conta, fale com a Nebrys.'}
-            </p>
+            <p className="text-xs text-suave">{`Para ativar ou cancelar a conta, ${faleComOFornecedor()}.`}</p>
         </section>
     )
 }

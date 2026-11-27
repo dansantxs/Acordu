@@ -1,4 +1,4 @@
-import { CONTATO_NEBRYS } from '@/shared/config/ambiente'
+import { FORNECEDOR, textoDoFornecedor } from '@/shared/config/fornecedor'
 import {
     dataNoFuso,
     diasRestantesDoTeste,
@@ -35,13 +35,13 @@ export function FaixaSituacao({ tenant, agora = new Date() }: { tenant: Tenant; 
     )
 }
 
-/** A demonstração: dados fictícios, nada sai por e-mail, e a Nebrys pode voltar tudo ao início. */
+/** A demonstração: dados fictícios, nada sai por e-mail, e o fornecedor pode voltar tudo ao início. */
 function FaixaDemonstracao() {
     return (
         <div role="status" className="rounded-couro border border-linha bg-trilho px-4 py-3 text-sm text-suave">
             <strong className="font-semibold text-tinta">Empresa de demonstração.</strong> Os dados são fictícios e nada
-            sai daqui por e-mail: convites e avisos não são enviados, e o link de acesso do portal sai só para copiar. A
-            Nebrys pode voltar os dados ao início a qualquer momento.
+            sai daqui por e-mail: convites e avisos não são enviados, e o link de acesso do portal sai só para copiar.{' '}
+            {textoDoFornecedor('{{A fornecedor}} pode voltar os dados ao início a qualquer momento.')}
         </div>
     )
 }
@@ -65,14 +65,15 @@ function FaixaSomenteLeitura({ tenant }: { tenant: Tenant }) {
     )
 }
 
-/** O canal da Nebrys (decisão 14 do G2), quando o build o traz (`VITE_CONTATO_NEBRYS`). */
+/** O canal do fornecedor (decisão 14 do G2, ADR 0017), quando o build o traz (`VITE_CONTATO_FORNECEDOR`). */
 function ComoAtivar() {
-    if (!CONTATO_NEBRYS) return <>fale com a Nebrys.</>
+    const fale = textoDoFornecedor('fale com {{a fornecedor}}')
+    if (!FORNECEDOR.contato) return <>{fale}.</>
     return (
         <>
-            fale com a Nebrys:{' '}
-            <a href={`mailto:${CONTATO_NEBRYS}`} className="font-semibold underline underline-offset-2">
-                {CONTATO_NEBRYS}
+            {fale}:{' '}
+            <a href={`mailto:${FORNECEDOR.contato}`} className="font-semibold underline underline-offset-2">
+                {FORNECEDOR.contato}
             </a>
             .
         </>

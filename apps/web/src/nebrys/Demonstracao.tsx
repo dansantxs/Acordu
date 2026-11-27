@@ -15,6 +15,7 @@ import { apiNebrys, encerrarSeRecusada, type Demonstracao as DadosDemonstracao, 
 import { consultaDemonstracao } from './consultas'
 import { recusaDaAcao } from './convites'
 import { data } from './situacao'
+import { textoDoFornecedor } from '@/shared/config/fornecedor'
 
 const SUMIU = 'A empresa de demonstração não existe mais. A tela abaixo é a de agora.'
 
@@ -94,7 +95,8 @@ export function Demonstracao() {
         <Pagina titulo="Demonstração" contexto="Área da Nebrys">
             <p className="max-w-prose text-sm text-suave">
                 Uma empresa com os dados fictícios do manual, para mostrar o Acordu. Ela nunca vence nem é expurgada, e
-                nada sai dela por e-mail. Entra nela, como Dono, só quem a Nebrys indicar.
+                nada sai dela por e-mail.{' '}
+                {textoDoFornecedor('Entra nela, como Dono, só quem {{a fornecedor}} indicar.')}
             </p>
             {aviso && <Alerta tom="aviso">{aviso}</Alerta>}
             {demonstracao.isPending ? (

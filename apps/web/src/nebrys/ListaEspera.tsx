@@ -14,6 +14,7 @@ import { apiNebrys, encerrarSeRecusada, type EntradaListaEspera, type EnvioConvi
 import { consultaListaEspera, TAMANHO_PAGINA, type FiltroPagina } from './consultas'
 import { dataHora, EMAIL_NAO_SAIU, recusaDaAcao } from './convites'
 import { data } from './situacao'
+import { textoDoFornecedor } from '@/shared/config/fornecedor'
 
 type AcaoEntrada = 'convite' | 'descarte'
 
@@ -77,8 +78,9 @@ export function ListaEspera({ filtro }: { filtro: FiltroPagina }) {
     return (
         <Pagina titulo="Lista de espera" contexto="Área da Nebrys">
             <p className="max-w-prose text-sm text-suave">
-                Quem abre o cadastro enquanto ele é só por convite pode deixar os dados aqui. A Nebrys escolhe a quem
-                convidar; ninguém recebe e-mail só por entrar na lista.
+                {textoDoFornecedor(
+                    'Quem abre o cadastro enquanto ele é só por convite pode deixar os dados aqui. {{A fornecedor}} escolhe a quem convidar; ninguém recebe e-mail só por entrar na lista.',
+                )}
             </p>
             {aviso && <Alerta tom="aviso">{aviso}</Alerta>}
             {lista.isPending ? (

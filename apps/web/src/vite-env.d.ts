@@ -9,8 +9,12 @@ interface ImportMetaEnv {
     readonly VITE_TURNSTILE_CHAVE?: string
     /** Commit do build (produção). Sem ela (dev, testes), os erros do app não são relatados à API. */
     readonly VITE_VERSAO?: string
-    /** Canal da Nebrys nas faixas de situação da empresa (F14, D15). Sem ela, as faixas não citam endereço. */
-    readonly VITE_CONTATO_NEBRYS?: string
+    /** Quem fornece o Acordu nos textos (ADR 0017). Sem ela, "Nebrys". */
+    readonly VITE_NOME_FORNECEDOR?: string
+    /** Artigo do nome do fornecedor: `a` (padrão), `o` ou `nenhum` (ADR 0017). */
+    readonly VITE_ARTIGO_FORNECEDOR?: string
+    /** Canal do fornecedor nas faixas e recusas (F14, D15). Sem ela, os textos não citam endereço. */
+    readonly VITE_CONTATO_FORNECEDOR?: string
     /** `true` publica as páginas e os links dos textos legais (F14f, #194). Sem ela, ficam escondidos. */
     readonly VITE_TEXTOS_LEGAIS_PUBLICADOS?: string
 }

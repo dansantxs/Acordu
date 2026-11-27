@@ -1,5 +1,6 @@
 import type { CaminhoNavegacao } from '@/features/casca/navegacao'
 import type { CapturaAjuda } from './capturas'
+import { textoDoFornecedor } from '@/shared/config/fornecedor'
 
 /**
  * Conteúdo do manual (marco do manual, decisão 2): texto no código, versionado junto com as telas. Quem muda uma tela
@@ -384,7 +385,9 @@ export const SECOES_AJUDA: SecaoAjuda[] = [
         ],
         dicas: [
             'Mudar o calendário vale para as solicitações novas; as abertas mantêm o prazo que tinham.',
-            'A situação da conta só aparece para ler: para ativar ou cancelar, fale com a Nebrys (veja "Teste, conta ativa e só leitura").',
+            textoDoFornecedor(
+                'A situação da conta só aparece para ler: para ativar ou cancelar, fale com {{a fornecedor}} (veja "Teste, conta ativa e só leitura").',
+            ),
         ],
         imagens: [{ captura: 'configuracoes', legenda: 'Configurações da empresa, com o menu das seções ao lado.' }],
     },
@@ -478,7 +481,9 @@ export const SECOES_AJUDA: SecaoAjuda[] = [
         titulo: 'Teste, conta ativa e só leitura',
         grupo: 'conceitos',
         permissoes: [],
-        resumo: 'Toda empresa começa com 30 dias de teste. Para continuar depois disso, a conta precisa ser ativada pela Nebrys.',
+        resumo: textoDoFornecedor(
+            'Toda empresa começa com 30 dias de teste. Para continuar depois disso, a conta precisa ser ativada {{pela fornecedor}}.',
+        ),
         dicas: [
             'Nos últimos 7 dias do teste, uma faixa no topo de todas as telas mostra quantos dias faltam e com quem falar para ativar.',
             'Os Donos também recebem por e-mail: 7 dias e 1 dia antes do fim do teste, no dia em que a empresa fica só leitura (com a data em que os dados serão apagados) e 7 dias antes de apagar. Antes de confirmar o e-mail de quem criou a empresa, só essa pessoa recebe.',
@@ -486,8 +491,12 @@ export const SECOES_AJUDA: SecaoAjuda[] = [
             'No só leitura continuam valendo entrar, sair, trocar de empresa, a sua senha, o sino, as suas preferências de aviso, o link da agenda, seguir itens, o "Ciente" dos termos e da política e "Sugerir melhoria".',
             'Os dados ficam guardados por 30 dias depois do início do só leitura; depois disso, são apagados. Ativar a conta antes disso devolve tudo como estava.',
             'Nesse tempo, nada sai para os clientes: sem avisos por e-mail, sem recorrências geradas. O portal continua mostrando o que eles já viam, mas não aceita envios.',
-            'A situação aparece em Configurações › Empresa. Para ativar ou cancelar, fale com a Nebrys pelo endereço da faixa.',
-            'O cadastro de uma empresa pede o CPF ou CNPJ de quem contrata, e cada documento tem um período de teste só, mesmo depois que a empresa do primeiro teste é apagada. Para testar de novo com o mesmo documento, fale com a Nebrys.',
+            textoDoFornecedor(
+                'A situação aparece em Configurações › Empresa. Para ativar ou cancelar, fale com {{a fornecedor}} pelo endereço da faixa.',
+            ),
+            textoDoFornecedor(
+                'O cadastro de uma empresa pede o CPF ou CNPJ de quem contrata, e cada documento tem um período de teste só, mesmo depois que a empresa do primeiro teste é apagada. Para testar de novo com o mesmo documento, fale com {{a fornecedor}}.',
+            ),
         ],
     },
     {
@@ -495,13 +504,21 @@ export const SECOES_AJUDA: SecaoAjuda[] = [
         titulo: 'Cadastro, convite e lista de espera',
         grupo: 'conceitos',
         permissoes: [],
-        resumo: 'Por enquanto, uma empresa nova entra no Acordu por convite da Nebrys. Quem ainda não tem convite pede pela lista de espera.',
+        resumo: textoDoFornecedor(
+            'Por enquanto, uma empresa nova entra no Acordu por convite {{da fornecedor}}. Quem ainda não tem convite pede pela lista de espera.',
+        ),
         dicas: [
             'O convite chega por e-mail, com um link que vale por 7 dias e para um cadastro só. O link abre o cadastro com o e-mail convidado, que não dá para trocar.',
             'O cadastro pede o seu nome, uma senha, o nome da empresa e o CPF ou CNPJ de quem contrata. Quem cria a empresa entra como Dono e convida a equipe depois, em Configurações › Equipe.',
-            'O e-mail convidado não pode ter conta no Acordu. Se já tiver, a tela avisa: peça à Nebrys um convite para outro e-mail.',
-            'Convite que venceu, já foi usado ou foi revogado não abre o cadastro: peça outro à Nebrys.',
-            'Sem convite, a tela de cadastro mostra a lista de espera: nome, e-mail, nome da empresa e, se quiser, o que você quer organizar. A Nebrys escolhe a quem convidar; entrar na lista não manda e-mail.',
+            textoDoFornecedor(
+                'O e-mail convidado não pode ter conta no Acordu. Se já tiver, a tela avisa: peça {{à fornecedor}} um convite para outro e-mail.',
+            ),
+            textoDoFornecedor(
+                'Convite que venceu, já foi usado ou foi revogado não abre o cadastro: peça outro {{à fornecedor}}.',
+            ),
+            textoDoFornecedor(
+                'Sem convite, a tela de cadastro mostra a lista de espera: nome, e-mail, nome da empresa e, se quiser, o que você quer organizar. {{A fornecedor}} escolhe a quem convidar; entrar na lista não manda e-mail.',
+            ),
             'Os convites para a equipe e para o portal são outros: quem convida é a sua empresa, em Configurações › Equipe e na ficha do contato.',
         ],
         imagens: [
@@ -524,7 +541,9 @@ export const SECOES_AJUDA: SecaoAjuda[] = [
             'Quem cria a empresa e quem entra na equipe por convite marca que leu e aceita os dois textos; o Acordu guarda a versão aceita e a data.',
             'Quando sai uma versão nova de um dos textos, um aviso no topo das telas traz o link para ela até você marcar "Ciente". O aviso não impede o uso.',
             'Pela LGPD, a sua empresa é a controladora dos dados dos seus clientes, e o Acordu é o operador: pedidos dos seus clientes sobre os dados deles são respondidos pela sua empresa.',
-            'Dúvidas sobre os textos ou sobre os seus dados: fale com a Nebrys pelo endereço que aparece neles.',
+            textoDoFornecedor(
+                'Dúvidas sobre os textos ou sobre os seus dados: fale com {{a fornecedor}} pelo endereço que aparece neles.',
+            ),
         ],
     },
     {
