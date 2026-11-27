@@ -4,7 +4,6 @@ using System.Text.Json;
 using Acordu.Api.FunctionalTests.Apoio;
 using Acordu.Application.Abstractions;
 using Acordu.Application.Notificacoes.Canais;
-using Acordu.Domain.Entities;
 using Acordu.Domain.Enums;
 using Microsoft.EntityFrameworkCore;
 
@@ -158,10 +157,11 @@ public sealed class AvisosPeloCanalTests(ApiFixture api)
     public async Task AvisoDeSolicitacaoPorEmail_ContatoSemConta_LinkSemSenhaNovoACadaEmail(bool ligado)
     {
         var equipe = await Equipe.CriarAsync(api);
-        await LigarAsync(equipe, ligado);
         var cliente = await Cenarios.ClienteAsync(equipe);
-        var (contato, email) = await ContatoAsync(equipe, cliente);
-        var solicitacao = await AbertaPorEmailAsync(equipe.TenantId, cliente, contato);
+        var (_, email) = await ContatoAsync(equipe, cliente);
+        var solicitacao = await AbertaPorEmailAsync(equipe, email);
+        await LigarAsync(equipe, ligado);
+        api.Emails.Para(email).Should().ContainSingle(m => m.Categoria == "aviso-recebida", "a abertura real avisa o contato");
 
         await Comentar(equipe, solicitacao, "Pode mandar a logo em alta resolução?", "EXTERNA");
         var primeiro = api.Emails.TokenDe(email, "aviso-mensagem");
@@ -254,18 +254,17 @@ public sealed class AvisosPeloCanalTests(ApiFixture api)
         }));
 
     /// <summary>
-    /// Solicitação de origem EMAIL gravada direto no banco: a abertura por e-mail chega no F15f. Sem passar pela unidade de
-    /// trabalho, o aviso de recebida não sai; os outros saem pelo que a equipe faz depois.
+    /// Solicitação de origem EMAIL pela abertura real (F15f): o recebimento é ligado para o e-mail entrar, e quem chama o
+    /// deixa ligado ou desligado para os avisos seguintes.
     /// </summary>
-    private async Task<Guid> AbertaPorEmailAsync(Guid tenantId, Guid cliente, Guid contato)
+    private async Task<Guid> AbertaPorEmailAsync(Equipe equipe, string email)
     {
-        await using var db = api.DaEquipe(tenantId);
-        var solicitacao = Solicitacao.Abrir(
-            Guid.CreateVersion7(), tenantId, cliente, 900, "Forno parou", "O forno da loja 2 parou de esquentar.",
-            Prioridade.Media, OrigemSolicitacao.Email, contato, null, null, null, null, api.Relogio.Agora,
-            CalendarioUtil.Padrao(tenantId));
-        db.Add(solicitacao);
-        await db.SaveChangesAsync();
+        await LigarAsync(equipe, true);
+        var mime = EntradaPorEmail.Mime($"Carlos Prado <{email}>", "Forno parou", EntradaPorEmail.NovoMessageId());
+        await EntradaPorEmail.EntregarAsync(api, await EntradaPorEmail.EnderecoAsync(api, equipe.TenantId), mime, email);
+        await using var db = api.DaEquipe(equipe.TenantId);
+        var solicitacao = await db.Solicitacoes.AsNoTracking().SingleAsync();
+        solicitacao.Origem.Should().Be(OrigemSolicitacao.Email);
         return solicitacao.Id;
     }
 

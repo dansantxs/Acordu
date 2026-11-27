@@ -39,6 +39,27 @@ public sealed class EntradaEmailTests
             "o registro de entrada sem filtros é só o expurgo revisado (ExpurgoEmailEntrada)");
     }
 
+    /// <summary>
+    /// F15f (design §1.2; ADR 0016, item 3): os contatos do remetente são procurados só na empresa do destino, sob os
+    /// filtros. <c>IgnoreQueryFilters</c> em <c>ContatosDeEntrada</c> (inclusive na máquina de estados do método assíncrono,
+    /// um tipo aninhado) deixaria um contato de outra empresa abrir solicitação nesta.
+    /// </summary>
+    [Fact]
+    public void ContatosDoRemetente_SemIgnoreQueryFilters()
+    {
+        const string Consulta = PontoRevisado + "ContatosDeEntrada";
+        using var modulo = ModuleDefinition.ReadModule(Camadas.Infrastructure.Location);
+        var tipos = modulo.GetTypes()
+            .Where(t => t.FullName == Consulta || t.FullName.StartsWith(Consulta + "/", StringComparison.Ordinal))
+            .ToList();
+
+        tipos.Should().Contain(t => t.FullName == Consulta, "o teste perde o sentido se a consulta mudar de nome");
+        tipos.SelectMany(t => t.Methods.Where(m => m.HasBody).Select(m => (Tipo: t, Metodo: m)))
+            .Where(par => par.Metodo.Body.Instructions.Any(i => i.Operand is MethodReference { Name: "IgnoreQueryFilters" }))
+            .Select(par => $"{par.Tipo.FullName}.{par.Metodo.Name}")
+            .Should().BeEmpty("a identificação do remetente roda sob os filtros do tenant do destino");
+    }
+
     /// <summary>Métodos da Infrastructure (fora das migrations) que chamam <c>IgnoreQueryFilters&lt;T&gt;</c> com o tipo dado.</summary>
     private static List<string> MetodosQueIgnoramFiltrosDe(string entidade)
     {

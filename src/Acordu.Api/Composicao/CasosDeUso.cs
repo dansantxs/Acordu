@@ -90,6 +90,8 @@ internal static class CasosDeUso
         // Empresa de demonstração (F14s): criar, restaurar e indicar pela área; os dados fictícios inteiros.
         services.AddScoped<DemonstracaoNebrys>();
         services.AddScoped<SemeaduraDaDemonstracao>();
+        // O núcleo da abertura pelo contato (design do F15, §1.2): o portal e a entrada por e-mail (F15f).
+        services.AddScoped<AberturaPeloContato>();
         services.AddScoped<ComandosPortal>();
         services.AddScoped<TarefasAbertas>();
         services.AddScoped<LeituraPortal>();
