@@ -131,21 +131,34 @@ function Mensagem({
     return (
         <li
             className={`flex flex-col gap-2 rounded-couro border p-3 text-sm ${
-                interna ? 'border-ambar/40 bg-ambar-suave' : 'border-linha bg-superficie'
+                i.autorSistema
+                    ? 'border-dashed border-linha bg-trilho'
+                    : interna
+                      ? 'border-ambar/40 bg-ambar-suave'
+                      : 'border-linha bg-superficie'
             }`}
         >
             <p className="flex flex-wrap items-baseline gap-x-2 text-xs text-suave">
                 <span className="text-sm font-semibold text-tinta">{i.autor.nome || 'Pessoa removida'}</span>
                 {i.autorEhCliente && <span>cliente</span>}
                 <time dateTime={i.registradaEm}>{dataHora(i.registradaEm, fuso)}</time>
-                {interna ? (
+                {i.autorSistema ? (
+                    // Nota do sistema (F15-98, design D15 do F15): o próprio Acordu escreveu; o cliente não vê.
+                    <span className="font-semibold">Nota do sistema</span>
+                ) : interna ? (
                     <span className="font-semibold text-ambar-texto">Nota interna</span>
                 ) : (
                     !i.autorEhCliente && <span>Enviada ao cliente</span>
                 )}
                 <CanalDaMensagem canal={i.canal} />
             </p>
-            {i.texto && <TextoComMencoes texto={i.texto} nomes={nomes} />}
+            {i.texto &&
+                (i.autorSistema ? (
+                    // Lista de arquivos que veio do e-mail: texto puro, sem ler menções.
+                    <p className="break-words whitespace-pre-line">{i.texto}</p>
+                ) : (
+                    <TextoComMencoes texto={i.texto} nomes={nomes} />
+                ))}
             <AnexosParaBaixar anexos={i.anexos} />
         </li>
     )

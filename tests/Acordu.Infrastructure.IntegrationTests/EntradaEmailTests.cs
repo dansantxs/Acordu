@@ -3,6 +3,8 @@ using System.Text;
 using Acordu.Application.Common;
 using Acordu.Application.EntradaEmail;
 using Acordu.Domain.Entities;
+using Acordu.Domain.Enums;
+using Acordu.Domain.ValueObjects;
 using Acordu.Infrastructure.Email.Entrada;
 using Acordu.Infrastructure.Persistence.EntradaEmail;
 using Microsoft.EntityFrameworkCore;
@@ -350,5 +352,121 @@ public sealed class EntradaEmailTests(BancoFixture banco)
         await using var corpo = new MemoryStream([]);
 
         (await LeitorMime.LerAsync(corpo, 1024)).Should().BeNull();
+    }
+
+    private static readonly byte[] CabecalhoPng = [0x89, 0x50, 0x4E, 0x47];
+
+    private static string NovaChave() => Convert.ToHexStringLower(SHA256.HashData(Guid.NewGuid().ToByteArray()));
+
+    [Fact] // F15-15 (design D6): a abertura guarda a solicitação e os recusados em jsonb, e o aviso os lê por ela
+    public async Task EmailRecebido_ComSolicitacaoERecusados_GravadoERelidoPelaSolicitacao()
+    {
+        var tenant = await EmpresaAsync();
+        var solicitacao = Guid.NewGuid();
+        var recusados = new AnexosRecusados(
+        [
+            new AnexoRecusado("programa.exe", MotivoRecusaAnexo.TipoNaoPermitido),
+            new AnexoRecusado("vídeo \"grande\".mp4", MotivoRecusaAnexo.GrandeDemais),
+            new AnexoRecusado("6.png", MotivoRecusaAnexo.AlemDoLimite),
+        ]);
+        await using (var db = banco.DaEquipe(tenant.Id))
+        {
+            db.Add(EmailRecebido.Registrar(
+                Guid.NewGuid(), tenant.Id, NovaChave(), null, ResultadoEntradaEmail.Solicitacao, Dados.Agora, solicitacao, recusados));
+            db.Add(EmailRecebido.Registrar(
+                Guid.NewGuid(), tenant.Id, NovaChave(), null, ResultadoEntradaEmail.Solicitacao, Dados.Agora, Guid.NewGuid()));
+            await db.SaveChangesAsync();
+        }
+
+        await using var leitura = banco.DaEquipe(tenant.Id);
+        var registros = new EmailsRecebidos(leitura);
+        (await registros.RecusadosDaAberturaAsync(solicitacao)).Should().Be(recusados, "o nome e o motivo, na ordem");
+        (await leitura.EmailsRecebidos.AsNoTracking().SingleAsync(e => e.Recusados == null)).SolicitacaoId.Should().NotBeNull();
+        (await registros.RecusadosDaAberturaAsync(Guid.NewGuid())).Should().BeNull();
+    }
+
+    [Fact] // isolamento entre tenants (RNF-SEG-01): os recusados da empresa A não aparecem na B
+    public async Task RecusadosDaAberturaAsync_OutraEmpresa_Nulo()
+    {
+        var a = await EmpresaAsync();
+        var b = await EmpresaAsync();
+        var solicitacao = Guid.NewGuid();
+        await using (var db = banco.DaEquipe(a.Id))
+        {
+            db.Add(EmailRecebido.Registrar(
+                Guid.NewGuid(), a.Id, NovaChave(), null, ResultadoEntradaEmail.Solicitacao, Dados.Agora, solicitacao,
+                new AnexosRecusados([new AnexoRecusado("programa.exe", MotivoRecusaAnexo.TipoNaoPermitido)])));
+            await db.SaveChangesAsync();
+        }
+
+        await using var leitura = banco.DaEquipe(b.Id);
+        (await new EmailsRecebidos(leitura).RecusadosDaAberturaAsync(solicitacao)).Should().BeNull();
+    }
+
+    private static byte[] ComPartes(string corpo) => Encoding.UTF8.GetBytes(
+        "From: Ana <ana@cliente.com.br>\r\n"
+        + "To: k7m2qd9w@entrada.acordu.app.br\r\n"
+        + "Subject: Forno parou\r\n"
+        + "MIME-Version: 1.0\r\n"
+        + corpo);
+
+    [Fact] // F15-14 (design D14, pergunta 4): anexos e imagem embutida, decodificados, na ordem; o corpo fica de fora
+    public async Task LerAsync_AnexosEImagemEmbutida_PartesNaOrdemSemOCorpo()
+    {
+        var mime = ComPartes(
+            "Content-Type: multipart/mixed; boundary=\"m\"\r\n\r\n"
+            + "--m\r\nContent-Type: multipart/related; boundary=\"r\"\r\n\r\n"
+            + "--r\r\nContent-Type: multipart/alternative; boundary=\"a\"\r\n\r\n"
+            + "--a\r\nContent-Type: text/plain; charset=utf-8\r\n\r\nVeja a foto.\r\n"
+            + "--a\r\nContent-Type: text/html; charset=utf-8\r\n\r\n<p>Veja <img src=\"cid:f1\"></p>\r\n"
+            + "--a--\r\n"
+            + "--r\r\nContent-Type: image/png\r\nContent-ID: <f1>\r\nContent-Transfer-Encoding: base64\r\n\r\n"
+            + Convert.ToBase64String(CabecalhoPng) + "\r\n"
+            + "--r--\r\n"
+            + "--m\r\nContent-Type: application/pdf\r\nContent-Disposition: attachment; filename*=utf-8''or%C3%A7amento.pdf\r\n"
+            + "Content-Transfer-Encoding: base64\r\n\r\n" + Convert.ToBase64String("%PDF-1.7"u8) + "\r\n"
+            + "--m\r\nContent-Type: text/plain; charset=utf-8\r\nContent-Disposition: attachment; filename=\"nota.txt\"\r\n\r\n"
+            + "linha\r\n"
+            + "--m--\r\n");
+        await using var corpo = new MemoryStream(mime);
+
+        var mensagem = await LeitorMime.LerAsync(corpo, mime.Length);
+
+        mensagem!.Texto.Should().StartWith("Veja a foto.");
+        var anexos = mensagem.Anexos!;
+        anexos.Select(a => a.NomeArquivo).Should().Equal(null, "orçamento.pdf", "nota.txt");
+        anexos.Select(a => a.TipoDeclarado).Should().Equal("image/png", "application/pdf", "text/plain");
+        anexos[0].Inicio.ToArray().Should().Equal(CabecalhoPng);
+        anexos[1].TamanhoBytes.Should().Be(8, "o base64 já desfeito");
+    }
+
+    [Fact] // design D14: as partes do e-mail cifrado vêm com o tipo dele, e a mensagem anexada com o seu
+    public async Task LerAsync_CifradoEMensagemAnexada_TipoQueNuncaEntra()
+    {
+        var mime = ComPartes(
+            "Content-Type: multipart/mixed; boundary=\"m\"\r\n\r\n"
+            + "--m\r\nContent-Type: text/plain\r\n\r\noi\r\n"
+            + "--m\r\nContent-Type: multipart/encrypted; protocol=\"application/pgp-encrypted\"; boundary=\"c\"\r\n\r\n"
+            + "--c\r\nContent-Type: application/pgp-encrypted\r\n\r\nVersion: 1\r\n"
+            + "--c\r\nContent-Type: application/octet-stream; name=\"encrypted.asc\"\r\n\r\n-----BEGIN PGP MESSAGE-----\r\n"
+            + "--c--\r\n"
+            + "--m\r\nContent-Type: message/rfc822\r\nContent-Disposition: attachment; filename=\"pedido.eml\"\r\n\r\n"
+            + "From: b@c.com.br\r\nSubject: antigo\r\n\r\ntexto\r\n"
+            + "--m--\r\n");
+        await using var corpo = new MemoryStream(mime);
+
+        var mensagem = await LeitorMime.LerAsync(corpo, mime.Length);
+
+        mensagem!.Anexos!.Select(a => (a.NomeArquivo, a.TipoDeclarado)).Should().Equal(
+            (null, "multipart/encrypted"), ("encrypted.asc", "multipart/encrypted"), ("pedido.eml", "message/rfc822"));
+    }
+
+    [Fact]
+    public async Task LerAsync_SoTexto_SemAnexos()
+    {
+        var mime = Mime("<abc@mail.cliente.com.br>");
+        await using var corpo = new MemoryStream(mime);
+
+        (await LeitorMime.LerAsync(corpo, mime.Length))!.Anexos.Should().BeEmpty();
     }
 }

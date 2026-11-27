@@ -216,12 +216,12 @@ Empresa de demonstração (F14s): `IEmpresaDeDemonstracao` (implementada em `Aco
 
 A remoção usa os mesmos critérios: lê os ids dos clientes de exemplo, das tarefas, solicitações, projetos, contratos e cronômetros deles e as chaves dos anexos, e apaga por `ExecuteDelete` (no tenant do contexto, `tenant_id` e `cliente_id = ANY(...)`) toda entidade do modelo com `ClienteId` (vem do modelo: entidade nova entra sozinha), as que pendem da tarefa, os seguidores e as marcas de alerta desses itens; os clientes, com os contatos, saem pela unidade de trabalho. Sem índice novo: as tabelas grandes já têm índice começando por `(tenant_id, cliente_id …)` (§9), e a carga é pequena (dezenas de linhas).
 
-## 8c. Conversa da solicitação (F15a; RF-SOL-14)
+## 8c. Conversa da solicitação (F15a, F15g; RF-SOL-14)
 
 Projeção EF das `interacoes` da solicitação, por `(registrada_em, id)`, pelo índice `(tenant_id, solicitacao_id, registrada_em)`; o nome do autor sai de `Nomes.DeAutoresAsync` (conta da equipe ou, na sessão de link e na entrada por e-mail, o contato do cliente).
 
-- **Equipe** (`IConsultasSolicitacao.InteracoesAsync`): todas, internas e externas, cada uma com `canal`.
-- **Portal** (`IConsultasPortal.InteracoesAsync`): só `visibilidade = EXTERNA` de solicitação visível ao contato (escopo e link; senão nulo → `404`), cada uma com `canal` (pergunta 11 do F15).
+- **Equipe** (`IConsultasSolicitacao.InteracoesAsync`): todas, internas e externas, cada uma com `canal` e `autorSistema`. A nota do sistema (F15g; design do F15, D15) é reconhecida pelo `autor_id` de `AutoresDoSistema`, que fica fora do `Nomes.DeAutoresAsync` (não é pessoa) e sai com o nome fixo do autor do sistema ("Acordu (e-mail recebido)").
+- **Portal** (`IConsultasPortal.InteracoesAsync`): só `visibilidade = EXTERNA` de solicitação visível ao contato (escopo e link; senão nulo → `404`), cada uma com `canal` (pergunta 11 do F15). A nota do sistema, sempre INTERNA, nunca sai aqui (F15-98).
 - `canal` é a coluna `interacoes.canal` (texto, como os demais enums), gravada na criação; nenhuma regra deriva o canal na leitura. As linhas anteriores ao F15 foram preenchidas pela migration (`ScriptsDeDados.PreencherCanalDasInteracoes`: do contato → `PORTAL`, da equipe → `ACORDU`; F15-62).
 
 ---

@@ -28,7 +28,59 @@ public static class LeitorMime
         var remetentes = mensagem.From.Mailboxes.Select(m => m.Address).ToList();
         return new MensagemDeEntrada(
             ChaveDeEntrada.NormalizarMessageId(mensagem.MessageId), remetentes, limitado.Hash(), Sinais(mensagem),
-            Assunto: mensagem.Subject, Texto: Texto(mensagem));
+            Assunto: mensagem.Subject, Texto: Texto(mensagem), Anexos: Anexos(mensagem));
+    }
+
+    /// <summary>
+    /// As partes que não são o corpo em texto, na ordem do MIME (design D14; F15-14, F15-15), já decodificadas: anexos,
+    /// imagens embutidas no corpo (<c>cid:</c>, pergunta 4), mensagens anexadas e as partes de um e-mail cifrado ou
+    /// assinado. O corpo é a parte <c>text/plain</c> ou <c>text/html</c> que não é anexo (o <see cref="Texto"/> lê a
+    /// primeira). Quem decide o que entra é a Application (<c>AnexosDaEntrada</c>), pelo conteúdo.
+    /// </summary>
+    private static List<AnexoDeEntrada> Anexos(MimeMessage mensagem)
+    {
+        var anexos = new List<AnexoDeEntrada>();
+        if (mensagem.Body is { } corpo)
+            Percorrer(corpo, null, anexos);
+        return anexos;
+    }
+
+    /// <param name="tipoDoCifrado">Dentro de um <c>multipart/encrypted</c>, o tipo dele, para nenhuma parte entrar (D14).</param>
+    private static void Percorrer(MimeEntity entidade, string? tipoDoCifrado, List<AnexoDeEntrada> anexos)
+    {
+        switch (entidade)
+        {
+            case Multipart multipart:
+            {
+                var cifrado = tipoDoCifrado
+                    ?? (multipart.ContentType.IsMimeType("multipart", "encrypted") ? multipart.ContentType.MimeType : null);
+                foreach (var filha in multipart)
+                    Percorrer(filha, cifrado, anexos);
+                break;
+            }
+
+            case MessagePart anexada:
+                // Mensagem anexada nunca entra (D14): o conteúdo não importa, só o nome e o tipo.
+                anexos.Add(new AnexoDeEntrada(
+                    anexada.ContentDisposition?.FileName ?? anexada.ContentType.Name,
+                    tipoDoCifrado ?? anexada.ContentType.MimeType,
+                    []));
+                break;
+            case MimePart parte when tipoDoCifrado is not null || !EhCorpo(parte):
+                anexos.Add(new AnexoDeEntrada(parte.FileName, tipoDoCifrado ?? parte.ContentType.MimeType, Conteudo(parte)));
+                break;
+        }
+    }
+
+    private static bool EhCorpo(MimePart parte) => parte is TextPart texto && !parte.IsAttachment && (texto.IsPlain || texto.IsHtml);
+
+    private static byte[] Conteudo(MimePart parte)
+    {
+        if (parte.Content is null)
+            return [];
+        using var conteudo = new MemoryStream();
+        parte.Content.DecodeTo(conteudo);
+        return conteudo.ToArray();
     }
 
     /// <summary>

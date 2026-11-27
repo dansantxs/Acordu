@@ -1,6 +1,7 @@
 using Acordu.Application.Abstractions;
 using Acordu.Application.Abstractions.Eventos;
 using Acordu.Application.AcessosPortal;
+using Acordu.Application.Anexos;
 using Acordu.Application.Common;
 using Acordu.Application.EntradaEmail;
 using Acordu.Application.Notificacoes.Canais;
@@ -20,7 +21,9 @@ namespace Acordu.Application.Notificacoes;
 /// conteúdo e o entrega ao <see cref="SeletorDeCanal"/>. Com o recebimento por e-mail ligado, o aviso leva o endereço da
 /// conversa da solicitação (D3), e a <see cref="ConversaPorEmail"/> nasce no primeiro aviso, como o link sem senha. Na
 /// origem EMAIL, a conversa nasce na abertura, com o fio do e-mail que a abriu, e todo aviso segue nele (D4; F15-16,
-/// F15-50), com o recebimento ligado ou não: o Reply-To e a marcadora é que seguem o recebimento (F15-52).
+/// F15-50), com o recebimento ligado ou não: o Reply-To e a marcadora é que seguem o recebimento (F15-52). O aviso de
+/// recebida da origem EMAIL diz quais anexos não entraram, lidos do registro de entrada (F15-15); a nota do sistema que os
+/// lista para a equipe é INTERNA e não registra evento, então nunca vira aviso (F15-98).
 /// </para>
 /// </summary>
 /// <remarks>
@@ -42,6 +45,7 @@ public sealed class AvisosAoContato :
     private readonly IVinculos _vinculos;
     private readonly IRepositorio<ConversaPorEmail> _novasConversas;
     private readonly IConversasPorEmail _conversas;
+    private readonly IEmailsRecebidos _registros;
     private readonly ITenantAtual _tenant;
     private readonly SeletorDeCanal _canais;
     private readonly OpcoesEmailEntrada _entrada;
@@ -59,6 +63,7 @@ public sealed class AvisosAoContato :
         IVinculos vinculos,
         IRepositorio<ConversaPorEmail> novasConversas,
         IConversasPorEmail conversas,
+        IEmailsRecebidos registros,
         ITenantAtual tenant,
         SeletorDeCanal canais,
         OpcoesEmailEntrada entrada,
@@ -75,6 +80,7 @@ public sealed class AvisosAoContato :
         ArgumentNullException.ThrowIfNull(vinculos);
         ArgumentNullException.ThrowIfNull(novasConversas);
         ArgumentNullException.ThrowIfNull(conversas);
+        ArgumentNullException.ThrowIfNull(registros);
         ArgumentNullException.ThrowIfNull(tenant);
         ArgumentNullException.ThrowIfNull(canais);
         ArgumentNullException.ThrowIfNull(entrada);
@@ -90,6 +96,7 @@ public sealed class AvisosAoContato :
         _vinculos = vinculos;
         _novasConversas = novasConversas;
         _conversas = conversas;
+        _registros = registros;
         _tenant = tenant;
         _canais = canais;
         _entrada = entrada;
@@ -99,17 +106,24 @@ public sealed class AvisosAoContato :
         _envio = envio;
     }
 
-    public Task TratarAsync(SolicitacaoAberta evento, CancellationToken cancellationToken)
+    public async Task TratarAsync(SolicitacaoAberta evento, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(evento);
-        return AvisarAsync(evento.SolicitacaoId, "aviso-recebida", a => (
+        // Aberta por e-mail com anexos fora da política (F15-15): o contato fica sabendo quais não entraram.
+        var recusados = evento.Origem == OrigemSolicitacao.Email
+            ? await _registros.RecusadosDaAberturaAsync(evento.SolicitacaoId, cancellationToken)
+            : null;
+        var naoEntraram = recusados is null
+            ? string.Empty
+            : $"\n{AnexosDaEntrada.TextoDoAviso(recusados, RecebimentoAnexos.Politica)}\n";
+        await AvisarAsync(evento.SolicitacaoId, "aviso-recebida", a => (
             $"Recebemos sua solicitação #{a.Solicitacao.Numero}",
             $"""
             Olá, {a.Contato.Nome}!
 
             {a.Prestador} recebeu sua solicitação #{a.Solicitacao.Numero} — {a.Solicitacao.Titulo}.
             Guarde este número de protocolo para acompanhar o atendimento.
-            {Link(a, "Acompanhe por aqui:")}
+            {naoEntraram}{Link(a, "Acompanhe por aqui:")}
             """), cancellationToken);
     }
 

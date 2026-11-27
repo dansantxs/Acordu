@@ -1,4 +1,5 @@
 using Acordu.Application.EntradaEmail;
+using Acordu.Domain.ValueObjects;
 using Acordu.Infrastructure.Persistence.Configurations;
 using Microsoft.EntityFrameworkCore;
 using Npgsql;
@@ -18,6 +19,13 @@ public sealed class EmailsRecebidos : IEmailsRecebidos
 
     public Task<bool> ExisteAsync(string chaveEntrada, CancellationToken cancellationToken = default) =>
         _db.EmailsRecebidos.AnyAsync(e => e.ChaveEntrada == chaveEntrada, cancellationToken);
+
+    public Task<AnexosRecusados?> RecusadosDaAberturaAsync(Guid solicitacaoId, CancellationToken cancellationToken = default) =>
+        _db.EmailsRecebidos.AsNoTracking()
+            .Where(e => e.SolicitacaoId == solicitacaoId)
+            .OrderBy(e => e.RecebidoEm)
+            .Select(e => e.Recusados)
+            .FirstOrDefaultAsync(cancellationToken);
 
     /// <summary>
     /// A gravação esbarrou no índice único da chave: outra entrega igual gravou entre a conferência e o commit (a corrida

@@ -860,6 +860,10 @@ namespace Acordu.Infrastructure.Persistence.Migrations
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("recebido_em");
 
+                    b.Property<string>("Recusados")
+                        .HasColumnType("jsonb")
+                        .HasColumnName("recusados");
+
                     b.Property<string>("RemetenteHash")
                         .HasMaxLength(64)
                         .HasColumnType("character(64)")
@@ -871,6 +875,10 @@ namespace Acordu.Infrastructure.Persistence.Migrations
                         .HasMaxLength(40)
                         .HasColumnType("character varying(40)")
                         .HasColumnName("resultado");
+
+                    b.Property<Guid?>("SolicitacaoId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("solicitacao_id");
 
                     b.Property<Guid>("TenantId")
                         .HasColumnType("uuid")

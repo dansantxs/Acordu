@@ -1,5 +1,6 @@
 using Acordu.Domain.Entities;
 using Acordu.Domain.Enums;
+using Acordu.Domain.ValueObjects;
 
 namespace Acordu.Domain.UnitTests.Entities;
 
@@ -68,5 +69,45 @@ public sealed class EmailRecebidoTests
         var registrar = () => EmailRecebido.Registrar(Guid.NewGuid(), Guid.Empty, Chave, null, ResultadoEntradaEmail.Ignorado, Agora);
 
         registrar.Should().Throw<ArgumentException>();
+    }
+
+    private static readonly AnexosRecusados Recusados = new([new AnexoRecusado("a.exe", MotivoRecusaAnexo.TipoNaoPermitido)]);
+
+    [Fact] // F15g (design D6): a abertura guarda a solicitação e os anexos recusados
+    public void Registrar_Solicitacao_GuardaASolicitacaoEOsRecusados()
+    {
+        var solicitacao = Guid.NewGuid();
+
+        var registro = EmailRecebido.Registrar(
+            Guid.NewGuid(), Guid.NewGuid(), Chave, Remetente, ResultadoEntradaEmail.Solicitacao, Agora, solicitacao, Recusados);
+
+        registro.SolicitacaoId.Should().Be(solicitacao);
+        registro.Recusados.Should().Be(Recusados);
+    }
+
+    [Fact]
+    public void Registrar_SolicitacaoSemOId_ArgumentException()
+    {
+        var registrar = () => EmailRecebido.Registrar(Guid.NewGuid(), Guid.NewGuid(), Chave, null, ResultadoEntradaEmail.Solicitacao, Agora);
+
+        registrar.Should().Throw<ArgumentException>().WithParameterName("solicitacaoId");
+    }
+
+    [Fact]
+    public void Registrar_OutroResultadoComSolicitacao_ArgumentException()
+    {
+        var registrar = () => EmailRecebido.Registrar(
+            Guid.NewGuid(), Guid.NewGuid(), Chave, null, ResultadoEntradaEmail.Ignorado, Agora, Guid.NewGuid());
+
+        registrar.Should().Throw<ArgumentException>().WithParameterName("solicitacaoId");
+    }
+
+    [Fact]
+    public void Registrar_RecusadosSemAbertura_ArgumentException()
+    {
+        var registrar = () => EmailRecebido.Registrar(
+            Guid.NewGuid(), Guid.NewGuid(), Chave, null, ResultadoEntradaEmail.Ignorado, Agora, null, Recusados);
+
+        registrar.Should().Throw<ArgumentException>().WithParameterName("recusados");
     }
 }

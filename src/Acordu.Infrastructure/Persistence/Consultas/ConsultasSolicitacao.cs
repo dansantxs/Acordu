@@ -3,6 +3,7 @@ using Acordu.Application.Abstractions;
 using Acordu.Application.Anexos;
 using Acordu.Application.Common;
 using Acordu.Application.Solicitacoes;
+using Acordu.Domain.Common;
 using Acordu.Domain.Entities;
 using Acordu.Domain.Enums;
 using Acordu.Infrastructure.Persistence.Configurations;
@@ -148,11 +149,14 @@ public sealed class ConsultasSolicitacao : IConsultasSolicitacao
             .Where(i => i.SolicitacaoId == solicitacaoId)
             .OrderBy(i => i.RegistradaEm).ThenBy(i => i.Id)
             .ToListAsync(cancellationToken);
-        var pessoas = await Nomes.DeAutoresAsync(_db, clienteId.Value, interacoes.Select(i => i.AutorId), cancellationToken);
+        var pessoas = await Nomes.DeAutoresAsync(
+            _db, clienteId.Value, interacoes.Where(i => !AutoresDoSistema.Eh(i.AutorId)).Select(i => i.AutorId), cancellationToken);
+        // A nota do sistema (design do F15, D15) leva o nome fixo do autor do sistema, que não é pessoa.
         return [.. interacoes.Select(i => new InteracaoDto(
             i.Id,
-            new Referencia(i.AutorId, pessoas.GetValueOrDefault(i.AutorId, string.Empty)),
+            new Referencia(i.AutorId, AutoresDoSistema.Nome(i.AutorId) ?? pessoas.GetValueOrDefault(i.AutorId, string.Empty)),
             i.AutorEhCliente,
+            AutoresDoSistema.Eh(i.AutorId),
             i.Texto,
             i.Visibilidade,
             i.Canal,

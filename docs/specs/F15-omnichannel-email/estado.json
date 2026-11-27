@@ -2,21 +2,22 @@
   "marco": "F15",
   "issue": 183,
   "etapa": "AGUARDANDO_MERGE",
-  "branch": "feat/F15f-abertura-por-email",
+  "branch": "feat/F15g-anexos-por-email",
   "pr": {
-    "id": "F15f",
-    "numero": 241
+    "id": "F15g",
+    "numero": 242
   },
   "feitos": [
     "F15a (#235)",
     "F15b (#236)",
     "F15c (#237)",
     "F15d (#239)",
-    "F15e (#240)"
+    "F15e (#240)",
+    "F15f (#241)"
   ],
   "contadores": {
     "devolucoesNaEtapa": 0,
-    "rodadasNoPr": 1
+    "rodadasNoPr": 0
   },
   "verificacao": [
     "node scripts/conferir-specs.mjs",
@@ -32,25 +33,26 @@
       "F15b: PR #236 mesclado (26/11/2026)",
       "F15c: PR #237 mesclado (26/11/2026)",
       "F15d: PR #239 mesclado (26/11/2026)",
-      "F15e: PR #240 mesclado (27/11/2026), com noreply e o teto de 90 dias como estavam"
+      "F15e: PR #240 mesclado (27/11/2026), com noreply e o teto de 90 dias como estavam",
+      "F15f: PR #241 mesclado (27/11/2026); ordem marcadora → Recebemos sua solicitação #N aceita no merge, F15-16 ajustado no F15g"
     ]
   },
   "ressalvas": [
     "Ver notas/plano-2.md (menores 4 a 11) para os PRs de código",
     "Do F15a: em Mensagens.tsx, juntar o comentário \"Peças de mensagem com @menções e anexos\" a TextoComMencoes",
-    "Testador F15f: os testes do corpo com \\0 e do contato em dois clientes dependem do MimeKit e da API aceitar o mesmo e-mail em clientes diferentes",
-    "F15-16 x F15-57: marcadora, depois Recebemos sua solicitação #N (leitura do desenvolvedor; Daniel confirma)",
-    "Primeiro deploy do F15f: fio no Gmail e no Outlook (F15-16, F15-50) e redirecionamento real (F15-27)",
+    "Testador F15g: sem 403 novo (nenhuma rota nova)",
+    "Testador F15g: o registro guarda todos os recusados em jsonb (só nota e aviso têm teto de 20); limitar no F15n",
+    "Testador F15g: ordem tamanho antes do tipo não definida no design (executável > 20 MB vira maior que 20 MB)",
     "Testes C# validados só pela CI",
-    "Revisor F15f: ContatosDeEntrada carrega o agregado Cliente inteiro e filtra na memória (projeção seria mais enxuta)",
-    "Revisor F15f: os avisos agora saem dentro da requisição do Worker; observar latência no primeiro deploy",
-    "Revisor F15f: HtmlToText do MimeKit não garante tirar conteúdo escondido"
+    "Revisor F15g: text/plain ou text/html inline com filename não vira anexo nem recusado (LeitorMime.EhCorpo)",
+    "Revisor F15g: RecusadosDaAberturaAsync sem índice por SolicitacaoId (F15n)"
   ],
   "bloqueios": [],
   "atualizadoEm": "2026-11-27",
   "decisoes": [
     "25/11 F15-79: \"Troca para 403\" (Daniel, no chat): contato que tenta a triagem recebe 403, como as demais rotas da equipe (ADR 0002, item 4)",
     "25/11 /plano 1: reprovado (graves 1 a 5); \"siga com todos\" (Daniel): corrigir todos os itens de notas/plano-1.md",
-    "26/11 /plano 2: aprovado com ressalvas; menores 1 a 3 corrigidos pelo analista; 4 a 11 em notas/plano-2.md"
+    "26/11 /plano 2: aprovado com ressalvas; menores 1 a 3 corrigidos pelo analista; 4 a 11 em notas/plano-2.md",
+    "F15-16 × F15-57: com o recebimento ligado, a marcadora vem antes de Recebemos sua solicitação #N (merge do F15f, PR #241); redação do F15-16 ajustada no F15g"
   ]
 }

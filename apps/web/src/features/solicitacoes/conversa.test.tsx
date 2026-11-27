@@ -142,6 +142,30 @@ describe('conversa da solicitação', () => {
         expect(within(itens[3]!).getByText('cliente')).toBeInTheDocument()
     })
 
+    it('a nota do sistema aparece com o nome fixo, como do sistema e não de uma pessoa (F15-98)', async () => {
+        app(['solicitacao.ver'], {
+            [`GET /api/v1/solicitacoes/${ID}/interacoes`]: () =>
+                json([
+                    interacao({
+                        autor: { id: 'acd00000-0000-4000-8000-00000000e001', nome: 'Acordu (e-mail recebido)' },
+                        autorSistema: true,
+                        canal: 'EMAIL',
+                        texto: 'Anexos do e-mail que não entraram na solicitação:\n- programa.exe: tipo de arquivo não permitido',
+                    }),
+                ]),
+        })
+        await abrir(`/solicitacoes/${ID}`)
+        const c = await conversa()
+        const [nota] = await c.findAllByRole('listitem')
+
+        expect(within(nota!).getByText('Acordu (e-mail recebido)')).toBeInTheDocument()
+        expect(within(nota!).getByText('Nota do sistema')).toBeInTheDocument()
+        expect(within(nota!).queryByText('Nota interna')).not.toBeInTheDocument()
+        expect(within(nota!).queryByText('Pessoa removida')).not.toBeInTheDocument()
+        expect(within(nota!).getByText('E-mail')).toBeInTheDocument()
+        expect(within(nota!).getByText(/programa\.exe: tipo de arquivo não permitido/)).toBeInTheDocument()
+    })
+
     it('intercala abertura, responsável e status entre as mensagens', async () => {
         const evento = (
             tipo: string,
