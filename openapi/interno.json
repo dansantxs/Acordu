@@ -7609,6 +7609,7 @@
           "id",
           "autor",
           "autorEhCliente",
+          "autorSistema",
           "texto",
           "visibilidade",
           "canal",
@@ -7625,6 +7626,9 @@
             "$ref": "#/components/schemas/Referencia"
           },
           "autorEhCliente": {
+            "type": "boolean"
+          },
+          "autorSistema": {
             "type": "boolean"
           },
           "texto": {
