@@ -72,6 +72,17 @@ internal static class Dados
             Guid.NewGuid(), tenant, chave ?? Convert.ToHexStringLower(System.Security.Cryptography.SHA256.HashData(Guid.NewGuid().ToByteArray())),
             null, ResultadoEntradaEmail.Ignorado, Agora);
 
+    /// <summary>Item da triagem de e-mails (F15h), com um anexo na chave da triagem.</summary>
+    public static ItemTriagemEmail ItemTriagem(Guid tenant, MotivoTriagem motivo = MotivoTriagem.Desconhecido, IReadOnlyList<Guid>? clientes = null)
+    {
+        var id = Guid.NewGuid();
+        return ItemTriagemEmail.Receber(
+            id, tenant, "pedro@outro.com.br", "Pedro", "Orçamento do forno", "Quanto custa?", motivo, clientes ?? [],
+            [new NovoAnexo("foto.png", "image/png", 1024, $"{tenant}/triagem/{id}/{Guid.NewGuid()}")],
+            new AnexosRecusados([new AnexoRecusado("programa.exe", MotivoRecusaAnexo.TipoNaoPermitido)]),
+            new PoliticaAnexos(20L * 1024 * 1024, ["image/png"], 5), Agora);
+    }
+
     public static Cronometro Cronometro(Guid tenant) =>
         Domain.Entities.Cronometro.Iniciar(Guid.NewGuid(), tenant, Guid.NewGuid(), Guid.NewGuid(), Agora);
 }

@@ -6,6 +6,8 @@ using Acordu.Domain.Entities;
 using Acordu.Domain.Enums;
 using Acordu.Domain.ValueObjects;
 using Acordu.Infrastructure.Email.Entrada;
+using Acordu.Infrastructure.MultiTenancy;
+using Acordu.Infrastructure.Persistence.Cadastros;
 using Acordu.Infrastructure.Persistence.EntradaEmail;
 using Microsoft.EntityFrameworkCore;
 
@@ -13,7 +15,8 @@ namespace Acordu.Infrastructure.IntegrationTests;
 
 /// <summary>
 /// Spec do F15, F15d (F15-05, F15-19, F15-22, F15-89; design D6, D12 e D14; ADR 0016, itens 3 e 8): a consulta global do
-/// código de entrada (ponto revisado), o registro de entrada por tenant com a chave única e a leitura do MIME.
+/// código de entrada (ponto revisado), o registro de entrada por tenant com a chave única e a leitura do MIME. F15h
+/// (F15-70; design D10): o item da triagem gravado e relido no tenant, só da equipe.
 /// </summary>
 [Collection(ColecaoBanco.Nome)]
 public sealed class EntradaEmailTests(BancoFixture banco)
@@ -468,5 +471,190 @@ public sealed class EntradaEmailTests(BancoFixture banco)
         await using var corpo = new MemoryStream(mime);
 
         (await LeitorMime.LerAsync(corpo, mime.Length))!.Anexos.Should().BeEmpty();
+    }
+
+    [Fact] // F15-70: o nome do remetente vem do From com um endereço só
+    public async Task LerAsync_FromComNome_NomeDoRemetenteDecodificado()
+    {
+        var mime = Mime("<a@b>", "=?utf-8?Q?Jo=C3=A3o_Pr=C3=A1do?= <joao@cliente.com.br>");
+        await using var corpo = new MemoryStream(mime);
+
+        var mensagem = await LeitorMime.LerAsync(corpo, mime.Length);
+
+        mensagem!.NomeDoRemetente.Should().Be("João Prádo");
+    }
+
+    [Fact] // F15-70: com vários endereços no From, nenhum nome
+    public async Task LerAsync_VariosRemetentes_SemNome()
+    {
+        var mime = Mime(null, "Ana <ana@cliente.com.br>, Bruno <bruno@cliente.com.br>");
+        await using var corpo = new MemoryStream(mime);
+
+        (await LeitorMime.LerAsync(corpo, mime.Length))!.NomeDoRemetente.Should().BeNull();
+    }
+
+    [Fact] // F15-70, F15-24 (design D10): o item com os anexos, os clientes possíveis e os recusados, relido no tenant
+    public async Task ItemTriagem_GravadoERelidoComAnexosClientesERecusados()
+    {
+        var tenant = await EmpresaAsync();
+        var clientes = new[] { Guid.NewGuid(), Guid.NewGuid() };
+        var item = Dados.ItemTriagem(tenant.Id, MotivoTriagem.MaisDeUmCliente, clientes);
+        await using (var db = banco.DaEquipe(tenant.Id))
+        {
+            db.Add(item);
+            db.Add(EmailRecebido.Registrar(
+                Guid.NewGuid(), tenant.Id, NovaChave(), null, ResultadoEntradaEmail.Triagem, Dados.Agora, itemTriagemId: item.Id));
+            await db.SaveChangesAsync();
+        }
+
+        await using var leitura = banco.DaEquipe(tenant.Id);
+        var lido = await leitura.ItensTriagemEmail.AsNoTracking().SingleAsync();
+        lido.RemetenteEmail.Should().Be("pedro@outro.com.br");
+        lido.RemetenteNome.Should().Be("Pedro");
+        lido.Assunto.Should().Be("Orçamento do forno");
+        lido.Texto.Should().Be("Quanto custa?");
+        lido.Motivo.Should().Be(MotivoTriagem.MaisDeUmCliente);
+        lido.ClientesPossiveis.Should().Equal(clientes);
+        lido.RecebidoEm.Should().Be(Dados.Agora);
+        lido.Anexos.Should().ContainSingle().Which.ChaveArmazenamento.Should().StartWith($"{tenant.Id}/triagem/{item.Id}/");
+        lido.Recusados.Should().Be(item.Recusados);
+        (await leitura.EmailsRecebidos.AsNoTracking().SingleAsync()).ItemTriagemId.Should().Be(item.Id);
+    }
+
+    [Theory]
+    [InlineData("VENCIDA")]
+    [InlineData("CANCELADA")]
+    public async Task ItemTriagem_EmpresaSoLeitura_GuardaRecusa(string situacao) // ADR 0015: a triagem é dado da empresa
+    {
+        var tenant = await EmpresaAsync(situacao: situacao);
+        await using var db = banco.DaEquipe(tenant.Id);
+        db.Add(Dados.ItemTriagem(tenant.Id));
+
+        var gravar = () => db.SaveChangesAsync();
+
+        await gravar.Should().ThrowAsync<EmpresaSomenteLeituraException>();
+    }
+
+    [Fact] // ADR 0002: o item não pertence a cliente nenhum; o contexto do contato não o grava
+    public async Task ItemTriagem_NoContextoDoContato_GravacaoRecusada()
+    {
+        var tenant = await EmpresaAsync();
+        await using var db = banco.DoCliente(tenant.Id, Guid.NewGuid());
+        db.Add(Dados.ItemTriagem(tenant.Id));
+
+        var gravar = () => db.SaveChangesAsync();
+
+        await gravar.Should().ThrowAsync<IsolamentoVioladoException>();
+    }
+
+    [Fact] // design §1.2 ("O ApagadorDeEmpresa apaga os anexos da triagem"): o expurgo da empresa leva os arquivos da triagem
+    public async Task ApagarParaRestaurar_ComItemNaTriagem_DevolveAChaveDoAnexoEApagaOItem()
+    {
+        var tenant = await EmpresaAsync();
+        var item = Dados.ItemTriagem(tenant.Id);
+        await using (var db = banco.DaEquipe(tenant.Id))
+        {
+            db.Add(item);
+            await db.SaveChangesAsync();
+        }
+
+        IReadOnlyList<string> chaves;
+        await using (var db = banco.DaEquipe(tenant.Id))
+            chaves = await ApagadorDeEmpresa.ApagarParaRestaurarAsync(db, tenant, CancellationToken.None);
+
+        chaves.Should().Contain(item.Anexos[0].ChaveArmazenamento);
+        await using var leitura = banco.DaEquipe(tenant.Id);
+        (await leitura.ItensTriagemEmail.AnyAsync()).Should().BeFalse();
+        (await leitura.Database.SqlQuery<int>($"SELECT count(*)::int AS \"Value\" FROM anexos_triagem_email WHERE item_triagem_id = {item.Id}").SingleAsync())
+            .Should().Be(0, "os anexos saem em cascata com o item");
+    }
+
+    [Fact] // F15-70: From ausente e e-mail sem conteúdo (colunas nulas) e sem anexos nem recusados: gravado e relido
+    public async Task ItemTriagem_SemRemetenteNemConteudo_RelidoComNulosEListaVazia()
+    {
+        var tenant = await EmpresaAsync();
+        var id = Guid.NewGuid();
+        await using (var db = banco.DaEquipe(tenant.Id))
+        {
+            db.Add(ItemTriagemEmail.Receber(
+                id, tenant.Id, null, null, null, null, MotivoTriagem.Desconhecido, [], [], null,
+                new PoliticaAnexos(20L * 1024 * 1024, ["image/png"], 5), Dados.Agora));
+            await db.SaveChangesAsync();
+        }
+
+        await using var leitura = banco.DaEquipe(tenant.Id);
+        var lido = await leitura.ItensTriagemEmail.AsNoTracking().SingleAsync(i => i.Id == id);
+        lido.RemetenteEmail.Should().BeNull();
+        lido.RemetenteNome.Should().BeNull();
+        lido.Assunto.Should().BeNull();
+        lido.Texto.Should().BeNull();
+        lido.ClientesPossiveis.Should().BeEmpty();
+        lido.Anexos.Should().BeEmpty();
+        lido.Recusados.Should().BeNull();
+    }
+
+    [Fact] // F15-70: nos tetos (e-mail 254, nome 200, assunto 998, texto 10.000) as colunas comportam o que o domínio aceita
+    public async Task ItemTriagem_NosTetosDeTamanho_GravadoSemTruncarNemFalhar()
+    {
+        var tenant = await EmpresaAsync();
+        var id = Guid.NewGuid();
+        var email = $"{new string('a', 64)}@{new string('b', 60)}.{new string('c', 60)}.{new string('d', 60)}.com.br";
+        await using (var db = banco.DaEquipe(tenant.Id))
+        {
+            db.Add(ItemTriagemEmail.Receber(
+                id, tenant.Id, email, new string('n', 200), new string('a', 998), new string('t', 10_000),
+                MotivoTriagem.Desconhecido, [], [], null, new PoliticaAnexos(20L * 1024 * 1024, ["image/png"], 5), Dados.Agora));
+            await db.SaveChangesAsync();
+        }
+
+        await using var leitura = banco.DaEquipe(tenant.Id);
+        var lido = await leitura.ItensTriagemEmail.AsNoTracking().SingleAsync(i => i.Id == id);
+        lido.RemetenteEmail.Should().Be(email);
+        lido.RemetenteNome.Should().HaveLength(200);
+        lido.Assunto.Should().HaveLength(998);
+        lido.Texto.Should().HaveLength(10_000);
+    }
+
+    [Fact] // ADR 0002: o item de uma empresa não aparece na outra, nem pela consulta, nem pelo Id
+    public async Task ItemTriagem_DeOutraEmpresa_NaoApareceNemPeloId()
+    {
+        var a = await EmpresaAsync();
+        var b = await EmpresaAsync();
+        var item = Dados.ItemTriagem(a.Id);
+        await using (var db = banco.DaEquipe(a.Id))
+        {
+            db.Add(item);
+            await db.SaveChangesAsync();
+        }
+
+        await using var daOutra = banco.DaEquipe(b.Id);
+
+        (await daOutra.ItensTriagemEmail.AnyAsync()).Should().BeFalse();
+        (await daOutra.ItensTriagemEmail.AnyAsync(i => i.Id == item.Id)).Should().BeFalse();
+    }
+
+    [Fact] // a restauração/expurgo de uma empresa não leva o item nem o arquivo de outra
+    public async Task ApagarParaRestaurar_ItemDeOutraEmpresa_FicaEAChaveNaoSai()
+    {
+        var apagada = await EmpresaAsync();
+        var outra = await EmpresaAsync();
+        var itemApagado = Dados.ItemTriagem(apagada.Id);
+        var itemDaOutra = Dados.ItemTriagem(outra.Id);
+        foreach (var (tenant, item) in new[] { (apagada, itemApagado), (outra, itemDaOutra) })
+        {
+            await using var db = banco.DaEquipe(tenant.Id);
+            db.Add(item);
+            await db.SaveChangesAsync();
+        }
+
+        IReadOnlyList<string> chaves;
+        await using (var db = banco.DaEquipe(apagada.Id))
+            chaves = await ApagadorDeEmpresa.ApagarParaRestaurarAsync(db, apagada, CancellationToken.None);
+
+        chaves.Should().Contain(itemApagado.Anexos[0].ChaveArmazenamento).And.NotContain(itemDaOutra.Anexos[0].ChaveArmazenamento);
+        await using var leitura = banco.DaEquipe(outra.Id);
+        (await leitura.ItensTriagemEmail.SingleAsync()).Id.Should().Be(itemDaOutra.Id);
+        (await leitura.Database.SqlQuery<int>($"SELECT count(*)::int AS \"Value\" FROM anexos_triagem_email WHERE item_triagem_id = {itemDaOutra.Id}").SingleAsync())
+            .Should().Be(1, "os anexos da outra empresa ficam");
     }
 }

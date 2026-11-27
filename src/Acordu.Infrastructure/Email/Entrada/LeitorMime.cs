@@ -25,10 +25,11 @@ public static class LeitorMime
         if (mensagem is null)
             return null;
 
-        var remetentes = mensagem.From.Mailboxes.Select(m => m.Address).ToList();
+        var caixas = mensagem.From.Mailboxes.ToList();
         return new MensagemDeEntrada(
-            ChaveDeEntrada.NormalizarMessageId(mensagem.MessageId), remetentes, limitado.Hash(), Sinais(mensagem),
-            Assunto: mensagem.Subject, Texto: Texto(mensagem), Anexos: Anexos(mensagem));
+            ChaveDeEntrada.NormalizarMessageId(mensagem.MessageId), [.. caixas.Select(m => m.Address)], limitado.Hash(), Sinais(mensagem),
+            Assunto: mensagem.Subject, Texto: Texto(mensagem), Anexos: Anexos(mensagem),
+            NomeDoRemetente: caixas.Count == 1 ? caixas[0].Name : null);
     }
 
     /// <summary>

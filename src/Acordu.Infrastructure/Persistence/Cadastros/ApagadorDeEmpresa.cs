@@ -130,7 +130,7 @@ public sealed partial class ApagadorDeEmpresa
             .Select(e => e.ClrType);
     }
 
-    /// <summary>Anexos das interações e dos comentários de tarefa, e o logotipo do portal.</summary>
+    /// <summary>Anexos das interações, dos comentários de tarefa e da triagem de e-mails, e o logotipo do portal.</summary>
     private static async Task<IReadOnlyList<string>> ChavesDosArquivosAsync(
         AcorduDbContext db, Tenant tenant, CancellationToken cancellationToken)
     {
@@ -142,6 +142,10 @@ public sealed partial class ApagadorDeEmpresa
         chaves.AddRange(await db.ComentariosTarefa.IgnoreQueryFilters(Filtros).AsNoTracking()
             .Where(c => c.TenantId == tenantId)
             .SelectMany(c => c.Anexos.Select(a => a.ChaveArmazenamento))
+            .ToListAsync(cancellationToken));
+        chaves.AddRange(await db.ItensTriagemEmail.IgnoreQueryFilters(Filtros).AsNoTracking()
+            .Where(i => i.TenantId == tenantId)
+            .SelectMany(i => i.Anexos.Select(a => a.ChaveArmazenamento))
             .ToListAsync(cancellationToken));
         if (tenant.LogoChave is { } logo)
             chaves.Add(logo);
