@@ -121,8 +121,12 @@ jobs:
           EmailEntrada__Token: ${{ secrets.API_EMAIL_ENTRADA_TOKEN }}
           # Só conferida aqui (vai para o build do SPA, não para a API): falta dela barra o deploy antes de publicar.
           TURNSTILE_CHAVE_SITE: ${{ vars.TURNSTILE_CHAVE_SITE }}
-          # O canal da Nebrys (F14, D15): vai para o build do SPA e, como Nebrys__Contato, para a API (F14g).
-          CONTATO_NEBRYS: ${{ vars.CONTATO_NEBRYS }}
+          # Quem fornece o Acordu nos textos (ADR 0017): nome e artigo opcionais (padrão "a Nebrys"), conferidos e
+          # normalizados aqui e passados aos dois lados com o mesmo valor (F14-121): Fornecedor__* na API e VITE_* no SPA.
+          NOME_FORNECEDOR: ${{ vars.NOME_FORNECEDOR }}
+          ARTIGO_FORNECEDOR: ${{ vars.ARTIGO_FORNECEDOR }}
+          # O canal do fornecedor (F14, D15), obrigatório. CONTATO_NEBRYS é o nome antigo, aceito até a troca no GitHub.
+          CONTATO_FORNECEDOR: ${{ vars.CONTATO_FORNECEDOR || vars.CONTATO_NEBRYS }}
           # Opcional (F14f, F14h; design do F14, D16): uma variável só liga as páginas, os links e o aceite no SPA e o aceite
           # na API. Normalizada aqui e passada aos dois com o mesmo valor (F14-121).
           TEXTOS_LEGAIS_PUBLICADOS: ${{ vars.TEXTOS_LEGAIS_PUBLICADOS }}
@@ -170,8 +174,15 @@ jobs:
           faltam = [n for n in obrigatorias if not os.environ.get(n, "").strip()]
           if not os.environ.get("TURNSTILE_CHAVE_SITE", "").strip():
               faltam.append("TURNSTILE_CHAVE_SITE (variável, runbook C5)")
-          if not os.environ.get("CONTATO_NEBRYS", "").strip():
-              faltam.append("CONTATO_NEBRYS (variável, runbook \"Segredos do GitHub\")")
+          contato = " ".join(os.environ.get("CONTATO_FORNECEDOR", "").split())
+          if not contato:
+              faltam.append("CONTATO_FORNECEDOR (variável, runbook \"Segredos do GitHub\")")
+          # Fornecedor (ADR 0017): nome opcional (padrão Nebrys), numa linha só; artigo a, o ou nenhum (padrão a). A API não
+          # sobe com outro artigo (OpcoesFornecedor).
+          nome_fornecedor = " ".join(os.environ.get("NOME_FORNECEDOR", "").split()) or "Nebrys"
+          artigo = os.environ.get("ARTIGO_FORNECEDOR", "").strip().lower() or "a"
+          if artigo not in ("a", "o", "nenhum"):
+              faltam.append("ARTIGO_FORNECEDOR (variável inválida: use a, o ou nenhum)")
           if os.environ.get("Armazenamento__Endpoint"):
               faltam += [n for n in opcionais[1:] if not os.environ.get(n)]
           # A API não sobe com webhook fora de https (OpcoesDiscord): melhor barrar aqui, antes de publicar.
@@ -204,8 +215,10 @@ jobs:
 
           variaveis = dict(fixas)
           variaveis.update({n: os.environ[n] for n in obrigatorias + opcionais + avisos if os.environ.get(n)})
-          # O canal da Nebrys também na API (D15), com o nome da configuração dela.
-          variaveis["Nebrys__Contato"] = os.environ["CONTATO_NEBRYS"].strip()
+          # O fornecedor e o canal dele também na API (D15, ADR 0017), com o nome da configuração dela.
+          variaveis["Fornecedor__Nome"] = nome_fornecedor
+          variaveis["Fornecedor__Artigo"] = artigo
+          variaveis["Fornecedor__Contato"] = contato
           # O mesmo valor normalizado vai à API e, pela saída do passo, ao build do SPA (F14-121).
           variaveis["TextosLegais__Publicados"] = textos
           variaveis["Cadastro__Modo"] = modo_cadastro
@@ -214,6 +227,9 @@ jobs:
               variaveis["Nebrys__Operadores"] = ",".join(operadores)
           with open(os.environ["GITHUB_OUTPUT"], "a") as saida:
               saida.write("textos_legais_publicados=" + textos + "\n")
+              saida.write("nome_fornecedor=" + nome_fornecedor + "\n")
+              saida.write("artigo_fornecedor=" + artigo + "\n")
+              saida.write("contato_fornecedor=" + contato + "\n")
           if "Armazenamento__Endpoint" not in variaveis:
               for n in ("Armazenamento__Regiao", "Armazenamento__Bucket"):
                   variaveis.pop(n)
@@ -324,8 +340,11 @@ jobs:
           VITE_TEMPO_REAL: polling
           # Chave do site do Turnstile (pública), conferida no passo "Variáveis da API", antes de publicar.
           VITE_TURNSTILE_CHAVE: ${{ vars.TURNSTILE_CHAVE_SITE }}
-          # Canal da Nebrys nas faixas da situação da empresa (F14, D15), conferido no passo "Variáveis da API".
-          VITE_CONTATO_NEBRYS: ${{ vars.CONTATO_NEBRYS }}
+          # Fornecedor e canal dele nos textos (F14 D15, ADR 0017): os valores normalizados no passo "Variáveis da API", os
+          # mesmos que foram à API como Fornecedor__*.
+          VITE_NOME_FORNECEDOR: ${{ steps.variaveis.outputs.nome_fornecedor }}
+          VITE_ARTIGO_FORNECEDOR: ${{ steps.variaveis.outputs.artigo_fornecedor }}
+          VITE_CONTATO_FORNECEDOR: ${{ steps.variaveis.outputs.contato_fornecedor }}
           # Textos legais publicados (F14f, F14h, #194): o valor normalizado no passo "Variáveis da API", o mesmo que foi à
           # API como TextosLegais__Publicados (D16). Só com `true` as páginas, os links e o aceite aparecem; ligar depois de
           # resolver os marcadores do texto com o registro da empresa, fora do horário de uso (deploy-ci §7).

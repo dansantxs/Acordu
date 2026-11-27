@@ -1,3 +1,5 @@
+import { textoDoFornecedor } from '@/shared/config/fornecedor'
+
 /**
  * Notas de versão (marco do manual, M4): escritas à mão, em linguagem de quem usa, no mesmo PR da mudança visível
  * (convenções §4). Até o lançamento, cada nota é identificada pela data; depois do 1.0, pela versão (1.1, 1.2…).
@@ -59,7 +61,9 @@ export const NOTAS: NotaVersao[] = [
         publico: 'equipe',
         titulo: 'Cadastro por convite e lista de espera',
         itens: [
-            'Enquanto o cadastro de empresas novas for só por convite, a tela de cadastro mostra a lista de espera: quem quer usar o Acordu deixa os dados, e a Nebrys convida.',
+            textoDoFornecedor(
+                'Enquanto o cadastro de empresas novas for só por convite, a tela de cadastro mostra a lista de espera: quem quer usar o Acordu deixa os dados, e {{a fornecedor}} convida.',
+            ),
             'O link do convite abre o cadastro com o e-mail convidado, que não dá para trocar.',
         ],
     },
@@ -85,7 +89,9 @@ export const NOTAS: NotaVersao[] = [
         publico: 'equipe',
         titulo: 'CPF ou CNPJ no cadastro',
         itens: [
-            'O cadastro de uma empresa nova pede o CPF ou CNPJ de quem contrata. Cada documento tem um período de teste; para um novo teste com o mesmo documento, fale com a Nebrys.',
+            textoDoFornecedor(
+                'O cadastro de uma empresa nova pede o CPF ou CNPJ de quem contrata. Cada documento tem um período de teste; para um novo teste com o mesmo documento, fale com {{a fornecedor}}.',
+            ),
         ],
     },
     {

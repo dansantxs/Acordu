@@ -30,25 +30,25 @@ public sealed partial class AvisosDeSituacao
 
     private readonly IServiceScopeFactory _escopos;
     private readonly OpcoesEmpresas _opcoes;
-    private readonly OpcoesNebrys _nebrys;
+    private readonly OpcoesFornecedor _fornecedor;
     private readonly TimeProvider _relogio;
     private readonly ILogger<AvisosDeSituacao> _logger;
 
     public AvisosDeSituacao(
         IServiceScopeFactory escopos,
         OpcoesEmpresas opcoes,
-        OpcoesNebrys nebrys,
+        OpcoesFornecedor fornecedor,
         TimeProvider relogio,
         ILogger<AvisosDeSituacao> logger)
     {
         ArgumentNullException.ThrowIfNull(escopos);
         ArgumentNullException.ThrowIfNull(opcoes);
-        ArgumentNullException.ThrowIfNull(nebrys);
+        ArgumentNullException.ThrowIfNull(fornecedor);
         ArgumentNullException.ThrowIfNull(relogio);
         ArgumentNullException.ThrowIfNull(logger);
         _escopos = escopos;
         _opcoes = opcoes;
-        _nebrys = nebrys;
+        _fornecedor = fornecedor;
         _relogio = relogio;
         _logger = logger;
     }
@@ -138,7 +138,7 @@ public sealed partial class AvisosDeSituacao
             try
             {
                 await email.EnviarAsync(
-                    MensagensDeSituacao.Montar(aviso, dono.Email, dono.Nome, tenant.Nome, fuso, agora, _nebrys), cancellationToken);
+                    MensagensDeSituacao.Montar(aviso, dono.Email, dono.Nome, tenant.Nome, fuso, agora, _fornecedor), cancellationToken);
             }
             catch (Exception ex) when (ex is not OperationCanceledException || !cancellationToken.IsCancellationRequested)
             {

@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import {
     baseDaApi,
-    contatoNebrys,
+    contatoDoFornecedor,
     intervaloDePolling,
     modoTempoReal,
     textosLegaisPublicados,
@@ -31,10 +31,10 @@ describe('ambiente do SPA (spec do F8)', () => {
         expect(versaoDoBuild('1.2.3')).toBe('1.2.3')
     })
 
-    it('ContatoNebrys_ComESemAVariavel_EnderecoAparadoOuNenhum (F14, D15)', () => {
-        expect(contatoNebrys(' contato@acordu.app.br ')).toBe('contato@acordu.app.br')
-        expect(contatoNebrys(undefined)).toBeUndefined()
-        expect(contatoNebrys('  ')).toBeUndefined()
+    it('ContatoDoFornecedor_ComESemAVariavel_EnderecoAparadoOuNenhum (F14, D15)', () => {
+        expect(contatoDoFornecedor(' contato@acordu.app.br ')).toBe('contato@acordu.app.br')
+        expect(contatoDoFornecedor(undefined)).toBeUndefined()
+        expect(contatoDoFornecedor('  ')).toBeUndefined()
     })
 
     it('TextosLegaisPublicados_ComESemAVariavel_SoTrueLiga (F14f, #194)', () => {

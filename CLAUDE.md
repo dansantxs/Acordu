@@ -23,7 +23,7 @@ O processo inteiro (etapas, papéis, portões, onde fica cada coisa, formato de 
 | API | `docs/contrato-api-acordu-v1.md` + `openapi/*.json` |
 | Consultas | `docs/read-side-acordu-v1.md` |
 | Segurança | `docs/seguranca-modelo-acesso-acordu-v1.md` |
-| Arquitetura | `docs/adr/` (0001–0016) |
+| Arquitetura | `docs/adr/` (0001–0017) |
 | Código e estrutura | `docs/convencoes-codigo-acordu.md`, `docs/estrutura-repositorio-acordu.md` |
 | Deploy e infra | `docs/deploy-ci-acordu-v1.md`, `docs/setup-infra-acordu.md` (ADR 0010) |
 | Specs dos marcos | `docs/specs/` |
@@ -41,6 +41,7 @@ Se uma tarefa exigir mudar um desses documentos, diga qual e por quê, e mude no
 - Tempo sempre em minutos inteiros (`Duracao`); SLA em horas úteis; o Domain não lê o relógio (testes de arquitetura).
 - Hospedagem: Cloud Run + Neon + Cloudflare, sem SDK de provedor, configuração só por variável de ambiente (ADR 0010).
 - Testes com xUnit + AwesomeAssertions (nunca FluentAssertions 8+).
+- Texto visível nunca escreve o nome do fornecedor: usa os marcadores `{{a fornecedor}}` etc. (`OpcoesFornecedor`, `textoDoFornecedor`), que vêm da configuração (ADR 0017).
 
 ## Comandos locais
 

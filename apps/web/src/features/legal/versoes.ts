@@ -11,6 +11,6 @@ import type { TipoTextoLegal } from './textosLegais'
  * daqui (`as const`) só cabe no corpo do cadastro se for o da API (o `pnpm build` falha se divergirem).
  */
 export const VERSOES_TEXTOS_LEGAIS = {
-    termos: { versao: '1', vigencia: '2026-11-16', impressao: 'b3faa24a' },
-    privacidade: { versao: '1', vigencia: '2026-11-16', impressao: 'c2c62735' },
+    termos: { versao: '1', vigencia: '2026-11-16', impressao: '42f0d2c2' },
+    privacidade: { versao: '1', vigencia: '2026-11-16', impressao: '3f34a499' },
 } as const satisfies Record<TipoTextoLegal, { versao: string; vigencia: string; impressao: string }>

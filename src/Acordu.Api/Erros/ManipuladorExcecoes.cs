@@ -3,6 +3,7 @@ using Acordu.Api.Seguranca;
 using Acordu.Application.Abstractions.Operacao;
 using Acordu.Application.Anexos;
 using Acordu.Application.Common;
+using Acordu.Application.Empresas;
 using Acordu.Domain.Exceptions;
 using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.AspNetCore.Mvc;
@@ -27,6 +28,9 @@ internal static partial class ManipuladorExcecoes
         var problema = excecao is EmpresaSomenteLeituraException leitura && DoPortal(http)
             ? PortalIndisponivel(leitura)
             : Classificar(excecao);
+        // O texto do só leitura cita o fornecedor pelo marcador (ADR 0017): o nome configurado entra aqui.
+        if (excecao is EmpresaSomenteLeituraException && problema.Detail is { } detalhe)
+            problema.Detail = http.RequestServices.GetRequiredService<OpcoesFornecedor>().Texto(detalhe);
         if (problema.Status == StatusCodes.Status500InternalServerError)
         {
             var logger = http.RequestServices.GetRequiredService<ILoggerFactory>().CreateLogger(typeof(ManipuladorExcecoes));

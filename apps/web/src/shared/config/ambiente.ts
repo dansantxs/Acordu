@@ -50,13 +50,20 @@ export function versaoDoBuild(valor: string | undefined): string | undefined {
 export const VERSAO = versaoDoBuild(import.meta.env.VITE_VERSAO)
 
 /**
- * Canal da Nebrys para ativar, cancelar e falar sobre a conta (`VITE_CONTATO_NEBRYS`; decisão 14 do G2 e D15 do F14):
- * em produção, a variável `CONTATO_NEBRYS` do GitHub. Sem ela (desenvolvimento, E2E, bot do manual), as faixas dizem só
- * "fale com a Nebrys", sem endereço.
+ * Quem fornece o Acordu, como aparece nos textos (ADR 0017): `VITE_NOME_FORNECEDOR` (padrão "Nebrys"),
+ * `VITE_ARTIGO_FORNECEDOR` (`a`, o padrão, `o` ou `nenhum`) e o canal para ativar, cancelar e falar sobre a conta,
+ * `VITE_CONTATO_FORNECEDOR` (decisão 14 do G2 e D15 do F14). Em produção, os valores normalizados das variáveis
+ * `NOME_FORNECEDOR`, `ARTIGO_FORNECEDOR` e `CONTATO_FORNECEDOR` do GitHub, os mesmos que vão à API como `Fornecedor__*`.
+ * Sem o canal (desenvolvimento, E2E, bot do manual), os textos dizem só "fale com a Nebrys", sem endereço. Os textos usam
+ * `textoDoFornecedor` (`shared/config/fornecedor.ts`), nunca o nome fixo.
  */
-export const contatoNebrys = (valor: string | undefined): string | undefined => valor?.trim() || undefined
+export const contatoDoFornecedor = (valor: string | undefined): string | undefined => valor?.trim() || undefined
 
-export const CONTATO_NEBRYS = contatoNebrys(import.meta.env.VITE_CONTATO_NEBRYS)
+export const NOME_FORNECEDOR = import.meta.env.VITE_NOME_FORNECEDOR
+
+export const ARTIGO_FORNECEDOR = import.meta.env.VITE_ARTIGO_FORNECEDOR
+
+export const CONTATO_FORNECEDOR = contatoDoFornecedor(import.meta.env.VITE_CONTATO_FORNECEDOR)
 
 /**
  * Se os textos legais estão publicados (`VITE_TEXTOS_LEGAIS_PUBLICADOS`; F14f, issue #194): só com `true` as páginas

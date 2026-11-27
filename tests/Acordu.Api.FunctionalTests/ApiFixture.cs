@@ -34,7 +34,7 @@ public sealed class ApiFixture : IAsyncLifetime
     public const string ChaveDocumentos = "chave-hmac-dos-testes-funcionais-com-mais-de-32-bytes";
 
     /// <summary>Canal da Nebrys nos testes (decisão 14 do G2 do F14).</summary>
-    public const string ContatoNebrys = "contato@acordu.app.br";
+    public const string ContatoFornecedor = "contato@acordu.app.br";
 
     /// <summary>Domínio de entrada por e-mail nos testes (F15b, design do F15 D2), o de produção.</summary>
     public const string DominioEntrada = "entrada.acordu.app.br";
@@ -99,7 +99,7 @@ public sealed class ApiFixture : IAsyncLifetime
             ["Jobs:Token"] = TokenJobs,
             ["Jwt:ChaveAssinatura"] = "chave-dos-testes-funcionais-com-mais-de-32-bytes",
             ["Documentos:ChaveHmac"] = ChaveDocumentos,
-            ["Nebrys:Contato"] = ContatoNebrys,
+            ["Fornecedor:Contato"] = ContatoFornecedor,
             // Operadores da área da Nebrys (F14k, ADR 0014): as contas nascem no Apoio.OperadorNebrys quando um teste precisa.
             ["Nebrys:Operadores"] = $"{Apoio.OperadorNebrys.Email}, {Apoio.OperadorNebrys.EmailSemConfirmar}",
             // Textos legais publicados (design do F14, §1.2 e D16): os testes do estado desligado desligam no próprio teste.

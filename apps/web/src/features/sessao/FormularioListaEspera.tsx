@@ -4,7 +4,8 @@ import { useId, useState } from 'react'
 import { Form } from 'react-aria-components'
 import { errosDeCampo, mensagemDeErro } from '@/shared/api/mensagens'
 import { ErroApi } from '@/shared/api/problema'
-import { CHAVE_TURNSTILE, CONTATO_NEBRYS } from '@/shared/config/ambiente'
+import { CHAVE_TURNSTILE } from '@/shared/config/ambiente'
+import { FORNECEDOR, textoDoFornecedor } from '@/shared/config/fornecedor'
 import { Alerta } from '@/shared/ui/Alerta'
 import { Botao } from '@/shared/ui/Botao'
 import { CampoTexto } from '@/shared/ui/CampoTexto'
@@ -12,8 +13,9 @@ import { entrarNaListaEspera } from './cadastro'
 import { DesafioTurnstile } from './DesafioTurnstile'
 
 /** O motivo de a tela de cadastro mostrar a lista de espera (F14-44). */
-export const MOTIVO_LISTA_ESPERA =
-    'No momento, o cadastro no Acordu é só por convite. Deixe seus dados: a Nebrys escolhe a quem convidar e manda o convite por e-mail.'
+export const MOTIVO_LISTA_ESPERA = textoDoFornecedor(
+    'No momento, o cadastro no Acordu é só por convite. Deixe seus dados: {{a fornecedor}} escolhe a quem convidar e manda o convite por e-mail.',
+)
 
 /** Mesmo limite da API (contrato §16): mensagem opcional, até 1.000 caracteres. */
 export const MENSAGEM_MAXIMA = 1000
@@ -43,10 +45,16 @@ export function FormularioListaEspera({ chaveTurnstile = CHAVE_TURNSTILE }: { ch
         return (
             <div className="flex flex-col gap-4">
                 <Alerta tom="sucesso">
-                    Recebemos seus dados. Quando a Nebrys puder convidar você, o convite chega por e-mail, com o link
-                    para criar a conta.
+                    {textoDoFornecedor(
+                        'Recebemos seus dados. Quando {{a fornecedor}} puder convidar você, o convite chega por e-mail, com o link para criar a conta.',
+                    )}
                 </Alerta>
-                {CONTATO_NEBRYS && <p className="text-sm text-suave">Para falar com a Nebrys: {CONTATO_NEBRYS}.</p>}
+                {FORNECEDOR.contato && (
+                    <p className="text-sm text-suave">
+                        {textoDoFornecedor('Para falar com {{a fornecedor}}: ')}
+                        {FORNECEDOR.contato}.
+                    </p>
+                )}
                 <Link to="/entrar" className="text-sm text-acento-texto underline-offset-4 hover:underline">
                     Ir para a tela de entrar
                 </Link>
@@ -88,7 +96,7 @@ export function FormularioListaEspera({ chaveTurnstile = CHAVE_TURNSTILE }: { ch
             <CampoTexto
                 name="mensagem"
                 rotulo="O que você quer organizar com o Acordu?"
-                descricao="Opcional. Ajuda a Nebrys a entender o seu trabalho."
+                descricao={textoDoFornecedor('Opcional. Ajuda {{a fornecedor}} a entender o seu trabalho.')}
                 maxLength={MENSAGEM_MAXIMA}
                 multilinha
             />

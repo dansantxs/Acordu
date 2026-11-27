@@ -159,6 +159,7 @@ acordu/
 | `docs/adr/0014-area-da-nebrys-sessao-de-operacao.md` | Área da Nebrys: sessão de operação sem tenant. |
 | `docs/adr/0015-empresa-somente-leitura-pela-guarda-de-gravacao.md` | Empresa só leitura pela guarda de gravação. |
 | `docs/adr/0016-entrada-pela-borda-e-avisos-pelo-canal-de-origem.md` | Entrada de mensagens pela borda e avisos pelo canal de origem. |
+| `docs/adr/0017-nome-do-fornecedor-por-configuracao.md` | Nome do fornecedor por configuração e nomes internos neutros. |
 | `docs/processo.md` | Como o Acordu é construído: etapas, papéis, portões, onde fica cada coisa. |
 | `docs/estado.md` | O que está em revisão, marco atual e próximos passos. |
 | `docs/fluxo-acordu.bpmn` | Fluxo de negócio em BPMN (e `.svg` para leitura), gerado por `scripts/gerar-fluxo-bpmn.py`. |

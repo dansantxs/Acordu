@@ -90,7 +90,7 @@ public sealed class CadastroAbertoTests(ApiFixture api)
 
         status.Should().Be(HttpStatusCode.BadRequest);
         corpo.GetProperty("errors").GetProperty("documento")[0].GetString()
-            .Should().StartWith("Este CPF ou CNPJ já teve um período de teste no Acordu.").And.Contain(ApiFixture.ContatoNebrys);
+            .Should().StartWith("Este CPF ou CNPJ já teve um período de teste no Acordu.").And.Contain(ApiFixture.ContatoFornecedor);
     }
 
     private Task<WebApplication> ApiNoModoAbertoAsync() =>

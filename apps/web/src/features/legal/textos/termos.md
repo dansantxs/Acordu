@@ -9,19 +9,19 @@ Estes termos regem o uso do Acordu. Ao criar a conta da sua empresa, ou ao aceit
 
 ## 1. Quem são as partes
 
-- **Nebrys:** quem fornece o Acordu ([a preencher pelo Daniel: razão social], CNPJ [a preencher pelo Daniel], [a preencher pelo Daniel: endereço]).
+- **{{fornecedor}}:** quem fornece o Acordu ([a preencher pelo Daniel: razão social], CNPJ [a preencher pelo Daniel], [a preencher pelo Daniel: endereço]).
 - **Prestador:** a empresa ou o profissional que cria uma conta no Acordu para organizar o próprio atendimento. Quem faz o cadastro declara ter poderes para aceitar estes termos em nome dele.
 - **Equipe:** as pessoas que o prestador convida para usar a conta dele, cada uma com um papel.
-- **Contatos:** os clientes do prestador que acompanham o atendimento pelo portal. A relação dos contatos é com o prestador; estes termos não criam obrigação entre os contatos e a Nebrys.
+- **Contatos:** os clientes do prestador que acompanham o atendimento pelo portal. A relação dos contatos é com o prestador; estes termos não criam obrigação entre os contatos e {{a fornecedor}}.
 
 ## 2. O serviço
 
-O Acordu organiza as solicitações, as tarefas, as horas trabalhadas e os contratos do prestador, e oferece um portal em que os clientes dele acompanham o que pediram. O Acordu é oferecido como serviço pela internet; a Nebrys pode mudar, acrescentar ou retirar funções ao longo do tempo.
+O Acordu organiza as solicitações, as tarefas, as horas trabalhadas e os contratos do prestador, e oferece um portal em que os clientes dele acompanham o que pediram. O Acordu é oferecido como serviço pela internet; {{a fornecedor}} pode mudar, acrescentar ou retirar funções ao longo do tempo.
 
 ## 3. Conta e acesso
 
-- O cadastro pede o CPF ou o CNPJ do prestador. Cada documento tem direito a um período de teste; um documento que já teve teste não abre outro, salvo liberação da Nebrys.
-- O cadastro pode depender de convite da Nebrys. Enquanto for assim, quem não tem convite pode entrar na lista de espera, e a Nebrys escolhe quem convidar.
+- O cadastro pede o CPF ou o CNPJ do prestador. Cada documento tem direito a um período de teste; um documento que já teve teste não abre outro, salvo liberação {{da fornecedor}}.
+- O cadastro pode depender de convite {{da fornecedor}}. Enquanto for assim, quem não tem convite pode entrar na lista de espera, e {{a fornecedor}} escolhe quem convidar.
 - Enquanto o e-mail de quem criou a conta não for confirmado, a empresa não envia e-mails a mais ninguém. Se o e-mail não for confirmado em 7 dias e a empresa não tiver nenhum dado além do cadastro, a conta é apagada.
 - Cada pessoa é responsável por guardar a própria senha e por tudo o que é feito com o acesso dela. Os Donos da conta respondem pela escolha de quem entra na equipe, dos papéis e dos acessos dados aos contatos. [a confirmar pelo Daniel, com o advogado]
 
@@ -29,11 +29,11 @@ O Acordu organiza as solicitações, as tarefas, as horas trabalhadas e os contr
 
 - Toda empresa nova começa num período de teste de **30 dias corridos** a partir do cadastro, sem cobrança e sem limite de pessoas na equipe.
 - Nos últimos 7 dias do teste, as telas mostram quantos dias faltam, e os Donos recebem um e-mail 7 dias e 1 dia antes do fim.
-- Para continuar depois do teste, a conta precisa ser ativada pela Nebrys: fale pelo canal [contato@acordu.app.br](mailto:contato@acordu.app.br). A Nebrys também pode prorrogar o teste.
+- Para continuar depois do teste, a conta precisa ser ativada {{pela fornecedor}}: fale pelo canal [contato@acordu.app.br](mailto:contato@acordu.app.br). {{A fornecedor}} também pode prorrogar o teste.
 
 ## 5. Conta ativa
 
-[a preencher pelo Daniel: condições comerciais da conta ativa (preço, forma e prazo de pagamento, reajuste), ou a indicação de que são combinadas com a Nebrys caso a caso.]
+[a preencher pelo Daniel: condições comerciais da conta ativa (preço, forma e prazo de pagamento, reajuste), ou a indicação de que são combinadas com {{a fornecedor}} caso a caso.]
 
 ## 6. Só leitura
 
@@ -55,14 +55,14 @@ A empresa fica **só leitura** quando o teste acaba sem ativação ou quando a c
 
 ## 8. Cancelamento
 
-- Para cancelar a conta, um Dono pede pelo canal [contato@acordu.app.br](mailto:contato@acordu.app.br), e a Nebrys faz o cancelamento.
-- A conta cancelada fica só leitura e é apagada nos mesmos prazos da seção 7. Até o apagamento, a Nebrys pode reativá-la a pedido.
+- Para cancelar a conta, um Dono pede pelo canal [contato@acordu.app.br](mailto:contato@acordu.app.br), e {{a fornecedor}} faz o cancelamento.
+- A conta cancelada fica só leitura e é apagada nos mesmos prazos da seção 7. Até o apagamento, {{a fornecedor}} pode reativá-la a pedido.
 
-[a preencher pelo Daniel, com o advogado: se a Nebrys pode cancelar ou suspender uma conta por conta própria (por exemplo, por uso em desacordo com estes termos), com que aviso e com que efeito.]
+[a preencher pelo Daniel, com o advogado: se {{a fornecedor}} pode cancelar ou suspender uma conta por conta própria (por exemplo, por uso em desacordo com estes termos), com que aviso e com que efeito.]
 
 ## 9. Disponibilidade
 
-O Acordu é oferecido **sem garantia de disponibilidade** (best-effort): a Nebrys se esforça para mantê-lo no ar e funcionando, mas não garante um nível mínimo de serviço. Em especial:
+O Acordu é oferecido **sem garantia de disponibilidade** (best-effort): {{a fornecedor}} se esforça para mantê-lo no ar e funcionando, mas não garante um nível mínimo de serviço. Em especial:
 
 - depois de um tempo sem uso, a primeira resposta pode demorar alguns segundos;
 - algumas telas se atualizam por consulta periódica, a cada 30 segundos, e os alertas de prazo podem chegar com até 15 minutos de atraso;
@@ -78,21 +78,21 @@ Do prestador:
 - não usa o Acordu para enviar mensagens indesejadas, guardar conteúdo ilícito ou de terceiros sem autorização, tentar acessar dados de outras empresas, testar a segurança sem autorização ou sobrecarregar o serviço; [a confirmar pelo Daniel, com o advogado]
 - não cria contas ou documentos diferentes para repetir o período de teste. [a confirmar pelo Daniel, com o advogado]
 
-Da Nebrys:
+{{Da fornecedor}}:
 
 - trata os dados dos clientes do prestador só para prestar o serviço, como **operadora**, e não os usa em funções de outra empresa;
 - mantém medidas de segurança razoáveis para proteger os dados, descritas na política de privacidade;
 - avisa os Donos, por e-mail, antes do fim do teste, quando a empresa fica só leitura e antes do apagamento dos dados.
 
-[a preencher pelo Daniel, com o advogado: limitação de responsabilidade da Nebrys (por exemplo, por indisponibilidade, perda de dados entre cópias de segurança e uso indevido por quem tem acesso).]
+[a preencher pelo Daniel, com o advogado: limitação de responsabilidade {{da fornecedor}} (por exemplo, por indisponibilidade, perda de dados entre cópias de segurança e uso indevido por quem tem acesso).]
 
 ## 11. Propriedade
 
-Os dados que o prestador coloca no Acordu são dele. O Acordu, o código, a marca e os textos do sistema são da Nebrys; o uso do serviço não transfere nenhum desses direitos. As sugestões de melhoria enviadas pelo sistema podem ser usadas pela Nebrys para melhorar o Acordu. [a confirmar pelo Daniel, com o advogado]
+Os dados que o prestador coloca no Acordu são dele. O Acordu, o código, a marca e os textos do sistema são {{da fornecedor}}; o uso do serviço não transfere nenhum desses direitos. As sugestões de melhoria enviadas pelo sistema podem ser usadas {{pela fornecedor}} para melhorar o Acordu. [a confirmar pelo Daniel, com o advogado]
 
 ## 12. Comunicações
 
-A Nebrys se comunica com o prestador pelo e-mail dos Donos, pelo sistema (faixas e avisos nas telas) e pelo canal [contato@acordu.app.br](mailto:contato@acordu.app.br).
+{{A fornecedor}} se comunica com o prestador pelo e-mail dos Donos, pelo sistema (faixas e avisos nas telas) e pelo canal [contato@acordu.app.br](mailto:contato@acordu.app.br).
 
 ## 13. Mudanças nestes termos
 

@@ -5,7 +5,8 @@ import { Form } from 'react-aria-components'
 import { AceiteTextosLegais, erroDoAceite, versoesAceitas } from '@/features/legal/AceiteTextosLegais'
 import { errosDeCampo, mensagemDeErro } from '@/shared/api/mensagens'
 import { ErroApi } from '@/shared/api/problema'
-import { CHAVE_TURNSTILE, CONTATO_NEBRYS } from '@/shared/config/ambiente'
+import { CHAVE_TURNSTILE } from '@/shared/config/ambiente'
+import { faleComOFornecedor } from '@/shared/config/fornecedor'
 import { documentoValido } from '@/shared/format/documento'
 import { caracteresDoDocumento, formatarDocumento } from '@/shared/format/mascaras'
 import { cadastrar } from '@/shared/sessao/acoes'
@@ -33,10 +34,8 @@ export function validarDocumentoCadastro(valor: string): string | null {
     return documentoValido(valor) ? null : 'CPF ou CNPJ inválido.'
 }
 
-/** Um teste por documento (RF-AUT-09); o canal da Nebrys (`VITE_CONTATO_NEBRYS`) para quem precisa de um novo. */
-export const DESCRICAO_DOCUMENTO = CONTATO_NEBRYS
-    ? `Cada CPF ou CNPJ tem um período de teste. Para um novo teste, fale com a Nebrys: ${CONTATO_NEBRYS}.`
-    : 'Cada CPF ou CNPJ tem um período de teste. Para um novo teste, fale com a Nebrys.'
+/** Um teste por documento (RF-AUT-09); o canal do fornecedor (`VITE_CONTATO_FORNECEDOR`) para quem precisa de um novo. */
+export const DESCRICAO_DOCUMENTO = `Cada CPF ou CNPJ tem um período de teste. Para um novo teste, ${faleComOFornecedor()}.`
 
 /** O limite do cadastro é por hora (RNF-SEG-10), não o "aguarde um minuto" das demais rotas. */
 const MUITOS_CADASTROS = 'Muitos cadastros a partir desta rede em pouco tempo. Tente de novo mais tarde.'

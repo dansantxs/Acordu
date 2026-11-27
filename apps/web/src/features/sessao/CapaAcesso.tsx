@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react'
 import { LinksLegais } from '@/features/legal/LinksLegais'
+import { FORNECEDOR } from '@/shared/config/fornecedor'
 import { SeletorTema } from '@/shared/tema/SeletorTema'
 
 /**
@@ -30,7 +31,7 @@ export function CapaAcesso({
                             Atendimento, tarefas e contratos num lugar só, com o cliente acompanhando de perto.
                         </p>
                     </div>
-                    <p className="hidden text-xs text-lateral-suave md:block">Nebrys</p>
+                    <p className="hidden text-xs text-lateral-suave md:block">{FORNECEDOR.nome}</p>
                 </aside>
                 <main className="flex flex-1 flex-col gap-6 bg-superficie p-6 md:p-10">
                     <div className="flex justify-end">

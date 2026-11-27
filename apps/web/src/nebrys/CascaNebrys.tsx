@@ -10,6 +10,7 @@ import {
 } from '@/shared/sessao/sessaoOperacao'
 import { SeletorTema } from '@/shared/tema/SeletorTema'
 import { Botao } from '@/shared/ui/Botao'
+import { FORNECEDOR } from '@/shared/config/fornecedor'
 
 const estiloLink =
     'rounded-couro px-3 py-1.5 text-sm text-lateral-suave hover:text-lateral-tinta aria-[current=page]:bg-black/20 aria-[current=page]:font-semibold aria-[current=page]:text-lateral-tinta'
@@ -48,7 +49,7 @@ export function CascaNebrys() {
             <header className="bg-lateral text-lateral-tinta">
                 <div className="mx-auto flex max-w-6xl flex-wrap items-center gap-x-6 gap-y-2 px-4 py-3 sm:px-8">
                     <span className="font-titulo text-2xl font-semibold italic text-dourado">acordu</span>
-                    <span className="text-sm text-lateral-suave">Nebrys</span>
+                    <span className="text-sm text-lateral-suave">{FORNECEDOR.nome}</span>
                     <nav aria-label="Área da Nebrys" className="flex gap-1">
                         <Link to="/nebrys/empresas" className={estiloLink}>
                             Empresas

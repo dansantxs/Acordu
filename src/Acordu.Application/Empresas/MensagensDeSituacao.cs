@@ -25,18 +25,18 @@ public static class MensagensDeSituacao
     /// <param name="empresa">Nome da empresa.</param>
     /// <param name="fuso">Fuso da empresa (calendário).</param>
     /// <param name="agora">Instante do diário: de onde se contam os dias que faltam.</param>
-    /// <param name="nebrys">Canal da Nebrys.</param>
+    /// <param name="fornecedor">Quem fornece o Acordu e o canal dele.</param>
     public static MensagemEmail Montar(
-        AvisoSituacao aviso, string email, string nome, string empresa, TimeZoneInfo fuso, DateTimeOffset agora, OpcoesNebrys nebrys)
+        AvisoSituacao aviso, string email, string nome, string empresa, TimeZoneInfo fuso, DateTimeOffset agora, OpcoesFornecedor fornecedor)
     {
         ArgumentNullException.ThrowIfNull(aviso);
         ArgumentNullException.ThrowIfNull(fuso);
-        ArgumentNullException.ThrowIfNull(nebrys);
+        ArgumentNullException.ThrowIfNull(fornecedor);
         return aviso.Tipo switch
         {
-            TipoAvisoSituacao.AntesDoFimDoTeste => FimDoTeste(aviso.Referencia, email, nome, empresa, fuso, agora, nebrys),
-            TipoAvisoSituacao.Vencimento => Vencimento(aviso.Referencia, email, nome, empresa, fuso, nebrys),
-            TipoAvisoSituacao.AntesDoExpurgo => Expurgo(aviso.Referencia, email, nome, empresa, fuso, nebrys),
+            TipoAvisoSituacao.AntesDoFimDoTeste => FimDoTeste(aviso.Referencia, email, nome, empresa, fuso, agora, fornecedor),
+            TipoAvisoSituacao.Vencimento => Vencimento(aviso.Referencia, email, nome, empresa, fuso, fornecedor),
+            TipoAvisoSituacao.AntesDoExpurgo => Expurgo(aviso.Referencia, email, nome, empresa, fuso, fornecedor),
             _ => throw new ArgumentOutOfRangeException(nameof(aviso), aviso.Tipo, "Tipo de aviso desconhecido."),
         };
     }
@@ -55,7 +55,7 @@ public static class MensagensDeSituacao
     }
 
     private static MensagemEmail FimDoTeste(
-        DateTimeOffset fim, string email, string nome, string empresa, TimeZoneInfo fuso, DateTimeOffset agora, OpcoesNebrys nebrys)
+        DateTimeOffset fim, string email, string nome, string empresa, TimeZoneInfo fuso, DateTimeOffset agora, OpcoesFornecedor fornecedor)
     {
         var (ultimo, dias) = UltimoDiaDoTeste(fim, fuso, agora);
         var quando = dias switch
@@ -73,13 +73,13 @@ public static class MensagensDeSituacao
             O período de teste da {empresa} no Acordu vai até {Data(ultimo)} ({quando}).
 
             Depois disso, a empresa fica só leitura: a equipe e os clientes continuam consultando tudo, mas nada novo é
-            gravado e nenhum e-mail sai. Para ativar a conta e seguir usando, {nebrys.FaleComANebrys}.
+            gravado e nenhum e-mail sai. Para ativar a conta e seguir usando, {fornecedor.FaleComOFornecedor}.
             """,
             CategoriaFimDoTeste);
     }
 
     private static MensagemEmail Vencimento(
-        DateTimeOffset expurgo, string email, string nome, string empresa, TimeZoneInfo fuso, OpcoesNebrys nebrys) =>
+        DateTimeOffset expurgo, string email, string nome, string empresa, TimeZoneInfo fuso, OpcoesFornecedor fornecedor) =>
         new(
             email,
             $"O teste da {empresa} no Acordu terminou",
@@ -90,12 +90,12 @@ public static class MensagensDeSituacao
             continuam consultando tudo, mas nada novo é gravado e nenhum e-mail sai.
 
             Se a conta não for ativada, a empresa e todos os dados dela serão apagados a partir de {Data(Dia(expurgo, fuso))}.
-            Para ativar a conta e manter os dados, {nebrys.FaleComANebrys}.
+            Para ativar a conta e manter os dados, {fornecedor.FaleComOFornecedor}.
             """,
             CategoriaVencimento);
 
     private static MensagemEmail Expurgo(
-        DateTimeOffset expurgo, string email, string nome, string empresa, TimeZoneInfo fuso, OpcoesNebrys nebrys) =>
+        DateTimeOffset expurgo, string email, string nome, string empresa, TimeZoneInfo fuso, OpcoesFornecedor fornecedor) =>
         new(
             email,
             $"Os dados da {empresa} no Acordu serão apagados a partir de {Data(Dia(expurgo, fuso))}",
@@ -105,7 +105,7 @@ public static class MensagensDeSituacao
             A {empresa} está só leitura no Acordu. A partir de {Data(Dia(expurgo, fuso))}, a empresa e todos os dados dela
             (clientes, contratos, solicitações, tarefas, horas e arquivos) serão apagados, sem volta.
 
-            Para ativar a conta e manter os dados, {nebrys.FaleComANebrys}.
+            Para ativar a conta e manter os dados, {fornecedor.FaleComOFornecedor}.
             """,
             CategoriaExpurgo);
 

@@ -4,6 +4,7 @@ using Acordu.Application.Abstractions;
 using Acordu.Application.Auditoria;
 using Acordu.Application.Cadastro;
 using Acordu.Application.Common;
+using Acordu.Application.Empresas;
 using Acordu.Application.Nebrys;
 using Acordu.Domain.Entities;
 using Acordu.Domain.Exceptions;
@@ -203,7 +204,7 @@ public sealed class ConvitesEmpresaNebrysTests
             Dominios = new DominiosFalsos(descartavel);
             Casos = new ConvitesEmpresaNebrys(
                 Convites, Trilha, Unidade, new RelogioFixo(Agora), Email, new EnderecosPublicos(new Uri("https://acordu.app.br/")),
-                new OpcoesCadastro(ModoCadastro.Convite, 7), Dominios);
+                new OpcoesCadastro(ModoCadastro.Convite, 7), Dominios, new OpcoesFornecedor());
         }
 
         public ConvitesFalsos Convites { get; } = new();

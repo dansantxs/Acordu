@@ -8,7 +8,7 @@ namespace Acordu.Application.UnitTests.Empresas;
 public sealed class MensagensDeSituacaoTests
 {
     private static readonly TimeZoneInfo SaoPaulo = TimeZoneInfo.FindSystemTimeZoneById("America/Sao_Paulo");
-    private static readonly OpcoesNebrys Nebrys = new("contato@acordu.app.br");
+    private static readonly OpcoesFornecedor Fornecedor = new(contato: "contato@acordu.app.br");
     private static readonly DateTimeOffset Fim = new(2026, 11, 5, 13, 0, 0, TimeSpan.Zero);
 
     [Fact]
@@ -16,7 +16,7 @@ public sealed class MensagensDeSituacaoTests
     {
         var aviso = new AvisoSituacao(TipoAvisoSituacao.AntesDoFimDoTeste, Fim, 7, []);
 
-        var mensagem = MensagensDeSituacao.Montar(aviso, "dono@exemplo.com", "Ana", "Estúdio Traço", SaoPaulo, Fim.AddDays(-7), Nebrys);
+        var mensagem = MensagensDeSituacao.Montar(aviso, "dono@exemplo.com", "Ana", "Estúdio Traço", SaoPaulo, Fim.AddDays(-7), Fornecedor);
 
         mensagem.Para.Should().Be("dono@exemplo.com");
         mensagem.Categoria.Should().Be(MensagensDeSituacao.CategoriaFimDoTeste);
@@ -31,7 +31,7 @@ public sealed class MensagensDeSituacaoTests
     {
         var aviso = new AvisoSituacao(TipoAvisoSituacao.AntesDoFimDoTeste, Fim, 7, []);
 
-        var mensagem = MensagensDeSituacao.Montar(aviso, "dono@exemplo.com", "Ana", "Estúdio", SaoPaulo, Fim.AddDays(-4), Nebrys);
+        var mensagem = MensagensDeSituacao.Montar(aviso, "dono@exemplo.com", "Ana", "Estúdio", SaoPaulo, Fim.AddDays(-4), Fornecedor);
 
         mensagem.Texto.Should().Contain("faltam 4 dias").And.NotContain("7 dias");
     }
@@ -43,7 +43,7 @@ public sealed class MensagensDeSituacaoTests
     {
         var aviso = new AvisoSituacao(TipoAvisoSituacao.AntesDoFimDoTeste, Fim, 1, []);
 
-        var mensagem = MensagensDeSituacao.Montar(aviso, "dono@exemplo.com", "Ana", "Estúdio", SaoPaulo, Fim.AddHours(horas), Nebrys);
+        var mensagem = MensagensDeSituacao.Montar(aviso, "dono@exemplo.com", "Ana", "Estúdio", SaoPaulo, Fim.AddHours(horas), Fornecedor);
 
         mensagem.Texto.Should().Contain(esperado);
     }
@@ -64,7 +64,7 @@ public sealed class MensagensDeSituacaoTests
     {
         var aviso = new AvisoSituacao(TipoAvisoSituacao.Vencimento, Fim.AddDays(30), null, []);
 
-        var mensagem = MensagensDeSituacao.Montar(aviso, "dono@exemplo.com", "Ana", "Estúdio Traço", SaoPaulo, Fim, Nebrys);
+        var mensagem = MensagensDeSituacao.Montar(aviso, "dono@exemplo.com", "Ana", "Estúdio Traço", SaoPaulo, Fim, Fornecedor);
 
         mensagem.Categoria.Should().Be(MensagensDeSituacao.CategoriaVencimento);
         mensagem.Texto.Should().Contain("só leitura").And.Contain("05/12/2026")
@@ -76,7 +76,7 @@ public sealed class MensagensDeSituacaoTests
     {
         var aviso = new AvisoSituacao(TipoAvisoSituacao.AntesDoExpurgo, Fim.AddDays(30), 7, []);
 
-        var mensagem = MensagensDeSituacao.Montar(aviso, "dono@exemplo.com", "Ana", "Estúdio Traço", SaoPaulo, Fim.AddDays(23), Nebrys);
+        var mensagem = MensagensDeSituacao.Montar(aviso, "dono@exemplo.com", "Ana", "Estúdio Traço", SaoPaulo, Fim.AddDays(23), Fornecedor);
 
         mensagem.Categoria.Should().Be(MensagensDeSituacao.CategoriaExpurgo);
         mensagem.Assunto.Should().Contain("05/12/2026");
@@ -84,12 +84,23 @@ public sealed class MensagensDeSituacaoTests
     }
 
     [Fact]
-    public void Montar_SemCanalConfigurado_DizSoFaleComANebrys()
+    public void Montar_SemCanalConfigurado_DizSoFaleComOFornecedor()
     {
         var aviso = new AvisoSituacao(TipoAvisoSituacao.Vencimento, Fim.AddDays(30), null, []);
 
-        var mensagem = MensagensDeSituacao.Montar(aviso, "dono@exemplo.com", "Ana", "Estúdio", SaoPaulo, Fim, new OpcoesNebrys());
+        var mensagem = MensagensDeSituacao.Montar(aviso, "dono@exemplo.com", "Ana", "Estúdio", SaoPaulo, Fim, new OpcoesFornecedor());
 
         mensagem.Texto.Should().Contain("fale com a Nebrys.");
+    }
+
+    [Fact] // ADR 0017: o e-mail cita o fornecedor configurado, com o artigo dele
+    public void Montar_OutroFornecedor_NomeEArtigoConfigurados()
+    {
+        var aviso = new AvisoSituacao(TipoAvisoSituacao.Vencimento, Fim.AddDays(30), null, []);
+        var fornecedor = new OpcoesFornecedor("Grupo Exemplo", "o", "contato@exemplo.com");
+
+        var mensagem = MensagensDeSituacao.Montar(aviso, "dono@exemplo.com", "Ana", "Estúdio", SaoPaulo, Fim, fornecedor);
+
+        mensagem.Texto.Should().Contain("fale com o Grupo Exemplo: contato@exemplo.com").And.NotContain("Nebrys");
     }
 }
