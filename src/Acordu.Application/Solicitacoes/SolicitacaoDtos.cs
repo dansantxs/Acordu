@@ -62,11 +62,16 @@ public sealed record TarefaDaSolicitacaoDto(Guid Id, string Titulo, StatusTarefa
 
 public sealed record SolucaoDto(string? Problema, string? Causa, string Texto);
 
-/// <summary>Item da linha do tempo (internas e externas), com o canal por onde entrou (RF-SOL-14, F15-60).</summary>
+/// <summary>
+/// Item da linha do tempo (internas e externas), com o canal por onde entrou (RF-SOL-14, F15-60). <see cref="AutorSistema"/>:
+/// a nota do sistema (design do F15, D15), escrita pelo próprio Acordu, com o nome fixo do autor (ex.: "Acordu (e-mail
+/// recebido)") no lugar do de uma pessoa.
+/// </summary>
 public sealed record InteracaoDto(
     Guid Id,
     Referencia Autor,
     bool AutorEhCliente,
+    bool AutorSistema,
     string? Texto,
     Visibilidade Visibilidade,
     CanalMensagem Canal,

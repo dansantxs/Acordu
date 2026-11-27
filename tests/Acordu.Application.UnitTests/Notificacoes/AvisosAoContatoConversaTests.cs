@@ -9,12 +9,14 @@ using Acordu.Domain.Common;
 using Acordu.Domain.Entities;
 using Acordu.Domain.Enums;
 using Acordu.Domain.Events;
+using Acordu.Domain.ValueObjects;
 
 namespace Acordu.Application.UnitTests.Notificacoes;
 
 /// <summary>
 /// Spec do F15, F15c (F15-51, F15-52; design D3, D9): quando o aviso cria a conversa da solicitação e quando não, e a
-/// ordem "grava a conversa, depois envia" que faz o segundo de dois avisos simultâneos falhar antes de enviar.
+/// ordem "grava a conversa, depois envia" que faz o segundo de dois avisos simultâneos falhar antes de enviar. F15g
+/// (F15-15, F15-98): o aviso de recebida da origem EMAIL lista os anexos que não entraram, lidos do registro de entrada.
 /// </summary>
 public sealed class AvisosAoContatoConversaTests
 {
@@ -29,6 +31,7 @@ public sealed class AvisosAoContatoConversaTests
     private readonly Repositorio<AcessoPortal> _acessos = new();
     private readonly Repositorio<ConversaPorEmail> _novasConversas = new();
     private readonly ConversasFalsas _conversas = new();
+    private readonly RegistrosFalsos _registros = new();
     private readonly UnidadeFalsa _unidade = new();
     private readonly CanalFalso _canal = new();
 
@@ -51,7 +54,7 @@ public sealed class AvisosAoContatoConversaTests
         var tenantAtual = new TenantFixo(_tenant);
         return new AvisosAoContato(
             _solicitacoes, _clientes, new Repositorio<Interacao>(), _acessos, new AcessosFalsos(), new VinculosFalsos(),
-            _novasConversas, _conversas, tenantAtual, new SeletorDeCanal([_canal]), OpcoesEmailEntrada.DaConfiguracao(dominio),
+            _novasConversas, _conversas, _registros, tenantAtual, new SeletorDeCanal([_canal]), OpcoesEmailEntrada.DaConfiguracao(dominio),
             new EnderecosPublicos(new Uri("https://app.acordu.app.br")),
             new RelogioDoTenant(calendarios, new RelogioFixo(Agora)), _unidade,
             new EnvioATerceiros(tenantAtual, new BloqueadosFalsos(), new OrigemFalsa()));
@@ -221,6 +224,65 @@ public sealed class AvisosAoContatoConversaTests
         public void Adicionar(T entidade) => Itens.Add(entidade);
 
         public void Remover(T entidade) => Itens.Remove(entidade);
+    }
+
+    [Fact] // F15-15: o aviso de recebida diz ao contato quais arquivos não entraram, com o motivo
+    public async Task Aviso_RecebidaOrigemEmailComRecusados_ListaOsArquivosQueNaoEntraram()
+    {
+        var evento = AbertaPorEmail();
+        _registros.Recusados[evento.SolicitacaoId] = new AnexosRecusados(
+        [
+            new AnexoRecusado("instalador.exe", MotivoRecusaAnexo.TipoNaoPermitido),
+            new AnexoRecusado("video.mp4", MotivoRecusaAnexo.GrandeDemais),
+            new AnexoRecusado("foto-6.png", MotivoRecusaAnexo.AlemDoLimite),
+        ]);
+
+        await Montar("entrada.acordu.app.br").TratarAsync(evento, CancellationToken.None);
+
+        var aviso = _canal.Avisos.Should().ContainSingle().Subject;
+        aviso.Assunto.Should().Be("Recebemos sua solicitação #8");
+        aviso.Texto.Should().Contain("Estes arquivos do seu e-mail não entraram na solicitação:")
+            .And.Contain("- instalador.exe (tipo de arquivo não permitido)")
+            .And.Contain("- video.mp4 (maior que 20 MB)")
+            .And.Contain("- foto-6.png (além do limite de 5 anexos por e-mail)");
+    }
+
+    [Fact] // F15-14: sem recusados, o aviso de recebida é o de sempre
+    public async Task Aviso_RecebidaOrigemEmailSemRecusados_SemALista()
+    {
+        var evento = AbertaPorEmail();
+
+        await Montar("entrada.acordu.app.br").TratarAsync(evento, CancellationToken.None);
+
+        _canal.Avisos.Should().ContainSingle().Which.Texto.Should().NotContain("não entraram");
+    }
+
+    [Fact] // a lista é só da abertura por e-mail: as outras origens nem consultam o registro de entrada
+    public async Task Aviso_RecebidaOutraOrigem_NaoConsultaOsRecusados()
+    {
+        var evento = AbertaPorEmail(OrigemSolicitacao.Portal);
+        _registros.Recusados[evento.SolicitacaoId] = new AnexosRecusados([new AnexoRecusado("a.exe", MotivoRecusaAnexo.TipoNaoPermitido)]);
+
+        await Montar("entrada.acordu.app.br").TratarAsync(evento, CancellationToken.None);
+
+        _registros.Consultas.Should().Be(0);
+        _canal.Avisos.Should().ContainSingle().Which.Texto.Should().NotContain("a.exe");
+    }
+
+    private sealed class RegistrosFalsos : IEmailsRecebidos
+    {
+        public Dictionary<Guid, AnexosRecusados> Recusados { get; } = new();
+
+        public int Consultas { get; private set; }
+
+        public Task<bool> ExisteAsync(string chaveEntrada, CancellationToken cancellationToken = default) =>
+            Task.FromResult(false);
+
+        public Task<AnexosRecusados?> RecusadosDaAberturaAsync(Guid solicitacaoId, CancellationToken cancellationToken = default)
+        {
+            Consultas++;
+            return Task.FromResult(Recusados.GetValueOrDefault(solicitacaoId));
+        }
     }
 
     private sealed class ConversasFalsas : IConversasPorEmail

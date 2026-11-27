@@ -1,9 +1,11 @@
 using Acordu.Application.Abstractions;
+using Acordu.Application.Anexos;
 using Acordu.Application.Common;
 using Acordu.Application.Contratos;
 using Acordu.Application.EntradaEmail;
 using Acordu.Application.Solicitacoes;
 using Acordu.Application.UnitTests.Exemplos;
+using Acordu.Domain.Common;
 using Acordu.Domain.Entities;
 using Acordu.Domain.Enums;
 using Acordu.Domain.ValueObjects;
@@ -15,7 +17,8 @@ namespace Acordu.Application.UnitTests.EntradaEmail;
 /// e a repetição da mesma entrega não grava de novo; o automático, o laço e o filtro (F15e) dão o desfecho do descarte.
 /// F15f (F15-10 a F15-13, F15-27; design §1.2 e D4): o e-mail novo de remetente conhecido abre a solicitação de origem
 /// EMAIL, com a conversa no fio do e-mail; o não identificado e a resposta à conversa ficam só no registro até o F15h e o
-/// F15i.
+/// F15i. F15g (F15-14, F15-15; design D14 e D15): os anexos um por um, a nota do sistema dos recusados e a lista deles no
+/// registro.
 /// </summary>
 public sealed class ComandosEntradaEmailTests
 {
@@ -27,9 +30,11 @@ public sealed class ComandosEntradaEmailTests
     private readonly Repositorio<ConversaPorEmail> _conversas = new();
     private readonly ContatosEmMemoria _contatos = new();
     private readonly UnidadeFalsa _unidade = new();
+    private readonly ArmazenamentoFalso _armazenamento = new();
     private int _protocolo = 41;
 
-    private ComandosEntradaEmail Comandos(ITenantContext? contexto = null)
+    private ComandosEntradaEmail Comandos(
+        ITenantContext? contexto = null, IUnitOfWork? unidade = null, IArmazenamentoArquivos? armazenamento = null)
     {
         var calendarios = new CalendariosFixos(Empresa);
         var abertura = new AberturaPeloContato(
@@ -41,8 +46,10 @@ public sealed class ComandosEntradaEmailTests
             _repositorio,
             _contatos,
             abertura,
+            new RecebimentoAnexos(armazenamento ?? _armazenamento),
+            _interacoes,
             _conversas,
-            _unidade,
+            unidade ?? _unidade,
             new RelogioFixo(Falsos.Agora),
             OpcoesEmailEntrada.DaConfiguracao("entrada.acordu.app.br", remetenteDosAvisos: "nao-responda@send.acordu.app.br"));
     }
@@ -166,7 +173,7 @@ public sealed class ComandosEntradaEmailTests
         solicitacao.ContratoId.Should().BeNull("sem contrato vigente, sem SLA");
         solicitacao.Titulo.Should().Be("Forno parou de novo");
         solicitacao.Descricao.Should().Be("O forno parou de novo hoje cedo.");
-        _interacoes.Itens.Should().BeEmpty("sem anexos, nenhuma mensagem (os anexos são do F15g)");
+        _interacoes.Itens.Should().BeEmpty("sem anexos, nenhuma mensagem");
         var registro = _repositorio.Itens.Should().ContainSingle().Subject;
         registro.Resultado.Should().Be(ResultadoEntradaEmail.Solicitacao);
         _unidade.Gravacoes.Should().Be(1, "a solicitação, a conversa e o registro na mesma transação");
@@ -362,6 +369,231 @@ public sealed class ComandosEntradaEmailTests
         _unidade.Gravacoes.Should().Be(1);
     }
 
+    private static readonly byte[] Png = [0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A, 1, 2, 3];
+    private static readonly byte[] Pdf = "%PDF-1.7 conteudo"u8.ToArray();
+
+    private static AnexoDeEntrada Anexo(string? nome, byte[] conteudo, string tipo = "application/octet-stream") =>
+        new(nome, tipo, conteudo);
+
+    [Fact] // F15-14: dentro da política (inclusive a imagem embutida, sem nome), a primeira mensagem EXTERNA do contato
+    public async Task ReceberAsync_AnexosDentroDaPolitica_PrimeiraMensagemExternaDoContatoNoCanalEmailSemTexto()
+    {
+        var contato = ContatoConhecido();
+        var mensagem = DoContato() with
+        {
+            Anexos = [Anexo("orcamento.pdf", Pdf, "application/pdf"), Anexo(null, Png, "image/png"), Anexo("foto.png", Png)],
+        };
+
+        var desfecho = await Comandos().ReceberAsync(mensagem, Destino);
+
+        desfecho.Should().Be(DesfechoEntrada.Aberta);
+        var solicitacao = _solicitacoes.Itens.Should().ContainSingle().Subject;
+        var interacao = _interacoes.Itens.Should().ContainSingle("só a mensagem dos anexos: nada recusado, nada de nota").Subject;
+        interacao.SolicitacaoId.Should().Be(solicitacao.Id);
+        interacao.Visibilidade.Should().Be(Visibilidade.Externa);
+        interacao.AutorEhCliente.Should().BeTrue();
+        interacao.AutorId.Should().Be(contato.ContatoId, "sem conta do portal, o autor é o próprio contato");
+        interacao.Canal.Should().Be(CanalMensagem.Email);
+        interacao.Texto.Should().BeNull();
+        interacao.Anexos.Select(a => (a.NomeArquivo, a.TipoConteudo)).Should().Equal(
+            ("orcamento.pdf", TiposDeArquivo.Pdf), ("anexo-2.png", TiposDeArquivo.Png), ("foto.png", TiposDeArquivo.Png));
+        interacao.Anexos.Should().OnlyContain(a => a.ChaveArmazenamento == $"{Empresa}/{solicitacao.Id}/{a.Id}");
+        _armazenamento.Enviadas.Select(e => e.Chave).Should().Equal(interacao.Anexos.Select(a => a.ChaveArmazenamento));
+        var registro = _repositorio.Itens.Should().ContainSingle().Subject;
+        registro.SolicitacaoId.Should().Be(solicitacao.Id);
+        registro.Recusados.Should().BeNull();
+        _unidade.Gravacoes.Should().Be(1, "a solicitação, a mensagem, a conversa e o registro na mesma transação");
+    }
+
+    [Fact] // F15-15: os válidos entram, a nota do sistema lista os recusados e o registro os guarda para o aviso
+    public async Task ReceberAsync_ParteForaDaPolitica_ValidosEntramNotaDoSistemaERegistroComOsRecusados()
+    {
+        ContatoConhecido();
+        var grande = new byte[RecebimentoAnexos.Politica.TamanhoMaximoBytes + 1];
+        Png.CopyTo(grande, 0);
+        var mensagem = DoContato() with
+        {
+            Anexos =
+            [
+                Anexo("instalador.exe", [0x4D, 0x5A, 0x90, 0x00, 0x03]),
+                Anexo("video.png", grande),
+                .. Enumerable.Range(1, 6).Select(n => Anexo($"foto-{n}.png", Png)),
+            ],
+        };
+
+        await Comandos().ReceberAsync(mensagem, Destino);
+
+        var solicitacao = _solicitacoes.Itens.Should().ContainSingle("a solicitação é criada com os válidos").Subject;
+        var doContato = _interacoes.Itens.Should().ContainSingle(i => i.AutorEhCliente).Subject;
+        doContato.Anexos.Select(a => a.NomeArquivo).Should().Equal("foto-1.png", "foto-2.png", "foto-3.png", "foto-4.png", "foto-5.png");
+        var nota = _interacoes.Itens.Should().ContainSingle(i => !i.AutorEhCliente).Subject;
+        nota.SolicitacaoId.Should().Be(solicitacao.Id);
+        nota.Visibilidade.Should().Be(Visibilidade.Interna);
+        nota.AutorId.Should().Be(AutoresDoSistema.EntradaEmail);
+        nota.Canal.Should().Be(CanalMensagem.Email);
+        nota.Anexos.Should().BeEmpty();
+        nota.Texto.Should().Be(
+            """
+            Anexos do e-mail que não entraram na solicitação:
+            - instalador.exe: tipo de arquivo não permitido
+            - video.png: maior que 20 MB
+            - foto-6.png: além do limite de 5 anexos por e-mail
+            """.ReplaceLineEndings("\n"));
+        nota.Eventos.Should().BeEmpty("a nota do sistema não gera aviso, feed nem seguimento");
+        var registro = _repositorio.Itens.Should().ContainSingle().Subject;
+        registro.SolicitacaoId.Should().Be(solicitacao.Id);
+        registro.Recusados!.Itens.Should().Equal(
+            new AnexoRecusado("instalador.exe", MotivoRecusaAnexo.TipoNaoPermitido),
+            new AnexoRecusado("video.png", MotivoRecusaAnexo.GrandeDemais),
+            new AnexoRecusado("foto-6.png", MotivoRecusaAnexo.AlemDoLimite));
+        _armazenamento.Enviadas.Should().HaveCount(5, "só os válidos sobem ao storage");
+    }
+
+    [Fact] // F15-15: todos recusados, a solicitação nasce sem a mensagem do contato, só com a nota
+    public async Task ReceberAsync_TodosRecusados_SemMensagemDoContatoSoANota()
+    {
+        ContatoConhecido();
+        var mensagem = DoContato() with { Anexos = [Anexo("conversa.eml", "From: a@b.c\r\n\r\noi"u8.ToArray(), "message/rfc822")] };
+
+        var desfecho = await Comandos().ReceberAsync(mensagem, Destino);
+
+        desfecho.Should().Be(DesfechoEntrada.Aberta);
+        _solicitacoes.Itens.Should().ContainSingle();
+        _interacoes.Itens.Should().ContainSingle().Which.AutorId.Should().Be(AutoresDoSistema.EntradaEmail);
+        _armazenamento.Enviadas.Should().BeEmpty();
+    }
+
+    [Fact] // como no portal: a gravação que falha tira do storage o que já subiu
+    public async Task ReceberAsync_GravacaoFalha_DescartaOsAnexosEnviados()
+    {
+        ContatoConhecido();
+        var mensagem = DoContato() with { Anexos = [Anexo("foto.png", Png), Anexo("orcamento.pdf", Pdf)] };
+
+        var receber = () => Comandos(unidade: new UnidadeQueFalha()).ReceberAsync(mensagem, Destino);
+
+        await receber.Should().ThrowAsync<InvalidOperationException>();
+        _armazenamento.Removidas.Should().BeEquivalentTo(_armazenamento.Enviadas.Select(e => e.Chave));
+        _armazenamento.Removidas.Should().HaveCount(2);
+    }
+
+    [Fact] // os anexos só sobem quando o e-mail abre a solicitação (o não identificado é da triagem, F15h)
+    public async Task ReceberAsync_RemetenteNaoIdentificadoComAnexos_NadaSobeAoStorage()
+    {
+        var mensagem = DoContato() with { Anexos = [Anexo("foto.png", Png)] };
+
+        var desfecho = await Comandos().ReceberAsync(mensagem, Destino);
+
+        desfecho.Should().Be(DesfechoEntrada.Registrada);
+        _armazenamento.Enviadas.Should().BeEmpty();
+        _repositorio.Itens.Should().ContainSingle().Which.Recusados.Should().BeNull();
+    }
+
+    [Fact] // F15-97 com anexos: a repetição não sobe de novo nem repete a nota
+    public async Task ReceberAsync_MesmoEmailComAnexosRecusadosDuasVezes_NadaDuplica()
+    {
+        ContatoConhecido();
+        var mensagem = DoContato() with { Anexos = [Anexo("foto.png", Png), Anexo("programa.exe", [0x4D, 0x5A, 0x90, 0x00])] };
+        await Comandos().ReceberAsync(mensagem, Destino);
+
+        var desfecho = await Comandos().ReceberAsync(mensagem, Destino);
+
+        desfecho.Should().Be(DesfechoEntrada.Repetida);
+        _armazenamento.Enviadas.Should().ContainSingle("o anexo válido sobe uma vez só");
+        _interacoes.Itens.Should().HaveCount(2, "a mensagem dos anexos e uma nota, sem repetir");
+        _repositorio.Itens.Should().ContainSingle();
+        _unidade.Gravacoes.Should().Be(1);
+    }
+
+    [Fact] // o descartado (automático) não sobe anexo nenhum nem cria nota
+    public async Task ReceberAsync_AutomaticoComAnexos_NadaSobeNemViraNota()
+    {
+        ContatoConhecido();
+        var mensagem = DoContato() with
+        {
+            Sinais = new SinaisDeAutomatico(AutoSubmitted: "auto-replied"),
+            Anexos = [Anexo("foto.png", Png), Anexo("programa.exe", [0x4D, 0x5A, 0x90, 0x00])],
+        };
+
+        var desfecho = await Comandos().ReceberAsync(mensagem, Destino);
+
+        desfecho.Should().Be(DesfechoEntrada.Automatica);
+        _armazenamento.Enviadas.Should().BeEmpty();
+        _interacoes.Itens.Should().BeEmpty();
+        _repositorio.Itens.Should().ContainSingle().Which.Recusados.Should().BeNull();
+    }
+
+    [Fact] // falha no meio do envio ao storage: o que já subiu sai, e nada é gravado
+    public async Task ReceberAsync_StorageFalhaNoMeio_DescartaOsJaEnviadosENadaGrava()
+    {
+        ContatoConhecido();
+        var storage = new ArmazenamentoQueFalhaNoTerceiro();
+        var mensagem = DoContato() with { Anexos = [Anexo("a.png", Png), Anexo("b.png", Png), Anexo("c.png", Png)] };
+
+        var receber = () => Comandos(armazenamento: storage).ReceberAsync(mensagem, Destino);
+
+        await receber.Should().ThrowAsync<IOException>();
+        storage.Ficaram.Should().BeEmpty("nenhum objeto órfão no storage");
+        _solicitacoes.Itens.Should().BeEmpty();
+        _interacoes.Itens.Should().BeEmpty();
+        _repositorio.Itens.Should().BeEmpty();
+        _unidade.Gravacoes.Should().Be(0);
+    }
+
+    [Fact] // muitos recusados: a nota lista 20 e conta o resto; o registro guarda todos para o aviso
+    public async Task ReceberAsync_MuitosRecusados_NotaComOTetoERegistroComTodos()
+    {
+        ContatoConhecido();
+        var mensagem = DoContato() with
+        {
+            Anexos = [.. Enumerable.Range(1, 30).Select(n => Anexo($"{n}.exe", [0x4D, 0x5A, 0x90, 0x00]))],
+        };
+
+        await Comandos().ReceberAsync(mensagem, Destino);
+
+        var nota = _interacoes.Itens.Should().ContainSingle().Subject;
+        nota.Texto.Should().Contain("- 20.exe").And.NotContain("- 21.exe").And.EndWith("- e mais 10 arquivos");
+        _repositorio.Itens.Should().ContainSingle().Which.Recusados!.Itens.Should().HaveCount(30);
+    }
+
+    [Fact] // D15 e RNF-SEG-03: a nota do sistema é INTERNA, sem anexos e sem evento, em qualquer combinação
+    public async Task ReceberAsync_NotaDoSistema_InternaSemEventoDeAviso()
+    {
+        ContatoConhecido();
+        var mensagem = DoContato() with { Anexos = [Anexo("foto.png", Png), Anexo("programa.exe", [0x4D, 0x5A, 0x90, 0x00])] };
+
+        await Comandos().ReceberAsync(mensagem, Destino);
+
+        var nota = _interacoes.Itens.Should().ContainSingle(i => AutoresDoSistema.Eh(i.AutorId)).Subject;
+        nota.Visibilidade.Should().Be(Visibilidade.Interna);
+        nota.Eventos.Should().BeEmpty();
+        _interacoes.Itens.Where(i => !AutoresDoSistema.Eh(i.AutorId)).Should().OnlyContain(i => i.Visibilidade == Visibilidade.Externa);
+    }
+
+    /// <summary>Storage cujo terceiro envio falha; guarda o que ficou (enviado e não removido).</summary>
+    private sealed class ArmazenamentoQueFalhaNoTerceiro : IArmazenamentoArquivos
+    {
+        private readonly HashSet<string> _objetos = [];
+        private int _envios;
+
+        public IReadOnlyCollection<string> Ficaram => _objetos;
+
+        public Task EnviarAsync(string chave, Stream conteudo, long tamanhoBytes, string tipoConteudo, CancellationToken cancellationToken = default)
+        {
+            if (++_envios == 3)
+                throw new IOException("storage fora do ar");
+            _objetos.Add(chave);
+            return Task.CompletedTask;
+        }
+
+        public Task RemoverAsync(string chave, CancellationToken cancellationToken = default)
+        {
+            _objetos.Remove(chave);
+            return Task.CompletedTask;
+        }
+
+        public Uri UrlDeDownload(string chave, string nomeArquivo, string tipoConteudo, TimeSpan validade) => new("https://exemplo.invalid/");
+    }
+
     /// <summary>Contexto sem empresa (escopo que ninguém definiu).</summary>
     private sealed class SemTenant : ITenantContext
     {
@@ -427,5 +659,15 @@ public sealed class ComandosEntradaEmailTests
     {
         public Task<bool> ExisteAsync(string chaveEntrada, CancellationToken cancellationToken = default) =>
             Task.FromResult(repositorio.Itens.Exists(e => e.ChaveEntrada == chaveEntrada));
+
+        public Task<AnexosRecusados?> RecusadosDaAberturaAsync(Guid solicitacaoId, CancellationToken cancellationToken = default) =>
+            Task.FromResult(repositorio.Itens.Find(e => e.SolicitacaoId == solicitacaoId)?.Recusados);
+    }
+
+    /// <summary>A gravação que falha, como a corrida de duas entregas iguais no índice do registro.</summary>
+    private sealed class UnidadeQueFalha : IUnitOfWork
+    {
+        public Task SalvarAsync(CancellationToken cancellationToken = default) =>
+            throw new InvalidOperationException("índice único");
     }
 }

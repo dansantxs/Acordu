@@ -3,7 +3,7 @@ namespace Acordu.Application.EntradaEmail;
 /// <summary>
 /// O que a entrada usa de um e-mail recebido, já lido do MIME pela Infrastructure (design do F15, D1 e D14), mais o que o
 /// adaptador do provedor manda à parte (envelope e vereditos do filtro e da autenticidade, D11): a identificação, os sinais
-/// dos descartes (F15d, F15e) e o assunto e o texto da abertura (F15f); os PRs dos anexos, da resposta e da triagem
+/// dos descartes (F15d, F15e), o assunto e o texto da abertura (F15f) e os anexos (F15g); os PRs da resposta e da triagem
 /// acrescentam o resto. Nada daqui vai ao log (convenções §5).
 /// </summary>
 /// <param name="MessageId">O <c>Message-ID</c>, sem os sinais de menor e maior; nulo quando o e-mail não traz.</param>
@@ -23,6 +23,10 @@ namespace Acordu.Application.EntradaEmail;
 /// O veredito de autenticidade do adaptador (<c>X-Email-Autenticidade</c>: <c>pass</c>, <c>fail</c>, <c>none</c>; D11); só
 /// <c>pass</c> deixa o remetente ser conhecido (F15-26, F15-27). Nulo sem o cabeçalho.
 /// </param>
+/// <param name="Anexos">
+/// As partes que não são o corpo em texto, na ordem do MIME (D14): anexos, imagens embutidas, mensagens anexadas; nulo ou
+/// vazio sem elas. Validadas uma por uma na abertura (<see cref="AnexosDaEntrada"/>; F15-14, F15-15).
+/// </param>
 public sealed record MensagemDeEntrada(
     string? MessageId,
     IReadOnlyList<string> Remetentes,
@@ -32,7 +36,8 @@ public sealed record MensagemDeEntrada(
     string? Filtro = null,
     string? Assunto = null,
     string? Texto = null,
-    string? Autenticidade = null);
+    string? Autenticidade = null,
+    IReadOnlyList<AnexoDeEntrada>? Anexos = null);
 
 /// <summary>
 /// Os cabeçalhos do e-mail que a lista do design (D12) usa para reconhecer o e-mail automático, como vieram (aparados).

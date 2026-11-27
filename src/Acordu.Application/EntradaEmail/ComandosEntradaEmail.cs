@@ -1,7 +1,10 @@
 using Acordu.Application.Abstractions;
+using Acordu.Application.Anexos;
 using Acordu.Application.Solicitacoes;
+using Acordu.Domain.Common;
 using Acordu.Domain.Entities;
 using Acordu.Domain.Enums;
+using Acordu.Domain.ValueObjects;
 
 namespace Acordu.Application.EntradaEmail;
 
@@ -15,8 +18,10 @@ namespace Acordu.Application.EntradaEmail;
 /// O e-mail novo (ao endereço da empresa, sem token) de remetente conhecido (<see cref="IdentificacaoDoRemetente"/>) abre
 /// a solicitação (F15-10 a F15-13, F15-27): origem EMAIL, o cliente e o contato do remetente, prioridade MÉDIA, sem
 /// responsável, com o contrato como no portal (<see cref="AberturaPeloContato"/>), e a <see cref="ConversaPorEmail"/> com o
-/// <c>Message-ID</c> e o assunto do e-mail, para os avisos seguirem no fio dele (D4, D9). Os avisos saem pelos manipuladores
-/// de sempre, depois do commit (F15-16 a F15-18). Entre um PR e outro (design §3), o remetente não identificado (a
+/// <c>Message-ID</c> e o assunto do e-mail, para os avisos seguirem no fio dele (D4, D9). Os anexos passam pela política um
+/// por um (<see cref="AnexosDaEntrada"/>; D14): os válidos viram a primeira mensagem EXTERNA do contato, no canal E-mail
+/// (F15-14), e os recusados, uma nota do sistema (D15) e a lista guardada no registro, que o aviso de recebida lê (F15-15).
+/// Os avisos saem pelos manipuladores de sempre, depois do commit (F15-16 a F15-18). Entre um PR e outro (design §3), o remetente não identificado (a
 /// triagem, F15h) e a resposta ao endereço da conversa (F15i) ficam só no registro, como
 /// <see cref="ResultadoEntradaEmail.Ignorado"/>.
 /// </para>
@@ -28,6 +33,8 @@ public sealed class ComandosEntradaEmail
     private readonly IRepositorio<EmailRecebido> _repositorio;
     private readonly IContatosDeEntrada _contatos;
     private readonly AberturaPeloContato _abertura;
+    private readonly RecebimentoAnexos _anexos;
+    private readonly IRepositorio<Interacao> _interacoes;
     private readonly IRepositorio<ConversaPorEmail> _conversas;
     private readonly IUnitOfWork _unidade;
     private readonly TimeProvider _relogio;
@@ -39,6 +46,8 @@ public sealed class ComandosEntradaEmail
         IRepositorio<EmailRecebido> repositorio,
         IContatosDeEntrada contatos,
         AberturaPeloContato abertura,
+        RecebimentoAnexos anexos,
+        IRepositorio<Interacao> interacoes,
         IRepositorio<ConversaPorEmail> conversas,
         IUnitOfWork unidade,
         TimeProvider relogio,
@@ -49,6 +58,8 @@ public sealed class ComandosEntradaEmail
         ArgumentNullException.ThrowIfNull(repositorio);
         ArgumentNullException.ThrowIfNull(contatos);
         ArgumentNullException.ThrowIfNull(abertura);
+        ArgumentNullException.ThrowIfNull(anexos);
+        ArgumentNullException.ThrowIfNull(interacoes);
         ArgumentNullException.ThrowIfNull(conversas);
         ArgumentNullException.ThrowIfNull(unidade);
         ArgumentNullException.ThrowIfNull(relogio);
@@ -58,6 +69,8 @@ public sealed class ComandosEntradaEmail
         _repositorio = repositorio;
         _contatos = contatos;
         _abertura = abertura;
+        _anexos = anexos;
+        _interacoes = interacoes;
         _conversas = conversas;
         _unidade = unidade;
         _relogio = relogio;
@@ -82,19 +95,37 @@ public sealed class ComandosEntradaEmail
 
         // Automático, laço e filtro (D12: depois da empresa, antes do limite e da identificação): descarte registrado.
         if (DescarteDeEntrada.Avaliar(mensagem, _opcoes) is { } descarte)
-            return await RegistrarAsync(tenantId, chave, mensagem, ResultadoEntradaEmail.Ignorado, descarte, cancellationToken);
+        {
+            return await RegistrarAsync(
+                tenantId, chave, mensagem, ResultadoEntradaEmail.Ignorado, descarte, null, null, cancellationToken);
+        }
 
         // A resposta ao endereço da conversa entra no F15i, e o remetente não identificado vai à triagem no F15h (design
         // §3): até lá, só o registro.
         if (destino.Token is not null || await IdentificarAsync(mensagem, cancellationToken) is not { } contato)
         {
             return await RegistrarAsync(
-                tenantId, chave, mensagem, ResultadoEntradaEmail.Ignorado, DesfechoEntrada.Registrada, cancellationToken);
+                tenantId, chave, mensagem, ResultadoEntradaEmail.Ignorado, DesfechoEntrada.Registrada, null, null,
+                cancellationToken);
         }
 
-        await AbrirAsync(tenantId, mensagem, contato, cancellationToken);
-        return await RegistrarAsync(
-            tenantId, chave, mensagem, ResultadoEntradaEmail.Solicitacao, DesfechoEntrada.Aberta, cancellationToken);
+        // Os válidos sobem ao storage antes do commit, com a chave da solicitação, como no portal; se a gravação falhar
+        // (inclusive a corrida de duas entregas iguais no índice do registro), saem de novo.
+        var solicitacaoId = Guid.CreateVersion7();
+        var separacao = AnexosDaEntrada.Separar(mensagem.Anexos, RecebimentoAnexos.Politica);
+        var enviados = await _anexos.EnviarAsync(tenantId, solicitacaoId, separacao.Validos, cancellationToken);
+        try
+        {
+            await AbrirAsync(tenantId, solicitacaoId, mensagem, contato, enviados, separacao.Recusados, cancellationToken);
+            return await RegistrarAsync(
+                tenantId, chave, mensagem, ResultadoEntradaEmail.Solicitacao, DesfechoEntrada.Aberta, solicitacaoId,
+                separacao.Recusados, cancellationToken);
+        }
+        catch
+        {
+            await _anexos.DescartarAsync(enviados);
+            throw;
+        }
     }
 
     /// <summary>
@@ -113,11 +144,18 @@ public sealed class ComandosEntradaEmail
         return IdentificacaoDoRemetente.Escolher(await _contatos.PorEmailAsync(email, cancellationToken));
     }
 
-    private async Task AbrirAsync(Guid tenantId, MensagemDeEntrada mensagem, ContatoDeEntrada contato, CancellationToken cancellationToken)
+    private async Task AbrirAsync(
+        Guid tenantId,
+        Guid solicitacaoId,
+        MensagemDeEntrada mensagem,
+        ContatoDeEntrada contato,
+        IReadOnlyList<NovoAnexo> anexos,
+        AnexosRecusados? recusados,
+        CancellationToken cancellationToken)
     {
         var solicitacao = await _abertura.AbrirAsync(
             new AberturaDoContato(
-                Guid.CreateVersion7(),
+                solicitacaoId,
                 tenantId,
                 contato.ClienteId,
                 contato.ContatoId,
@@ -128,12 +166,21 @@ public sealed class ComandosEntradaEmail
                 Prioridade.Media,
                 OrigemSolicitacao.Email,
                 CanalMensagem.Email,
-                []),
+                anexos),
             cancellationToken);
+        var agora = _relogio.GetUtcNow();
+
+        // Os recusados, para a equipe (D15): nota INTERNA do autor do sistema, no canal da entrada; nunca no portal nem em
+        // aviso (F15-98). O contato fica sabendo pelo aviso de recebida, que lê a lista do registro (F15-15).
+        if (recusados is not null)
+        {
+            _interacoes.Adicionar(Interacao.RegistrarNotaDoSistema(
+                Guid.CreateVersion7(), tenantId, contato.ClienteId, solicitacao.Id, AutoresDoSistema.EntradaEmail,
+                AnexosDaEntrada.TextoDaNota(recusados, RecebimentoAnexos.Politica), CanalMensagem.Email, agora));
+        }
 
         // O fio dos avisos (D4): o Message-ID e o assunto do e-mail que abriu. Sem Message-ID (ou com um maior que uma linha
         // de cabeçalho), não há a que responder: a conversa nasce sem o fio, e os avisos saem com os assuntos de sempre.
-        var agora = _relogio.GetUtcNow();
         _conversas.Adicionar(mensagem.MessageId is { Length: <= ConversaPorEmail.TamanhoCabecalho } messageId
             ? ConversaPorEmail.DaAberturaPorEmail(
                 Guid.CreateVersion7(), tenantId, contato.ClienteId, solicitacao.Id, messageId,
@@ -142,7 +189,13 @@ public sealed class ComandosEntradaEmail
     }
 
     private async Task<DesfechoEntrada> RegistrarAsync(
-        Guid tenantId, string chave, MensagemDeEntrada mensagem, ResultadoEntradaEmail resultado, DesfechoEntrada desfecho,
+        Guid tenantId,
+        string chave,
+        MensagemDeEntrada mensagem,
+        ResultadoEntradaEmail resultado,
+        DesfechoEntrada desfecho,
+        Guid? solicitacaoId,
+        AnexosRecusados? recusados,
         CancellationToken cancellationToken)
     {
         _repositorio.Adicionar(EmailRecebido.Registrar(
@@ -151,7 +204,9 @@ public sealed class ComandosEntradaEmail
             chave,
             ChaveDeEntrada.DoRemetente(mensagem.Remetentes),
             resultado,
-            _relogio.GetUtcNow()));
+            _relogio.GetUtcNow(),
+            solicitacaoId,
+            recusados));
         await _unidade.SalvarAsync(cancellationToken);
         return desfecho;
     }

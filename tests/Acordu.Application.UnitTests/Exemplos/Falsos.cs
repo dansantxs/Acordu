@@ -154,13 +154,19 @@ internal sealed class UnidadeFalsa : IUnitOfWork
     }
 }
 
-/// <summary>Storage que registra o que foi removido e pode falhar em tudo.</summary>
+/// <summary>Storage que registra o que foi enviado e removido e pode falhar na remoção.</summary>
 internal sealed class ArmazenamentoFalso(bool falhar = false) : IArmazenamentoArquivos
 {
     public List<string> Removidas { get; } = [];
 
-    public Task EnviarAsync(string chave, Stream conteudo, long tamanhoBytes, string tipoConteudo, CancellationToken cancellationToken = default) =>
-        Task.CompletedTask;
+    /// <summary>As chaves enviadas, com o tipo, na ordem.</summary>
+    public List<(string Chave, string Tipo)> Enviadas { get; } = [];
+
+    public Task EnviarAsync(string chave, Stream conteudo, long tamanhoBytes, string tipoConteudo, CancellationToken cancellationToken = default)
+    {
+        Enviadas.Add((chave, tipoConteudo));
+        return Task.CompletedTask;
+    }
 
     public Task RemoverAsync(string chave, CancellationToken cancellationToken = default)
     {
