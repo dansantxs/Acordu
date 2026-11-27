@@ -293,6 +293,9 @@ public sealed class AvisosAoContatoConversaTests
 
         public Task<ConversaPorEmail?> DaSolicitacaoAsync(Guid solicitacaoId, CancellationToken cancellationToken = default) =>
             Task.FromResult(Existentes.Concat(Gravadas).FirstOrDefault(c => c.SolicitacaoId == solicitacaoId));
+
+        public Task<ConversaPorEmail?> PorTokenAsync(string token, CancellationToken cancellationToken = default) =>
+            Task.FromResult(Existentes.Concat(Gravadas).FirstOrDefault(c => c.Token == token));
     }
 
     private sealed class UnidadeFalsa : IUnitOfWork

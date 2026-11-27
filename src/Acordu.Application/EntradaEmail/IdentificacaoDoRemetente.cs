@@ -51,6 +51,21 @@ public static class IdentificacaoDoRemetente
     }
 
     /// <summary>
+    /// Quem responde ao endereço da conversa de uma solicitação (F15-30, F15i): o próprio contato dela, ativo, de cliente
+    /// ativo, entre os <paramref name="candidatos"/> (os contatos da empresa com o e-mail do remetente), num e-mail que
+    /// passou na conferência de autenticidade; senão nulo. O colega do mesmo cliente (F15-38) e quem não é contato do
+    /// cliente (F15-39) são do F15j.
+    /// </summary>
+    public static ContatoDeEntrada? DaSolicitacao(
+        bool autenticidadeOk, IReadOnlyList<ContatoDeEntrada> candidatos, Guid clienteId, Guid? contatoId)
+    {
+        ArgumentNullException.ThrowIfNull(candidatos);
+        if (!autenticidadeOk || contatoId is not { } contato)
+            return null;
+        return candidatos.FirstOrDefault(c => c.ContatoId == contato && c.ClienteId == clienteId && c.ContatoAtivo && c.ClienteAtivo);
+    }
+
+    /// <summary>
     /// O contato do remetente conhecido ou, sem ele, o motivo da triagem (D10; F15-20, F15-24 a F15-26), nesta ordem:
     /// <list type="number">
     /// <item>nenhum contato com o e-mail (ou o <c>From</c> sem um endereço só: quem chama passa a lista vazia) é
