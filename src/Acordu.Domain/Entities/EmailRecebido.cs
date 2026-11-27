@@ -8,7 +8,8 @@ namespace Acordu.Domain.Entities;
 /// <summary>
 /// Registro de entrada de um e-mail aceito para uma empresa (RF-SOL-11; design do F15, D6; ADR 0016, item 8), sem o
 /// conteúdo: a chave de idempotência (<see cref="ChaveEntrada"/>, única na empresa), o hash do remetente, o instante da
-/// recepção e o <see cref="Resultado"/>; da abertura, a solicitação e os anexos recusados (F15g); da triagem, o item (F15h). Serve à idempotência (a repetição da mesma entrega esbarra no índice único) e às
+/// recepção e o <see cref="Resultado"/>; da abertura, a solicitação e os anexos recusados (F15g); da triagem, o item (F15h);
+/// da resposta na conversa, a solicitação (F15i, a base da contagem por solicitação do F15n). Serve à idempotência (a repetição da mesma entrega esbarra no índice único) e às
 /// contagens dos limites (F15n). Nada do assunto, do texto nem dos endereços em claro. Retenção curta, apagada pelo
 /// diário (F15e). Raiz por tenant, sem cliente: o remetente pode nem ser contato.
 /// </summary>
@@ -42,7 +43,10 @@ public sealed class EmailRecebido : EntidadeBase
 
     public ResultadoEntradaEmail Resultado { get; private set; }
 
-    /// <summary>A solicitação que o e-mail abriu (resultado SOLICITACAO); nula nos outros.</summary>
+    /// <summary>
+    /// A solicitação que o e-mail abriu (resultado SOLICITACAO) ou em cuja conversa a resposta entrou (resultado MENSAGEM,
+    /// F15i); nula nos outros.
+    /// </summary>
     public Guid? SolicitacaoId { get; private set; }
 
     /// <summary>
@@ -54,7 +58,7 @@ public sealed class EmailRecebido : EntidadeBase
     /// <summary>O item que o e-mail criou na triagem (resultado TRIAGEM, F15h); nulo nos outros.</summary>
     public Guid? ItemTriagemId { get; private set; }
 
-    /// <param name="solicitacaoId">Obrigatório com o resultado SOLICITACAO e proibido nos outros.</param>
+    /// <param name="solicitacaoId">Obrigatório com os resultados SOLICITACAO e MENSAGEM e proibido nos outros.</param>
     /// <param name="recusados">Só com uma solicitação aberta (os outros resultados não guardam anexos aqui).</param>
     /// <param name="itemTriagemId">Obrigatório com o resultado TRIAGEM e proibido nos outros.</param>
     public static EmailRecebido Registrar(
@@ -70,8 +74,8 @@ public sealed class EmailRecebido : EntidadeBase
     {
         if (!Enum.IsDefined(resultado))
             throw new ArgumentOutOfRangeException(nameof(resultado), resultado, "Resultado desconhecido.");
-        if ((resultado == ResultadoEntradaEmail.Solicitacao) != solicitacaoId.HasValue)
-            throw new ArgumentException("A solicitação acompanha só o resultado SOLICITACAO.", nameof(solicitacaoId));
+        if ((resultado is ResultadoEntradaEmail.Solicitacao or ResultadoEntradaEmail.Mensagem) != solicitacaoId.HasValue)
+            throw new ArgumentException("A solicitação acompanha só os resultados SOLICITACAO e MENSAGEM.", nameof(solicitacaoId));
         if (recusados is not null && resultado != ResultadoEntradaEmail.Solicitacao)
             throw new ArgumentException("Os anexos recusados acompanham só a abertura.", nameof(recusados));
         if ((resultado == ResultadoEntradaEmail.Triagem) != itemTriagemId.HasValue)

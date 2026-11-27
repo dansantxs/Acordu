@@ -1,4 +1,5 @@
 using Acordu.Application.EntradaEmail;
+using Acordu.Domain.Common;
 
 namespace Acordu.Application.UnitTests.EntradaEmail;
 
@@ -81,5 +82,20 @@ public sealed class ConteudoDaAberturaTests
     {
         ConteudoDaAbertura.AssuntoOriginal("  RE: Forno\r\n parou ").Should().Be("RE: Forno parou");
         ConteudoDaAbertura.AssuntoOriginal(null).Should().BeEmpty();
+    }
+
+    [Fact] // F15-30: o texto da resposta tem a limpeza da descrição e o limite da mensagem
+    public void TextoDaResposta_QuebrasNuloELongo_NormalizadoECortadoNoLimiteDaMensagem()
+    {
+        ConteudoDaAbertura.TextoDaResposta("Liguei\r\nde novo\0.\r\n").Should().Be("Liguei\nde novo.");
+        ConteudoDaAbertura.TextoDaResposta(new string('x', 12_000)).Should().HaveLength(LimitesTexto.TextoInteracao);
+    }
+
+    [Theory] // corpo vazio: a resposta fica sem texto
+    [InlineData(null)]
+    [InlineData(" \r\n ")]
+    public void TextoDaResposta_CorpoVazio_Nulo(string? texto)
+    {
+        ConteudoDaAbertura.TextoDaResposta(texto).Should().BeNull();
     }
 }

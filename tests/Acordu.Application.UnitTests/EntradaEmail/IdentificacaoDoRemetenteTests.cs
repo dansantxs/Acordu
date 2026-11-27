@@ -174,4 +174,42 @@ public sealed class IdentificacaoDoRemetenteTests
     {
         IdentificacaoDoRemetente.EmailDoRemetente([remetente]).Should().BeNull();
     }
+
+    [Fact] // F15-30 (F15i): quem responde à conversa é o contato da solicitação, ativo, de cliente ativo, autenticado
+    public void DaSolicitacao_OContatoDaSolicitacaoAutenticado_OContato()
+    {
+        var contato = Contato();
+        var deOutroCliente = new ContatoDeEntrada(Guid.NewGuid(), Guid.NewGuid(), null, true, true);
+
+        IdentificacaoDoRemetente.DaSolicitacao(true, [deOutroCliente, contato], contato.ClienteId, contato.ContatoId)
+            .Should().Be(contato);
+    }
+
+    [Fact] // até o F15j, o colega do mesmo cliente não é quem responde (F15-38 é do F15j)
+    public void DaSolicitacao_ColegaDoMesmoCliente_Nulo()
+    {
+        var contato = Contato();
+        var colega = contato with { ContatoId = Guid.NewGuid() };
+
+        IdentificacaoDoRemetente.DaSolicitacao(true, [colega], contato.ClienteId, contato.ContatoId).Should().BeNull();
+    }
+
+    [Theory] // D11 e RF-CLI-02: sem autenticidade, ou com o contato ou o cliente inativos, ninguém responde
+    [InlineData(false, true, true)]
+    [InlineData(true, false, true)]
+    [InlineData(true, true, false)]
+    public void DaSolicitacao_SemAutenticidadeOuInativo_Nulo(bool autenticidadeOk, bool clienteAtivo, bool contatoAtivo)
+    {
+        var contato = Contato(clienteAtivo, contatoAtivo);
+
+        IdentificacaoDoRemetente.DaSolicitacao(autenticidadeOk, [contato], contato.ClienteId, contato.ContatoId).Should().BeNull();
+    }
+
+    [Fact] // solicitação sem contato: não há de quem seja a resposta
+    public void DaSolicitacao_SolicitacaoSemContato_Nulo()
+    {
+        var contato = Contato();
+
+        IdentificacaoDoRemetente.DaSolicitacao(true, [contato], contato.ClienteId, null).Should().BeNull();
+    }
 }

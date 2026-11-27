@@ -406,6 +406,44 @@ public sealed class EntradaEmailTests(BancoFixture banco)
         (await new EmailsRecebidos(leitura).RecusadosDaAberturaAsync(solicitacao)).Should().BeNull();
     }
 
+    [Fact] // F15i (design D6): a resposta na conversa aponta a solicitação, mas os recusados lidos pelo aviso são só os da abertura
+    public async Task RecusadosDaAberturaAsync_SoARespostaNaConversa_Nulo()
+    {
+        var a = await EmpresaAsync();
+        var solicitacao = Guid.NewGuid();
+        await using (var db = banco.DaEquipe(a.Id))
+        {
+            db.Add(EmailRecebido.Registrar(
+                Guid.NewGuid(), a.Id, NovaChave(), null, ResultadoEntradaEmail.Mensagem, Dados.Agora, solicitacao));
+            await db.SaveChangesAsync();
+        }
+
+        await using var leitura = banco.DaEquipe(a.Id);
+        (await leitura.EmailsRecebidos.AsNoTracking().SingleAsync()).SolicitacaoId.Should().Be(solicitacao);
+        (await new EmailsRecebidos(leitura).RecusadosDaAberturaAsync(solicitacao)).Should().BeNull();
+    }
+
+    [Fact] // F15-40 (design D3): o token é procurado só na empresa do contexto; o de outra empresa não é achado
+    public async Task ConversasPorEmail_PorToken_SoNaEmpresaDoContexto()
+    {
+        var a = await EmpresaAsync();
+        var b = await EmpresaAsync();
+        var cliente = Dados.Cliente(a.Id);
+        var solicitacao = Dados.Solicitacao(a.Id, cliente.Id);
+        var conversa = Dados.Conversa(a.Id, cliente.Id, solicitacao.Id);
+        await using (var db = banco.DaEquipe(a.Id))
+        {
+            db.AddRange(cliente, solicitacao, conversa);
+            await db.SaveChangesAsync();
+        }
+
+        await using var emA = banco.DaEquipe(a.Id);
+        (await new ConversasPorEmail(emA).PorTokenAsync(conversa.Token))!.SolicitacaoId.Should().Be(solicitacao.Id);
+        (await new ConversasPorEmail(emA).PorTokenAsync(ConversaPorEmail.SortearToken())).Should().BeNull();
+        await using var emB = banco.DaEquipe(b.Id);
+        (await new ConversasPorEmail(emB).PorTokenAsync(conversa.Token)).Should().BeNull("o token de A não vale em B");
+    }
+
     private static byte[] ComPartes(string corpo) => Encoding.UTF8.GetBytes(
         "From: Ana <ana@cliente.com.br>\r\n"
         + "To: k7m2qd9w@entrada.acordu.app.br\r\n"

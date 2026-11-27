@@ -9,13 +9,16 @@ public enum ResultadoEntradaEmail
     /// <summary>Abriu uma solicitação (F15f).</summary>
     Solicitacao = 1,
 
-    /// <summary>Entrou como mensagem numa conversa (F15i).</summary>
+    /// <summary>Entrou como mensagem na conversa de uma solicitação (F15i), com a solicitação no registro.</summary>
     Mensagem = 2,
 
     /// <summary>Foi à triagem (F15h).</summary>
     Triagem = 3,
 
-    /// <summary>Ignorado de propósito: automático, laço, filtro ou, até o F15f, todo e-mail aceito (design §3).</summary>
+    /// <summary>
+    /// Ignorado de propósito: automático, laço e filtro; e, até o F15j, a resposta à conversa que ele ainda vai tratar
+    /// (design §3).
+    /// </summary>
     Ignorado = 4,
 
     /// <summary>Acima de um limite (F15n): não cria nada.</summary>

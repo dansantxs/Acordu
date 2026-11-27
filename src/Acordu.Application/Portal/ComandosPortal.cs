@@ -20,8 +20,8 @@ public sealed class ComandosPortal
     private readonly IPortalAtual _portal;
     private readonly IRepositorio<Solicitacao> _solicitacoes;
     private readonly IRepositorio<Cliente> _clientes;
-    private readonly IRepositorio<Interacao> _interacoes;
     private readonly AberturaPeloContato _abertura;
+    private readonly RespostaPeloContato _resposta;
     private readonly ICalendarios _calendarios;
     private readonly RelogioDoTenant _relogio;
     private readonly IUnitOfWork _unidade;
@@ -32,8 +32,8 @@ public sealed class ComandosPortal
         IPortalAtual portal,
         IRepositorio<Solicitacao> solicitacoes,
         IRepositorio<Cliente> clientes,
-        IRepositorio<Interacao> interacoes,
         AberturaPeloContato abertura,
+        RespostaPeloContato resposta,
         ICalendarios calendarios,
         RelogioDoTenant relogio,
         IUnitOfWork unidade,
@@ -43,8 +43,8 @@ public sealed class ComandosPortal
         ArgumentNullException.ThrowIfNull(portal);
         ArgumentNullException.ThrowIfNull(solicitacoes);
         ArgumentNullException.ThrowIfNull(clientes);
-        ArgumentNullException.ThrowIfNull(interacoes);
         ArgumentNullException.ThrowIfNull(abertura);
+        ArgumentNullException.ThrowIfNull(resposta);
         ArgumentNullException.ThrowIfNull(calendarios);
         ArgumentNullException.ThrowIfNull(relogio);
         ArgumentNullException.ThrowIfNull(unidade);
@@ -53,8 +53,8 @@ public sealed class ComandosPortal
         _portal = portal;
         _solicitacoes = solicitacoes;
         _clientes = clientes;
-        _interacoes = interacoes;
         _abertura = abertura;
+        _resposta = resposta;
         _calendarios = calendarios;
         _relogio = relogio;
         _unidade = unidade;
@@ -122,7 +122,8 @@ public sealed class ComandosPortal
 
     /// <summary>
     /// Resposta do cliente, sempre EXTERNA. Devolve o Id da interação. Autor: o usuário do contato ou, na sessão de link
-    /// (sem conta), o Id do próprio contato. Anexos opcionais, como nos comentários da equipe.
+    /// (sem conta), o Id do próprio contato. Anexos opcionais, como nos comentários da equipe. O núcleo é o mesmo da
+    /// resposta a um aviso por e-mail (<see cref="RespostaPeloContato"/>; design do F15, §1.2).
     /// </summary>
     public async Task<Guid> ResponderAsync(
         Guid solicitacaoId, RespostaPortalRequest dados, IReadOnlyList<ArquivoRecebido>? arquivos = null,
@@ -130,7 +131,7 @@ public sealed class ComandosPortal
     {
         ArgumentNullException.ThrowIfNull(dados);
         var solicitacao = await CarregarAsync(solicitacaoId, Permissoes.PortalSolicitacaoComentar, cancellationToken);
-        solicitacao.GarantirConversaAberta(doCliente: true, Visibilidade.Externa, comAnexos: arquivos is { Count: > 0 });
+        RespostaPeloContato.GarantirConversaAberta(solicitacao, comAnexos: arquivos is { Count: > 0 });
         var contato = await _portal.ContatoAsync(cancellationToken);
         var anexos = await _anexos.EnviarAsync(solicitacao.TenantId, solicitacao.Id, arquivos, cancellationToken);
         try
@@ -148,21 +149,9 @@ public sealed class ComandosPortal
         Solicitacao solicitacao, ContatoDoPortal contato, RespostaPortalRequest dados, IReadOnlyList<NovoAnexo> anexos,
         CancellationToken cancellationToken)
     {
-        var interacao = Interacao.Registrar(
-            Guid.CreateVersion7(),
-            solicitacao.TenantId,
-            solicitacao.ClienteId,
-            solicitacao.Id,
-            // Sessão de link não tem usuário: o autor é o contato (os nomes caem no contato do cliente).
-            _contexto.UsuarioId ?? contato.ContatoId,
-            autorEhCliente: true,
-            dados.Texto,
-            Visibilidade.Externa,
-            CanalMensagem.Portal,
-            anexos,
-            ComandosSolicitacao.PoliticaPadrao,
-            _relogio.Agora);
-        _interacoes.Adicionar(interacao);
+        // Sessão de link não tem usuário: o autor é o contato (os nomes caem no contato do cliente).
+        var interacao = _resposta.Responder(
+            solicitacao, _contexto.UsuarioId ?? contato.ContatoId, dados.Texto, CanalMensagem.Portal, anexos);
         await _unidade.SalvarAsync(cancellationToken);
         return interacao.Id;
     }

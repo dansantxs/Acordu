@@ -26,8 +26,9 @@ public enum DesfechoEntrada
     Repetida = 6,
 
     /// <summary>
-    /// Registrado na empresa como <c>IGNORADO</c>, sem efeito visível (design §3): a resposta ao endereço da conversa até o
-    /// F15i.
+    /// Registrado na empresa como <c>IGNORADO</c>, sem efeito visível (design §3): a resposta à conversa que o F15j ainda vai
+    /// tratar (solicitação FECHADA ou CANCELADA, remetente que não é o contato da solicitação, resposta sem texto nem anexo
+    /// válido).
     /// </summary>
     Registrada = 7,
 
@@ -45,4 +46,10 @@ public enum DesfechoEntrada
 
     /// <summary>Remetente não identificado: foi à triagem da empresa (F15-70; registro <c>TRIAGEM</c>), nada respondido.</summary>
     Triagem = 12,
+
+    /// <summary>
+    /// Resposta do contato ao endereço da conversa: entrou como mensagem EXTERNA dele, no canal E-mail (F15-30; registro
+    /// <c>MENSAGEM</c>).
+    /// </summary>
+    Respondida = 13,
 }

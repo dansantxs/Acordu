@@ -26,9 +26,16 @@ namespace Acordu.Application.EntradaEmail;
 /// <para>
 /// O remetente não identificado vai à triagem da empresa (D10; F15-20, F15-24 a F15-26, F15-70): um
 /// <see cref="ItemTriagemEmail"/> com o remetente, o assunto, o texto, o motivo (<see cref="IdentificacaoDoRemetente.Classificar"/>)
-/// e os anexos pela mesma política, os válidos no storage na chave da triagem; nada é respondido nem avisado. Entre um PR e
-/// outro (design §3), a resposta ao endereço da conversa (F15i) fica só no registro, como
-/// <see cref="ResultadoEntradaEmail.Ignorado"/>.
+/// e os anexos pela mesma política, os válidos no storage na chave da triagem; nada é respondido nem avisado.
+/// </para>
+/// <para>
+/// A resposta ao endereço da conversa (D3; F15-30 a F15-32, F15-45) entra na solicitação do token, procurado só dentro da
+/// empresa do código, como uma resposta pelo portal (<see cref="RespostaPeloContato"/>): mensagem EXTERNA do contato da
+/// solicitação, no canal E-mail, com os anexos válidos; os efeitos (retomada, avisos à equipe, nenhum ao próprio contato)
+/// vêm do mesmo evento. O token que não é de conversa nenhuma da empresa (adulterado, de outra empresa, expurgado) não
+/// conta: o e-mail segue como e-mail novo (F15-40), e o "#N" do assunto nunca conta (F15-37). Entre um PR e outro (design
+/// §3), o que o F15j trata (solicitação encerrada, colega ou estranho, resposta sem texto nem anexo, anexos recusados) fica
+/// só no registro, como <see cref="ResultadoEntradaEmail.Ignorado"/>.
 /// </para>
 /// </summary>
 public sealed class ComandosEntradaEmail
@@ -45,6 +52,9 @@ public sealed class ComandosEntradaEmail
     private readonly IUnitOfWork _unidade;
     private readonly TimeProvider _relogio;
     private readonly OpcoesEmailEntrada _opcoes;
+    private readonly IConversasPorEmail _conversasDoDestino;
+    private readonly IRepositorio<Solicitacao> _solicitacoes;
+    private readonly RespostaPeloContato _resposta;
 
     public ComandosEntradaEmail(
         ITenantContext contexto,
@@ -58,7 +68,10 @@ public sealed class ComandosEntradaEmail
         IRepositorio<ItemTriagemEmail> triagem,
         IUnitOfWork unidade,
         TimeProvider relogio,
-        OpcoesEmailEntrada opcoes)
+        OpcoesEmailEntrada opcoes,
+        IConversasPorEmail conversasDoDestino,
+        IRepositorio<Solicitacao> solicitacoes,
+        RespostaPeloContato resposta)
     {
         ArgumentNullException.ThrowIfNull(contexto);
         ArgumentNullException.ThrowIfNull(registros);
@@ -72,6 +85,9 @@ public sealed class ComandosEntradaEmail
         ArgumentNullException.ThrowIfNull(unidade);
         ArgumentNullException.ThrowIfNull(relogio);
         ArgumentNullException.ThrowIfNull(opcoes);
+        ArgumentNullException.ThrowIfNull(conversasDoDestino);
+        ArgumentNullException.ThrowIfNull(solicitacoes);
+        ArgumentNullException.ThrowIfNull(resposta);
         _contexto = contexto;
         _registros = registros;
         _repositorio = repositorio;
@@ -84,6 +100,9 @@ public sealed class ComandosEntradaEmail
         _unidade = unidade;
         _relogio = relogio;
         _opcoes = opcoes;
+        _conversasDoDestino = conversasDoDestino;
+        _solicitacoes = solicitacoes;
+        _resposta = resposta;
     }
 
     /// <summary>
@@ -109,13 +128,10 @@ public sealed class ComandosEntradaEmail
                 tenantId, chave, mensagem, ResultadoEntradaEmail.Ignorado, descarte, null, null, null, cancellationToken);
         }
 
-        // A resposta ao endereço da conversa entra no F15i (design §3): até lá, só o registro.
-        if (destino.Token is not null)
-        {
-            return await RegistrarAsync(
-                tenantId, chave, mensagem, ResultadoEntradaEmail.Ignorado, DesfechoEntrada.Registrada, null, null, null,
-                cancellationToken);
-        }
+        // A resposta ao endereço da conversa (D3): o token só vale dentro da empresa do código. Sem conversa (adulterado, de
+        // outra empresa, de solicitação que não existe mais), o e-mail segue como e-mail novo ou vai à triagem (F15-40).
+        if (await SolicitacaoDoDestinoAsync(destino, cancellationToken) is { } respondida)
+            return await ResponderAsync(tenantId, chave, mensagem, respondida, cancellationToken);
 
         var identificacao = await IdentificarAsync(mensagem, cancellationToken);
         if (identificacao.Contato is not { } contato)
@@ -138,6 +154,73 @@ public sealed class ComandosEntradaEmail
             await _anexos.DescartarAsync(enviados);
             throw;
         }
+    }
+
+    /// <summary>
+    /// A solicitação da conversa do token do destino, procurado só na empresa do contexto (D3); nula sem token, com um token
+    /// fora do formato (sem ir ao banco) ou sem conversa com ele (F15-40).
+    /// </summary>
+    private async Task<Solicitacao?> SolicitacaoDoDestinoAsync(DestinoDeEntrada destino, CancellationToken cancellationToken)
+    {
+        if (destino.Token is not { } token || !ConversaPorEmail.TokenValido(token))
+            return null;
+        return await _conversasDoDestino.PorTokenAsync(token, cancellationToken) is { } conversa
+            ? await _solicitacoes.ObterPorIdAsync(conversa.SolicitacaoId, cancellationToken)
+            : null;
+    }
+
+    /// <summary>
+    /// A resposta do contato da solicitação, como pelo portal (RF-POR-05, RF-SOL-13; F15-30 a F15-32): mensagem EXTERNA no
+    /// canal E-mail, autor a conta do contato ou o próprio contato (design §1.2), com o texto do corpo e os anexos válidos
+    /// na chave da solicitação (subidos antes do commit, tirados de novo se a gravação falhar, inclusive na corrida de duas
+    /// entregas iguais, F15-23). O registro de entrada aponta a solicitação (D6). O resto fica para o F15j (design §3): a
+    /// solicitação encerrada abre outra (F15-33), o colega e quem não é contato do cliente (F15-38, F15-39), a resposta só
+    /// com a citação (F15-36) e os anexos recusados (F15-34); até lá, só o registro.
+    /// </summary>
+    private async Task<DesfechoEntrada> ResponderAsync(
+        Guid tenantId, string chave, MensagemDeEntrada mensagem, Solicitacao solicitacao, CancellationToken cancellationToken)
+    {
+        var texto = ConteudoDaAbertura.TextoDaResposta(mensagem.Texto);
+        var separacao = AnexosDaEntrada.Separar(mensagem.Anexos, RecebimentoAnexos.Politica);
+        if (solicitacao.EstaFinalizada
+            || (texto is null && separacao.Validos.Count == 0)
+            || await ContatoDaSolicitacaoAsync(mensagem, solicitacao, cancellationToken) is not { } contato)
+        {
+            return await RegistrarAsync(
+                tenantId, chave, mensagem, ResultadoEntradaEmail.Ignorado, DesfechoEntrada.Registrada, null, null, null,
+                cancellationToken);
+        }
+
+        var enviados = await _anexos.EnviarAsync(tenantId, solicitacao.Id, separacao.Validos, cancellationToken);
+        try
+        {
+            // Como na sessão de link: sem conta do portal, o autor é o próprio contato (design §1.2).
+            _resposta.Responder(solicitacao, contato.UsuarioId ?? contato.ContatoId, texto, CanalMensagem.Email, enviados);
+            return await RegistrarAsync(
+                tenantId, chave, mensagem, ResultadoEntradaEmail.Mensagem, DesfechoEntrada.Respondida, solicitacao.Id, null,
+                null, cancellationToken);
+        }
+        catch
+        {
+            await _anexos.DescartarAsync(enviados);
+            throw;
+        }
+    }
+
+    /// <summary>
+    /// O contato da solicitação, se é ele quem responde: um endereço só no <c>From</c>, o dele, com a autenticidade
+    /// confirmada (D11), ele e o cliente ativos (<see cref="IdentificacaoDoRemetente.DaSolicitacao"/>).
+    /// </summary>
+    private async Task<ContatoDeEntrada?> ContatoDaSolicitacaoAsync(
+        MensagemDeEntrada mensagem, Solicitacao solicitacao, CancellationToken cancellationToken)
+    {
+        if (solicitacao.ContatoId is null || IdentificacaoDoRemetente.EmailDoRemetente(mensagem.Remetentes) is not { } email)
+            return null;
+        return IdentificacaoDoRemetente.DaSolicitacao(
+            IdentificacaoDoRemetente.AutenticidadeOk(mensagem.Autenticidade),
+            await _contatos.PorEmailAsync(email, cancellationToken),
+            solicitacao.ClienteId,
+            solicitacao.ContatoId);
     }
 
     /// <summary>

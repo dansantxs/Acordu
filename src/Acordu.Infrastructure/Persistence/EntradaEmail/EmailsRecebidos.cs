@@ -1,4 +1,5 @@
 using Acordu.Application.EntradaEmail;
+using Acordu.Domain.Enums;
 using Acordu.Domain.ValueObjects;
 using Acordu.Infrastructure.Persistence.Configurations;
 using Microsoft.EntityFrameworkCore;
@@ -22,7 +23,8 @@ public sealed class EmailsRecebidos : IEmailsRecebidos
 
     public Task<AnexosRecusados?> RecusadosDaAberturaAsync(Guid solicitacaoId, CancellationToken cancellationToken = default) =>
         _db.EmailsRecebidos.AsNoTracking()
-            .Where(e => e.SolicitacaoId == solicitacaoId)
+            // A resposta na conversa (MENSAGEM, F15i) também aponta a solicitação; os recusados são só os da abertura.
+            .Where(e => e.SolicitacaoId == solicitacaoId && e.Resultado == ResultadoEntradaEmail.Solicitacao)
             .OrderBy(e => e.RecebidoEm)
             .Select(e => e.Recusados)
             .FirstOrDefaultAsync(cancellationToken);

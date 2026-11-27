@@ -139,4 +139,34 @@ public sealed class EmailRecebidoTests
 
         registrar.Should().Throw<ArgumentException>().WithParameterName("itemTriagemId");
     }
+
+    [Fact] // F15i (design D6): a resposta na conversa guarda a solicitação, sem recusados
+    public void Registrar_Mensagem_GuardaASolicitacao()
+    {
+        var solicitacao = Guid.NewGuid();
+
+        var registro = EmailRecebido.Registrar(
+            Guid.NewGuid(), Guid.NewGuid(), Chave, Remetente, ResultadoEntradaEmail.Mensagem, Agora, solicitacao);
+
+        registro.SolicitacaoId.Should().Be(solicitacao);
+        registro.Recusados.Should().BeNull();
+        registro.ItemTriagemId.Should().BeNull();
+    }
+
+    [Fact]
+    public void Registrar_MensagemSemSolicitacao_ArgumentException()
+    {
+        var registrar = () => EmailRecebido.Registrar(Guid.NewGuid(), Guid.NewGuid(), Chave, null, ResultadoEntradaEmail.Mensagem, Agora);
+
+        registrar.Should().Throw<ArgumentException>().WithParameterName("solicitacaoId");
+    }
+
+    [Fact] // os recusados da resposta não ficam no registro (o aviso deles é do F15j)
+    public void Registrar_MensagemComRecusados_ArgumentException()
+    {
+        var registrar = () => EmailRecebido.Registrar(
+            Guid.NewGuid(), Guid.NewGuid(), Chave, null, ResultadoEntradaEmail.Mensagem, Agora, Guid.NewGuid(), Recusados);
+
+        registrar.Should().Throw<ArgumentException>().WithParameterName("recusados");
+    }
 }
