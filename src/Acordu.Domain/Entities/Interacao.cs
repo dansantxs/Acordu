@@ -78,6 +78,8 @@ public sealed class Interacao : RaizComCliente
             throw new ArgumentException("Mensagem do contato nunca entra pelo canal Acordu.", nameof(canal));
         if (!autorEhCliente && canal != CanalMensagem.Acordu)
             throw new ArgumentException("A equipe escreve só pelo canal Acordu.", nameof(canal));
+        if (AutoresDoSistema.Eh(autorId))
+            throw new ArgumentException("O autor do sistema só escreve a nota do sistema.", nameof(autorId));
 
         var textoValido = Common.Texto.Opcional(texto, LimitesTexto.TextoInteracao, nameof(texto));
         if (textoValido is null && anexos.Count == 0)
@@ -111,5 +113,42 @@ public sealed class Interacao : RaizComCliente
         }
 
         return interacao;
+    }
+
+    /// <summary>
+    /// A <b>nota do sistema</b> (design do F15, D15; ADR 0016, item 10): o que o próprio Acordu escreve na conversa (hoje,
+    /// os anexos recusados de um e-mail recebido, F15-15), sempre INTERNA, com um autor de <see cref="AutoresDoSistema"/>
+    /// (nunca uma pessoa da equipe) e o <paramref name="canal"/> da entrada que a gerou: a exceção única à regra "a equipe
+    /// só pelo canal Acordu" (D8). Não registra <see cref="InteracaoRegistrada"/>: ninguém da equipe agiu, então nada de
+    /// aviso (ao contato, RNF-SEG-03, F15-98; nem aos seguidores), de feed, de seguimento automático nem de primeira
+    /// resposta. Sem anexos nem menções.
+    /// </summary>
+    public static Interacao RegistrarNotaDoSistema(
+        Guid id,
+        Guid tenantId,
+        Guid clienteId,
+        Guid solicitacaoId,
+        Guid autorId,
+        string texto,
+        CanalMensagem canal,
+        DateTimeOffset agora)
+    {
+        if (!AutoresDoSistema.Eh(autorId))
+            throw new ArgumentException("A nota do sistema só tem autor do sistema.", nameof(autorId));
+        if (!Enum.IsDefined(canal))
+            throw new ArgumentOutOfRangeException(nameof(canal), canal, "Canal inválido.");
+        if (canal == CanalMensagem.Acordu)
+            throw new ArgumentException("A nota do sistema leva o canal da entrada que a gerou.", nameof(canal));
+
+        return new Interacao(id, tenantId, clienteId)
+        {
+            SolicitacaoId = Ids.Obrigatorio(solicitacaoId, nameof(solicitacaoId)),
+            AutorId = autorId,
+            AutorEhCliente = false,
+            Texto = Common.Texto.Obrigatorio(texto, LimitesTexto.TextoInteracao, nameof(texto)),
+            Visibilidade = Visibilidade.Interna,
+            Canal = canal,
+            RegistradaEm = agora.ToUniversalTime(),
+        };
     }
 }

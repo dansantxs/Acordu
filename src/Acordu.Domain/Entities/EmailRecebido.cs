@@ -1,13 +1,14 @@
 using System.Buffers;
 using Acordu.Domain.Common;
 using Acordu.Domain.Enums;
+using Acordu.Domain.ValueObjects;
 
 namespace Acordu.Domain.Entities;
 
 /// <summary>
 /// Registro de entrada de um e-mail aceito para uma empresa (RF-SOL-11; design do F15, D6; ADR 0016, item 8), sem o
 /// conteúdo: a chave de idempotência (<see cref="ChaveEntrada"/>, única na empresa), o hash do remetente, o instante da
-/// recepção e o <see cref="Resultado"/>. Serve à idempotência (a repetição da mesma entrega esbarra no índice único) e às
+/// recepção e o <see cref="Resultado"/>; da abertura, a solicitação e os anexos recusados (F15g). Serve à idempotência (a repetição da mesma entrega esbarra no índice único) e às
 /// contagens dos limites (F15n). Nada do assunto, do texto nem dos endereços em claro. Retenção curta, apagada pelo
 /// diário (F15e). Raiz por tenant, sem cliente: o remetente pode nem ser contato.
 /// </summary>
@@ -41,17 +42,41 @@ public sealed class EmailRecebido : EntidadeBase
 
     public ResultadoEntradaEmail Resultado { get; private set; }
 
+    /// <summary>A solicitação que o e-mail abriu (resultado SOLICITACAO); nula nos outros.</summary>
+    public Guid? SolicitacaoId { get; private set; }
+
+    /// <summary>
+    /// Os anexos que não entraram, com o motivo (D14, F15-15): o aviso de recebida os lê daqui. Só o nome do arquivo e o
+    /// motivo; nulo quando nenhum foi recusado.
+    /// </summary>
+    public AnexosRecusados? Recusados { get; private set; }
+
+    /// <param name="solicitacaoId">Obrigatório com o resultado SOLICITACAO e proibido nos outros.</param>
+    /// <param name="recusados">Só com uma solicitação aberta (os outros resultados não guardam anexos aqui).</param>
     public static EmailRecebido Registrar(
-        Guid id, Guid tenantId, string chaveEntrada, string? remetenteHash, ResultadoEntradaEmail resultado, DateTimeOffset agora)
+        Guid id,
+        Guid tenantId,
+        string chaveEntrada,
+        string? remetenteHash,
+        ResultadoEntradaEmail resultado,
+        DateTimeOffset agora,
+        Guid? solicitacaoId = null,
+        AnexosRecusados? recusados = null)
     {
         if (!Enum.IsDefined(resultado))
             throw new ArgumentOutOfRangeException(nameof(resultado), resultado, "Resultado desconhecido.");
+        if ((resultado == ResultadoEntradaEmail.Solicitacao) != solicitacaoId.HasValue)
+            throw new ArgumentException("A solicitação acompanha só o resultado SOLICITACAO.", nameof(solicitacaoId));
+        if (recusados is not null && resultado != ResultadoEntradaEmail.Solicitacao)
+            throw new ArgumentException("Os anexos recusados acompanham só a abertura.", nameof(recusados));
         return new EmailRecebido(id, tenantId)
         {
             ChaveEntrada = Hash(chaveEntrada, nameof(chaveEntrada)),
             RemetenteHash = remetenteHash is null ? null : Hash(remetenteHash, nameof(remetenteHash)),
             Resultado = resultado,
             RecebidoEm = agora.ToUniversalTime(),
+            SolicitacaoId = solicitacaoId is { } solicitacao ? Ids.Obrigatorio(solicitacao, nameof(solicitacaoId)) : null,
+            Recusados = recusados,
         };
     }
 

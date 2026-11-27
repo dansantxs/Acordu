@@ -1,3 +1,4 @@
+using Acordu.Domain.Common;
 using Acordu.Domain.Entities;
 using Acordu.Domain.Enums;
 using Acordu.Domain.Events;
@@ -215,5 +216,68 @@ public sealed class InteracaoTests
         var acao = () => Registrar(canal: (CanalMensagem)99);
 
         acao.Should().Throw<ArgumentOutOfRangeException>().WithParameterName("canal");
+    }
+
+    private static Interacao NotaDoSistema(
+        string texto = "Anexos do e-mail que não entraram na solicitação:\n- a.exe: tipo de arquivo não permitido",
+        CanalMensagem canal = CanalMensagem.Email,
+        Guid? autor = null) =>
+        Interacao.RegistrarNotaDoSistema(
+            Guid.NewGuid(), Calendarios.Tenant, Contratos.Cliente, Solicitacao, autor ?? AutoresDoSistema.EntradaEmail, texto, canal,
+            Brasilia(6, 11));
+
+    [Fact] // F15-15, F15-98; design D8 e D15: INTERNA, autor do sistema, canal da entrada
+    public void RegistrarNotaDoSistema_DaEntradaEmail_InternaDoAutorDoSistemaNoCanalEmail()
+    {
+        var nota = NotaDoSistema();
+
+        nota.Visibilidade.Should().Be(Visibilidade.Interna);
+        nota.AutorId.Should().Be(AutoresDoSistema.EntradaEmail);
+        nota.AutorEhCliente.Should().BeFalse();
+        nota.Canal.Should().Be(CanalMensagem.Email, "a exceção única à regra da equipe só no canal Acordu");
+        nota.SolicitacaoId.Should().Be(Solicitacao);
+        nota.Texto.Should().StartWith("Anexos do e-mail");
+        nota.Anexos.Should().BeEmpty();
+        nota.RegistradaEm.Offset.Should().Be(TimeSpan.Zero);
+    }
+
+    [Fact] // F15-98: sem evento, nada de aviso ao contato nem aos seguidores, feed ou seguimento
+    public void RegistrarNotaDoSistema_QualquerUma_NaoRegistraEvento()
+    {
+        NotaDoSistema().Eventos.Should().BeEmpty();
+    }
+
+    [Fact] // design D15: a nota é do sistema, nunca de uma pessoa
+    public void RegistrarNotaDoSistema_AutorQueNaoEDoSistema_LancaExcecao()
+    {
+        var acao = () => NotaDoSistema(autor: Autor);
+
+        acao.Should().Throw<ArgumentException>().WithParameterName("autorId");
+    }
+
+    [Fact] // design D8: a nota leva o canal da entrada que a gerou
+    public void RegistrarNotaDoSistema_CanalAcordu_LancaExcecao()
+    {
+        var acao = () => NotaDoSistema(canal: CanalMensagem.Acordu);
+
+        acao.Should().Throw<ArgumentException>().WithParameterName("canal");
+    }
+
+    [Fact]
+    public void RegistrarNotaDoSistema_SemTexto_LancaExcecao()
+    {
+        var acao = () => NotaDoSistema(texto: "  ");
+
+        acao.Should().Throw<ArgumentException>().WithParameterName("texto");
+    }
+
+    [Fact] // design D15: o autor do sistema não escreve pelo caminho das pessoas
+    public void Registrar_AutorDoSistema_LancaExcecao()
+    {
+        var acao = () => Interacao.Registrar(
+            Guid.NewGuid(), Calendarios.Tenant, Contratos.Cliente, Solicitacao, AutoresDoSistema.EntradaEmail, false, "oi",
+            Visibilidade.Interna, CanalMensagem.Acordu, [], Politica, Brasilia(6, 11));
+
+        acao.Should().Throw<ArgumentException>().WithParameterName("autorId");
     }
 }
