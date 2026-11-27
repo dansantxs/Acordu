@@ -244,6 +244,106 @@ public sealed class EntradaEmailTests(BancoFixture banco)
         DescarteDeEntrada.Automatico(mensagem).Should().BeFalse();
     }
 
+    [Fact] // F15-11, F15-13: o assunto decodificado e o texto do corpo
+    public async Task LerAsync_EmailComum_AssuntoETexto()
+    {
+        var mime = Mime("<abc@mail.cliente.com.br>");
+        await using var corpo = new MemoryStream(mime);
+
+        var mensagem = await LeitorMime.LerAsync(corpo, mime.Length);
+
+        mensagem!.Assunto.Should().Be("Forno parou");
+        mensagem.Texto.Should().StartWith("O forno parou de novo.");
+        mensagem.Autenticidade.Should().BeNull("o veredito vem do Worker, não do MIME");
+    }
+
+    [Fact] // F15-13: texto e HTML juntos, a parte em texto vale
+    public async Task LerAsync_TextoEHtml_ParteEmTexto()
+    {
+        var mime = Encoding.UTF8.GetBytes(
+            "From: Ana <ana@cliente.com.br>\r\n"
+            + "Subject: =?utf-8?Q?Forno_n=C3=A3o_liga?=\r\n"
+            + "MIME-Version: 1.0\r\n"
+            + "Content-Type: multipart/alternative; boundary=\"b\"\r\n"
+            + "\r\n"
+            + "--b\r\nContent-Type: text/plain; charset=utf-8\r\n\r\nO forno não liga.\r\n"
+            + "--b\r\nContent-Type: text/html; charset=utf-8\r\n\r\n<p>O <b>forno</b> não liga (HTML).</p>\r\n--b--\r\n");
+        await using var corpo = new MemoryStream(mime);
+
+        var mensagem = await LeitorMime.LerAsync(corpo, mime.Length);
+
+        mensagem!.Assunto.Should().Be("Forno não liga", "o assunto codificado (RFC 2047) chega decodificado");
+        mensagem.Texto.Should().Contain("O forno não liga.").And.NotContain("HTML");
+    }
+
+    [Fact] // F15-13 e design D14: só HTML vira texto, sem marcação nem script
+    public async Task LerAsync_SoHtml_TextoSemMarcacaoNemScript()
+    {
+        var mime = Encoding.UTF8.GetBytes(
+            "From: Ana <ana@cliente.com.br>\r\n"
+            + "Subject: Forno\r\n"
+            + "MIME-Version: 1.0\r\n"
+            + "Content-Type: text/html; charset=utf-8\r\n"
+            + "\r\n"
+            + "<html><head><style>p { color: red; }</style><script>alert('x')</script></head>"
+            + "<body><p>O <b>forno</b> parou &amp; esfriou.</p><p>Segunda linha</p></body></html>\r\n");
+        await using var corpo = new MemoryStream(mime);
+
+        var mensagem = await LeitorMime.LerAsync(corpo, mime.Length);
+
+        mensagem!.Texto.Should().Contain("O forno parou & esfriou.").And.Contain("Segunda linha");
+        mensagem.Texto.Should().NotContain("<").And.NotContain("alert").And.NotContain("color");
+    }
+
+    [Fact] // F15-12, F15-13: sem assunto nem corpo
+    public async Task LerAsync_SemAssuntoNemCorpo_Nulos()
+    {
+        var mime = Encoding.UTF8.GetBytes("From: Ana <ana@cliente.com.br>\r\nMessage-ID: <x@cliente.com.br>\r\n\r\n");
+        await using var corpo = new MemoryStream(mime);
+
+        var mensagem = await LeitorMime.LerAsync(corpo, mime.Length);
+
+        mensagem!.Assunto.Should().BeNull();
+        ConteudoDaAbertura.Descricao(mensagem.Texto).Should().BeNull();
+    }
+
+    [Fact] // F15-10, F15-21, F15-24, F15-25: os contatos com o e-mail, só da empresa do contexto
+    public async Task ContatosDeEntrada_PorEmail_SoDaEmpresaComAtivoEInativo()
+    {
+        var a = await EmpresaAsync();
+        var b = await EmpresaAsync();
+        var ativo = Cliente.Criar(Guid.NewGuid(), a.Id, "Padaria Bom Grão", null, null);
+        var contato = ativo.AdicionarContato("Ana", "ana@cliente.com.br", null, null);
+        var outro = Cliente.Criar(Guid.NewGuid(), a.Id, "Mercado Central", null, null);
+        var inativo = outro.AdicionarContato("Ana", "ana@cliente.com.br", null, null);
+        outro.InativarContato(inativo.Id);
+        outro.AdicionarContato("Beto", "beto@cliente.com.br", null, null);
+        var deB = Cliente.Criar(Guid.NewGuid(), b.Id, "Padaria de B", null, null);
+        deB.AdicionarContato("Ana", "ana@cliente.com.br", null, null);
+        await using (var db = banco.DaEquipe(a.Id))
+        {
+            db.AddRange(ativo, outro);
+            await db.SaveChangesAsync();
+        }
+
+        await using (var db = banco.DaEquipe(b.Id))
+        {
+            db.Add(deB);
+            await db.SaveChangesAsync();
+        }
+
+        await using var leitura = banco.DaEquipe(a.Id);
+        var contatos = await new ContatosDeEntrada(leitura).PorEmailAsync("ana@cliente.com.br");
+
+        var esperados = new[]
+        {
+            new ContatoDeEntrada(ativo.Id, contato.Id, null, ClienteAtivo: true, ContatoAtivo: true),
+            new ContatoDeEntrada(outro.Id, inativo.Id, null, ClienteAtivo: true, ContatoAtivo: false),
+        };
+        contatos.Should().BeEquivalentTo(esperados, "o contato da empresa B com o mesmo e-mail não aparece em A (isolamento entre tenants)");
+        IdentificacaoDoRemetente.Escolher(contatos)!.ContatoId.Should().Be(contato.Id);
+    }
+
     [Fact]
     public async Task LerAsync_CorpoVazio_Nulo() // plano-2, menor 6: ilegível não vira erro
     {

@@ -2,6 +2,7 @@ using Acordu.Application.Common;
 using Acordu.Application.EntradaEmail;
 using Acordu.Infrastructure.MultiTenancy;
 using Acordu.Infrastructure.Persistence.EntradaEmail;
+using Acordu.Infrastructure.Persistence.Outbox;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
@@ -12,23 +13,29 @@ namespace Acordu.Infrastructure.Email.Entrada;
 /// O e-mail que chegou à rota de entrada (RF-SOL-11; design do F15, D1, D6, D12 e D14; ADR 0016, itens 2, 3 e 8), na
 /// ordem do D12 depois do token e do tamanho declarado (que a Api confere): destino → empresa (desconhecida, só leitura,
 /// desligada) → leitura do MIME (tamanho real) → escopo da empresa, onde o automático, o laço e o filtro do provedor viram
-/// descarte registrado (F15-85, F15-87, F15-88). Os descartes antes da empresa não leem o corpo nem gravam nada (F15-05,
-/// F15-19, F15-22). Cada e-mail deixa uma linha de log só com o desfecho (convenções §5): nada do
-/// endereço, do assunto nem do conteúdo.
+/// descarte registrado (F15-85, F15-87, F15-88) e o remetente conhecido abre a solicitação (F15-10). Os descartes antes da
+/// empresa não leem o corpo nem gravam nada (F15-05, F15-19, F15-22). As mensagens da outbox que o escopo da empresa gravou
+/// (o aviso de recebida, o aviso à equipe) saem antes da resposta, como no fim de qualquer requisição (design §1.2,
+/// "Webhook"; ADR 0010); falha aqui não muda o desfecho, e o job <c>tick</c> tenta de novo. Cada e-mail deixa uma linha de
+/// log só com o desfecho (convenções §5): nada do endereço, do assunto nem do conteúdo.
 /// </summary>
 public sealed partial class RecebedorDeEmail
 {
     private readonly IServiceScopeFactory _escopos;
     private readonly OpcoesEmailEntrada _opcoes;
+    private readonly ProcessadorOutbox _outbox;
     private readonly ILogger<RecebedorDeEmail> _logger;
 
-    public RecebedorDeEmail(IServiceScopeFactory escopos, OpcoesEmailEntrada opcoes, ILogger<RecebedorDeEmail> logger)
+    public RecebedorDeEmail(
+        IServiceScopeFactory escopos, OpcoesEmailEntrada opcoes, ProcessadorOutbox outbox, ILogger<RecebedorDeEmail> logger)
     {
         ArgumentNullException.ThrowIfNull(escopos);
         ArgumentNullException.ThrowIfNull(opcoes);
+        ArgumentNullException.ThrowIfNull(outbox);
         ArgumentNullException.ThrowIfNull(logger);
         _escopos = escopos;
         _opcoes = opcoes;
+        _outbox = outbox;
         _logger = logger;
     }
 
@@ -66,15 +73,20 @@ public sealed partial class RecebedorDeEmail
 
         if (mensagem is null)
             return DesfechoEntrada.Malformada;
-        mensagem = mensagem with { RemetenteDoEnvelope = envelope.Remetente, Filtro = envelope.Filtro };
+        mensagem = mensagem with
+        {
+            RemetenteDoEnvelope = envelope.Remetente, Filtro = envelope.Filtro, Autenticidade = envelope.Autenticidade,
+        };
 
         // Escopo próprio com o tenant do destino fixado, como os jobs (ADR 0016, item 3): filtros e guardas valem.
         await using var escopo = _escopos.CreateAsyncScope();
         escopo.ServiceProvider.GetRequiredService<ContextoTenant>().DefinirEquipe(empresa!.TenantId);
         try
         {
-            return await escopo.ServiceProvider.GetRequiredService<ComandosEntradaEmail>()
+            var desfecho = await escopo.ServiceProvider.GetRequiredService<ComandosEntradaEmail>()
                 .ReceberAsync(mensagem, destino, cancellationToken);
+            await DespacharAsync(escopo.ServiceProvider.GetRequiredService<MensagensDaRequisicao>(), cancellationToken);
+            return desfecho;
         }
         catch (DbUpdateException ex) when (EmailsRecebidos.ChaveRepetida(ex))
         {
@@ -87,8 +99,29 @@ public sealed partial class RecebedorDeEmail
         }
     }
 
+    /// <summary>As mensagens da outbox que o escopo da empresa gravou, como o <c>DespachoOutbox</c> das rotas de negócio.</summary>
+    private async Task DespacharAsync(MensagensDaRequisicao mensagens, CancellationToken cancellationToken)
+    {
+        var ids = mensagens.Retirar();
+        if (ids.Count == 0)
+            return;
+
+        try
+        {
+            await _outbox.ProcessarAsync(ids, cancellationToken);
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            // Só o tipo: a mensagem de uma falha de envio pode trazer o endereço do contato (convenções §5).
+            FalhaNoDespacho(_logger, ids.Count, ex.GetType().Name);
+        }
+    }
+
     [LoggerMessage(EventId = 410, Level = LogLevel.Information, Message = "Entrada por e-mail: {Desfecho}.")]
     private static partial void Recebido(ILogger logger, DesfechoEntrada desfecho);
+
+    [LoggerMessage(EventId = 411, Level = LogLevel.Warning, Message = "Outbox da entrada por e-mail: falha ao despachar {Quantidade} mensagem(ns) ({TipoDaFalha}); o job tick tenta de novo.")]
+    private static partial void FalhaNoDespacho(ILogger logger, int quantidade, string tipoDaFalha);
 }
 
 /// <summary>
@@ -97,4 +130,6 @@ public sealed partial class RecebedorDeEmail
 /// <param name="Destinatario">O destinatário do envelope (<c>X-Email-Destinatario</c>).</param>
 /// <param name="Remetente">O remetente do envelope (<c>X-Email-Remetente</c>); vazio é devolução; nulo sem o cabeçalho.</param>
 /// <param name="Filtro">O veredito do filtro do provedor (<c>X-Email-Filtro</c>); nulo sem o cabeçalho.</param>
-public sealed record EnvelopeDeEntrada(string? Destinatario, string? Remetente = null, string? Filtro = null);
+/// <param name="Autenticidade">O veredito de autenticidade (<c>X-Email-Autenticidade</c>, D11); nulo sem o cabeçalho.</param>
+public sealed record EnvelopeDeEntrada(
+    string? Destinatario, string? Remetente = null, string? Filtro = null, string? Autenticidade = null);
